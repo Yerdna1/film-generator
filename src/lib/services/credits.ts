@@ -51,6 +51,22 @@ export async function getOrCreateCredits(userId: string): Promise<CreditsInfo> {
   });
 
   if (!credits) {
+    // Check if user exists first
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      // Return default credits if user doesn't exist in database
+      return {
+        balance: 0,
+        totalSpent: 0,
+        totalEarned: 0,
+        totalRealCost: 0,
+        lastUpdated: new Date(),
+      };
+    }
+
     credits = await prisma.credits.create({
       data: {
         userId,
@@ -152,7 +168,8 @@ export async function addCredits(
   description?: string
 ): Promise<{ success: boolean; balance: number }> {
   try {
-    const credits = await getOrCreateCredits(userId);
+    // Ensure credits record exists
+    await getOrCreateCredits(userId);
 
     const updated = await prisma.$transaction(async (tx) => {
       const userCredits = await tx.credits.findUnique({
