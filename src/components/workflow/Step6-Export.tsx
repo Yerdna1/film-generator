@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import JSZip from 'jszip';
 import {
   Download,
@@ -22,6 +22,7 @@ import {
   ClipboardList,
   Clock,
   Play,
+  Pause,
   Scissors,
   Coins,
   ImageDown,
@@ -31,12 +32,150 @@ import {
   FileDown,
   Loader2,
   MessageSquareText,
+  SkipBack,
+  SkipForward,
+  Rewind,
+  FastForward,
+  Volume2,
+  VolumeX,
+  Wand2,
+  Trash2,
 } from 'lucide-react';
 import { COSTS } from '@/lib/services/credits';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { TransitionType, Caption } from '@/types/project';
+
+// Transition variants for Framer Motion
+export const transitionVariants: Record<TransitionType, {
+  initial: object;
+  animate: object;
+  exit: object;
+}> = {
+  none: { initial: { opacity: 1 }, animate: { opacity: 1 }, exit: { opacity: 1 } },
+  fade: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 }
+  },
+  slideLeft: {
+    initial: { x: '100%', opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '-100%', opacity: 0 }
+  },
+  slideRight: {
+    initial: { x: '-100%', opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '100%', opacity: 0 }
+  },
+  slideUp: {
+    initial: { y: '100%', opacity: 0 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: '-100%', opacity: 0 }
+  },
+  slideDown: {
+    initial: { y: '-100%', opacity: 0 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: '100%', opacity: 0 }
+  },
+  zoomIn: {
+    initial: { scale: 0.5, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 1.5, opacity: 0 }
+  },
+  zoomOut: {
+    initial: { scale: 1.5, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 0.5, opacity: 0 }
+  },
+  swoosh: {
+    initial: { x: '100%', rotate: -10, opacity: 0 },
+    animate: { x: 0, rotate: 0, opacity: 1 },
+    exit: { x: '-100%', rotate: 10, opacity: 0 }
+  },
+};
+
+// Caption animation variants
+export const captionAnimations: Record<string, {
+  initial: object;
+  animate: object;
+  exit: object;
+}> = {
+  none: { initial: {}, animate: {}, exit: {} },
+  fadeIn: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 }
+  },
+  slideUp: {
+    initial: { y: 20, opacity: 0 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: -20, opacity: 0 }
+  },
+  typewriter: {
+    initial: { opacity: 0, width: 0 },
+    animate: { opacity: 1, width: 'auto' },
+    exit: { opacity: 0 }
+  },
+  popIn: {
+    initial: { scale: 0.5, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 0.8, opacity: 0 }
+  },
+};
+
+// Default caption style
+export const defaultCaptionStyle = {
+  fontSize: 'medium' as const,
+  fontFamily: 'default' as const,
+  color: '#ffffff',
+  backgroundColor: 'rgba(0,0,0,0.7)',
+  position: 'bottom' as const,
+  textShadow: true,
+};
+
+// Font size mapping
+const fontSizes = {
+  small: '0.875rem',
+  medium: '1.125rem',
+  large: '1.5rem',
+};
+
+// Transition type labels for UI
+const transitionLabels: Record<TransitionType, string> = {
+  none: 'None',
+  fade: 'Fade',
+  slideLeft: 'Slide Left',
+  slideRight: 'Slide Right',
+  slideUp: 'Slide Up',
+  slideDown: 'Slide Down',
+  zoomIn: 'Zoom In',
+  zoomOut: 'Zoom Out',
+  swoosh: 'Swoosh',
+};
+
+// dB to linear volume conversion (for music)
+// Range: -30dB to +6dB (mapped to 0.0316 to 2.0 linear, capped at 1.0 for HTML audio)
+const dBToLinear = (dB: number): number => {
+  // dB = 20 * log10(linear), so linear = 10^(dB/20)
+  const linear = Math.pow(10, dB / 20);
+  return Math.min(linear, 1); // Cap at 1.0 for HTML audio
+};
+
+const linearToDb = (linear: number): number => {
+  if (linear <= 0) return -60; // Effectively silent
+  return 20 * Math.log10(linear);
+};
+
+// Default transition settings
+const DEFAULT_TRANSITION_TYPE: TransitionType = 'swoosh';
+const DEFAULT_TRANSITION_DURATION = 400; // 0.4 seconds
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -55,7 +194,7 @@ interface Step6Props {
 
 export function Step6Export({ project: initialProject }: Step6Props) {
   const t = useTranslations();
-  const { exportProject, projects } = useProjectStore();
+  const { exportProject, projects, updateScene, updateProject } = useProjectStore();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -66,6 +205,25 @@ export function Step6Export({ project: initialProject }: Step6Props) {
   const [downloadingVideos, setDownloadingVideos] = useState(false);
   const [downloadingAudio, setDownloadingAudio] = useState(false);
   const [downloadingAll, setDownloadingAll] = useState(false);
+
+  // Movie Preview state
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const [previewVolume, setPreviewVolume] = useState(0.7);
+  const [isMuted, setIsMuted] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(project.musicVolume ?? 0.3);
+  const [musicVolumeDb, setMusicVolumeDb] = useState(() => linearToDb(project.musicVolume ?? 0.3));
+  const [currentCaption, setCurrentCaption] = useState<Caption | null>(null);
+
+  // Movie Preview refs
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const backgroundMusicRef = useRef<HTMLAudioElement>(null);
+  const imageTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const videoBlobCache = useRef<Map<string, string>>(new Map());
+  const playPromiseRef = useRef<Promise<void> | null>(null);
+  const seekPositionRef = useRef<number>(0); // Track seek position in seconds within current scene
 
   // Calculate completion stats
   const totalCharacters = project.characters.length;
@@ -87,6 +245,362 @@ export function Step6Export({ project: initialProject }: Step6Props) {
         Math.max(totalDialogueLines, 1))) *
       100
   );
+
+  // Movie Preview - Scene duration and total calculations
+  const SCENE_DURATION = 6; // 6 seconds per scene
+  const totalPreviewDuration = totalScenes * SCENE_DURATION;
+  const currentScene = project.scenes[currentPreviewIndex];
+  const hasVideo = currentScene?.videoUrl;
+  const hasImage = currentScene?.imageUrl;
+  const hasMedia = hasVideo || hasImage;
+
+  // Get cached video URL or original
+  const getVideoUrl = useCallback((url: string) => {
+    return videoBlobCache.current.get(url) || url;
+  }, []);
+
+  // Format time as MM:SS
+  const formatPreviewTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
+
+  // Calculate current time in the movie
+  const currentMovieTime = currentPreviewIndex * SCENE_DURATION + (previewProgress / 100) * SCENE_DURATION;
+
+  // Clear all preview timers
+  const clearPreviewTimers = useCallback(() => {
+    if (imageTimerRef.current) {
+      clearTimeout(imageTimerRef.current);
+      imageTimerRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  }, []);
+
+  // Go to next scene
+  const goToNextPreviewScene = useCallback(() => {
+    clearPreviewTimers();
+    setPreviewProgress(0);
+    seekPositionRef.current = 0;
+
+    if (currentPreviewIndex < totalScenes - 1) {
+      setCurrentPreviewIndex(prev => prev + 1);
+    } else {
+      // End of movie - stop playback and reset
+      setIsPreviewPlaying(false);
+      setCurrentPreviewIndex(0);
+    }
+  }, [currentPreviewIndex, totalScenes, clearPreviewTimers]);
+
+  // Go to previous scene
+  const goToPreviousPreviewScene = useCallback(() => {
+    clearPreviewTimers();
+    setPreviewProgress(0);
+    seekPositionRef.current = 0;
+
+    if (currentPreviewIndex > 0) {
+      setCurrentPreviewIndex(prev => prev - 1);
+    }
+  }, [currentPreviewIndex, clearPreviewTimers]);
+
+  // Play/Pause toggle
+  const handlePreviewPlayPause = useCallback(() => {
+    setIsPreviewPlaying(prev => !prev);
+  }, []);
+
+  // Jump to first scene
+  const jumpToFirstScene = useCallback(() => {
+    clearPreviewTimers();
+    setPreviewProgress(0);
+    seekPositionRef.current = 0;
+    setCurrentPreviewIndex(0);
+    setIsPreviewPlaying(false);
+  }, [clearPreviewTimers]);
+
+  // Jump to last scene
+  const jumpToLastScene = useCallback(() => {
+    clearPreviewTimers();
+    setPreviewProgress(0);
+    seekPositionRef.current = 0;
+    setCurrentPreviewIndex(totalScenes - 1);
+    setIsPreviewPlaying(false);
+  }, [clearPreviewTimers, totalScenes]);
+
+  // Handle slider seek
+  const handlePreviewSeek = useCallback((value: number[]) => {
+    const seekTime = value[0];
+    const sceneIndex = Math.floor(seekTime / SCENE_DURATION);
+    const timeInScene = seekTime % SCENE_DURATION;
+    const progressInScene = (timeInScene / SCENE_DURATION) * 100;
+
+    clearPreviewTimers();
+    seekPositionRef.current = timeInScene;
+    setCurrentPreviewIndex(Math.min(sceneIndex, totalScenes - 1));
+    setPreviewProgress(progressInScene);
+
+    // If video, seek to position
+    if (previewVideoRef.current && project.scenes[sceneIndex]?.videoUrl) {
+      previewVideoRef.current.currentTime = timeInScene;
+    }
+  }, [clearPreviewTimers, totalScenes, project.scenes]);
+
+  // Handle video ended
+  const handlePreviewVideoEnded = useCallback(() => {
+    goToNextPreviewScene();
+  }, [goToNextPreviewScene]);
+
+  // Handle video time update
+  const handlePreviewVideoTimeUpdate = useCallback(() => {
+    if (previewVideoRef.current) {
+      const video = previewVideoRef.current;
+      const duration = video.duration || SCENE_DURATION;
+      const progress = (video.currentTime / duration) * 100;
+      setPreviewProgress(Math.min(progress, 100));
+    }
+  }, []);
+
+  // Jump to specific scene
+  const jumpToScene = useCallback((index: number) => {
+    clearPreviewTimers();
+    setPreviewProgress(0);
+    seekPositionRef.current = 0;
+    setCurrentPreviewIndex(index);
+  }, [clearPreviewTimers]);
+
+  // Handle volume change
+  const handleVolumeChange = useCallback((value: number[]) => {
+    const newVolume = value[0];
+    setPreviewVolume(newVolume);
+    setIsMuted(newVolume === 0);
+    if (previewVideoRef.current) {
+      previewVideoRef.current.volume = newVolume;
+      previewVideoRef.current.muted = newVolume === 0;
+    }
+  }, []);
+
+  // Toggle mute
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => {
+      const newMuted = !prev;
+      if (previewVideoRef.current) {
+        previewVideoRef.current.muted = newMuted;
+      }
+      return newMuted;
+    });
+  }, []);
+
+  // Handle music volume change (using dB scale)
+  const handleMusicVolumeDbChange = useCallback((value: number[]) => {
+    const newDb = value[0];
+    const newLinear = dBToLinear(newDb);
+    setMusicVolumeDb(newDb);
+    setMusicVolume(newLinear);
+    if (backgroundMusicRef.current) {
+      backgroundMusicRef.current.volume = newLinear;
+    }
+    // Save to project (store linear value)
+    updateProject(project.id, { musicVolume: newLinear });
+  }, [project.id, updateProject]);
+
+  // Update scene transition
+  const handleTransitionChange = useCallback((sceneId: string, transitionType: TransitionType) => {
+    updateScene(project.id, sceneId, {
+      transition: { type: transitionType, duration: DEFAULT_TRANSITION_DURATION }
+    });
+  }, [project.id, updateScene]);
+
+  // Apply default transition (swoosh) to all scenes at once
+  const applyTransitionToAll = useCallback((transitionType: TransitionType = DEFAULT_TRANSITION_TYPE) => {
+    project.scenes.forEach((scene) => {
+      updateScene(project.id, scene.id, {
+        transition: { type: transitionType, duration: DEFAULT_TRANSITION_DURATION }
+      });
+    });
+  }, [project.id, project.scenes, updateScene]);
+
+  // Clear all transitions (set to none)
+  const clearAllTransitions = useCallback(() => {
+    project.scenes.forEach((scene) => {
+      updateScene(project.id, scene.id, {
+        transition: { type: 'none', duration: 0 }
+      });
+    });
+  }, [project.id, project.scenes, updateScene]);
+
+  // Get current transition for a scene (defaults to fade)
+  const getSceneTransition = useCallback((sceneIndex: number) => {
+    const scene = project.scenes[sceneIndex];
+    return scene?.transition?.type || 'fade';
+  }, [project.scenes]);
+
+  // Get transition duration for a scene
+  const getTransitionDuration = useCallback((sceneIndex: number) => {
+    const scene = project.scenes[sceneIndex];
+    return (scene?.transition?.duration || 500) / 1000; // Convert to seconds
+  }, [project.scenes]);
+
+  // Update current caption based on playback time
+  useEffect(() => {
+    const scene = project.scenes[currentPreviewIndex];
+    if (!scene?.captions || scene.captions.length === 0) {
+      setCurrentCaption(null);
+      return;
+    }
+
+    const timeInScene = (previewProgress / 100) * SCENE_DURATION;
+    const activeCaption = scene.captions.find(
+      cap => timeInScene >= cap.startTime && timeInScene <= cap.endTime
+    );
+    setCurrentCaption(activeCaption || null);
+  }, [currentPreviewIndex, previewProgress, project.scenes]);
+
+  // Sync background music with playback
+  useEffect(() => {
+    if (!backgroundMusicRef.current || !project.backgroundMusic) return;
+
+    const music = backgroundMusicRef.current;
+    music.volume = musicVolume;
+
+    if (isPreviewPlaying) {
+      music.play().catch(err => console.warn('Music playback error:', err));
+    } else {
+      music.pause();
+    }
+  }, [isPreviewPlaying, project.backgroundMusic, musicVolume]);
+
+  // Sync volume to video element when it changes
+  useEffect(() => {
+    if (previewVideoRef.current) {
+      previewVideoRef.current.volume = previewVolume;
+      previewVideoRef.current.muted = isMuted;
+    }
+  }, [currentPreviewIndex, previewVolume, isMuted]);
+
+  // Prefetch video blobs for smoother playback
+  useEffect(() => {
+    const prefetchVideos = async () => {
+      for (const scene of project.scenes) {
+        if (scene.videoUrl && !videoBlobCache.current.has(scene.videoUrl)) {
+          try {
+            const response = await fetch(scene.videoUrl);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            videoBlobCache.current.set(scene.videoUrl, blobUrl);
+          } catch (error) {
+            // Keep original URL on error
+            console.warn('Failed to prefetch video:', error);
+          }
+        }
+      }
+    };
+
+    prefetchVideos();
+
+    // Cleanup blob URLs on unmount
+    return () => {
+      videoBlobCache.current.forEach((blobUrl) => {
+        URL.revokeObjectURL(blobUrl);
+      });
+      videoBlobCache.current.clear();
+    };
+  }, [project.scenes]);
+
+  // Handle video canplay event - play when video is ready
+  const handleVideoCanPlay = useCallback(() => {
+    if (!isPreviewPlaying || !previewVideoRef.current) return;
+
+    const video = previewVideoRef.current;
+    // Set position from seek ref if needed
+    if (seekPositionRef.current > 0 && Math.abs(video.currentTime - seekPositionRef.current) > 0.5) {
+      video.currentTime = seekPositionRef.current;
+    }
+
+    // Store the play promise to handle pause correctly
+    playPromiseRef.current = video.play();
+    playPromiseRef.current.catch((error) => {
+      // Ignore AbortError - it's expected when play is interrupted by pause
+      if (error.name !== 'AbortError') {
+        console.error('Video playback error:', error);
+      }
+    });
+  }, [isPreviewPlaying]);
+
+  // Handle scene transitions and playback
+  useEffect(() => {
+    if (!isPreviewPlaying) {
+      clearPreviewTimers();
+      // Properly handle pause to avoid AbortError
+      if (previewVideoRef.current) {
+        const video = previewVideoRef.current;
+        // Store current position when pausing
+        seekPositionRef.current = video.currentTime;
+        if (playPromiseRef.current) {
+          // Wait for play promise to resolve before pausing
+          playPromiseRef.current
+            .then(() => video.pause())
+            .catch(() => {}); // Ignore AbortError
+          playPromiseRef.current = null;
+        } else {
+          video.pause();
+        }
+      }
+      return;
+    }
+
+    const scene = project.scenes[currentPreviewIndex];
+    if (!scene) return;
+
+    if (scene.videoUrl && previewVideoRef.current) {
+      // Video playback - the canplay event handler will start playback
+      // when the video is ready. If video is already loaded, trigger play
+      const video = previewVideoRef.current;
+      if (video.readyState >= 3) {
+        // Video is already ready to play
+        if (seekPositionRef.current > 0) {
+          video.currentTime = seekPositionRef.current;
+        }
+        playPromiseRef.current = video.play();
+        playPromiseRef.current.catch((error) => {
+          if (error.name !== 'AbortError') {
+            console.error('Video playback error:', error);
+          }
+        });
+      }
+      // Otherwise, canplay event will handle it
+    } else {
+      // Image slideshow - use timer
+      const startOffset = seekPositionRef.current * 1000;
+      const startTime = Date.now() - startOffset;
+      const duration = SCENE_DURATION * 1000;
+      const remainingTime = duration - startOffset;
+
+      imageTimerRef.current = setTimeout(() => {
+        goToNextPreviewScene();
+      }, remainingTime);
+
+      // Progress update interval for images
+      progressIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const newProgress = (elapsed / duration) * 100;
+        setPreviewProgress(Math.min(newProgress, 100));
+      }, 100);
+    }
+
+    return () => {
+      clearPreviewTimers();
+    };
+  }, [isPreviewPlaying, currentPreviewIndex, project.scenes, clearPreviewTimers, goToNextPreviewScene]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearPreviewTimers();
+    };
+  }, [clearPreviewTimers]);
 
   const handleExportJSON = () => {
     const json = exportProject(project.id);
@@ -617,6 +1131,351 @@ export function Step6Export({ project: initialProject }: Step6Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Movie Preview */}
+      {totalScenes > 0 && (
+        <Card className="glass border-white/10 border-purple-500/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Film className="w-5 h-5 text-purple-400" />
+                {t('steps.export.moviePreview')}
+              </CardTitle>
+              <Badge variant="outline" className="border-purple-500/30 text-purple-400">
+                {totalScenes} {t('steps.export.scenes')}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Background Music Audio Element (hidden) */}
+            {project.backgroundMusic && (
+              <audio
+                ref={backgroundMusicRef}
+                src={project.backgroundMusic.audioUrl}
+                loop
+                preload="auto"
+              />
+            )}
+
+            {/* Video/Image Display */}
+            <div className="relative aspect-video bg-black/50 rounded-xl overflow-hidden">
+              <AnimatePresence mode="wait">
+                {hasVideo ? (
+                  <motion.video
+                    key={`video-${currentPreviewIndex}`}
+                    ref={previewVideoRef}
+                    src={getVideoUrl(currentScene.videoUrl!)}
+                    className="w-full h-full object-contain"
+                    playsInline
+                    onEnded={handlePreviewVideoEnded}
+                    onTimeUpdate={handlePreviewVideoTimeUpdate}
+                    onCanPlay={handleVideoCanPlay}
+                    initial={transitionVariants[getSceneTransition(currentPreviewIndex > 0 ? currentPreviewIndex - 1 : 0)].exit}
+                    animate={transitionVariants[getSceneTransition(currentPreviewIndex)].animate}
+                    exit={transitionVariants[getSceneTransition(currentPreviewIndex)].exit}
+                    transition={{ duration: getTransitionDuration(currentPreviewIndex) }}
+                  />
+                ) : hasImage ? (
+                  <motion.img
+                    key={`image-${currentPreviewIndex}`}
+                    src={currentScene.imageUrl!}
+                    alt={currentScene.title}
+                    className="w-full h-full object-contain"
+                    initial={transitionVariants[getSceneTransition(currentPreviewIndex > 0 ? currentPreviewIndex - 1 : 0)].exit}
+                    animate={transitionVariants[getSceneTransition(currentPreviewIndex)].animate}
+                    exit={transitionVariants[getSceneTransition(currentPreviewIndex)].exit}
+                    transition={{ duration: getTransitionDuration(currentPreviewIndex) }}
+                  />
+                ) : (
+                  <motion.div
+                    key={`empty-${currentPreviewIndex}`}
+                    className="w-full h-full flex flex-col items-center justify-center text-muted-foreground"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <ImageIcon className="w-16 h-16 mb-2 opacity-30" />
+                    <p className="text-sm">{t('steps.export.noMedia')}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Caption overlay */}
+              <AnimatePresence>
+                {currentCaption && (
+                  <motion.div
+                    key={currentCaption.id}
+                    className={cn(
+                      "absolute left-0 right-0 px-4 text-center z-10",
+                      currentCaption.style.position === 'top' && 'top-4',
+                      currentCaption.style.position === 'center' && 'top-1/2 -translate-y-1/2',
+                      currentCaption.style.position === 'bottom' && 'bottom-20'
+                    )}
+                    initial={captionAnimations[currentCaption.animation]?.initial || { opacity: 0 }}
+                    animate={captionAnimations[currentCaption.animation]?.animate || { opacity: 1 }}
+                    exit={captionAnimations[currentCaption.animation]?.exit || { opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span
+                      className={cn(
+                        "px-4 py-2 rounded-lg inline-block max-w-[80%]",
+                        currentCaption.style.textShadow && "drop-shadow-lg"
+                      )}
+                      style={{
+                        fontSize: fontSizes[currentCaption.style.fontSize],
+                        color: currentCaption.style.color,
+                        backgroundColor: currentCaption.style.backgroundColor,
+                        fontFamily: currentCaption.style.fontFamily === 'serif' ? 'Georgia, serif' :
+                                   currentCaption.style.fontFamily === 'mono' ? 'monospace' : 'inherit'
+                      }}
+                    >
+                      {currentCaption.text}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Scene overlay */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                <p className="text-white text-sm font-medium">
+                  {currentPreviewIndex + 1}. {currentScene?.title || `Scene ${currentPreviewIndex + 1}`}
+                </p>
+                {currentScene?.description && (
+                  <p className="text-white/70 text-xs line-clamp-1 mt-1">{currentScene.description}</p>
+                )}
+              </div>
+
+              {/* Media type indicator */}
+              {hasVideo && (
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-green-500/80 text-white">
+                    <Video className="w-3 h-3 mr-1" />
+                    Video
+                  </Badge>
+                </div>
+              )}
+              {!hasVideo && hasImage && (
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-amber-500/80 text-white">
+                    <ImageIcon className="w-3 h-3 mr-1" />
+                    Image
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            {/* Playback Controls */}
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={jumpToFirstScene}
+                disabled={currentPreviewIndex === 0}
+                className="text-muted-foreground hover:text-white"
+                title={t('steps.export.firstScene')}
+              >
+                <SkipBack className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToPreviousPreviewScene}
+                disabled={currentPreviewIndex === 0}
+                className="text-muted-foreground hover:text-white"
+                title={t('steps.export.previousScene')}
+              >
+                <Rewind className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="default"
+                size="lg"
+                onClick={handlePreviewPlayPause}
+                className={`min-w-[120px] ${
+                  isPreviewPlaying
+                    ? 'bg-purple-600 hover:bg-purple-700'
+                    : 'bg-purple-500 hover:bg-purple-600'
+                }`}
+              >
+                {isPreviewPlaying ? (
+                  <>
+                    <Pause className="w-5 h-5 mr-2" />
+                    {t('steps.export.pauseMovie')}
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5 mr-2" />
+                    {t('steps.export.playMovie')}
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToNextPreviewScene}
+                disabled={currentPreviewIndex === totalScenes - 1}
+                className="text-muted-foreground hover:text-white"
+                title={t('steps.export.nextScene')}
+              >
+                <FastForward className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={jumpToLastScene}
+                disabled={currentPreviewIndex === totalScenes - 1}
+                className="text-muted-foreground hover:text-white"
+                title={t('steps.export.lastScene')}
+              >
+                <SkipForward className="w-4 h-4" />
+              </Button>
+
+              {/* Volume Control */}
+              <div className="flex items-center gap-2 ml-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleMute}
+                  className="text-muted-foreground hover:text-white"
+                  title={isMuted ? t('steps.export.unmute') : t('steps.export.mute')}
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-4 h-4" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
+                </Button>
+                <Slider
+                  value={[isMuted ? 0 : previewVolume]}
+                  max={1}
+                  step={0.05}
+                  onValueChange={handleVolumeChange}
+                  className="w-24 cursor-pointer"
+                />
+              </div>
+
+              {/* Music Volume Control (dB scale) */}
+              {project.backgroundMusic && (
+                <div className="flex items-center gap-2 ml-2 border-l border-white/10 pl-4">
+                  <Music className="w-4 h-4 text-purple-400" />
+                  <Slider
+                    value={[musicVolumeDb]}
+                    min={-30}
+                    max={0}
+                    step={1}
+                    onValueChange={handleMusicVolumeDbChange}
+                    className="w-24 cursor-pointer"
+                  />
+                  <span className="text-xs text-muted-foreground w-12 font-mono">
+                    {musicVolumeDb > -30 ? `${musicVolumeDb > 0 ? '+' : ''}${Math.round(musicVolumeDb)}dB` : '-∞'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Time display and progress */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{formatPreviewTime(currentMovieTime)}</span>
+                <span>Scene {currentPreviewIndex + 1} / {totalScenes}</span>
+                <span>{formatPreviewTime(totalPreviewDuration)}</span>
+              </div>
+              <Slider
+                value={[currentMovieTime]}
+                max={totalPreviewDuration}
+                step={0.1}
+                onValueChange={handlePreviewSeek}
+                className="cursor-pointer"
+              />
+            </div>
+
+            {/* Quick transition actions */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">{t('steps.export.transitions')}</span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => applyTransitionToAll('swoosh')}
+                  className="h-6 px-2 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                  title={t('steps.export.applySwooshAll')}
+                >
+                  <Wand2 className="w-3 h-3 mr-1" />
+                  Swoosh All
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllTransitions}
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+                  title={t('steps.export.clearAllTransitions')}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            </div>
+
+            {/* Scene thumbnails with transition selectors */}
+            <div className="flex items-center gap-0 overflow-x-auto pb-2">
+              {project.scenes.map((scene, index) => (
+                <div key={scene.id} className="flex items-center flex-shrink-0">
+                  {/* Scene thumbnail */}
+                  <button
+                    onClick={() => jumpToScene(index)}
+                    className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden border-2 transition-all ${
+                      index === currentPreviewIndex
+                        ? 'border-purple-500 ring-2 ring-purple-500/30'
+                        : 'border-white/10 hover:border-white/30'
+                    }`}
+                    title={`${index + 1}. ${scene.title}`}
+                  >
+                    {scene.videoUrl ? (
+                      <video
+                        src={scene.videoUrl}
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                    ) : scene.imageUrl ? (
+                      <img
+                        src={scene.imageUrl}
+                        alt={scene.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                        <span className="text-[10px] text-muted-foreground">{index + 1}</span>
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Transition selector (between scenes) */}
+                  {index < project.scenes.length - 1 && (
+                    <Select
+                      value={getSceneTransition(index)}
+                      onValueChange={(value: TransitionType) => handleTransitionChange(scene.id, value)}
+                    >
+                      <SelectTrigger className="w-8 h-6 px-1 mx-0.5 bg-white/5 border-white/10 hover:border-purple-500/50 text-[9px]">
+                        <SelectValue>
+                          <span className="truncate">{transitionLabels[getSceneTransition(index)].slice(0, 2)}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="min-w-[140px]">
+                        {(Object.keys(transitionLabels) as TransitionType[]).map((type) => (
+                          <SelectItem key={type} value={type} className="text-xs">
+                            {transitionLabels[type]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Timeline View */}
       <Card className="glass border-white/10">

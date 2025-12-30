@@ -7,6 +7,54 @@ export type AspectRatio = '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4';
 
 export type Resolution = 'hd' | '4k';
 
+// Scene transition types
+export type TransitionType =
+  | 'none'
+  | 'fade'
+  | 'slideLeft'
+  | 'slideRight'
+  | 'slideUp'
+  | 'slideDown'
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'swoosh';
+
+export interface SceneTransition {
+  type: TransitionType;
+  duration: number; // milliseconds (default: 500)
+}
+
+// Caption styling
+export interface CaptionStyle {
+  fontSize: 'small' | 'medium' | 'large';
+  fontFamily: 'default' | 'serif' | 'mono';
+  color: string; // hex color
+  backgroundColor: string; // hex with alpha
+  position: 'top' | 'center' | 'bottom';
+  textShadow: boolean;
+}
+
+// Caption with timing and animation
+export interface Caption {
+  id: string;
+  text: string;
+  startTime: number; // seconds from scene start
+  endTime: number;
+  style: CaptionStyle;
+  animation: 'none' | 'fadeIn' | 'slideUp' | 'typewriter' | 'popIn';
+}
+
+// Background music
+export interface BackgroundMusic {
+  id: string;
+  title: string;
+  audioUrl: string; // Base64 data URL or blob URL
+  duration: number; // seconds
+  volume: number; // 0-1
+  source: 'upload' | 'suno' | 'url';
+  sunoPrompt?: string; // If generated via Suno
+}
+
 // Image resolution for Gemini 3 Pro Image pricing
 export type ImageResolution = '1k' | '2k' | '4k';
 
@@ -72,6 +120,8 @@ export interface Scene {
   videoUrl?: string;
   audioUrl?: string;
   duration: number; // in seconds
+  transition?: SceneTransition; // Transition effect to next scene
+  captions?: Caption[]; // Subtitles/captions for this scene
 }
 
 // Voice settings per character
@@ -100,6 +150,8 @@ export interface Project {
   currentStep: number;
   masterPrompt?: string;
   isComplete: boolean;
+  backgroundMusic?: BackgroundMusic; // Background music track
+  musicVolume?: number; // 0-1, default 0.3
 }
 
 // API configuration
