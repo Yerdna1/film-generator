@@ -54,6 +54,8 @@ interface CharacterImageState {
   };
 }
 
+const MAX_CHARACTERS = 4;
+
 export function Step2CharacterGenerator({ project: initialProject }: Step2Props) {
   const t = useTranslations();
   const { addCharacter, updateCharacter, deleteCharacter, projects } = useProjectStore();
@@ -422,17 +424,21 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: project.characters.length * 0.1 }}
         >
-          <Dialog open={isAddingCharacter} onOpenChange={setIsAddingCharacter}>
-            <DialogTrigger asChild>
-              <button className="w-full h-full min-h-[300px] glass rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/30 transition-colors flex flex-col items-center justify-center gap-4 group">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 group-hover:bg-purple-500/20 transition-colors flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-muted-foreground group-hover:text-purple-400 transition-colors" />
-                </div>
-                <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                  {t('steps.characters.addCharacter')}
-                </span>
-              </button>
-            </DialogTrigger>
+          {project.characters.length < MAX_CHARACTERS ? (
+            <Dialog open={isAddingCharacter} onOpenChange={setIsAddingCharacter}>
+              <DialogTrigger asChild>
+                <button className="w-full h-full min-h-[300px] glass rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/30 transition-colors flex flex-col items-center justify-center gap-4 group">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 group-hover:bg-purple-500/20 transition-colors flex items-center justify-center">
+                    <Plus className="w-8 h-8 text-muted-foreground group-hover:text-purple-400 transition-colors" />
+                  </div>
+                  <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                    {t('steps.characters.addCharacter')}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {project.characters.length}/{MAX_CHARACTERS}
+                  </span>
+                </button>
+              </DialogTrigger>
             <DialogContent className="glass-strong border-white/10 max-w-lg">
               <DialogHeader>
                 <DialogTitle>{t('steps.characters.addCharacter')}</DialogTitle>
@@ -490,6 +496,19 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
               </div>
             </DialogContent>
           </Dialog>
+          ) : (
+            <div className="w-full h-full min-h-[300px] glass rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+              </div>
+              <span className="text-muted-foreground">
+                {t('steps.characters.maxReached')}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {MAX_CHARACTERS}/{MAX_CHARACTERS}
+              </span>
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -534,7 +553,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
                   <Zap className="w-4 h-4 mr-2" />
                   {t('steps.characters.generateAll')}
                   <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                    {formatCostCompact(ACTION_COSTS.image.gemini * Math.max(project.characters.length - charactersWithImages, 1))}
+                    {formatCostCompact(ACTION_COSTS.image.gemini * project.characters.length)}
                   </Badge>
                 </>
               )}

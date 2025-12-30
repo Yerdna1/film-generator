@@ -115,9 +115,9 @@
       "masterPrompt": "Hlavný prompt",
       "progress": "Generovanie obrázkov",
       "imagesGenerated": "obrázkov vygenerovaných",
-      "openNanoBanana": "Otvoriť Nano Banana",
       "generating": "Generuje sa...",
-      "generateAll": "Generovať všetky obrázky"
+      "generateAll": "Generovať všetky obrázky",
+      "maxReached": "Maximálny počet postáv dosiahnutý"
     },
     "scenes": {
       "title": "Obrázky scén",

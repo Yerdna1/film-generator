@@ -115,9 +115,9 @@
       "masterPrompt": "Master Prompt",
       "progress": "Image Generation",
       "imagesGenerated": "images generated",
-      "openNanoBanana": "Open Nano Banana",
       "generating": "Generating...",
-      "generateAll": "Generate All Images"
+      "generateAll": "Generate All Images",
+      "maxReached": "Maximum characters reached"
     },
     "scenes": {
       "title": "Scene Images",
