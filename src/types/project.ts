@@ -3,9 +3,12 @@ export type StylePreset = 'disney-pixar' | 'realistic' | 'anime' | 'custom';
 
 export type CameraShot = 'medium' | 'close-up' | 'wide' | 'extreme-close-up' | 'over-shoulder' | 'pov' | 'aerial' | 'low-angle' | 'high-angle';
 
-export type AspectRatio = '16:9' | '21:9' | '4:3';
+export type AspectRatio = '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4';
 
 export type Resolution = 'hd' | '4k';
+
+// Image resolution for Gemini 3 Pro Image pricing
+export type ImageResolution = '1k' | '2k' | '4k';
 
 export type VoiceLanguage = 'sk' | 'en';
 
@@ -17,6 +20,7 @@ export interface ProjectSettings {
   characterCount: number;
   aspectRatio: AspectRatio;
   resolution: Resolution;
+  imageResolution: ImageResolution; // For Gemini 3 Pro Image pricing (1K/2K=$0.134, 4K=$0.24)
   voiceLanguage: VoiceLanguage;
   voiceProvider: VoiceProvider;
 }

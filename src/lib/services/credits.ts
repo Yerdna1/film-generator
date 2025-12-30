@@ -96,7 +96,8 @@ export async function spendCredits(
   description?: string,
   projectId?: string,
   provider?: Provider,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  realCostOverride?: number  // Optional: pass exact real cost (e.g., for resolution-based pricing)
 ): Promise<{ success: boolean; balance: number; realCost: number; error?: string }> {
   try {
     const credits = await getOrCreateCredits(userId);
@@ -110,9 +111,11 @@ export async function spendCredits(
       };
     }
 
-    // Calculate real cost
+    // Calculate real cost - use override if provided, otherwise calculate from action type
     const actionType = TYPE_TO_ACTION[type];
-    const realCost = actionType && provider ? getActionCost(actionType, provider) : 0;
+    const realCost = realCostOverride !== undefined
+      ? realCostOverride
+      : (actionType && provider ? getActionCost(actionType, provider) : 0);
 
     // Update credits and create transaction in a transaction
     const updated = await prisma.$transaction(async (tx) => {

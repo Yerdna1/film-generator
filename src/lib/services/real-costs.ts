@@ -3,19 +3,48 @@
  *
  * These are the actual costs charged by API providers.
  * All costs are in USD.
+ *
+ * Sources:
+ * - Gemini API Pricing: https://ai.google.dev/gemini-api/docs/pricing
+ * - Vertex AI Pricing: https://cloud.google.com/vertex-ai/generative-ai/pricing
  */
 
-// Provider pricing (approximate, based on current pricing as of Dec 2024)
+// Image resolution options
+export type ImageResolution = '1k' | '2k' | '4k';
+export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4';
+
+export const IMAGE_RESOLUTIONS: Record<ImageResolution, { label: string; maxPixels: string; description: string }> = {
+  '1k': { label: '1K', maxPixels: '1024x1024', description: 'Standard quality - fastest' },
+  '2k': { label: '2K', maxPixels: '2048x2048', description: 'High quality - balanced' },
+  '4k': { label: '4K', maxPixels: '4096x4096', description: 'Ultra quality - slowest' },
+};
+
+export const ASPECT_RATIOS: Record<AspectRatio, { label: string; description: string }> = {
+  '1:1': { label: 'Square (1:1)', description: 'Best for characters and icons' },
+  '16:9': { label: 'Landscape (16:9)', description: 'Best for scenes and videos' },
+  '9:16': { label: 'Portrait (9:16)', description: 'Best for mobile and stories' },
+  '4:3': { label: 'Classic (4:3)', description: 'Traditional film aspect' },
+  '3:4': { label: 'Portrait Classic (3:4)', description: 'Portrait traditional' },
+};
+
+// Provider pricing (based on official documentation as of Dec 2024)
 export const PROVIDER_COSTS = {
-  // Google Gemini
+  // Google Gemini 3 Pro Image Preview (Nano Banana Pro)
+  // Source: https://ai.google.dev/gemini-api/docs/pricing
   gemini: {
     // Text generation (per 1K tokens)
-    textInputPer1K: 0.00025,
-    textOutputPer1K: 0.0005,
-    // Image generation (Imagen 3)
-    imageGeneration: 0.02,
+    textInputPer1K: 0.002,    // $2.00 per 1M tokens
+    textOutputPer1K: 0.120,   // $120.00 per 1M tokens for images
+    // Image generation by resolution
+    image1k2k: 0.134,         // 1K/2K (1024-2048px): $0.134 per image (1120 tokens)
+    image4k: 0.24,            // 4K (up to 4096px): $0.24 per image (2000 tokens)
     // TTS (per 1K characters)
     ttsPer1K: 0.016,
+  },
+
+  // Gemini 2.5 Flash Image (cheaper alternative)
+  geminiFlash: {
+    image1k: 0.039,           // Up to 1024x1024: $0.039 per image
   },
 
   // ElevenLabs Voice
@@ -35,10 +64,10 @@ export const PROVIDER_COSTS = {
     textOutputPer1K: 0.010,
   },
 
-  // Nano Banana (Image generation)
-  nanoBanana: {
-    // Per image
-    imageGeneration: 0.025,
+  // Imagen 3 (Vertex AI)
+  imagen3: {
+    imageGeneration: 0.04,    // Standard: $0.04 per image
+    imageGenerationFast: 0.02, // Fast: $0.02 per image
   },
 
   // Claude (Anthropic)
@@ -49,12 +78,40 @@ export const PROVIDER_COSTS = {
   },
 } as const;
 
-// Simplified cost per action (average estimates)
+// Get image cost based on resolution
+export function getImageCost(resolution: ImageResolution = '2k'): number {
+  switch (resolution) {
+    case '1k':
+    case '2k':
+      return PROVIDER_COSTS.gemini.image1k2k; // $0.134
+    case '4k':
+      return PROVIDER_COSTS.gemini.image4k;   // $0.24
+    default:
+      return PROVIDER_COSTS.gemini.image1k2k;
+  }
+}
+
+// Default resolution for cost calculations
+let defaultImageResolution: ImageResolution = '2k';
+
+export function setDefaultImageResolution(resolution: ImageResolution) {
+  defaultImageResolution = resolution;
+}
+
+export function getDefaultImageResolution(): ImageResolution {
+  return defaultImageResolution;
+}
+
+// Simplified cost per action (using current default resolution)
 export const ACTION_COSTS = {
-  // Image generation
+  // Image generation - uses resolution-based pricing
   image: {
-    gemini: 0.04,
-    nanoBanana: 0.04,
+    gemini: PROVIDER_COSTS.gemini.image1k2k,      // Default 2K: $0.134
+    gemini1k: PROVIDER_COSTS.gemini.image1k2k,    // 1K/2K: $0.134
+    gemini2k: PROVIDER_COSTS.gemini.image1k2k,    // 1K/2K: $0.134
+    gemini4k: PROVIDER_COSTS.gemini.image4k,      // 4K: $0.24
+    geminiFlash: PROVIDER_COSTS.geminiFlash.image1k, // Flash: $0.039
+    nanoBanana: PROVIDER_COSTS.gemini.image1k2k,  // Same as Gemini 3 Pro
   },
 
   // Video generation (6s clip)

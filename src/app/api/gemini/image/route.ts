@@ -8,7 +8,7 @@ import { generateText } from 'ai';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { spendCredits, COSTS } from '@/lib/services/credits';
-import { ACTION_COSTS } from '@/lib/services/real-costs';
+import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 
 export const maxDuration = 60; // Allow up to 60 seconds for image generation
@@ -16,6 +16,7 @@ export const maxDuration = 60; // Allow up to 60 seconds for image generation
 interface ImageGenerationRequest {
   prompt: string;
   aspectRatio?: string;
+  resolution?: ImageResolution; // '1k' | '2k' | '4k' - affects pricing
   projectId?: string;
   referenceImages?: Array<{
     name: string;
@@ -25,7 +26,7 @@ interface ImageGenerationRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, aspectRatio = '1:1', projectId, referenceImages = [] }: ImageGenerationRequest = await request.json();
+    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [] }: ImageGenerationRequest = await request.json();
 
     // Get API key from user's database settings or fallback to env
     let apiKey = process.env.GEMINI_API_KEY;
@@ -65,16 +66,40 @@ export async function POST(request: NextRequest) {
       // Add instruction about using reference images
       messageContent.push({
         type: 'text',
-        text: `REFERENCE IMAGES FOR VISUAL CONSISTENCY - Use these exact character appearances:\n${referenceImages.map(r => `- ${r.name}`).join('\n')}\n\n`,
+        text: `REFERENCE IMAGES FOR VISUAL CONSISTENCY - Use these exact character appearances in the generated scene:\n${referenceImages.map(r => `- ${r.name}`).join('\n')}\n\n`,
       });
 
       // Add each reference image
       for (const ref of referenceImages) {
-        if (ref.imageUrl && ref.imageUrl.startsWith('data:')) {
-          // Extract base64 data from data URL
-          const matches = ref.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
-          if (matches) {
-            const [, mimeType, base64Data] = matches;
+        if (ref.imageUrl) {
+          try {
+            let base64Data: string;
+            let mimeType: string;
+
+            if (ref.imageUrl.startsWith('data:')) {
+              // Already base64 data URL
+              const matches = ref.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+              if (matches) {
+                [, mimeType, base64Data] = matches;
+              } else {
+                continue;
+              }
+            } else if (ref.imageUrl.startsWith('http')) {
+              // Fetch from URL (S3 or other remote storage)
+              console.log(`[Reference] Fetching image for ${ref.name} from URL...`);
+              const imageResponse = await fetch(ref.imageUrl);
+              if (!imageResponse.ok) {
+                console.warn(`[Reference] Failed to fetch image for ${ref.name}`);
+                continue;
+              }
+              const arrayBuffer = await imageResponse.arrayBuffer();
+              base64Data = Buffer.from(arrayBuffer).toString('base64');
+              mimeType = imageResponse.headers.get('content-type') || 'image/png';
+              console.log(`[Reference] Successfully fetched image for ${ref.name}`);
+            } else {
+              continue;
+            }
+
             messageContent.push({
               type: 'image',
               image: base64Data,
@@ -82,8 +107,10 @@ export async function POST(request: NextRequest) {
             });
             messageContent.push({
               type: 'text',
-              text: `(Above: ${ref.name} - use this EXACT appearance)`,
+              text: `(Above: ${ref.name} - use this EXACT character appearance in the scene)`,
             });
+          } catch (error) {
+            console.error(`[Reference] Error processing image for ${ref.name}:`, error);
           }
         }
       }
@@ -119,16 +146,18 @@ export async function POST(request: NextRequest) {
       const mimeType = (generatedImage as any).mimeType || (generatedImage as any).mediaType || 'image/png';
       const base64DataUrl = `data:${mimeType};base64,${generatedImage.base64}`;
 
-      // Track cost if user is authenticated
-      const realCost = ACTION_COSTS.image.gemini;
+      // Track cost if user is authenticated - use resolution-based pricing
+      const realCost = getImageCost(resolution);
       if (session?.user?.id) {
         await spendCredits(
           session.user.id,
           COSTS.IMAGE_GENERATION,
           'image',
-          'Gemini image generation',
+          `Gemini image generation (${resolution.toUpperCase()})`,
           projectId,
-          'gemini'
+          'gemini',
+          undefined,  // metadata
+          realCost    // pass the correct resolution-based cost
         );
       }
 
@@ -158,8 +187,30 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Image generation error:', error);
+
+    // Extract meaningful error message from various error types
+    let errorMessage = 'Unknown error occurred during image generation';
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      // Check for common Gemini API errors
+      if (error.message.includes('SAFETY')) {
+        errorMessage = 'Image generation blocked by safety filters. Try modifying your prompt.';
+      } else if (error.message.includes('rate') || error.message.includes('quota')) {
+        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+      } else if (error.message.includes('timeout') || error.message.includes('DEADLINE')) {
+        errorMessage = 'Request timed out. The image may be too complex - try simplifying your prompt.';
+      }
+    } else if (typeof error === 'object' && error !== null) {
+      // Handle non-Error objects that might have useful info
+      const errorObj = error as Record<string, unknown>;
+      errorMessage = String(errorObj.message || errorObj.error || JSON.stringify(error));
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

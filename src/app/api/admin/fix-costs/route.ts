@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { ACTION_COSTS } from '@/lib/services/real-costs';
+import { ACTION_COSTS, PROVIDER_COSTS } from '@/lib/services/real-costs';
+
+// Helper to determine image cost based on description (contains resolution info)
+function getImageCostFromDescription(description: string | null): number {
+  if (!description) return PROVIDER_COSTS.gemini.image1k2k; // Default to 2K
+
+  const desc = description.toUpperCase();
+  if (desc.includes('4K')) {
+    return PROVIDER_COSTS.gemini.image4k; // $0.24
+  }
+  if (desc.includes('1K') || desc.includes('2K')) {
+    return PROVIDER_COSTS.gemini.image1k2k; // $0.134
+  }
+  // Default to 2K if no resolution found
+  return PROVIDER_COSTS.gemini.image1k2k;
+}
 
 // Fix old transaction costs to use correct ACTION_COSTS values
 export async function POST(request: NextRequest) {
@@ -13,31 +28,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Define the correct costs based on type and provider
+    // Updated Dec 2024: Gemini 3 Pro Image pricing: 1K/2K = $0.134, 4K = $0.24
     const costMap: Record<string, Record<string, number>> = {
-      image: {
-        gemini: ACTION_COSTS.image.gemini,      // 0.04
-        nanoBanana: ACTION_COSTS.image.nanoBanana, // 0.04
-      },
+      // Note: image costs are handled specially based on description
       video: {
-        grok: ACTION_COSTS.video.grok,          // 0.10
-        kie: ACTION_COSTS.video.kie,            // 0.10
+        grok: ACTION_COSTS.video.grok,          // $0.10
+        kie: ACTION_COSTS.video.kie,            // $0.10
       },
       voiceover: {
-        elevenlabs: ACTION_COSTS.voiceover.elevenlabs, // 0.03
-        gemini: ACTION_COSTS.voiceover.geminiTts,      // 0.002
+        elevenlabs: ACTION_COSTS.voiceover.elevenlabs, // $0.03
+        gemini: ACTION_COSTS.voiceover.geminiTts,      // $0.002
       },
       scene: {
-        gemini: ACTION_COSTS.scene.gemini,      // 0.001
-        claude: ACTION_COSTS.scene.claude,      // 0.005
-        grok: ACTION_COSTS.scene.grok,          // 0.003
+        gemini: ACTION_COSTS.scene.gemini,      // $0.001
+        claude: ACTION_COSTS.scene.claude,      // $0.005
+        grok: ACTION_COSTS.scene.grok,          // $0.003
       },
       character: {
-        gemini: ACTION_COSTS.character.gemini,  // 0.0005
-        claude: ACTION_COSTS.character.claude,  // 0.002
+        gemini: ACTION_COSTS.character.gemini,  // $0.0005
+        claude: ACTION_COSTS.character.claude,  // $0.002
       },
       prompt: {
-        gemini: ACTION_COSTS.prompt.gemini,     // 0.001
-        claude: ACTION_COSTS.prompt.claude,     // 0.005
+        gemini: ACTION_COSTS.prompt.gemini,     // $0.001
+        claude: ACTION_COSTS.prompt.claude,     // $0.005
       },
     };
 
@@ -50,21 +63,29 @@ export async function POST(request: NextRequest) {
 
     let updated = 0;
     let skipped = 0;
-    const updates: { id: string; oldCost: number; newCost: number; type: string; provider: string | null }[] = [];
+    const updates: { id: string; oldCost: number; newCost: number; type: string; provider: string | null; description: string | null }[] = [];
 
     for (const tx of transactions) {
-      const typeCosts = costMap[tx.type];
-      if (!typeCosts) {
-        skipped++;
-        continue;
-      }
+      let correctCost: number;
 
-      const provider = tx.provider || 'gemini'; // Default to gemini if no provider
-      const correctCost = typeCosts[provider];
+      // Special handling for image type - check description for resolution
+      if (tx.type === 'image') {
+        correctCost = getImageCostFromDescription(tx.description);
+      } else {
+        const typeCosts = costMap[tx.type];
+        if (!typeCosts) {
+          skipped++;
+          continue;
+        }
 
-      if (correctCost === undefined) {
-        skipped++;
-        continue;
+        const provider = tx.provider || 'gemini'; // Default to gemini if no provider
+        const cost = typeCosts[provider];
+
+        if (cost === undefined) {
+          skipped++;
+          continue;
+        }
+        correctCost = cost;
       }
 
       // Only update if the cost is different
@@ -75,6 +96,7 @@ export async function POST(request: NextRequest) {
           newCost: correctCost,
           type: tx.type,
           provider: tx.provider,
+          description: tx.description,
         });
 
         await prisma.creditTransaction.update({
@@ -109,6 +131,10 @@ export async function POST(request: NextRequest) {
 
     for (const credit of credits) {
       const totalRealCost = credit.transactions.reduce((sum, tx) => {
+        // Use the same logic as above for calculating correct cost
+        if (tx.type === 'image') {
+          return sum + getImageCostFromDescription(tx.description);
+        }
         const typeCosts = costMap[tx.type];
         const provider = tx.provider || 'gemini';
         const correctCost = typeCosts?.[provider] || tx.realCost;

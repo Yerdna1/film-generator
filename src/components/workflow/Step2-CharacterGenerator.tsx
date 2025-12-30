@@ -17,6 +17,8 @@ import {
   Zap,
   CheckCircle2,
   Expand,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +40,14 @@ import { Progress } from '@/components/ui/progress';
 import type { Project, Character } from '@/types/project';
 import { v4 as uuidv4 } from 'uuid';
 import { CostBadge } from '@/components/shared/CostBadge';
-import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
+import { getImageCost, formatCostCompact, IMAGE_RESOLUTIONS, ASPECT_RATIOS, type ImageResolution, type AspectRatio } from '@/lib/services/real-costs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Step2Props {
   project: Project;
@@ -58,7 +67,7 @@ const MAX_CHARACTERS = 4;
 
 export function Step2CharacterGenerator({ project: initialProject }: Step2Props) {
   const t = useTranslations();
-  const { addCharacter, updateCharacter, deleteCharacter, projects } = useProjectStore();
+  const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects } = useProjectStore();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -74,6 +83,8 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
     personality: '',
   });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [characterAspectRatio, setCharacterAspectRatio] = useState<AspectRatio>('1:1');
+  const [showPromptsDialog, setShowPromptsDialog] = useState(false);
   const [editCharacterData, setEditCharacterData] = useState<{
     name: string;
     description: string;
@@ -174,14 +185,15 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
         [character.id]: { status: 'generating', progress: 30 },
       }));
 
-      // Call the Gemini image generation API
+      // Call the Gemini image generation API with resolution setting
+      const imageResolution = project.settings?.imageResolution || '2k';
       const response = await fetch('/api/gemini/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: character.masterPrompt,
-          aspectRatio: '1:1', // Character portraits are square
-          quality: 'hd',
+          aspectRatio: characterAspectRatio,
+          resolution: imageResolution,
         }),
       });
 
@@ -258,6 +270,57 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
         </motion.div>
         <h2 className="text-2xl font-bold mb-2">{t('steps.characters.title')}</h2>
         <p className="text-muted-foreground">{t('steps.characters.description')}</p>
+      </div>
+
+      {/* Image Generation Settings */}
+      <div className="glass rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-6 flex-wrap">
+          {/* Resolution Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">Quality:</Label>
+            <Select
+              value={project.settings?.imageResolution || '2k'}
+              onValueChange={(value) => updateSettings(project.id, { imageResolution: value as ImageResolution })}
+            >
+              <SelectTrigger className="w-40 glass border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-white/10">
+                {(Object.entries(IMAGE_RESOLUTIONS) as [ImageResolution, { label: string; maxPixels: string; description: string }][]).map(([key, data]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{data.label}</span>
+                      <span className="text-xs text-muted-foreground">{formatCostCompact(getImageCost(key))}/img</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Aspect Ratio Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">Aspect:</Label>
+            <Select
+              value={characterAspectRatio}
+              onValueChange={(value) => setCharacterAspectRatio(value as AspectRatio)}
+            >
+              <SelectTrigger className="w-44 glass border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-white/10">
+                {(Object.entries(ASPECT_RATIOS) as [AspectRatio, { label: string; description: string }][]).map(([key, data]) => (
+                  <SelectItem key={key} value={key}>
+                    <span className="font-medium">{data.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {ASPECT_RATIOS[characterAspectRatio]?.description}
+        </div>
       </div>
 
       {/* Characters Grid */}
@@ -398,6 +461,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
                       );
                     }
 
+                    const imageCost = getImageCost(project.settings?.imageResolution || '2k');
                     return (
                       <Button
                         size="sm"
@@ -407,7 +471,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
                         <Sparkles className="w-4 h-4 mr-2" />
                         {t('steps.characters.generateImage')}
                         <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                          {formatCostCompact(ACTION_COSTS.image.gemini)}
+                          {formatCostCompact(imageCost)}
                         </Badge>
                       </Button>
                     );
@@ -533,6 +597,19 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
 
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-4 justify-center pt-2">
+            {/* Copy Prompts for Gemini Button */}
+            <Button
+              variant="outline"
+              className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+              disabled={project.characters.length === 0}
+              onClick={() => setShowPromptsDialog(true)}
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Prompts for Gemini
+              <Badge variant="outline" className="ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
+                FREE
+              </Badge>
+            </Button>
             <Button
               className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
               disabled={project.characters.length === 0 || isGeneratingAll}
@@ -553,7 +630,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
                   <Zap className="w-4 h-4 mr-2" />
                   {t('steps.characters.generateAll')}
                   <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                    {formatCostCompact(ACTION_COSTS.image.gemini * project.characters.length)}
+                    {formatCostCompact(getImageCost(project.settings?.imageResolution || '2k') * project.characters.length)}
                   </Badge>
                 </>
               )}
@@ -670,6 +747,103 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Copy Prompts for Gemini Dialog */}
+      <Dialog open={showPromptsDialog} onOpenChange={setShowPromptsDialog}>
+        <DialogContent className="glass-strong border-white/10 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="w-5 h-5 text-purple-400" />
+              Copy Character Prompts for Gemini
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex items-center gap-2 p-3 glass rounded-lg border-l-4 border-purple-500 mb-4">
+            <span className="text-sm text-muted-foreground">
+              <strong className="text-purple-400">Tip:</strong> Copy each prompt and paste it into{' '}
+              <a
+                href="https://gemini.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:underline inline-flex items-center gap-1"
+              >
+                gemini.google.com <ExternalLink className="w-3 h-3" />
+              </a>
+              {' '}to use your 100 free images/day from Google One AI Premium.
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            {project.characters.map((character, index) => (
+              <CharacterPromptCard
+                key={character.id}
+                character={character}
+                index={index}
+                hasImage={!!character.imageUrl}
+              />
+            ))}
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-white/10">
+            <div className="text-sm text-muted-foreground">
+              {project.characters.length} prompts • {project.characters.filter(c => c.imageUrl).length} already have images
+            </div>
+            <Button variant="outline" onClick={() => setShowPromptsDialog(false)} className="border-white/10">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Character Prompt Card Component with Copy functionality
+function CharacterPromptCard({ character, index, hasImage }: { character: Character; index: number; hasImage: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(character.masterPrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className={`glass rounded-lg p-4 ${hasImage ? 'border-l-4 border-green-500/50' : 'border-l-4 border-orange-500/50'}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-medium text-cyan-400">{character.name}</span>
+            {hasImage && (
+              <Badge variant="outline" className="border-green-500/30 text-green-400 text-[10px]">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Has Image
+              </Badge>
+            )}
+          </div>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-black/20 rounded p-2 max-h-24 overflow-y-auto">
+            {character.masterPrompt}
+          </pre>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCopy}
+          className={copied ? 'border-green-500/50 text-green-400' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10'}
+        >
+          {copied ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 mr-1" />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4 mr-1" />
+              Copy
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

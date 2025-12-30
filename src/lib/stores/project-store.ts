@@ -72,6 +72,7 @@ const defaultSettings: ProjectSettings = {
   characterCount: 2,
   aspectRatio: '21:9',
   resolution: '4k',
+  imageResolution: '2k', // Default to 2K ($0.134 per image)
   voiceLanguage: 'en',
   voiceProvider: 'elevenlabs',
 };

@@ -23,6 +23,9 @@ import {
   Wand2,
   User,
   FileText,
+  Copy,
+  ExternalLink,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +58,7 @@ import { CopyButton } from '@/components/shared/CopyButton';
 import { Progress } from '@/components/ui/progress';
 import type { Project, Scene, CameraShot, DialogueLine } from '@/types/project';
 import { CostBadge } from '@/components/shared/CostBadge';
-import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
+import { ACTION_COSTS, getImageCost, formatCostCompact, IMAGE_RESOLUTIONS, ASPECT_RATIOS, type ImageResolution, type AspectRatio } from '@/lib/services/real-costs';
 
 interface Step3Props {
   project: Project;
@@ -87,6 +90,8 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
   const [isGeneratingScenes, setIsGeneratingScenes] = useState(false);
   const [generatingImageForScene, setGeneratingImageForScene] = useState<string | null>(null);
   const [isGeneratingAllImages, setIsGeneratingAllImages] = useState(false);
+  const [sceneAspectRatio, setSceneAspectRatio] = useState<AspectRatio>('16:9');
+  const [showPromptsDialog, setShowPromptsDialog] = useState(false);
 
   const [newScene, setNewScene] = useState({
     title: '',
@@ -306,19 +311,21 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
           imageUrl: c.imageUrl!,
         }));
 
+      const imageResolution = project.settings?.imageResolution || '2k';
       const response = await fetch('/api/gemini/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: scene.textToImagePrompt,
-          aspectRatio: '16:9',
+          aspectRatio: sceneAspectRatio,
+          resolution: imageResolution,
           referenceImages, // Pass character images for visual consistency
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate image');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+        throw new Error(errorData?.error || errorData?.message || 'Failed to generate image');
       }
 
       const { imageUrl } = await response.json();
@@ -353,6 +360,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
     setIsGeneratingAllImages(true);
 
     try {
+      const imageResolution = project.settings?.imageResolution || '2k';
       for (const scene of scenesWithoutImages) {
         setGeneratingImageForScene(scene.id);
 
@@ -361,15 +369,19 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             prompt: scene.textToImagePrompt,
-            aspectRatio: '16:9',
+            aspectRatio: sceneAspectRatio,
+            resolution: imageResolution,
             referenceImages, // Pass character images for visual consistency
           }),
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          console.error(`Failed to generate image for scene ${scene.number}:`, error);
-          continue; // Skip to next scene on error
+          const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+          const errorMessage = errorData?.error || errorData?.message || 'Unknown error';
+          console.error(`Failed to generate image for scene ${scene.number}: ${errorMessage}`);
+          // Show error to user but continue with remaining scenes
+          alert(`Scene ${scene.number} failed: ${errorMessage}`);
+          continue;
         }
 
         const { imageUrl } = await response.json();
@@ -424,6 +436,49 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
                 {[12, 24, 36, 48, 60].map((count) => (
                   <SelectItem key={count} value={count.toString()}>
                     {count} {t('steps.scenes.scenesLabel')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Image Quality Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">Quality:</Label>
+            <Select
+              value={project.settings?.imageResolution || '2k'}
+              onValueChange={(value) => updateSettings(project.id, { imageResolution: value as ImageResolution })}
+            >
+              <SelectTrigger className="w-40 glass border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-white/10">
+                {(Object.entries(IMAGE_RESOLUTIONS) as [ImageResolution, { label: string; maxPixels: string; description: string }][]).map(([key, data]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{data.label}</span>
+                      <span className="text-xs text-muted-foreground">{formatCostCompact(getImageCost(key))}/img</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Aspect Ratio Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">Aspect:</Label>
+            <Select
+              value={sceneAspectRatio}
+              onValueChange={(value) => setSceneAspectRatio(value as AspectRatio)}
+            >
+              <SelectTrigger className="w-44 glass border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-white/10">
+                {(Object.entries(ASPECT_RATIOS) as [AspectRatio, { label: string; description: string }][]).map(([key, data]) => (
+                  <SelectItem key={key} value={key}>
+                    <span className="font-medium">{data.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -665,13 +720,13 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
                           <>
                             <RefreshCw className="w-4 h-4 mr-2" />
                             {t('common.regenerate')}
-                            <span className="ml-1 text-[10px] opacity-80">{formatCostCompact(ACTION_COSTS.image.gemini)}</span>
+                            <span className="ml-1 text-[10px] opacity-80">{formatCostCompact(getImageCost(project.settings?.imageResolution || '2k'))}</span>
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-4 h-4 mr-2" />
                             {t('steps.scenes.generateImage')}
-                            <span className="ml-1 text-[10px] opacity-80">{formatCostCompact(ACTION_COSTS.image.gemini)}</span>
+                            <span className="ml-1 text-[10px] opacity-80">{formatCostCompact(getImageCost(project.settings?.imageResolution || '2k'))}</span>
                           </>
                         )}
                       </Button>
@@ -854,13 +909,35 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-4 justify-center">
+        {/* Copy Prompts for Gemini Button */}
+        <Button
+          variant="outline"
+          className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+          disabled={project.scenes.length === 0}
+          onClick={() => setShowPromptsDialog(true)}
+        >
+          <Copy className="w-4 h-4 mr-2" />
+          Copy Prompts for Gemini
+          <Badge variant="outline" className="ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
+            FREE
+          </Badge>
+        </Button>
         <Button
           variant="outline"
           className="border-white/10 hover:bg-white/5"
           disabled={project.scenes.length === 0 || isGeneratingAllImages}
-          onClick={() => {
-            // Reset all images and regenerate
-            if (confirm('Are you sure you want to regenerate all scene images? This will replace existing images.')) {
+          onClick={async () => {
+            // Actually regenerate ALL images by clearing them first
+            if (confirm(`Are you sure you want to regenerate ALL ${project.scenes.length} scene images? This will cost approximately ${formatCostCompact(getImageCost(project.settings?.imageResolution || '2k') * project.scenes.length)}.`)) {
+              // Clear all existing images first
+              for (const scene of project.scenes) {
+                if (scene.imageUrl) {
+                  updateScene(project.id, scene.id, { imageUrl: undefined });
+                }
+              }
+              // Small delay to ensure state updates
+              await new Promise(resolve => setTimeout(resolve, 100));
+              // Now generate all
               handleGenerateAllSceneImages();
             }
           }}
@@ -870,7 +947,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         </Button>
         <Button
           className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0"
-          disabled={project.scenes.length === 0 || isGeneratingAllImages}
+          disabled={project.scenes.length === 0 || isGeneratingAllImages || scenesWithImages === project.scenes.length}
           onClick={handleGenerateAllSceneImages}
         >
           {isGeneratingAllImages ? (
@@ -883,12 +960,17 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
               </motion.div>
               {t('steps.characters.generating')} ({scenesWithImages}/{project.scenes.length})
             </>
+          ) : scenesWithImages === project.scenes.length ? (
+            <>
+              <Sparkles className="w-4 h-4 mr-2" />
+              All Images Generated
+            </>
           ) : (
             <>
               <Sparkles className="w-4 h-4 mr-2" />
-              {t('steps.scenes.generateAllImages')}
+              {t('steps.scenes.generateAllImages')} ({project.scenes.length - scenesWithImages} remaining)
               <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                {formatCostCompact(ACTION_COSTS.image.gemini * Math.max(project.scenes.length - scenesWithImages, 1))}
+                {formatCostCompact(getImageCost(project.settings?.imageResolution || '2k') * (project.scenes.length - scenesWithImages))}
               </Badge>
             </>
           )}
@@ -1063,6 +1145,104 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Copy Prompts for Gemini Dialog */}
+      <Dialog open={showPromptsDialog} onOpenChange={setShowPromptsDialog}>
+        <DialogContent className="glass-strong border-white/10 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="w-5 h-5 text-purple-400" />
+              Copy Prompts for Gemini Web Interface
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex items-center gap-2 p-3 glass rounded-lg border-l-4 border-purple-500 mb-4">
+            <span className="text-sm text-muted-foreground">
+              <strong className="text-purple-400">Tip:</strong> Copy each prompt and paste it into{' '}
+              <a
+                href="https://gemini.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:underline inline-flex items-center gap-1"
+              >
+                gemini.google.com <ExternalLink className="w-3 h-3" />
+              </a>
+              {' '}to use your 100 free images/day from Google One AI Premium.
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            {project.scenes.map((scene, index) => (
+              <PromptCard
+                key={scene.id}
+                scene={scene}
+                index={index}
+                hasImage={!!scene.imageUrl}
+              />
+            ))}
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-white/10">
+            <div className="text-sm text-muted-foreground">
+              {project.scenes.length} prompts • {project.scenes.filter(s => s.imageUrl).length} already have images
+            </div>
+            <Button variant="outline" onClick={() => setShowPromptsDialog(false)} className="border-white/10">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Prompt Card Component with Copy functionality
+function PromptCard({ scene, index, hasImage }: { scene: Scene; index: number; hasImage: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(scene.textToImagePrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className={`glass rounded-lg p-4 ${hasImage ? 'border-l-4 border-green-500/50' : 'border-l-4 border-orange-500/50'}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-medium text-emerald-400">Scene {scene.number || index + 1}</span>
+            <span className="text-sm text-muted-foreground">• {scene.title}</span>
+            {hasImage && (
+              <Badge variant="outline" className="border-green-500/30 text-green-400 text-[10px]">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Has Image
+              </Badge>
+            )}
+          </div>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-black/20 rounded p-2 max-h-24 overflow-y-auto">
+            {scene.textToImagePrompt}
+          </pre>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCopy}
+          className={copied ? 'border-green-500/50 text-green-400' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10'}
+        >
+          {copied ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 mr-1" />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4 mr-1" />
+              Copy
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
