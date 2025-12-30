@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { spendCredits, COSTS } from '@/lib/services/credits';
+import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { calculateVoiceCost } from '@/lib/services/real-costs';
 import { uploadAudioToS3, isS3Configured } from '@/lib/services/s3-upload';
 
@@ -77,6 +77,17 @@ export async function POST(request: NextRequest) {
       });
       if (userApiKeys?.geminiApiKey) {
         apiKey = userApiKeys.geminiApiKey;
+      }
+
+      // Pre-check credit balance before starting generation
+      const balanceCheck = await checkBalance(session.user.id, COSTS.VOICEOVER_LINE);
+      if (!balanceCheck.hasEnough) {
+        return NextResponse.json({
+          error: 'Insufficient credits',
+          required: balanceCheck.required,
+          balance: balanceCheck.balance,
+          needsPurchase: true,
+        }, { status: 402 });
       }
     }
 

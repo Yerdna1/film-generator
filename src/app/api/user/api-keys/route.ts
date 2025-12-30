@@ -26,6 +26,7 @@ export async function GET() {
         claudeApiKey: '',
         openaiApiKey: '',
         nanoBananaApiKey: '',
+        sunoApiKey: '',
       });
     }
 
@@ -37,6 +38,7 @@ export async function GET() {
       claudeApiKey: apiKeys.claudeApiKey || '',
       openaiApiKey: apiKeys.openaiApiKey || '',
       nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
+      sunoApiKey: apiKeys.sunoApiKey || '',
     });
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
       claudeApiKey,
       openaiApiKey,
       nanoBananaApiKey,
+      sunoApiKey,
     } = body;
 
     const apiKeys = await prisma.apiKeys.upsert({
@@ -78,6 +81,7 @@ export async function POST(request: NextRequest) {
         ...(claudeApiKey !== undefined && { claudeApiKey }),
         ...(openaiApiKey !== undefined && { openaiApiKey }),
         ...(nanoBananaApiKey !== undefined && { nanoBananaApiKey }),
+        ...(sunoApiKey !== undefined && { sunoApiKey }),
       },
       create: {
         userId: session.user.id,
@@ -87,6 +91,7 @@ export async function POST(request: NextRequest) {
         claudeApiKey: claudeApiKey || null,
         openaiApiKey: openaiApiKey || null,
         nanoBananaApiKey: nanoBananaApiKey || null,
+        sunoApiKey: sunoApiKey || null,
       },
     });
 

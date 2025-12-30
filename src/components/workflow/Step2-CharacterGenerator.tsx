@@ -37,6 +37,7 @@ import { generateCharacterPrompt } from '@/lib/prompts/master-prompt';
 import { CopyButton } from '@/components/shared/CopyButton';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useCredits } from '@/contexts/CreditsContext';
 import type { Project, Character } from '@/types/project';
 import { v4 as uuidv4 } from 'uuid';
 import { CostBadge } from '@/components/shared/CostBadge';
@@ -61,6 +62,7 @@ const MAX_CHARACTERS = 4;
 export function Step2CharacterGenerator({ project: initialProject }: Step2Props) {
   const t = useTranslations();
   const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects } = useProjectStore();
+  const { handleApiResponse } = useCredits();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -189,6 +191,16 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
           resolution: imageResolution,
         }),
       });
+
+      // Check for insufficient credits (402 response)
+      const isInsufficientCredits = await handleApiResponse(response);
+      if (isInsufficientCredits) {
+        setImageStates((prev) => ({
+          ...prev,
+          [character.id]: { status: 'idle', progress: 0 },
+        }));
+        return;
+      }
 
       setImageStates((prev) => ({
         ...prev,

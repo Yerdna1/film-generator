@@ -57,6 +57,7 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import { generateScenePrompt } from '@/lib/prompts/master-prompt';
 import { CopyButton } from '@/components/shared/CopyButton';
 import { Progress } from '@/components/ui/progress';
+import { useCredits } from '@/contexts/CreditsContext';
 import type { Project, Scene, CameraShot, DialogueLine } from '@/types/project';
 import { CostBadge } from '@/components/shared/CostBadge';
 import { ACTION_COSTS, getImageCost, formatCostCompact, IMAGE_RESOLUTIONS, ASPECT_RATIOS, type ImageResolution, type AspectRatio } from '@/lib/services/real-costs';
@@ -69,6 +70,7 @@ interface Step3Props {
 export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
   const t = useTranslations();
   const { addScene, updateScene, deleteScene, updateSettings, projects } = useProjectStore();
+  const { handleApiResponse } = useCredits();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -317,6 +319,12 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         }),
       });
 
+      // Check for insufficient credits (402 response)
+      const isInsufficientCredits = await handleApiResponse(response);
+      if (isInsufficientCredits) {
+        return;
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
         throw new Error(errorData?.error || errorData?.message || 'Failed to generate image');
@@ -382,6 +390,12 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             referenceImages, // Pass character images for visual consistency
           }),
         });
+
+        // Check for insufficient credits (402 response) - stop batch if no credits
+        const isInsufficientCredits = await handleApiResponse(response);
+        if (isInsufficientCredits) {
+          break;
+        }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));

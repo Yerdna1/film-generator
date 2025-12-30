@@ -40,6 +40,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useProjectStore } from '@/lib/stores/project-store';
+import { useCredits } from '@/contexts/CreditsContext';
 import type { Project, Character, DialogueLine, VoiceProvider } from '@/types/project';
 import { ACTION_COSTS, formatCostCompact, calculateVoiceCost } from '@/lib/services/real-costs';
 import { ItemGenerationState } from '@/lib/constants/workflow';
@@ -103,6 +104,7 @@ const getValidGeminiVoice = (voiceId: string | undefined): string => {
 export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props) {
   const t = useTranslations();
   const { updateVoiceSettings, updateScene, updateCharacter, projects } = useProjectStore();
+  const { handleApiResponse } = useCredits();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -188,6 +190,16 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
             projectId: project.id,
           }),
         });
+      }
+
+      // Check for insufficient credits (402 response)
+      const isInsufficientCredits = await handleApiResponse(response);
+      if (isInsufficientCredits) {
+        setAudioStates((prev) => ({
+          ...prev,
+          [lineId]: { status: 'idle', progress: 0 },
+        }));
+        return;
       }
 
       setAudioStates((prev) => ({

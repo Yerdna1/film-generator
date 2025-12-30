@@ -51,11 +51,28 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  apiKeys  ApiKeys?
-  projects Project[]
-  credits  Credits?
+  accounts     Account[]
+  sessions     Session[]
+  apiKeys      ApiKeys?
+  projects     Project[]
+  credits      Credits?
+  subscription Subscription?
+}
+
+// User subscription for payment plans
+model Subscription {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  polarCustomerId     String?   @unique
+  polarSubscriptionId String?   @unique
+  status              String    @default("free") // "free", "active", "canceled", "past_due"
+  plan                String    @default("free") // "free", "starter", "pro", "studio"
+  currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // User credits for AI generation
@@ -114,6 +131,7 @@ model ApiKeys {
   claudeApiKey     String?
   openaiApiKey     String?
   nanoBananaApiKey String?
+  sunoApiKey       String?  // Suno.ai API key for music generation
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

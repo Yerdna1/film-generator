@@ -2,7 +2,29 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_wait_for",
+      "WebSearch",
+      "WebFetch(domain:docs.sunoapi.org)",
+      "Bash(npx prisma db push:*)",
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(npx dotenv:*)",
+      "Bash(npx polar:*)",
+      "WebFetch(domain:docs.polar.sh)",
+      "WebFetch(domain:polar.sh)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_run_code",
+      "Bash(pkill:*)",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_press_key"
     ]
   }
 }

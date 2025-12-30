@@ -302,6 +302,15 @@ export default function SettingsPage() {
       bgColor: 'bg-amber-500/20',
       link: 'https://console.anthropic.com',
     },
+    {
+      key: 'sunoApiKey',
+      name: 'Suno AI (via sunoapi.org)',
+      description: 'AI music generation for background tracks',
+      icon: Mic,
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/20',
+      link: 'https://sunoapi.org/api-key',
+    },
   ];
 
   return (

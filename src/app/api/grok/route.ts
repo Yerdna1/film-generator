@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { uploadBase64ToS3, uploadVideoToS3, isS3Configured } from '@/lib/services/s3-upload';
-import { spendCredits, COSTS } from '@/lib/services/credits';
+import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 
 const KIE_API_URL = 'https://api.kie.ai';
@@ -79,6 +79,17 @@ export async function POST(request: NextRequest) {
       });
       if (userApiKeys?.kieApiKey) {
         apiKey = userApiKeys.kieApiKey;
+      }
+
+      // Pre-check credit balance before starting generation
+      const balanceCheck = await checkBalance(session.user.id, COSTS.VIDEO_GENERATION);
+      if (!balanceCheck.hasEnough) {
+        return NextResponse.json({
+          error: 'Insufficient credits',
+          required: balanceCheck.required,
+          balance: balanceCheck.balance,
+          needsPurchase: true,
+        }, { status: 402 });
       }
     }
 

@@ -7,7 +7,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { spendCredits, getImageCreditCost } from '@/lib/services/credits';
+import { spendCredits, getImageCreditCost, checkBalance } from '@/lib/services/credits';
 import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 
@@ -38,6 +38,18 @@ export async function POST(request: NextRequest) {
       });
       if (userApiKeys?.geminiApiKey) {
         apiKey = userApiKeys.geminiApiKey;
+      }
+
+      // Pre-check credit balance before starting generation
+      const creditCost = getImageCreditCost(resolution);
+      const balanceCheck = await checkBalance(session.user.id, creditCost);
+      if (!balanceCheck.hasEnough) {
+        return NextResponse.json({
+          error: 'Insufficient credits',
+          required: balanceCheck.required,
+          balance: balanceCheck.balance,
+          needsPurchase: true,
+        }, { status: 402 });
       }
     }
 

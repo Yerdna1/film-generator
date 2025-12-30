@@ -50,6 +50,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { CopyButton } from '@/components/shared/CopyButton';
+import { useCredits } from '@/contexts/CreditsContext';
 import type { Project, Scene } from '@/types/project';
 import { GenerationStatus, ItemGenerationState, SCENES_PER_PAGE } from '@/lib/constants/workflow';
 
@@ -65,6 +66,7 @@ const videoCache = new Map<string, string>();
 export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
   const t = useTranslations();
   const { updateScene, projects } = useProjectStore();
+  const { handleApiResponse } = useCredits();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -192,6 +194,16 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
           mode: videoMode, // fun or normal mode
         }),
       });
+
+      // Check for insufficient credits (402 response)
+      const isInsufficientCredits = await handleApiResponse(response);
+      if (isInsufficientCredits) {
+        setVideoStates((prev) => ({
+          ...prev,
+          [scene.id]: { status: 'idle', progress: 0 },
+        }));
+        return;
+      }
 
       setVideoStates((prev) => ({
         ...prev,

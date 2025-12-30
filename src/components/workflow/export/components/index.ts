@@ -6,3 +6,5 @@ export { ExportOptions } from './ExportOptions';
 export { DownloadAssets } from './DownloadAssets';
 export { PromptsPreview } from './PromptsPreview';
 export { NextSteps } from './NextSteps';
+export { CaptionEditor } from './CaptionEditor';
+export { BackgroundMusicEditor } from './BackgroundMusicEditor';

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { auth } from '@/lib/auth';
-import { spendCredits, COSTS } from '@/lib/services/credits';
+import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
@@ -39,6 +39,19 @@ export async function POST(request: NextRequest) {
 
     const body: GenerateScenesRequest = await request.json();
     const { projectId, story, characters, style, sceneCount } = body;
+
+    // Pre-check credit balance before starting generation
+    // Cost is per scene, so multiply by scene count
+    const totalCost = COSTS.SCENE_GENERATION * sceneCount;
+    const balanceCheck = await checkBalance(session.user.id, totalCost);
+    if (!balanceCheck.hasEnough) {
+      return NextResponse.json({
+        error: 'Insufficient credits',
+        required: balanceCheck.required,
+        balance: balanceCheck.balance,
+        needsPurchase: true,
+      }, { status: 402 });
+    }
 
     if (!story.concept || characters.length === 0) {
       return NextResponse.json(

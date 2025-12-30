@@ -12,6 +12,8 @@ import {
   usePreviewPlayer,
   useExportHandlers,
   useDownloadHandlers,
+  useCaptionEditor,
+  useBackgroundMusic,
 } from './export/hooks';
 
 // Components
@@ -24,6 +26,8 @@ import {
   DownloadAssets,
   PromptsPreview,
   NextSteps,
+  CaptionEditor,
+  BackgroundMusicEditor,
 } from './export/components';
 
 interface Step6Props {
@@ -42,6 +46,8 @@ export function Step6Export({ project: initialProject }: Step6Props) {
   const previewPlayer = usePreviewPlayer(project);
   const exportHandlers = useExportHandlers(project);
   const downloadHandlers = useDownloadHandlers(project);
+  const captionEditor = useCaptionEditor(project);
+  const backgroundMusic = useBackgroundMusic(project);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -95,6 +101,54 @@ export function Step6Export({ project: initialProject }: Step6Props) {
 
       {/* Timeline View */}
       <TimelineView project={project} stats={stats} />
+
+      {/* Caption Editor */}
+      {stats.totalScenes > 0 && (
+        <CaptionEditor
+          project={project}
+          selectedSceneIndex={captionEditor.selectedSceneIndex}
+          editingCaption={captionEditor.editingCaption}
+          isEditing={captionEditor.isEditing}
+          sceneCaptions={captionEditor.sceneCaptions}
+          hasUnsavedChanges={captionEditor.hasUnsavedChanges}
+          onSetSelectedSceneIndex={captionEditor.setSelectedSceneIndex}
+          onStartEditingCaption={captionEditor.startEditingCaption}
+          onStartNewCaption={captionEditor.startNewCaption}
+          onCancelEditing={captionEditor.cancelEditing}
+          onSaveCaption={captionEditor.saveCaption}
+          onDeleteCaption={captionEditor.deleteCaption}
+          onUpdateCaptionField={captionEditor.updateCaptionField}
+          onUpdateCaptionStyle={captionEditor.updateCaptionStyle}
+          onAutoGenerateCaptions={captionEditor.autoGenerateCaptions}
+          onAutoGenerateAllCaptions={captionEditor.autoGenerateAllCaptions}
+          onClearAllCaptions={captionEditor.clearAllCaptions}
+          onClearAllScenesCaptions={captionEditor.clearAllScenesCaptions}
+        />
+      )}
+
+      {/* Background Music Editor */}
+      <BackgroundMusicEditor
+        project={project}
+        currentMusic={backgroundMusic.currentMusic}
+        hasMusic={backgroundMusic.hasMusic}
+        generationState={backgroundMusic.generationState}
+        previewUrl={backgroundMusic.previewUrl}
+        isPreviewPlaying={backgroundMusic.isPreviewPlaying}
+        previewRef={backgroundMusic.previewRef}
+        prompt={backgroundMusic.prompt}
+        model={backgroundMusic.model}
+        instrumental={backgroundMusic.instrumental}
+        onSetPrompt={backgroundMusic.setPrompt}
+        onSetModel={backgroundMusic.setModel}
+        onSetInstrumental={backgroundMusic.setInstrumental}
+        onGenerateMusic={backgroundMusic.generateMusic}
+        onCancelGeneration={backgroundMusic.cancelGeneration}
+        onApplyPreviewToProject={backgroundMusic.applyPreviewToProject}
+        onRemoveMusic={backgroundMusic.removeMusic}
+        onUploadMusic={backgroundMusic.uploadMusic}
+        onTogglePreview={backgroundMusic.togglePreview}
+        onClearPreview={backgroundMusic.clearPreview}
+      />
 
       {/* Credits Summary */}
       <CreditsSummary credits={credits} />

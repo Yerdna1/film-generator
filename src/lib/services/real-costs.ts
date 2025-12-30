@@ -77,6 +77,11 @@ export const PROVIDER_COSTS = {
     textInputPer1K: 0.003,
     textOutputPer1K: 0.015,
   },
+
+  // Suno.ai (via sunoapi.org) - Music Generation
+  suno: {
+    musicGeneration: 0.05, // Estimated per music track
+  },
 } as const;
 
 // Get image cost based on resolution
@@ -150,11 +155,16 @@ export const ACTION_COSTS = {
     gemini: 0.001,
     claude: 0.012,   // Updated: realistic cost per prompt
   },
+
+  // Music generation - per track
+  music: {
+    suno: 0.05,      // ~$0.05 per music track
+  },
 } as const;
 
 // Type definitions
-export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'nanoBanana' | 'claude';
-export type ActionType = 'image' | 'video' | 'voiceover' | 'scene' | 'character' | 'prompt';
+export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'nanoBanana' | 'claude' | 'suno';
+export type ActionType = 'image' | 'video' | 'voiceover' | 'scene' | 'character' | 'prompt' | 'music';
 
 export interface CostEstimate {
   action: ActionType;

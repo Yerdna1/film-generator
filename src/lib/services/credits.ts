@@ -15,6 +15,7 @@ export const COSTS = {
   VOICEOVER_LINE: 6,         // Per dialogue line - ElevenLabs ($0.03)
   SCENE_GENERATION: 2,       // Per scene - Claude ($0.01)
   CHARACTER_GENERATION: 2,   // Per character - Claude ($0.008)
+  MUSIC_GENERATION: 10,      // Per music track - Suno ($0.05)
 } as const;
 
 // Helper to get image credit cost by resolution
@@ -268,6 +269,22 @@ export async function canAfford(
     canAfford: credits.balance >= cost,
     balance: credits.balance,
     cost,
+  };
+}
+
+/**
+ * Check if user has sufficient balance for a specific credit amount
+ * Used for pre-checking before starting generation operations
+ */
+export async function checkBalance(
+  userId: string,
+  requiredCredits: number
+): Promise<{ hasEnough: boolean; balance: number; required: number }> {
+  const credits = await getOrCreateCredits(userId);
+  return {
+    hasEnough: credits.balance >= requiredCredits,
+    balance: credits.balance,
+    required: requiredCredits,
   };
 }
 
