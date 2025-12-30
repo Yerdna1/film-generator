@@ -193,6 +193,8 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
             ...prev,
             [lineId]: { status: 'complete', progress: 100 },
           }));
+          // Refresh credits display
+          window.dispatchEvent(new CustomEvent('credits-updated'));
           return;
         }
       }

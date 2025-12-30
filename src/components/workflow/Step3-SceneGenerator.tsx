@@ -323,6 +323,9 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
 
       const { imageUrl } = await response.json();
       updateScene(project.id, scene.id, { imageUrl });
+
+      // Refresh credits display
+      window.dispatchEvent(new CustomEvent('credits-updated'));
     } catch (error) {
       console.error('Error generating scene image:', error);
       alert(`Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -371,6 +374,9 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
 
         const { imageUrl } = await response.json();
         updateScene(project.id, scene.id, { imageUrl });
+
+        // Refresh credits display after each image
+        window.dispatchEvent(new CustomEvent('credits-updated'));
 
         // Small delay between generations to avoid rate limiting
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -882,9 +888,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
               <Sparkles className="w-4 h-4 mr-2" />
               {t('steps.scenes.generateAllImages')}
               <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                {(project.scenes.length - scenesWithImages) > 0
-                  ? formatCostCompact(ACTION_COSTS.image.gemini * (project.scenes.length - scenesWithImages))
-                  : `${formatCostCompact(ACTION_COSTS.image.gemini)}/ea`}
+                {formatCostCompact(ACTION_COSTS.image.gemini * Math.max(project.scenes.length - scenesWithImages, 1))}
               </Badge>
             </>
           )}

@@ -200,6 +200,8 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
             ...prev,
             [character.id]: { status: 'complete', progress: 100 },
           }));
+          // Refresh credits display
+          window.dispatchEvent(new CustomEvent('credits-updated'));
           return;
         }
       }

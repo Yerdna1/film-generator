@@ -126,6 +126,8 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
               ...prev,
               [scene.id]: { status: 'complete', progress: 100 },
             }));
+            // Refresh credits display
+            window.dispatchEvent(new CustomEvent('credits-updated'));
             return;
           }
         }
@@ -137,6 +139,8 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
             ...prev,
             [scene.id]: { status: 'complete', progress: 100 },
           }));
+          // Refresh credits display
+          window.dispatchEvent(new CustomEvent('credits-updated'));
           return;
         }
       }
