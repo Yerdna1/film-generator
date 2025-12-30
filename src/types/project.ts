@@ -154,6 +154,9 @@ export interface Project {
   musicVolume?: number; // 0-1, default 0.3
 }
 
+// LLM Provider selection - OpenRouter is default (works everywhere including Vercel)
+export type LLMProvider = 'openrouter' | 'claude-sdk';
+
 // API configuration
 export interface ApiConfig {
   geminiApiKey?: string;
@@ -162,6 +165,8 @@ export interface ApiConfig {
   elevenLabsApiKey?: string;
   nanoBananaApiKey?: string;
   claudeApiKey?: string;
+  openRouterApiKey?: string;  // OpenRouter API key for LLM access
+  llmProvider?: LLMProvider;  // Default: 'openrouter'
 }
 
 // User type

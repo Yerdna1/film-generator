@@ -132,6 +132,8 @@ model ApiKeys {
   openaiApiKey     String?
   nanoBananaApiKey String?
   sunoApiKey       String?  // Suno.ai API key for music generation
+  openRouterApiKey String?  // OpenRouter API key for LLM access
+  llmProvider      String   @default("openrouter") // "openrouter" | "claude-sdk" - default to OpenRouter
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -27,6 +27,8 @@ export async function GET() {
         openaiApiKey: '',
         nanoBananaApiKey: '',
         sunoApiKey: '',
+        openRouterApiKey: '',
+        llmProvider: 'openrouter', // Default to OpenRouter
       });
     }
 
@@ -39,6 +41,8 @@ export async function GET() {
       openaiApiKey: apiKeys.openaiApiKey || '',
       nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
       sunoApiKey: apiKeys.sunoApiKey || '',
+      openRouterApiKey: apiKeys.openRouterApiKey || '',
+      llmProvider: apiKeys.llmProvider || 'openrouter',
     });
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -70,6 +74,8 @@ export async function POST(request: NextRequest) {
       openaiApiKey,
       nanoBananaApiKey,
       sunoApiKey,
+      openRouterApiKey,
+      llmProvider,
     } = body;
 
     const apiKeys = await prisma.apiKeys.upsert({
@@ -82,6 +88,8 @@ export async function POST(request: NextRequest) {
         ...(openaiApiKey !== undefined && { openaiApiKey }),
         ...(nanoBananaApiKey !== undefined && { nanoBananaApiKey }),
         ...(sunoApiKey !== undefined && { sunoApiKey }),
+        ...(openRouterApiKey !== undefined && { openRouterApiKey }),
+        ...(llmProvider !== undefined && { llmProvider }),
       },
       create: {
         userId: session.user.id,
@@ -92,6 +100,8 @@ export async function POST(request: NextRequest) {
         openaiApiKey: openaiApiKey || null,
         nanoBananaApiKey: nanoBananaApiKey || null,
         sunoApiKey: sunoApiKey || null,
+        openRouterApiKey: openRouterApiKey || null,
+        llmProvider: llmProvider || 'openrouter',
       },
     });
 

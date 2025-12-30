@@ -18,6 +18,7 @@ interface ApiProviderCardProps {
   onToggleVisibility: () => void;
   onSave: () => void;
   onChange: (value: string) => void;
+  isHighlighted?: boolean;
 }
 
 export function ApiProviderCard({
@@ -30,6 +31,7 @@ export function ApiProviderCard({
   onToggleVisibility,
   onSave,
   onChange,
+  isHighlighted,
 }: ApiProviderCardProps) {
   const tPage = useTranslations('settingsPage');
   const tCommon = useTranslations('common');
@@ -39,7 +41,7 @@ export function ApiProviderCard({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="glass rounded-xl p-4 space-y-3"
+      className={`glass rounded-xl p-4 space-y-3 ${isHighlighted ? 'ring-2 ring-amber-500/50 bg-amber-500/5' : ''}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { toast } from 'sonner';
 import type { ActionCosts } from '../types';
+import type { LLMProvider } from '@/types/project';
 
 export function useSettings() {
   const tPage = useTranslations('settingsPage');
@@ -23,6 +24,7 @@ export function useSettings() {
   const [isExporting, setIsExporting] = useState(false);
   const [actionCosts, setActionCosts] = useState<ActionCosts | null>(null);
   const [costsLoading, setCostsLoading] = useState(false);
+  const [llmProvider, setLLMProvider] = useState<LLMProvider>('openrouter');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -31,12 +33,14 @@ export function useSettings() {
     const savedReducedMotion = localStorage.getItem('app-reduced-motion') === 'true';
     const savedNotify = localStorage.getItem('app-notify-complete') !== 'false';
     const savedAutoSave = localStorage.getItem('app-auto-save') !== 'false';
+    const savedLLMProvider = (localStorage.getItem('app-llm-provider') as LLMProvider) || 'openrouter';
 
     setLanguage(savedLanguage);
     setDarkMode(savedDarkMode);
     setReducedMotion(savedReducedMotion);
     setNotifyOnComplete(savedNotify);
     setAutoSave(savedAutoSave);
+    setLLMProvider(savedLLMProvider);
   }, []);
 
   const fetchActionCosts = useCallback(async () => {
@@ -118,6 +122,21 @@ export function useSettings() {
     localStorage.setItem('app-auto-save', String(enabled));
   }, []);
 
+  const handleLLMProviderChange = useCallback((provider: LLMProvider) => {
+    setLLMProvider(provider);
+    localStorage.setItem('app-llm-provider', provider);
+    // Also save to apiConfig for persistence in the store
+    setApiConfig({ llmProvider: provider });
+    toast.success(
+      tPage('toasts.llmProviderChanged') || 'LLM provider updated',
+      {
+        description: provider === 'openrouter'
+          ? (tPage('toasts.llmProviderOpenRouter') || 'Using OpenRouter for scene generation')
+          : (tPage('toasts.llmProviderClaudeSDK') || 'Using Claude SDK/CLI for scene generation'),
+      }
+    );
+  }, [setApiConfig, tPage]);
+
   const handleExportData = useCallback(async () => {
     setIsExporting(true);
     try {
@@ -188,6 +207,7 @@ export function useSettings() {
     costsLoading,
     apiConfig,
     projects,
+    llmProvider,
 
     // Actions
     toggleKeyVisibility,
@@ -201,5 +221,6 @@ export function useSettings() {
     handleExportData,
     handleDeleteAllData,
     fetchActionCosts,
+    handleLLMProviderChange,
   };
 }

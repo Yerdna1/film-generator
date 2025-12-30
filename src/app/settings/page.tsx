@@ -31,6 +31,7 @@ export default function SettingsPage() {
     costsLoading,
     apiConfig,
     projects,
+    llmProvider,
 
     // Actions
     toggleKeyVisibility,
@@ -44,6 +45,7 @@ export default function SettingsPage() {
     handleExportData,
     handleDeleteAllData,
     fetchActionCosts,
+    handleLLMProviderChange,
   } = useSettings();
 
   return (
@@ -76,11 +78,13 @@ export default function SettingsPage() {
               <ApiKeysTab
                 showKeys={showKeys}
                 savedKeys={savedKeys}
-                localConfig={localConfig}
+                localConfig={localConfig as Record<string, string | undefined>}
                 apiConfig={apiConfig}
+                llmProvider={llmProvider}
                 onToggleVisibility={toggleKeyVisibility}
                 onSaveKey={handleSaveKey}
                 onUpdateConfig={updateLocalConfig}
+                onLLMProviderChange={handleLLMProviderChange}
               />
             </TabsContent>
 

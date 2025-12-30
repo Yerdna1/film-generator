@@ -1,4 +1,4 @@
-import { Sparkles, Mic, Zap, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, Mic, Zap, Image as ImageIcon, Router } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface ApiProvider {
@@ -9,9 +9,45 @@ export interface ApiProvider {
   color: string;
   bgColor: string;
   link: string;
+  isLLMProvider?: boolean;  // Marks providers that can be used for scene generation
 }
 
+// LLM Provider options for scene generation
+export interface LLMProviderOption {
+  id: 'openrouter' | 'claude-sdk';
+  name: string;
+  description: string;
+  requiresApiKey: boolean;
+  apiKeyField?: string;
+}
+
+export const llmProviderOptions: LLMProviderOption[] = [
+  {
+    id: 'openrouter',
+    name: 'OpenRouter (Recommended)',
+    description: 'Works everywhere - Vercel, local dev, any hosting. Uses Claude models via API.',
+    requiresApiKey: true,
+    apiKeyField: 'openRouterApiKey',
+  },
+  {
+    id: 'claude-sdk',
+    name: 'Claude SDK/CLI',
+    description: 'Requires Claude CLI installed locally. Does not work on Vercel or cloud deployments.',
+    requiresApiKey: false,
+  },
+];
+
 export const apiProviders: ApiProvider[] = [
+  {
+    key: 'openRouterApiKey',
+    name: 'OpenRouter',
+    description: 'LLM access for scene generation (recommended - works on Vercel)',
+    icon: Router,
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/20',
+    link: 'https://openrouter.ai/keys',
+    isLLMProvider: true,
+  },
   {
     key: 'geminiApiKey',
     name: 'Google Gemini',

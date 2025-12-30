@@ -1,10 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import { auth } from '@/lib/auth';
 import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
+import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
+import { prisma } from '@/lib/db/prisma';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
+
+// Dynamically import Claude SDK - only used when claude-sdk provider is selected
+// This allows the app to work on Vercel even without Claude CLI installed
+async function queryClaudeSDK(prompt: string, systemPrompt: string): Promise<string> {
+  try {
+    const { query } = await import('@anthropic-ai/claude-agent-sdk');
+    let fullResponse = '';
+
+    const stream = query({
+      prompt,
+      options: {
+        model: 'claude-sonnet-4-20250514',
+        systemPrompt,
+        maxTurns: 1,
+        allowedTools: [],
+      },
+    });
+
+    for await (const message of stream) {
+      if (message.type === 'assistant' && message.message?.content) {
+        for (const block of message.message.content) {
+          if (block.type === 'text') {
+            fullResponse += block.text;
+          }
+        }
+      }
+    }
+
+    return fullResponse;
+  } catch (error) {
+    throw new Error(`Claude SDK error: ${error instanceof Error ? error.message : String(error)}. Make sure Claude CLI is installed and authenticated.`);
+  }
+}
 
 interface GenerateScenesRequest {
   projectId: string;
@@ -76,6 +110,23 @@ export async function POST(request: NextRequest) {
 
     const styleDescription = styleMapping[style] || styleMapping['disney-pixar'];
 
+    // Fetch user's API keys and LLM provider preference
+    const userApiKeys = await prisma.apiKeys.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    // Default to OpenRouter if no preference set
+    const llmProvider = userApiKeys?.llmProvider || 'openrouter';
+    const openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
+
+    // Validate API key for OpenRouter
+    if (llmProvider === 'openrouter' && !openRouterApiKey) {
+      return NextResponse.json(
+        { error: 'OpenRouter API key is required. Please configure it in Settings.' },
+        { status: 400 }
+      );
+    }
+
     const prompt = `Generate a complete ${sceneCount}-scene breakdown for a 3D animated short film.
 
 STORY CONCEPT: "${story.concept}"
@@ -116,27 +167,23 @@ Generate exactly ${sceneCount} scenes. Each scene should:
 
 Return ONLY the JSON array, no other text.`;
 
-    // Call Claude Agent SDK - it will use CLI auth if no API key is set
+    const systemPrompt = 'You are a professional film director and screenwriter specializing in animated short films. Generate detailed scene breakdowns in the exact JSON format requested. Return ONLY valid JSON, no markdown code blocks or explanations.';
+
+    // Call LLM based on provider preference
     let fullResponse = '';
 
-    const stream = query({
-      prompt,
-      options: {
-        model: 'claude-sonnet-4-20250514',
-        systemPrompt: 'You are a professional film director and screenwriter specializing in animated short films. Generate detailed scene breakdowns in the exact JSON format requested. Return ONLY valid JSON, no markdown code blocks or explanations.',
-        maxTurns: 1,
-        allowedTools: [], // No tools needed for text generation
-      },
-    });
-
-    for await (const message of stream) {
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if (block.type === 'text') {
-            fullResponse += block.text;
-          }
-        }
-      }
+    if (llmProvider === 'openrouter') {
+      // Use OpenRouter API (works on Vercel and everywhere)
+      fullResponse = await callOpenRouter(
+        openRouterApiKey!,
+        systemPrompt,
+        prompt,
+        DEFAULT_OPENROUTER_MODEL,
+        8192
+      );
+    } else {
+      // Use Claude SDK/CLI (requires local Claude CLI installation)
+      fullResponse = await queryClaudeSDK(prompt, systemPrompt);
     }
 
     // Parse the JSON response
