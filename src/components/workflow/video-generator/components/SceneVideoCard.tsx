@@ -1,0 +1,274 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { motion } from 'framer-motion';
+import {
+  Video,
+  Play,
+  RefreshCw,
+  Download,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Upload,
+  Image as ImageIcon,
+  MessageSquare,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { CopyButton } from '@/components/shared/CopyButton';
+import type { Scene } from '@/types/project';
+import type { VideoStatus } from '../types';
+
+interface SceneVideoCardProps {
+  scene: Scene;
+  index: number;
+  status: VideoStatus;
+  progress: number;
+  isPlaying: boolean;
+  cachedVideoUrl?: string;
+  onPlay: () => void;
+  onPause: () => void;
+  onGenerateVideo: () => void;
+  buildFullI2VPrompt: (scene: Scene) => string;
+}
+
+const getStatusColor = (status: VideoStatus) => {
+  switch (status) {
+    case 'complete':
+      return 'text-green-400 border-green-500/30';
+    case 'generating':
+      return 'text-amber-400 border-amber-500/30';
+    case 'error':
+      return 'text-red-400 border-red-500/30';
+    default:
+      return 'text-muted-foreground border-white/10';
+  }
+};
+
+const getStatusIcon = (status: VideoStatus) => {
+  switch (status) {
+    case 'complete':
+      return <CheckCircle2 className="w-4 h-4" />;
+    case 'generating':
+      return (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        >
+          <RefreshCw className="w-4 h-4" />
+        </motion.div>
+      );
+    case 'error':
+      return <AlertCircle className="w-4 h-4" />;
+    default:
+      return <Video className="w-4 h-4" />;
+  }
+};
+
+export function SceneVideoCard({
+  scene,
+  index,
+  status,
+  progress,
+  isPlaying,
+  cachedVideoUrl,
+  onPlay,
+  onPause,
+  onGenerateVideo,
+  buildFullI2VPrompt,
+}: SceneVideoCardProps) {
+  const t = useTranslations();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: (index % 12) * 0.05 }}
+    >
+      <Card className="glass border-white/10 overflow-hidden">
+        {/* Video/Image Preview */}
+        <div className="relative aspect-video bg-black/30">
+          {scene.videoUrl ? (
+            <video
+              src={cachedVideoUrl || scene.videoUrl}
+              className="w-full h-full object-cover"
+              poster={scene.imageUrl}
+              controls={isPlaying}
+              preload="metadata"
+              onPlay={onPlay}
+              onPause={onPause}
+            />
+          ) : scene.imageUrl ? (
+            <img
+              src={scene.imageUrl}
+              alt={scene.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageIcon className="w-12 h-12 text-muted-foreground/30" />
+            </div>
+          )}
+
+          {/* Status Overlay */}
+          {status === 'generating' && (
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className="w-12 h-12 mb-3"
+              >
+                <Sparkles className="w-full h-full text-orange-400" />
+              </motion.div>
+              <p className="text-sm text-white mb-2">{t('steps.videos.generatingVideo')}</p>
+              <div className="w-32">
+                <Progress value={progress} className="h-1" />
+              </div>
+              <span className="text-xs text-white/60 mt-1">{progress}%</span>
+            </div>
+          )}
+
+          {/* Play Button Overlay (for completed videos) */}
+          {scene.videoUrl && !isPlaying && (
+            <button
+              onClick={onPlay}
+              className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+            >
+              <div className="w-14 h-14 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors backdrop-blur-sm">
+                <Play className="w-6 h-6 text-white ml-1" />
+              </div>
+            </button>
+          )}
+
+          {/* Scene Number Badge */}
+          <div className="absolute top-2 left-2">
+            <Badge className="bg-black/60 text-white border-0">
+              {t('steps.scenes.sceneLabel')} {scene.number || index + 1}
+            </Badge>
+          </div>
+
+          {/* Status Badge */}
+          <div className="absolute top-2 right-2">
+            <Badge variant="outline" className={`${getStatusColor(status)} bg-black/60`}>
+              {getStatusIcon(status)}
+              <span className="ml-1 capitalize">{status}</span>
+            </Badge>
+          </div>
+        </div>
+
+        <CardContent className="p-4 space-y-3">
+          <div>
+            <h3 className="font-semibold truncate">{scene.title}</h3>
+            <p className="text-xs text-muted-foreground">
+              {scene.duration || 6}s • {scene.cameraShot}
+            </p>
+          </div>
+
+          {/* Image-to-Video Prompt */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-orange-400">{t('steps.videos.i2vPrompt')}</span>
+              <CopyButton text={buildFullI2VPrompt(scene)} size="icon" className="h-5 w-5" />
+            </div>
+            <div className="glass rounded-lg p-2 max-h-16 overflow-y-auto">
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {scene.imageToVideoPrompt}
+              </p>
+            </div>
+          </div>
+
+          {/* Dialogue Section */}
+          {scene.dialogue && scene.dialogue.length > 0 && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1">
+                <MessageSquare className="w-3 h-3 text-purple-400" />
+                <span className="text-xs text-purple-400">{t('steps.videos.dialogue')}</span>
+              </div>
+              <div className="glass rounded-lg p-2 max-h-20 overflow-y-auto space-y-1">
+                {scene.dialogue.map((line, idx) => (
+                  <p key={line.id || idx} className="text-xs">
+                    <span className="text-purple-300 font-medium">{line.characterName}:</span>{' '}
+                    <span className="text-muted-foreground">"{line.text}"</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            {scene.imageUrl ? (
+              <>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-white/10 hover:bg-white/5"
+                        onClick={onGenerateVideo}
+                        disabled={status === 'generating'}
+                      >
+                        {status === 'generating' ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </motion.div>
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{t('steps.videos.generateVideo')}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                {scene.videoUrl && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 hover:bg-white/5"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('common.download')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 border-amber-500/30 text-amber-400"
+                disabled
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {t('steps.videos.needsImage')}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}

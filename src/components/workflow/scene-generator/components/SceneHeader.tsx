@@ -1,0 +1,191 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { motion } from 'framer-motion';
+import { Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  ACTION_COSTS,
+  formatCostCompact,
+  getImageCost,
+  IMAGE_RESOLUTIONS,
+  ASPECT_RATIOS,
+  type ImageResolution,
+  type AspectRatio,
+} from '@/lib/services/real-costs';
+
+interface SceneHeaderProps {
+  sceneCount: number;
+  totalScenes: number;
+  scenesWithImages: number;
+  imageResolution: ImageResolution;
+  aspectRatio: AspectRatio;
+  hasCharacters: boolean;
+  isGeneratingScenes: boolean;
+  onSceneCountChange: (value: string) => void;
+  onImageResolutionChange: (value: ImageResolution) => void;
+  onAspectRatioChange: (value: AspectRatio) => void;
+  onGenerateAllScenes: () => void;
+}
+
+export function SceneHeader({
+  sceneCount,
+  totalScenes,
+  scenesWithImages,
+  imageResolution,
+  aspectRatio,
+  hasCharacters,
+  isGeneratingScenes,
+  onSceneCountChange,
+  onImageResolutionChange,
+  onAspectRatioChange,
+  onGenerateAllScenes,
+}: SceneHeaderProps) {
+  const t = useTranslations();
+
+  return (
+    <>
+      {/* Header */}
+      <div className="text-center">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 mb-4"
+        >
+          <ImageIcon className="w-8 h-8 text-emerald-400" />
+        </motion.div>
+        <h2 className="text-2xl font-bold mb-2">{t('steps.scenes.title')}</h2>
+        <p className="text-muted-foreground">{t('steps.scenes.description')}</p>
+      </div>
+
+      {/* Progress & Scene Count */}
+      <div className="glass rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <Label className="text-sm text-muted-foreground">{t('steps.scenes.sceneCount')}:</Label>
+            <Select
+              value={sceneCount.toString()}
+              onValueChange={onSceneCountChange}
+              disabled={totalScenes > 0}
+            >
+              <SelectTrigger className="w-32 glass border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-white/10">
+                {[12, 24, 36, 48, 60].map((count) => (
+                  <SelectItem key={count} value={count.toString()}>
+                    {count} {t('steps.scenes.scenesLabel')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Image Quality Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">Quality:</Label>
+            <Select
+              value={imageResolution}
+              onValueChange={(value) => onImageResolutionChange(value as ImageResolution)}
+            >
+              <SelectTrigger className="w-40 glass border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-white/10">
+                {(Object.entries(IMAGE_RESOLUTIONS) as [ImageResolution, { label: string; maxPixels: string; description: string }][]).map(([key, data]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{data.label}</span>
+                      <span className="text-xs text-muted-foreground">{formatCostCompact(getImageCost(key))}/img</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Aspect Ratio Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">Aspect:</Label>
+            <Select
+              value={aspectRatio}
+              onValueChange={(value) => onAspectRatioChange(value as AspectRatio)}
+            >
+              <SelectTrigger className="w-44 glass border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-white/10">
+                {(Object.entries(ASPECT_RATIOS) as [AspectRatio, { label: string; description: string }][]).map(([key, data]) => (
+                  <SelectItem key={key} value={key}>
+                    <span className="font-medium">{data.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
+              {totalScenes} / {sceneCount} {t('steps.scenes.scenesLabel')}
+            </Badge>
+            <Badge variant="outline" className="border-cyan-500/30 text-cyan-400">
+              {scenesWithImages} {t('steps.scenes.imagesGenerated')}
+            </Badge>
+          </div>
+        </div>
+
+        <Progress
+          value={(totalScenes / sceneCount) * 100}
+          className="h-2"
+        />
+
+        {/* Generate All Scenes Button */}
+        {totalScenes === 0 && (
+          <div className="flex justify-center pt-2">
+            <Button
+              className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 px-6"
+              disabled={isGeneratingScenes || !hasCharacters}
+              onClick={onGenerateAllScenes}
+            >
+              {isGeneratingScenes ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  </motion.div>
+                  {t('steps.scenes.generatingScenes')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {t('steps.scenes.generateWithAI')}
+                  <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                    {formatCostCompact(ACTION_COSTS.scene.claude * sceneCount)}
+                  </Badge>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {!hasCharacters && totalScenes === 0 && (
+          <p className="text-sm text-amber-400 text-center">
+            {t('steps.scenes.addCharactersFirst')}
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
