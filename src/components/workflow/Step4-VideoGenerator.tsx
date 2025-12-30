@@ -51,23 +51,13 @@ import {
 import { useProjectStore } from '@/lib/stores/project-store';
 import { CopyButton } from '@/components/shared/CopyButton';
 import type { Project, Scene } from '@/types/project';
+import { GenerationStatus, ItemGenerationState, SCENES_PER_PAGE } from '@/lib/constants/workflow';
 
 interface Step4Props {
   project: Project;
 }
 
-type VideoStatus = 'idle' | 'generating' | 'complete' | 'error';
-
-interface SceneVideoState {
-  [sceneId: string]: {
-    status: VideoStatus;
-    progress: number;
-    error?: string;
-  };
-}
-
-// Pagination configuration - 12 scenes ≈ 1 minute of video (12 × 6s = 72s)
-const ITEMS_PER_PAGE = 12;
+type SceneVideoState = Record<string, ItemGenerationState>;
 
 // Video cache to prevent re-downloading
 const videoCache = new Map<string, string>();
@@ -95,9 +85,9 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
   const scenesWithVideos = project.scenes.filter((s) => s.videoUrl);
 
   // Pagination calculations
-  const totalPages = Math.ceil(project.scenes.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const totalPages = Math.ceil(project.scenes.length / SCENES_PER_PAGE);
+  const startIndex = (currentPage - 1) * SCENES_PER_PAGE;
+  const endIndex = startIndex + SCENES_PER_PAGE;
   const paginatedScenes = project.scenes.slice(startIndex, endIndex);
 
   // Count scenes that need generation (no video OR has error status)

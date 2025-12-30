@@ -48,20 +48,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ItemGenerationState } from '@/lib/constants/workflow';
 
 interface Step2Props {
   project: Project;
 }
 
-type ImageStatus = 'idle' | 'generating' | 'complete' | 'error';
-
-interface CharacterImageState {
-  [characterId: string]: {
-    status: ImageStatus;
-    progress: number;
-    error?: string;
-  };
-}
+type CharacterImageState = Record<string, ItemGenerationState>;
 
 const MAX_CHARACTERS = 4;
 

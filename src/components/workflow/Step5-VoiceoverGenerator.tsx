@@ -42,20 +42,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project, Character, DialogueLine, VoiceProvider } from '@/types/project';
 import { ACTION_COSTS, formatCostCompact, calculateVoiceCost } from '@/lib/services/real-costs';
+import { ItemGenerationState } from '@/lib/constants/workflow';
 
 interface Step5Props {
   project: Project;
 }
 
-type AudioStatus = 'idle' | 'generating' | 'complete' | 'error';
-
-interface AudioState {
-  [lineId: string]: {
-    status: AudioStatus;
-    progress: number;
-    error?: string;
-  };
-}
+type AudioState = Record<string, ItemGenerationState>;
 
 // ElevenLabs voices (English)
 const elevenLabsVoices = [

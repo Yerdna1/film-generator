@@ -60,22 +60,11 @@ import { Progress } from '@/components/ui/progress';
 import type { Project, Scene, CameraShot, DialogueLine } from '@/types/project';
 import { CostBadge } from '@/components/shared/CostBadge';
 import { ACTION_COSTS, getImageCost, formatCostCompact, IMAGE_RESOLUTIONS, ASPECT_RATIOS, type ImageResolution, type AspectRatio } from '@/lib/services/real-costs';
+import { cameraShots } from '@/lib/constants/scene';
 
 interface Step3Props {
   project: Project;
 }
-
-const cameraShots: { value: CameraShot; label: string }[] = [
-  { value: 'wide', label: 'Wide Shot' },
-  { value: 'medium', label: 'Medium Shot' },
-  { value: 'close-up', label: 'Close-up' },
-  { value: 'extreme-close-up', label: 'Extreme Close-up' },
-  { value: 'over-shoulder', label: 'Over Shoulder' },
-  { value: 'pov', label: 'POV' },
-  { value: 'aerial', label: 'Aerial' },
-  { value: 'low-angle', label: 'Low Angle' },
-  { value: 'high-angle', label: 'High Angle' },
-];
 
 export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
   const t = useTranslations();
