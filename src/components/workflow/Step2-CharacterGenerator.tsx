@@ -14,10 +14,7 @@ import {
   Save,
   X,
   User,
-  Mic,
   Zap,
-  ExternalLink,
-  Upload,
   CheckCircle2,
   Expand,
 } from 'lucide-react';
@@ -518,14 +515,6 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-4 justify-center pt-2">
             <Button
-              variant="outline"
-              className="border-white/10 hover:bg-white/5"
-              onClick={() => window.open('https://nanobanana.com', '_blank')}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              {t('steps.characters.openNanoBanana')}
-            </Button>
-            <Button
               className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
               disabled={project.characters.length === 0 || isGeneratingAll}
               onClick={handleGenerateAll}
@@ -545,9 +534,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
                   <Zap className="w-4 h-4 mr-2" />
                   {t('steps.characters.generateAll')}
                   <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                    {(project.characters.length - charactersWithImages) > 0
-                      ? formatCostCompact(ACTION_COSTS.image.gemini * (project.characters.length - charactersWithImages))
-                      : `${formatCostCompact(ACTION_COSTS.image.gemini)}/ea`}
+                    {formatCostCompact(ACTION_COSTS.image.gemini * Math.max(project.characters.length - charactersWithImages, 1))}
                   </Badge>
                 </>
               )}
