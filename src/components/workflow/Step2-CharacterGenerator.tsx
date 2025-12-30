@@ -1,119 +1,75 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Users,
-  Plus,
-  Trash2,
-  Image as ImageIcon,
-  Sparkles,
-  RefreshCw,
-  Edit3,
-  Save,
-  X,
-  User,
-  Zap,
-  CheckCircle2,
-  Expand,
-  Copy,
-  ExternalLink,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { motion } from 'framer-motion';
+import { Users } from 'lucide-react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { generateCharacterPrompt } from '@/lib/prompts/master-prompt';
-import { CopyButton } from '@/components/shared/CopyButton';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { useCredits } from '@/contexts/CreditsContext';
-import type { Project, Character } from '@/types/project';
-import { v4 as uuidv4 } from 'uuid';
-import { CostBadge } from '@/components/shared/CostBadge';
-import { getImageCost, formatCostCompact, IMAGE_RESOLUTIONS, ASPECT_RATIOS, type ImageResolution, type AspectRatio } from '@/lib/services/real-costs';
+import type { Character } from '@/types/project';
+import type { AspectRatio } from '@/lib/services/real-costs';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ItemGenerationState } from '@/lib/constants/workflow';
-
-interface Step2Props {
-  project: Project;
-}
-
-type CharacterImageState = Record<string, ItemGenerationState>;
-
-const MAX_CHARACTERS = 4;
+  Step2Props,
+  MAX_CHARACTERS,
+  CharacterFormData,
+  EditCharacterData,
+} from './character-generator/types';
+import { useCharacterImage } from './character-generator/hooks';
+import {
+  CharacterCard,
+  AddCharacterDialog,
+  EditCharacterDialog,
+  ImagePreviewModal,
+  CopyPromptsDialog,
+  ImageGenerationSettings,
+  CharacterProgress,
+} from './character-generator/components';
 
 export function Step2CharacterGenerator({ project: initialProject }: Step2Props) {
   const t = useTranslations();
   const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects } = useProjectStore();
-  const { handleApiResponse } = useCredits();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
 
+  // State
   const [isAddingCharacter, setIsAddingCharacter] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<string | null>(null);
-  const [imageStates, setImageStates] = useState<CharacterImageState>({});
-  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
-  const [newCharacter, setNewCharacter] = useState({
-    name: '',
-    description: '',
-    visualDescription: '',
-    personality: '',
-  });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [characterAspectRatio, setCharacterAspectRatio] = useState<AspectRatio>('1:1');
   const [showPromptsDialog, setShowPromptsDialog] = useState(false);
-  const [editCharacterData, setEditCharacterData] = useState<{
-    name: string;
-    description: string;
-    visualDescription: string;
-    personality: string;
-    masterPrompt: string;
-  } | null>(null);
+  const [editCharacterData, setEditCharacterData] = useState<EditCharacterData | null>(null);
 
-  const handleAddCharacter = () => {
-    if (!newCharacter.name.trim()) return;
+  // Custom hook for image generation
+  const {
+    imageStates,
+    isGeneratingAll,
+    generateCharacterImage,
+    handleGenerateAll,
+  } = useCharacterImage(project, characterAspectRatio);
+
+  // Handlers
+  const handleAddCharacter = (data: CharacterFormData) => {
+    if (!data.name.trim()) return;
 
     const masterPrompt = generateCharacterPrompt(
       {
-        name: newCharacter.name,
-        description: newCharacter.description,
-        visualDescription: newCharacter.visualDescription,
+        name: data.name,
+        description: data.description,
+        visualDescription: data.visualDescription,
       },
       project.style
     );
 
     addCharacter(project.id, {
-      name: newCharacter.name,
-      description: newCharacter.description,
-      visualDescription: newCharacter.visualDescription,
-      personality: newCharacter.personality,
+      name: data.name,
+      description: data.description,
+      visualDescription: data.visualDescription,
+      personality: data.personality,
       masterPrompt,
     });
 
-    setNewCharacter({ name: '', description: '', visualDescription: '', personality: '' });
     setIsAddingCharacter(false);
-  };
-
-  const handleUpdateCharacter = (characterId: string, updates: Partial<Character>) => {
-    updateCharacter(project.id, characterId, updates);
   };
 
   const regeneratePrompt = (character: Character) => {
@@ -161,105 +117,6 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
     setEditCharacterData(null);
   };
 
-  const getCharacterStatus = (characterId: string): ImageStatus => {
-    const character = project.characters.find((c) => c.id === characterId);
-    if (character?.imageUrl) return 'complete';
-    return imageStates[characterId]?.status || 'idle';
-  };
-
-  const generateCharacterImage = async (character: Character) => {
-    setImageStates((prev) => ({
-      ...prev,
-      [character.id]: { status: 'generating', progress: 10 },
-    }));
-
-    try {
-      // Update progress to show we're calling the API
-      setImageStates((prev) => ({
-        ...prev,
-        [character.id]: { status: 'generating', progress: 30 },
-      }));
-
-      // Call the Gemini image generation API with resolution setting
-      const imageResolution = project.settings?.imageResolution || '2k';
-      const response = await fetch('/api/gemini/image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: character.masterPrompt,
-          aspectRatio: characterAspectRatio,
-          resolution: imageResolution,
-        }),
-      });
-
-      // Check for insufficient credits (402 response)
-      const isInsufficientCredits = await handleApiResponse(response);
-      if (isInsufficientCredits) {
-        setImageStates((prev) => ({
-          ...prev,
-          [character.id]: { status: 'idle', progress: 0 },
-        }));
-        return;
-      }
-
-      setImageStates((prev) => ({
-        ...prev,
-        [character.id]: { status: 'generating', progress: 70 },
-      }));
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.imageUrl) {
-          // Update character with generated image
-          updateCharacter(project.id, character.id, { imageUrl: data.imageUrl });
-          setImageStates((prev) => ({
-            ...prev,
-            [character.id]: { status: 'complete', progress: 100 },
-          }));
-          // Refresh credits display
-          window.dispatchEvent(new CustomEvent('credits-updated'));
-          return;
-        }
-      }
-
-      // If API failed, show error but still mark as complete for demo purposes
-      const errorData = await response.json().catch(() => ({}));
-      console.warn('Image generation API failed:', errorData);
-      setImageStates((prev) => ({
-        ...prev,
-        [character.id]: {
-          status: 'error',
-          progress: 0,
-          error: errorData.error || 'API not configured - set GEMINI_API_KEY in .env.local'
-        },
-      }));
-    } catch (error) {
-      console.error('Error generating character image:', error);
-      setImageStates((prev) => ({
-        ...prev,
-        [character.id]: {
-          status: 'error',
-          progress: 0,
-          error: error instanceof Error ? error.message : 'Generation failed'
-        },
-      }));
-    }
-  };
-
-  const handleGenerateImage = async (character: Character) => {
-    await generateCharacterImage(character);
-  };
-
-  const handleGenerateAll = async () => {
-    setIsGeneratingAll(true);
-    for (const character of project.characters) {
-      if (!character.imageUrl) {
-        await generateCharacterImage(character);
-      }
-    }
-    setIsGeneratingAll(false);
-  };
-
   const charactersWithImages = project.characters.filter((c) => c.imageUrl).length;
 
   return (
@@ -278,55 +135,12 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
       </div>
 
       {/* Image Generation Settings */}
-      <div className="glass rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-6 flex-wrap">
-          {/* Resolution Selector */}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-muted-foreground whitespace-nowrap">Quality:</Label>
-            <Select
-              value={project.settings?.imageResolution || '2k'}
-              onValueChange={(value) => updateSettings(project.id, { imageResolution: value as ImageResolution })}
-            >
-              <SelectTrigger className="w-40 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                {(Object.entries(IMAGE_RESOLUTIONS) as [ImageResolution, { label: string; maxPixels: string; description: string }][]).map(([key, data]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">{data.label}</span>
-                      <span className="text-xs text-muted-foreground">{formatCostCompact(getImageCost(key))}/img</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Aspect Ratio Selector */}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-muted-foreground whitespace-nowrap">Aspect:</Label>
-            <Select
-              value={characterAspectRatio}
-              onValueChange={(value) => setCharacterAspectRatio(value as AspectRatio)}
-            >
-              <SelectTrigger className="w-44 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                {(Object.entries(ASPECT_RATIOS) as [AspectRatio, { label: string; description: string }][]).map(([key, data]) => (
-                  <SelectItem key={key} value={key}>
-                    <span className="font-medium">{data.label}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {ASPECT_RATIOS[characterAspectRatio]?.description}
-        </div>
-      </div>
+      <ImageGenerationSettings
+        imageResolution={project.settings?.imageResolution || '2k'}
+        aspectRatio={characterAspectRatio}
+        onResolutionChange={(resolution) => updateSettings(project.id, { imageResolution: resolution })}
+        onAspectRatioChange={setCharacterAspectRatio}
+      />
 
       {/* Characters Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -337,153 +151,17 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="glass border-white/10 overflow-hidden card-hover">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <CardTitle className="text-lg">{character.name}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{character.personality || 'No personality set'}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deleteCharacter(project.id, character.id)}
-                    className="text-muted-foreground hover:text-red-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-                {/* Character Image - Large Preview */}
-                {character.imageUrl ? (
-                  <button
-                    onClick={() => setPreviewImage(character.imageUrl!)}
-                    className="relative w-full aspect-square rounded-xl overflow-hidden group mt-3"
-                  >
-                    <img
-                      src={character.imageUrl}
-                      alt={character.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Expand className="w-8 h-8 text-white" />
-                    </div>
-                  </button>
-                ) : (
-                  <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex flex-col items-center justify-center gap-2 mt-3">
-                    <User className="w-16 h-16 text-purple-400/50" />
-                    <span className="text-xs text-muted-foreground">No image generated</span>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {character.description || 'No description'}
-                </p>
-
-                {/* Master Prompt Preview */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">Master Prompt</Label>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => regeneratePrompt(character)}
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                      </Button>
-                      <CopyButton text={character.masterPrompt} size="icon" className="h-6 w-6" />
-                    </div>
-                  </div>
-                  <div className="glass rounded-lg p-3 max-h-24 overflow-y-auto">
-                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono">
-                      {character.masterPrompt}
-                    </pre>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-white/10 hover:bg-white/5"
-                    onClick={() => startEditCharacter(character)}
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    {t('common.edit')}
-                  </Button>
-                  {(() => {
-                    const status = getCharacterStatus(character.id);
-                    const progress = imageStates[character.id]?.progress || 0;
-                    const errorMsg = imageStates[character.id]?.error;
-
-                    if (status === 'generating') {
-                      return (
-                        <Button
-                          size="sm"
-                          disabled
-                          className="flex-1 bg-gradient-to-r from-purple-600/50 to-cyan-600/50 text-white border-0"
-                        >
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                          </motion.div>
-                          {progress}%
-                        </Button>
-                      );
-                    }
-
-                    if (status === 'error') {
-                      return (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
-                          onClick={() => handleGenerateImage(character)}
-                          title={errorMsg}
-                        >
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Retry
-                        </Button>
-                      );
-                    }
-
-                    if (status === 'complete' || character.imageUrl) {
-                      return (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 border-green-500/30 text-green-400 hover:bg-green-500/10"
-                          onClick={() => handleGenerateImage(character)}
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-2" />
-                          {t('steps.characters.regenerate')}
-                        </Button>
-                      );
-                    }
-
-                    const imageCost = getImageCost(project.settings?.imageResolution || '2k');
-                    return (
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-gradient-to-r from-purple-600/80 to-cyan-600/80 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
-                        onClick={() => handleGenerateImage(character)}
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        {t('steps.characters.generateImage')}
-                        <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                          {formatCostCompact(imageCost)}
-                        </Badge>
-                      </Button>
-                    );
-                  })()}
-                </div>
-              </CardContent>
-            </Card>
+            <CharacterCard
+              character={character}
+              project={project}
+              imageState={imageStates[character.id]}
+              onEdit={startEditCharacter}
+              onDelete={(id) => deleteCharacter(project.id, id)}
+              onGenerateImage={generateCharacterImage}
+              onRegeneratePrompt={regeneratePrompt}
+              onPreviewImage={setPreviewImage}
+              characterAspectRatio={characterAspectRatio}
+            />
           </motion.div>
         ))}
 
@@ -493,156 +171,25 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: project.characters.length * 0.1 }}
         >
-          {project.characters.length < MAX_CHARACTERS ? (
-            <Dialog open={isAddingCharacter} onOpenChange={setIsAddingCharacter}>
-              <DialogTrigger asChild>
-                <button className="w-full h-full min-h-[300px] glass rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/30 transition-colors flex flex-col items-center justify-center gap-4 group">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 group-hover:bg-purple-500/20 transition-colors flex items-center justify-center">
-                    <Plus className="w-8 h-8 text-muted-foreground group-hover:text-purple-400 transition-colors" />
-                  </div>
-                  <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                    {t('steps.characters.addCharacter')}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {project.characters.length}/{MAX_CHARACTERS}
-                  </span>
-                </button>
-              </DialogTrigger>
-            <DialogContent className="glass-strong border-white/10 max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{t('steps.characters.addCharacter')}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>{t('steps.characters.characterName')}</Label>
-                  <Input
-                    placeholder="e.g., The Boy, Fuzzy"
-                    value={newCharacter.name}
-                    onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
-                    className="glass border-white/10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('steps.characters.personality')}</Label>
-                  <Input
-                    placeholder="e.g., Determined, brave, caring"
-                    value={newCharacter.personality}
-                    onChange={(e) => setNewCharacter({ ...newCharacter, personality: e.target.value })}
-                    className="glass border-white/10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('steps.characters.characterDescription')}</Label>
-                  <Textarea
-                    placeholder="Brief character description..."
-                    value={newCharacter.description}
-                    onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
-                    className="glass border-white/10 min-h-[80px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('steps.characters.visualDescription')}</Label>
-                  <Textarea
-                    placeholder="Detailed visual appearance (clothing, features, etc.)..."
-                    value={newCharacter.visualDescription}
-                    onChange={(e) => setNewCharacter({ ...newCharacter, visualDescription: e.target.value })}
-                    className="glass border-white/10 min-h-[100px]"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button variant="outline" onClick={() => setIsAddingCharacter(false)} className="border-white/10">
-                    {t('common.cancel')}
-                  </Button>
-                  <Button
-                    onClick={handleAddCharacter}
-                    disabled={!newCharacter.name.trim()}
-                    className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('common.create')}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-          ) : (
-            <div className="w-full h-full min-h-[300px] glass rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-              </div>
-              <span className="text-muted-foreground">
-                {t('steps.characters.maxReached')}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {MAX_CHARACTERS}/{MAX_CHARACTERS}
-              </span>
-            </div>
-          )}
+          <AddCharacterDialog
+            open={isAddingCharacter}
+            onOpenChange={setIsAddingCharacter}
+            onAddCharacter={handleAddCharacter}
+            currentCount={project.characters.length}
+            maxCount={MAX_CHARACTERS}
+          />
         </motion.div>
       </div>
 
       {/* Progress & Quick Actions */}
-      {project.characters.length > 0 && (
-        <div className="glass rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-purple-400" />
-                <span className="font-medium">{t('steps.characters.progress')}</span>
-              </div>
-              <Badge variant="outline" className="border-purple-500/30 text-purple-400">
-                {charactersWithImages} / {project.characters.length} {t('steps.characters.imagesGenerated')}
-              </Badge>
-            </div>
-          </div>
-          <Progress
-            value={(charactersWithImages / project.characters.length) * 100}
-            className="h-2"
-          />
-
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-4 justify-center pt-2">
-            {/* Copy Prompts for Gemini Button */}
-            <Button
-              variant="outline"
-              className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-              disabled={project.characters.length === 0}
-              onClick={() => setShowPromptsDialog(true)}
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy Prompts for Gemini
-              <Badge variant="outline" className="ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
-                FREE
-              </Badge>
-            </Button>
-            <Button
-              className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
-              disabled={project.characters.length === 0 || isGeneratingAll}
-              onClick={handleGenerateAll}
-            >
-              {isGeneratingAll ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  </motion.div>
-                  {t('steps.characters.generating')}
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 mr-2" />
-                  {t('steps.characters.generateAll')}
-                  <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                    {formatCostCompact(getImageCost(project.settings?.imageResolution || '2k') * project.characters.length)}
-                  </Badge>
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
+      <CharacterProgress
+        characters={project.characters}
+        charactersWithImages={charactersWithImages}
+        isGeneratingAll={isGeneratingAll}
+        imageResolution={project.settings?.imageResolution || '2k'}
+        onGenerateAll={handleGenerateAll}
+        onShowPromptsDialog={() => setShowPromptsDialog(true)}
+      />
 
       {/* Tip */}
       <div className="glass rounded-xl p-4 border-l-4 border-purple-500">
@@ -652,203 +199,27 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
       </div>
 
       {/* Edit Character Dialog */}
-      <Dialog open={editingCharacter !== null} onOpenChange={(open) => !open && cancelEditCharacter()}>
-        <DialogContent className="glass-strong border-white/10 max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t('steps.characters.editCharacter')}</DialogTitle>
-          </DialogHeader>
-          {editCharacterData && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>{t('steps.characters.characterName')}</Label>
-                <Input
-                  value={editCharacterData.name}
-                  onChange={(e) => setEditCharacterData({ ...editCharacterData, name: e.target.value })}
-                  className="glass border-white/10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('steps.characters.personality')}</Label>
-                <Input
-                  value={editCharacterData.personality}
-                  onChange={(e) => setEditCharacterData({ ...editCharacterData, personality: e.target.value })}
-                  className="glass border-white/10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('steps.characters.characterDescription')}</Label>
-                <Textarea
-                  value={editCharacterData.description}
-                  onChange={(e) => setEditCharacterData({ ...editCharacterData, description: e.target.value })}
-                  className="glass border-white/10 min-h-[80px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('steps.characters.visualDescription')}</Label>
-                <Textarea
-                  value={editCharacterData.visualDescription}
-                  onChange={(e) => setEditCharacterData({ ...editCharacterData, visualDescription: e.target.value })}
-                  className="glass border-white/10 min-h-[100px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>{t('steps.characters.masterPrompt')}</Label>
-                  <CopyButton text={editCharacterData.masterPrompt} size="icon" className="h-6 w-6" />
-                </div>
-                <Textarea
-                  value={editCharacterData.masterPrompt}
-                  onChange={(e) => setEditCharacterData({ ...editCharacterData, masterPrompt: e.target.value })}
-                  className="glass border-white/10 min-h-[120px] font-mono text-xs"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={cancelEditCharacter} className="border-white/10">
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  onClick={saveEditCharacter}
-                  className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {t('common.save')}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EditCharacterDialog
+        open={editingCharacter !== null}
+        onOpenChange={(open) => !open && cancelEditCharacter()}
+        editData={editCharacterData}
+        onEditDataChange={setEditCharacterData}
+        onSave={saveEditCharacter}
+        onCancel={cancelEditCharacter}
+      />
 
       {/* Image Preview Modal */}
-      <AnimatePresence>
-        {previewImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-            onClick={() => setPreviewImage(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-4xl max-h-[90vh]"
-            >
-              <img
-                src={previewImage}
-                alt="Preview"
-                className="max-w-full max-h-[90vh] rounded-xl"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
-                onClick={() => setPreviewImage(null)}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ImagePreviewModal
+        imageUrl={previewImage}
+        onClose={() => setPreviewImage(null)}
+      />
 
       {/* Copy Prompts for Gemini Dialog */}
-      <Dialog open={showPromptsDialog} onOpenChange={setShowPromptsDialog}>
-        <DialogContent className="glass-strong border-white/10 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Copy className="w-5 h-5 text-purple-400" />
-              Copy Character Prompts for Gemini
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex items-center gap-2 p-3 glass rounded-lg border-l-4 border-purple-500 mb-4">
-            <span className="text-sm text-muted-foreground">
-              <strong className="text-purple-400">Tip:</strong> Copy each prompt and paste it into{' '}
-              <a
-                href="https://gemini.google.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-400 hover:underline inline-flex items-center gap-1"
-              >
-                gemini.google.com <ExternalLink className="w-3 h-3" />
-              </a>
-              {' '}to use your 100 free images/day from Google One AI Premium.
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-            {project.characters.map((character, index) => (
-              <CharacterPromptCard
-                key={character.id}
-                character={character}
-                index={index}
-                hasImage={!!character.imageUrl}
-              />
-            ))}
-          </div>
-
-          <div className="flex justify-between items-center pt-4 border-t border-white/10">
-            <div className="text-sm text-muted-foreground">
-              {project.characters.length} prompts • {project.characters.filter(c => c.imageUrl).length} already have images
-            </div>
-            <Button variant="outline" onClick={() => setShowPromptsDialog(false)} className="border-white/10">
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// Character Prompt Card Component with Copy functionality
-function CharacterPromptCard({ character, index, hasImage }: { character: Character; index: number; hasImage: boolean }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(character.masterPrompt);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className={`glass rounded-lg p-4 ${hasImage ? 'border-l-4 border-green-500/50' : 'border-l-4 border-orange-500/50'}`}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-cyan-400">{character.name}</span>
-            {hasImage && (
-              <Badge variant="outline" className="border-green-500/30 text-green-400 text-[10px]">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                Has Image
-              </Badge>
-            )}
-          </div>
-          <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-black/20 rounded p-2 max-h-24 overflow-y-auto">
-            {character.masterPrompt}
-          </pre>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCopy}
-          className={copied ? 'border-green-500/50 text-green-400' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10'}
-        >
-          {copied ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 mr-1" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4 mr-1" />
-              Copy
-            </>
-          )}
-        </Button>
-      </div>
+      <CopyPromptsDialog
+        open={showPromptsDialog}
+        onOpenChange={setShowPromptsDialog}
+        characters={project.characters}
+      />
     </div>
   );
 }

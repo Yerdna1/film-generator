@@ -1,0 +1,1 @@
+export { useCharacterImage } from './useCharacterImage';
