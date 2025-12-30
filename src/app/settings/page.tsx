@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import {
   Settings,
   Key,
@@ -26,6 +27,12 @@ import {
   Trash2,
   AlertTriangle,
   Loader2,
+  LogOut,
+  DollarSign,
+  Video,
+  FileText,
+  Users,
+  Wand2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +68,7 @@ export default function SettingsPage() {
   const tAuth = useTranslations('auth');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const { data: session } = useSession();
   const { apiConfig, setApiConfig, projects, clearProjects } = useProjectStore();
 
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -72,6 +80,15 @@ export default function SettingsPage() {
   const [notifyOnComplete, setNotifyOnComplete] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [actionCosts, setActionCosts] = useState<{
+    image: { provider: string; cost: number; description: string | null }[];
+    video: { provider: string; cost: number; description: string | null }[];
+    voiceover: { provider: string; cost: number; description: string | null }[];
+    scene: { provider: string; cost: number; description: string | null }[];
+    character: { provider: string; cost: number; description: string | null }[];
+    prompt: { provider: string; cost: number; description: string | null }[];
+  } | null>(null);
+  const [costsLoading, setCostsLoading] = useState(false);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -87,6 +104,21 @@ export default function SettingsPage() {
     setNotifyOnComplete(savedNotify);
     setAutoSave(savedAutoSave);
   }, []);
+
+  // Fetch action costs
+  const fetchActionCosts = async () => {
+    if (actionCosts) return; // Already fetched
+    setCostsLoading(true);
+    try {
+      const response = await fetch('/api/costs');
+      const data = await response.json();
+      setActionCosts(data.costs);
+    } catch (error) {
+      console.error('Failed to fetch action costs:', error);
+    } finally {
+      setCostsLoading(false);
+    }
+  };
 
   const toggleKeyVisibility = (key: string) => {
     setShowKeys((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -306,6 +338,10 @@ export default function SettingsPage() {
               <TabsTrigger value="account" className="gap-2">
                 <User className="w-4 h-4" />
                 {tPage('account')}
+              </TabsTrigger>
+              <TabsTrigger value="pricing" className="gap-2" onClick={fetchActionCosts}>
+                <DollarSign className="w-4 h-4" />
+                Pricing
               </TabsTrigger>
             </TabsList>
 
@@ -540,44 +576,64 @@ export default function SettingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-2xl font-bold text-white">
-                        U
-                      </div>
-                      <div>
-                        <p className="font-medium">Local User</p>
-                        <p className="text-sm text-muted-foreground">Using local storage</p>
-                        <Badge variant="outline" className="mt-1 border-cyan-500/30 text-cyan-400">
-                          Free Plan
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="pt-4 space-y-3">
-                      <div className="space-y-2">
-                        <Label>{tAuth('email')}</Label>
-                        <Input
-                          type="email"
-                          placeholder={tPage('connectEmail')}
-                          className="glass border-white/10"
-                          disabled
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {tPage('cloudSyncNote')}
-                      </p>
-                      <div className="flex gap-2">
-                        <Link href="/auth/login">
-                          <Button variant="outline" className="border-white/10">
-                            {tAuth('signIn')}
+                    {session?.user ? (
+                      <>
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-2xl font-bold text-white">
+                            {session.user.name?.[0]?.toUpperCase() || session.user.email?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div>
+                            <p className="font-medium">{session.user.name || tPage('user')}</p>
+                            <p className="text-sm text-muted-foreground">{session.user.email}</p>
+                            <Badge variant="outline" className="mt-1 border-green-500/30 text-green-400">
+                              {tPage('authenticated')}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="pt-4">
+                          <Button
+                            variant="outline"
+                            className="border-white/10"
+                            onClick={() => signOut({ callbackUrl: '/' })}
+                          >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            {tAuth('signOut')}
                           </Button>
-                        </Link>
-                        <Link href="/auth/register">
-                          <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0">
-                            {tAuth('createAccount')}
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-2xl font-bold text-white">
+                            U
+                          </div>
+                          <div>
+                            <p className="font-medium">{tPage('guestUser')}</p>
+                            <p className="text-sm text-muted-foreground">{tPage('usingLocalStorage')}</p>
+                            <Badge variant="outline" className="mt-1 border-cyan-500/30 text-cyan-400">
+                              {tPage('guestMode')}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="pt-4 space-y-3">
+                          <p className="text-sm text-muted-foreground">
+                            {tPage('cloudSyncNote')}
+                          </p>
+                          <div className="flex gap-2">
+                            <Link href="/auth/login">
+                              <Button variant="outline" className="border-white/10">
+                                {tAuth('signIn')}
+                              </Button>
+                            </Link>
+                            <Link href="/auth/register">
+                              <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0">
+                                {tAuth('createAccount')}
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -666,6 +722,217 @@ export default function SettingsPage() {
                     <Link href="/privacy" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                       {tPage('privacyPolicy')} →
                     </Link>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            {/* Pricing Tab - Read-only display of action costs */}
+            <TabsContent value="pricing" className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="glass border-white/10">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-400" />
+                      Action Costs
+                    </CardTitle>
+                    <CardDescription>
+                      Real API costs per action. These costs are set by the administrator and cannot be changed.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {costsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                      </div>
+                    ) : actionCosts ? (
+                      <div className="space-y-6">
+                        {/* Image Generation */}
+                        <div className="glass rounded-xl p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                              <ImageIcon className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Image Generation</h3>
+                              <p className="text-xs text-muted-foreground">Cost per generated image</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            {actionCosts.image.map((cost) => (
+                              <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5">
+                                <div>
+                                  <span className="font-medium capitalize">{cost.provider}</span>
+                                  {cost.description && (
+                                    <p className="text-xs text-muted-foreground">{cost.description}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="border-green-500/30 text-green-400 font-mono">
+                                  ${cost.cost.toFixed(4)}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Video Generation */}
+                        <div className="glass rounded-xl p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                              <Video className="w-5 h-5 text-orange-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Video Generation</h3>
+                              <p className="text-xs text-muted-foreground">Cost per 6-second video clip</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            {actionCosts.video.map((cost) => (
+                              <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5">
+                                <div>
+                                  <span className="font-medium capitalize">{cost.provider}</span>
+                                  {cost.description && (
+                                    <p className="text-xs text-muted-foreground">{cost.description}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="border-green-500/30 text-green-400 font-mono">
+                                  ${cost.cost.toFixed(4)}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Voiceover */}
+                        <div className="glass rounded-xl p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                              <Mic className="w-5 h-5 text-violet-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Voice Generation</h3>
+                              <p className="text-xs text-muted-foreground">Cost per dialogue line (~100 chars)</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            {actionCosts.voiceover.map((cost) => (
+                              <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5">
+                                <div>
+                                  <span className="font-medium capitalize">{cost.provider}</span>
+                                  {cost.description && (
+                                    <p className="text-xs text-muted-foreground">{cost.description}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="border-green-500/30 text-green-400 font-mono">
+                                  ${cost.cost.toFixed(4)}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Scene Generation */}
+                        <div className="glass rounded-xl p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-cyan-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Scene Generation</h3>
+                              <p className="text-xs text-muted-foreground">Cost per scene description</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            {actionCosts.scene.map((cost) => (
+                              <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5">
+                                <div>
+                                  <span className="font-medium capitalize">{cost.provider}</span>
+                                  {cost.description && (
+                                    <p className="text-xs text-muted-foreground">{cost.description}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="border-green-500/30 text-green-400 font-mono">
+                                  ${cost.cost.toFixed(4)}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Character Generation */}
+                        <div className="glass rounded-xl p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                              <Users className="w-5 h-5 text-pink-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Character Generation</h3>
+                              <p className="text-xs text-muted-foreground">Cost per character description</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            {actionCosts.character.map((cost) => (
+                              <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5">
+                                <div>
+                                  <span className="font-medium capitalize">{cost.provider}</span>
+                                  {cost.description && (
+                                    <p className="text-xs text-muted-foreground">{cost.description}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="border-green-500/30 text-green-400 font-mono">
+                                  ${cost.cost.toFixed(4)}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Master Prompt */}
+                        <div className="glass rounded-xl p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                              <Wand2 className="w-5 h-5 text-amber-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Master Prompt</h3>
+                              <p className="text-xs text-muted-foreground">Cost per master prompt generation</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            {actionCosts.prompt.map((cost) => (
+                              <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5">
+                                <div>
+                                  <span className="font-medium capitalize">{cost.provider}</span>
+                                  {cost.description && (
+                                    <p className="text-xs text-muted-foreground">{cost.description}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="border-green-500/30 text-green-400 font-mono">
+                                  ${cost.cost.toFixed(4)}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Click the Pricing tab to load costs</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Info Card */}
+                <Card className="glass border-white/10 border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">
+                      These costs reflect the actual API pricing from providers. Costs are managed by the system administrator and stored in the database.
+                    </p>
                   </CardContent>
                 </Card>
               </motion.div>

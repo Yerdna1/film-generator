@@ -1,8 +1,10 @@
-// S3 Image Upload Service
-// Uploads base64 images to AWS S3 for public access
+// S3 Media Upload Service
+// Uploads images, videos, and audio to AWS S3 for public access
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
+
+export type MediaType = 'image' | 'video' | 'audio';
 
 // Initialize S3 client
 const getS3Client = () => {
@@ -65,13 +67,25 @@ export async function uploadBase64ToS3(
 
     // Determine file extension from mime type
     const extMap: Record<string, string> = {
+      // Images
       'image/png': 'png',
       'image/jpeg': 'jpg',
       'image/jpg': 'jpg',
       'image/webp': 'webp',
       'image/gif': 'gif',
+      // Videos
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/quicktime': 'mov',
+      // Audio
+      'audio/mpeg': 'mp3',
+      'audio/mp3': 'mp3',
+      'audio/wav': 'wav',
+      'audio/ogg': 'ogg',
+      'audio/webm': 'webm',
+      'audio/aac': 'aac',
     };
-    const extension = extMap[mimeType] || 'png';
+    const extension = extMap[mimeType] || 'bin';
 
     // Generate unique key
     const key = `${folder}/${uuidv4()}.${extension}`;
@@ -122,4 +136,57 @@ export async function uploadMultipleToS3(
   folder: string = 'film-generator'
 ): Promise<UploadResult[]> {
   return Promise.all(images.map((img) => uploadBase64ToS3(img, folder)));
+}
+
+/**
+ * Upload an image to S3
+ * @param base64Data - Base64 encoded image
+ * @param projectId - Project ID for organization
+ * @returns Public URL of the uploaded image
+ */
+export async function uploadImageToS3(
+  base64Data: string,
+  projectId?: string
+): Promise<UploadResult> {
+  const folder = projectId ? `film-generator/${projectId}/images` : 'film-generator/images';
+  return uploadBase64ToS3(base64Data, folder);
+}
+
+/**
+ * Upload a video to S3
+ * @param base64Data - Base64 encoded video
+ * @param projectId - Project ID for organization
+ * @returns Public URL of the uploaded video
+ */
+export async function uploadVideoToS3(
+  base64Data: string,
+  projectId?: string
+): Promise<UploadResult> {
+  const folder = projectId ? `film-generator/${projectId}/videos` : 'film-generator/videos';
+  return uploadBase64ToS3(base64Data, folder);
+}
+
+/**
+ * Upload audio to S3
+ * @param base64Data - Base64 encoded audio
+ * @param projectId - Project ID for organization
+ * @returns Public URL of the uploaded audio
+ */
+export async function uploadAudioToS3(
+  base64Data: string,
+  projectId?: string
+): Promise<UploadResult> {
+  const folder = projectId ? `film-generator/${projectId}/audio` : 'film-generator/audio';
+  return uploadBase64ToS3(base64Data, folder);
+}
+
+/**
+ * Check if S3 is configured
+ */
+export function isS3Configured(): boolean {
+  return !!(
+    process.env.AWS_ACCESS_KEY_ID &&
+    process.env.AWS_SECRET_ACCESS_KEY &&
+    process.env.AWS_S3_BUCKET
+  );
 }

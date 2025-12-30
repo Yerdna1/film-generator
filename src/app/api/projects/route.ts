@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
 
-// GET - Fetch all projects for user
-export async function GET() {
+// GET - Fetch all projects for user (with 2-hour cache)
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
 
@@ -14,8 +15,28 @@ export async function GET() {
       );
     }
 
+    const userId = session.user.id;
+    const cacheKey = cacheKeys.userProjects(userId);
+
+    // Check for force refresh query param
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get('refresh') === 'true';
+
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedProjects = cache.get<unknown[]>(cacheKey);
+      if (cachedProjects) {
+        console.log(`[Cache HIT] Projects for user ${userId}`);
+        return NextResponse.json(cachedProjects, {
+          headers: { 'X-Cache': 'HIT' },
+        });
+      }
+    }
+
+    console.log(`[Cache MISS] Fetching projects from DB for user ${userId}`);
+
     const projects = await prisma.project.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       include: {
         characters: true,
         scenes: {
@@ -66,9 +87,30 @@ export async function GET() {
       })),
     }));
 
-    return NextResponse.json(transformedProjects);
+    // Cache for 2 hours
+    cache.set(cacheKey, transformedProjects, cacheTTL.LONG);
+    console.log(`[Cache SET] Projects cached for 2 hours`);
+
+    return NextResponse.json(transformedProjects, {
+      headers: { 'X-Cache': 'MISS' },
+    });
   } catch (error) {
     console.error('Error fetching projects:', error);
+
+    // Check if it's a database quota error
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isQuotaError = errorMessage.includes('data transfer quota') || errorMessage.includes('quota');
+
+    if (isQuotaError) {
+      // Return empty array when database is unavailable - client will use localStorage
+      return NextResponse.json([], {
+        headers: {
+          'X-Database-Offline': 'true',
+          'X-Error': 'Database quota exceeded',
+        },
+      });
+    }
+
     return NextResponse.json(
       { error: 'Failed to fetch projects' },
       { status: 500 }
@@ -139,6 +181,9 @@ export async function POST(request: NextRequest) {
       characters: [],
       scenes: [],
     };
+
+    // Invalidate projects cache for this user
+    cache.invalidate(cacheKeys.userProjects(session.user.id));
 
     return NextResponse.json(transformedProject, { status: 201 });
   } catch (error) {

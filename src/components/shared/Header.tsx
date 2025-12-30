@@ -17,6 +17,7 @@ import {
   User,
   Sparkles,
   LogIn,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -176,6 +177,12 @@ export function Header() {
                     <Link href="/profile">
                       <User className="w-4 h-4 mr-2" />
                       Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                    <Link href="/statistics">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Statistics
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>

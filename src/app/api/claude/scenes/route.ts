@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { auth } from '@/lib/auth';
+import { spendCredits, COSTS } from '@/lib/services/credits';
+import { ACTION_COSTS } from '@/lib/services/real-costs';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: GenerateScenesRequest = await request.json();
-    const { story, characters, style, sceneCount } = body;
+    const { projectId, story, characters, style, sceneCount } = body;
 
     if (!story.concept || characters.length === 0) {
       return NextResponse.json(
@@ -165,7 +167,18 @@ Return ONLY the JSON array, no other text.`;
       }) || [],
     }));
 
-    return NextResponse.json({ scenes: scenesWithIds });
+    // Track cost for scene generation
+    const realCost = ACTION_COSTS.scene.claude * sceneCount;
+    await spendCredits(
+      session.user.id,
+      COSTS.SCENE_GENERATION * sceneCount,
+      'scene',
+      `Claude scene generation (${sceneCount} scenes)`,
+      projectId,
+      'claude'
+    );
+
+    return NextResponse.json({ scenes: scenesWithIds, cost: realCost });
   } catch (error) {
     console.error('Error generating scenes with Claude:', error);
     return NextResponse.json(

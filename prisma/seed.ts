@@ -51,6 +51,52 @@ async function main() {
   });
 
   console.log(`API keys created/updated for user: ${user.email}`);
+
+  // Seed action costs
+  const actionCosts = [
+    // Image generation
+    { actionType: 'image', provider: 'gemini', cost: 0.04, description: 'Gemini 3 Pro image generation' },
+    { actionType: 'image', provider: 'nanoBanana', cost: 0.04, description: 'Nano Banana image generation' },
+
+    // Video generation (6s clip)
+    { actionType: 'video', provider: 'grok', cost: 0.10, description: 'Grok Imagine video generation (6s)' },
+    { actionType: 'video', provider: 'kie', cost: 0.10, description: 'Kie.ai video generation (6s)' },
+
+    // Voice generation (average per line ~100 chars)
+    { actionType: 'voiceover', provider: 'elevenlabs', cost: 0.03, description: 'ElevenLabs TTS per line (~100 chars)' },
+    { actionType: 'voiceover', provider: 'gemini', cost: 0.002, description: 'Gemini TTS per line (~100 chars)' },
+
+    // Scene text generation
+    { actionType: 'scene', provider: 'gemini', cost: 0.001, description: 'Gemini scene description' },
+    { actionType: 'scene', provider: 'claude', cost: 0.005, description: 'Claude scene description' },
+    { actionType: 'scene', provider: 'grok', cost: 0.003, description: 'Grok scene description' },
+
+    // Character description generation
+    { actionType: 'character', provider: 'gemini', cost: 0.0005, description: 'Gemini character description' },
+    { actionType: 'character', provider: 'claude', cost: 0.002, description: 'Claude character description' },
+
+    // Master prompt generation
+    { actionType: 'prompt', provider: 'gemini', cost: 0.001, description: 'Gemini master prompt' },
+    { actionType: 'prompt', provider: 'claude', cost: 0.005, description: 'Claude master prompt' },
+  ];
+
+  for (const cost of actionCosts) {
+    await prisma.actionCost.upsert({
+      where: {
+        actionType_provider: {
+          actionType: cost.actionType,
+          provider: cost.provider,
+        },
+      },
+      update: {
+        cost: cost.cost,
+        description: cost.description,
+      },
+      create: cost,
+    });
+  }
+
+  console.log(`Action costs seeded: ${actionCosts.length} entries`);
   console.log('Database seed completed successfully!');
 }
 

@@ -2,6 +2,11 @@
 // Server-side API calls for secure API key handling
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/db/prisma';
+import { spendCredits, COSTS } from '@/lib/services/credits';
+import { calculateVoiceCost } from '@/lib/services/real-costs';
+import { uploadAudioToS3, isS3Configured } from '@/lib/services/s3-upload';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -16,10 +21,20 @@ export const geminiVoices = [
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, voiceName = 'Aoede', language = 'sk' } = await request.json();
+    const { text, voiceName = 'Aoede', language = 'sk', projectId } = await request.json();
 
-    // Get API key from environment (server-side)
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Get API key from user's database settings or fallback to env
+    const session = await auth();
+    let apiKey = process.env.GEMINI_API_KEY;
+
+    if (session?.user?.id) {
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId: session.user.id },
+      });
+      if (userApiKeys?.geminiApiKey) {
+        apiKey = userApiKeys.geminiApiKey;
+      }
+    }
 
     if (!apiKey) {
       return NextResponse.json(
@@ -85,9 +100,40 @@ export async function POST(request: NextRequest) {
     const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
 
     if (audioData) {
+      // Calculate real cost based on character count
+      const realCost = calculateVoiceCost(text.length, 'geminiTts');
+      const base64AudioUrl = `data:${audioData.mimeType};base64,${audioData.data}`;
+
+      // Track cost if user is authenticated
+      if (session?.user?.id) {
+        await spendCredits(
+          session.user.id,
+          COSTS.VOICEOVER_LINE,
+          'voiceover',
+          `Gemini TTS (${text.length} chars)`,
+          projectId,
+          'gemini',
+          { characterCount: text.length }
+        );
+      }
+
+      // Upload to S3 if configured, otherwise return base64
+      let audioUrl = base64AudioUrl;
+      if (isS3Configured()) {
+        console.log('[S3] Uploading TTS audio to S3...');
+        const uploadResult = await uploadAudioToS3(base64AudioUrl, projectId);
+        if (uploadResult.success && uploadResult.url) {
+          audioUrl = uploadResult.url;
+          console.log('[S3] Audio uploaded successfully:', uploadResult.url);
+        } else {
+          console.warn('[S3] Upload failed, falling back to base64:', uploadResult.error);
+        }
+      }
+
       return NextResponse.json({
-        audioUrl: `data:${audioData.mimeType};base64,${audioData.data}`,
-        cost: 0.01,
+        audioUrl,
+        cost: realCost,
+        storage: isS3Configured() && !audioUrl.startsWith('data:') ? 's3' : 'base64',
       });
     }
 

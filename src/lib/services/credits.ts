@@ -1,5 +1,6 @@
 // Credits Service - Manage user credits for AI generation
 import { prisma } from '@/lib/db/prisma';
+import { getActionCost, type Provider, type ActionType } from './real-costs';
 
 // Cost configuration (in kie points)
 export const COSTS = {
@@ -12,17 +13,30 @@ export const COSTS = {
 
 export type CostType = keyof typeof COSTS;
 
+// Map credit types to action types for real cost calculation
+const TYPE_TO_ACTION: Record<string, ActionType> = {
+  image: 'image',
+  video: 'video',
+  voiceover: 'voiceover',
+  scene: 'scene',
+  character: 'character',
+  prompt: 'prompt',
+};
+
 export interface CreditsInfo {
   balance: number;
   totalSpent: number;
   totalEarned: number;
+  totalRealCost: number;
   lastUpdated: Date;
 }
 
 export interface TransactionRecord {
   id: string;
   amount: number;
+  realCost: number;
   type: string;
+  provider: string | null;
   description: string | null;
   projectId: string | null;
   createdAt: Date;
@@ -42,6 +56,7 @@ export async function getOrCreateCredits(userId: string): Promise<CreditsInfo> {
         userId,
         balance: 500, // Initial credits
         totalEarned: 500,
+        totalRealCost: 0,
       },
     });
   }
@@ -50,20 +65,23 @@ export async function getOrCreateCredits(userId: string): Promise<CreditsInfo> {
     balance: credits.balance,
     totalSpent: credits.totalSpent,
     totalEarned: credits.totalEarned,
+    totalRealCost: credits.totalRealCost,
     lastUpdated: credits.lastUpdated,
   };
 }
 
 /**
- * Spend credits for an operation
+ * Spend credits for an operation with real cost tracking
  */
 export async function spendCredits(
   userId: string,
   amount: number,
   type: string,
   description?: string,
-  projectId?: string
-): Promise<{ success: boolean; balance: number; error?: string }> {
+  projectId?: string,
+  provider?: Provider,
+  metadata?: Record<string, unknown>
+): Promise<{ success: boolean; balance: number; realCost: number; error?: string }> {
   try {
     const credits = await getOrCreateCredits(userId);
 
@@ -71,9 +89,14 @@ export async function spendCredits(
       return {
         success: false,
         balance: credits.balance,
+        realCost: 0,
         error: `Insufficient credits. Need ${amount}, have ${credits.balance}`,
       };
     }
+
+    // Calculate real cost
+    const actionType = TYPE_TO_ACTION[type];
+    const realCost = actionType && provider ? getActionCost(actionType, provider) : 0;
 
     // Update credits and create transaction in a transaction
     const updated = await prisma.$transaction(async (tx) => {
@@ -82,6 +105,7 @@ export async function spendCredits(
         data: {
           balance: { decrement: amount },
           totalSpent: { increment: amount },
+          totalRealCost: { increment: realCost },
           lastUpdated: new Date(),
         },
       });
@@ -90,9 +114,12 @@ export async function spendCredits(
         data: {
           creditsId: updatedCredits.id,
           amount: -amount,
+          realCost,
           type,
+          provider: provider || null,
           description: description || `${type} generation`,
           projectId,
+          metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
         },
       });
 
@@ -102,12 +129,14 @@ export async function spendCredits(
     return {
       success: true,
       balance: updated.balance,
+      realCost,
     };
   } catch (error) {
     console.error('Error spending credits:', error);
     return {
       success: false,
       balance: 0,
+      realCost: 0,
       error: error instanceof Error ? error.message : 'Failed to spend credits',
     };
   }
@@ -211,4 +240,205 @@ export async function canAfford(
  */
 export function getCost(costType: CostType, quantity: number = 1): number {
   return COSTS[costType] * quantity;
+}
+
+/**
+ * Get user statistics with real costs
+ */
+export async function getUserStatistics(userId: string): Promise<{
+  credits: CreditsInfo;
+  stats: {
+    totalTransactions: number;
+    byType: Record<string, { count: number; credits: number; realCost: number }>;
+    byProvider: Record<string, { count: number; credits: number; realCost: number }>;
+    byProject: Record<string, { name: string; credits: number; realCost: number }>;
+  };
+  recentTransactions: TransactionRecord[];
+}> {
+  const credits = await getOrCreateCredits(userId);
+
+  const creditsRecord = await prisma.credits.findUnique({
+    where: { userId },
+    include: {
+      transactions: {
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+  });
+
+  if (!creditsRecord) {
+    return {
+      credits,
+      stats: {
+        totalTransactions: 0,
+        byType: {},
+        byProvider: {},
+        byProject: {},
+      },
+      recentTransactions: [],
+    };
+  }
+
+  const transactions = creditsRecord.transactions;
+
+  // Calculate stats by type
+  const byType: Record<string, { count: number; credits: number; realCost: number }> = {};
+  const byProvider: Record<string, { count: number; credits: number; realCost: number }> = {};
+  const projectIds = new Set<string>();
+
+  for (const tx of transactions) {
+    if (tx.amount < 0) {
+      // By type
+      if (!byType[tx.type]) {
+        byType[tx.type] = { count: 0, credits: 0, realCost: 0 };
+      }
+      byType[tx.type].count++;
+      byType[tx.type].credits += Math.abs(tx.amount);
+      byType[tx.type].realCost += tx.realCost;
+
+      // By provider
+      const provider = tx.provider || 'unknown';
+      if (!byProvider[provider]) {
+        byProvider[provider] = { count: 0, credits: 0, realCost: 0 };
+      }
+      byProvider[provider].count++;
+      byProvider[provider].credits += Math.abs(tx.amount);
+      byProvider[provider].realCost += tx.realCost;
+
+      // Collect project IDs
+      if (tx.projectId) {
+        projectIds.add(tx.projectId);
+      }
+    }
+  }
+
+  // Get project names and calculate per-project costs
+  const byProject: Record<string, { name: string; credits: number; realCost: number }> = {};
+
+  if (projectIds.size > 0) {
+    const projects = await prisma.project.findMany({
+      where: { id: { in: Array.from(projectIds) } },
+      select: { id: true, name: true },
+    });
+
+    const projectMap = new Map(projects.map((p) => [p.id, p.name]));
+
+    for (const tx of transactions) {
+      if (tx.amount < 0 && tx.projectId) {
+        if (!byProject[tx.projectId]) {
+          byProject[tx.projectId] = {
+            name: projectMap.get(tx.projectId) || 'Unknown Project',
+            credits: 0,
+            realCost: 0,
+          };
+        }
+        byProject[tx.projectId].credits += Math.abs(tx.amount);
+        byProject[tx.projectId].realCost += tx.realCost;
+      }
+    }
+  }
+
+  return {
+    credits,
+    stats: {
+      totalTransactions: transactions.filter((t) => t.amount < 0).length,
+      byType,
+      byProvider,
+      byProject,
+    },
+    recentTransactions: transactions.slice(0, 50).map((tx) => ({
+      id: tx.id,
+      amount: tx.amount,
+      realCost: tx.realCost,
+      type: tx.type,
+      provider: tx.provider,
+      description: tx.description,
+      projectId: tx.projectId,
+      createdAt: tx.createdAt,
+    })),
+  };
+}
+
+/**
+ * Get project-specific statistics
+ */
+export async function getProjectStatistics(projectId: string): Promise<{
+  totalCredits: number;
+  totalRealCost: number;
+  byType: Record<string, { count: number; credits: number; realCost: number }>;
+  byProvider: Record<string, { count: number; credits: number; realCost: number }>;
+  transactions: TransactionRecord[];
+}> {
+  const transactions = await prisma.creditTransaction.findMany({
+    where: { projectId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  let totalCredits = 0;
+  let totalRealCost = 0;
+  const byType: Record<string, { count: number; credits: number; realCost: number }> = {};
+  const byProvider: Record<string, { count: number; credits: number; realCost: number }> = {};
+
+  for (const tx of transactions) {
+    if (tx.amount < 0) {
+      totalCredits += Math.abs(tx.amount);
+      totalRealCost += tx.realCost;
+
+      // By type
+      if (!byType[tx.type]) {
+        byType[tx.type] = { count: 0, credits: 0, realCost: 0 };
+      }
+      byType[tx.type].count++;
+      byType[tx.type].credits += Math.abs(tx.amount);
+      byType[tx.type].realCost += tx.realCost;
+
+      // By provider
+      const provider = tx.provider || 'unknown';
+      if (!byProvider[provider]) {
+        byProvider[provider] = { count: 0, credits: 0, realCost: 0 };
+      }
+      byProvider[provider].count++;
+      byProvider[provider].credits += Math.abs(tx.amount);
+      byProvider[provider].realCost += tx.realCost;
+    }
+  }
+
+  return {
+    totalCredits,
+    totalRealCost,
+    byType,
+    byProvider,
+    transactions: transactions.map((tx) => ({
+      id: tx.id,
+      amount: tx.amount,
+      realCost: tx.realCost,
+      type: tx.type,
+      provider: tx.provider,
+      description: tx.description,
+      projectId: tx.projectId,
+      createdAt: tx.createdAt,
+    })),
+  };
+}
+
+/**
+ * Get user's cost multiplier (1.0 for admin, configured value for regular users)
+ */
+export async function getUserCostMultiplier(userId: string): Promise<number> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, costMultiplier: true },
+    });
+
+    if (!user) return 1.5; // Default multiplier
+
+    // Admins see real cost (1.0 multiplier)
+    if (user.role === 'admin') return 1.0;
+
+    return user.costMultiplier ?? 1.5;
+  } catch (error) {
+    console.error('Error getting cost multiplier:', error);
+    return 1.5; // Default on error
+  }
 }

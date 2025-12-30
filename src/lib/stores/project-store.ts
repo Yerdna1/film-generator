@@ -119,13 +119,20 @@ export const useProjectStore = create<ProjectState>()(
             // Not logged in, keep localStorage projects
             set({ isLoading: false });
           } else {
-            throw new Error('Failed to load projects');
+            // API error - keep localStorage projects but log the error
+            const errorData = await response.json().catch(() => ({}));
+            console.warn('API returned error, keeping localStorage projects:', errorData);
+            set({
+              isLoading: false,
+              lastSyncError: errorData.error || `API error: ${response.status}`
+            });
           }
         } catch (error) {
-          console.error('Error loading projects from DB:', error);
+          // Network error - keep localStorage projects
+          console.warn('Network error loading projects, keeping localStorage data:', error);
           set({
             isLoading: false,
-            lastSyncError: error instanceof Error ? error.message : 'Failed to load projects'
+            lastSyncError: error instanceof Error ? error.message : 'Network error'
           });
         }
       },

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import {
   Plus,
   Search,
@@ -17,6 +19,12 @@ import {
   Image as ImageIcon,
   Mic,
   FileText,
+  ArrowRight,
+  Wand2,
+  Users,
+  Clapperboard,
+  Volume2,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,15 +50,27 @@ interface CreditsData {
   }>;
 }
 
+interface ProjectCostsData {
+  costs: Record<string, { credits: number; realCost: number }>;
+  multiplier: number;
+  isAdmin: boolean;
+}
+
 export default function DashboardPage() {
   const t = useTranslations();
+  const tLanding = useTranslations('landing');
+  const tAuth = useTranslations('auth');
+  const { data: session, status } = useSession();
   const { projects } = useProjectStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [creditsData, setCreditsData] = useState<CreditsData | null>(null);
+  const [projectCosts, setProjectCosts] = useState<ProjectCostsData | null>(null);
 
-  // Fetch credits data
+  // Fetch credits data and project costs only when authenticated
   useEffect(() => {
+    if (status !== 'authenticated') return;
+
     const fetchCredits = async () => {
       try {
         const res = await fetch('/api/credits?history=true&limit=10');
@@ -62,8 +82,206 @@ export default function DashboardPage() {
         console.error('Failed to fetch credits:', error);
       }
     };
+
+    const fetchProjectCosts = async () => {
+      try {
+        const res = await fetch('/api/projects/costs');
+        if (res.ok) {
+          const data = await res.json();
+          setProjectCosts(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch project costs:', error);
+      }
+    };
+
     fetchCredits();
-  }, []);
+    fetchProjectCosts();
+  }, [status]);
+
+  // Show landing page for unauthenticated users
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-[calc(100vh-200px)]">
+        {/* Hero Section */}
+        <div className="container mx-auto px-4 py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-4xl mx-auto"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="inline-flex items-center gap-2 glass rounded-full px-4 py-2 mb-8"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-sm">{tLanding('badge')}</span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl md:text-6xl font-bold mb-6"
+            >
+              <span className="gradient-text">{tLanding('title')}</span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto"
+            >
+              {tLanding('subtitle')}
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              <Link href="/auth/register">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-purple-500/25 h-12 px-8"
+                >
+                  {tLanding('getStarted')}
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+              <Link href="/auth/login">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/10 h-12 px-8"
+                >
+                  {tAuth('signIn')}
+                </Button>
+              </Link>
+            </motion.div>
+          </motion.div>
+
+          {/* Features Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-20 max-w-5xl mx-auto"
+          >
+            {[
+              {
+                icon: Wand2,
+                title: tLanding('features.prompt.title'),
+                description: tLanding('features.prompt.description'),
+                color: 'purple',
+              },
+              {
+                icon: Users,
+                title: tLanding('features.characters.title'),
+                description: tLanding('features.characters.description'),
+                color: 'cyan',
+              },
+              {
+                icon: ImageIcon,
+                title: tLanding('features.images.title'),
+                description: tLanding('features.images.description'),
+                color: 'pink',
+              },
+              {
+                icon: Clapperboard,
+                title: tLanding('features.videos.title'),
+                description: tLanding('features.videos.description'),
+                color: 'orange',
+              },
+              {
+                icon: Volume2,
+                title: tLanding('features.voiceover.title'),
+                description: tLanding('features.voiceover.description'),
+                color: 'violet',
+              },
+              {
+                icon: Download,
+                title: tLanding('features.export.title'),
+                description: tLanding('features.export.description'),
+                color: 'green',
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 + index * 0.1 }}
+                className="glass rounded-xl p-6 card-hover"
+              >
+                <div
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${
+                    feature.color === 'purple'
+                      ? 'bg-purple-500/20 text-purple-400'
+                      : feature.color === 'cyan'
+                      ? 'bg-cyan-500/20 text-cyan-400'
+                      : feature.color === 'pink'
+                      ? 'bg-pink-500/20 text-pink-400'
+                      : feature.color === 'orange'
+                      ? 'bg-orange-500/20 text-orange-400'
+                      : feature.color === 'violet'
+                      ? 'bg-violet-500/20 text-violet-400'
+                      : 'bg-green-500/20 text-green-400'
+                  }`}
+                >
+                  <feature.icon className="w-6 h-6" />
+                </div>
+                <h3 className="font-semibold mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* CTA Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2 }}
+            className="text-center mt-20"
+          >
+            <div className="glass rounded-2xl p-8 max-w-2xl mx-auto border border-purple-500/20">
+              <h2 className="text-2xl font-bold mb-4">{tLanding('cta.title')}</h2>
+              <p className="text-muted-foreground mb-6">{tLanding('cta.description')}</p>
+              <Link href="/auth/register">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
+                >
+                  {tLanding('cta.button')}
+                  <Sparkles className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (status === 'loading') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-8">
+          <div className="h-20 glass rounded-xl" />
+          <div className="grid grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 glass rounded-xl" />
+            ))}
+          </div>
+          <div className="h-40 glass rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   const filteredProjects = projects.filter((project) =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -343,7 +561,11 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 + index * 0.1 }}
                   >
-                    <ProjectCard project={project} variant="compact" />
+                    <ProjectCard
+                      project={project}
+                      variant="compact"
+                      cost={projectCosts?.costs[project.id]}
+                    />
                   </motion.div>
                 ))}
               </div>
@@ -374,7 +596,10 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.8 + index * 0.05 }}
                   >
-                    <ProjectCard project={project} />
+                    <ProjectCard
+                      project={project}
+                      cost={projectCosts?.costs[project.id]}
+                    />
                   </motion.div>
                 ))}
               </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { cache, cacheKeys } from '@/lib/cache';
 
 // GET - Fetch single project with all data
 export async function GET(
@@ -191,6 +192,11 @@ export async function PUT(
       })),
     };
 
+    // Invalidate projects cache for this user
+    cache.invalidate(cacheKeys.userProjects(session.user.id));
+    cache.invalidate(cacheKeys.project(id));
+    console.log(`[Cache INVALIDATED] Projects cache after update`);
+
     return NextResponse.json(transformedProject);
   } catch (error) {
     console.error('Error updating project:', error);
@@ -236,6 +242,11 @@ export async function DELETE(
     await prisma.project.delete({
       where: { id },
     });
+
+    // Invalidate projects cache for this user
+    cache.invalidate(cacheKeys.userProjects(session.user.id));
+    cache.invalidate(cacheKeys.project(id));
+    console.log(`[Cache INVALIDATED] Projects cache after delete`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -542,6 +542,43 @@
       "dashboardDesc": "Zobraziť všetky projekty"
     }
   },
+  "landing": {
+    "badge": "Tvorba filmov s AI",
+    "title": "Vytvorte úžasné krátke filmy s AI",
+    "subtitle": "Premeňte svoje nápady na príbehy na ohromujúce animované filmy. Generujte postavy, scény, videá a hlasové komentáre pomocou AI.",
+    "getStarted": "Začnite zadarmo",
+    "features": {
+      "prompt": {
+        "title": "Príbeh a Prompt",
+        "description": "Definujte koncept príbehu a vygenerujte hlavný prompt na vedenie tvorby obsahu."
+      },
+      "characters": {
+        "title": "Tvorba postáv",
+        "description": "Vytvorte unikátne postavy s AI-generovanými obrázkami a konzistentnými vizuálnymi popismi."
+      },
+      "images": {
+        "title": "Obrázky scén",
+        "description": "Generujte krásne obrázky scén pomocou AI technológie text-to-image."
+      },
+      "videos": {
+        "title": "Generovanie videí",
+        "description": "Premeňte obrázky scén na animované 6-sekundové videoklipy."
+      },
+      "voiceover": {
+        "title": "Generovanie hlasu",
+        "description": "Pridajte profesionálne hlasové komentáre s AI hlasmi vo viacerých jazykoch."
+      },
+      "export": {
+        "title": "Jednoduchý export",
+        "description": "Exportujte všetky assety pripravené na úpravu v CapCut alebo iných video editoroch."
+      }
+    },
+    "cta": {
+      "title": "Ste pripravení vytvoriť svoj film?",
+      "description": "Zaregistrujte sa zadarmo a začnite vytvárať úžasné AI-generované filmy ešte dnes.",
+      "button": "Vytvoriť bezplatný účet"
+    }
+  },
   "settingsPage": {
     "subtitle": "Spravujte svoj účet a API kľúče",
     "general": "Všeobecné",
@@ -566,6 +603,11 @@
     "manageAccount": "Spravujte detaily účtu",
     "connectEmail": "Pripojiť e-mail pre cloudovú synchronizáciu",
     "cloudSyncNote": "Prihláste sa pre cloudovú synchronizáciu a prístup k projektom z akéhokoľvek zariadenia.",
+    "authenticated": "Prihlásený",
+    "user": "Používateľ",
+    "guestUser": "Hosť",
+    "guestMode": "Režim hosťa",
+    "usingLocalStorage": "Používa lokálne úložisko",
     "dataPrivacy": "Dáta a súkromie",
     "controlData": "Ovládajte svoje dáta",
     "exportAllData": "Exportovať všetky dáta",

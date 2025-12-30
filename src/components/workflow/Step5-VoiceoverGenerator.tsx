@@ -42,6 +42,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project, Character, DialogueLine, VoiceLanguage, VoiceProvider } from '@/types/project';
+import { ACTION_COSTS, formatCostCompact, calculateVoiceCost } from '@/lib/services/real-costs';
 
 interface Step5Props {
   project: Project;
@@ -418,6 +419,17 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
             <>
               <Zap className="w-4 h-4 mr-2" />
               {t('steps.voiceover.generateAll')}
+              <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                {(() => {
+                  const remaining = allDialogueLines.length - generatedCount;
+                  const perItemCost = project.voiceSettings.language === 'sk'
+                    ? ACTION_COSTS.voiceover.geminiTts
+                    : ACTION_COSTS.voiceover.elevenlabs;
+                  return remaining > 0
+                    ? formatCostCompact(perItemCost * remaining)
+                    : `${formatCostCompact(perItemCost)}/ea`;
+                })()}
+              </Badge>
             </>
           )}
         </Button>
@@ -563,6 +575,13 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
                             >
                               <Sparkles className="w-4 h-4 mr-2" />
                               {t('steps.voiceover.generate')}
+                              <span className="ml-1 text-[10px] opacity-70">
+                                {formatCostCompact(
+                                  project.voiceSettings.language === 'sk'
+                                    ? ACTION_COSTS.voiceover.geminiTts
+                                    : ACTION_COSTS.voiceover.elevenlabs
+                                )}
+                              </span>
                             </Button>
                           )}
                         </div>

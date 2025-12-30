@@ -54,6 +54,8 @@ import { generateScenePrompt } from '@/lib/prompts/master-prompt';
 import { CopyButton } from '@/components/shared/CopyButton';
 import { Progress } from '@/components/ui/progress';
 import type { Project, Scene, CameraShot, DialogueLine } from '@/types/project';
+import { CostBadge } from '@/components/shared/CostBadge';
+import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
 
 interface Step3Props {
   project: Project;
@@ -459,6 +461,9 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
                   {t('steps.scenes.generateWithAI')}
+                  <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                    {formatCostCompact(ACTION_COSTS.scene.claude * project.settings.sceneCount)}
+                  </Badge>
                 </>
               )}
             </Button>
@@ -654,11 +659,13 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
                           <>
                             <RefreshCw className="w-4 h-4 mr-2" />
                             {t('common.regenerate')}
+                            <span className="ml-1 text-[10px] opacity-80">{formatCostCompact(ACTION_COSTS.image.gemini)}</span>
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-4 h-4 mr-2" />
                             {t('steps.scenes.generateImage')}
+                            <span className="ml-1 text-[10px] opacity-80">{formatCostCompact(ACTION_COSTS.image.gemini)}</span>
                           </>
                         )}
                       </Button>
@@ -874,6 +881,11 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             <>
               <Sparkles className="w-4 h-4 mr-2" />
               {t('steps.scenes.generateAllImages')}
+              <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                {(project.scenes.length - scenesWithImages) > 0
+                  ? formatCostCompact(ACTION_COSTS.image.gemini * (project.scenes.length - scenesWithImages))
+                  : `${formatCostCompact(ACTION_COSTS.image.gemini)}/ea`}
+              </Badge>
             </>
           )}
         </Button>

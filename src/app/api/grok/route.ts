@@ -12,7 +12,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { uploadBase64ToS3 } from '@/lib/services/s3-upload';
+import { uploadBase64ToS3, uploadVideoToS3, isS3Configured } from '@/lib/services/s3-upload';
+import { spendCredits, COSTS } from '@/lib/services/credits';
+import { ACTION_COSTS } from '@/lib/services/real-costs';
 
 const KIE_API_URL = 'https://api.kie.ai';
 
@@ -21,6 +23,7 @@ export const maxDuration = 120; // Allow up to 2 minutes for video generation
 interface VideoGenerationRequest {
   imageUrl: string;
   prompt: string;
+  projectId?: string;
   mode?: 'fun' | 'normal' | 'spicy';
   seed?: number;
 }
@@ -187,6 +190,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('taskId');
+    const projectId = searchParams.get('projectId');
     const download = searchParams.get('download') !== 'false'; // Default to true
 
     if (!taskId) {
@@ -261,14 +265,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // If video is complete and download is enabled, download and convert to base64
+    // If video is complete and download is enabled, download and upload to S3 or convert to base64
     if (status === 'complete' && externalVideoUrl && download) {
       console.log('Downloading video from:', externalVideoUrl);
       const base64Video = await downloadVideoAsBase64(externalVideoUrl);
 
       if (base64Video) {
-        videoUrl = base64Video;
-        console.log('Video downloaded and converted to base64, size:', Math.round(base64Video.length / 1024), 'KB');
+        // Upload to S3 if configured
+        if (isS3Configured()) {
+          console.log('[S3] Uploading video to S3...');
+          const uploadResult = await uploadVideoToS3(base64Video, projectId || undefined);
+          if (uploadResult.success && uploadResult.url) {
+            videoUrl = uploadResult.url;
+            console.log('[S3] Video uploaded successfully:', uploadResult.url);
+          } else {
+            console.warn('[S3] Upload failed, falling back to base64:', uploadResult.error);
+            videoUrl = base64Video;
+          }
+        } else {
+          videoUrl = base64Video;
+          console.log('Video downloaded and converted to base64, size:', Math.round(base64Video.length / 1024), 'KB');
+        }
       } else {
         // Fall back to external URL if download fails
         videoUrl = externalVideoUrl;
@@ -279,13 +296,27 @@ export async function GET(request: NextRequest) {
       videoUrl = externalVideoUrl;
     }
 
+    // Track cost when video is complete
+    const realCost = ACTION_COSTS.video.grok;
+    if (status === 'complete' && session?.user?.id) {
+      await spendCredits(
+        session.user.id,
+        COSTS.VIDEO_GENERATION,
+        'video',
+        'Grok video generation',
+        projectId || undefined,
+        'grok'
+      );
+    }
+
     return NextResponse.json({
       taskId,
       status,
       videoUrl,
       externalVideoUrl, // Also return the original URL in case needed
       failMessage: taskData.failMsg || undefined,
-      cost: status === 'complete' ? 0.10 : undefined, // ~$0.10 per video (20 credits)
+      cost: status === 'complete' ? realCost : undefined,
+      storage: videoUrl && !videoUrl.startsWith('data:') && !videoUrl.startsWith('http://') ? 's3' : (videoUrl?.startsWith('data:') ? 'base64' : 'external'),
     });
   } catch (error) {
     console.error('Grok status check error:', error);

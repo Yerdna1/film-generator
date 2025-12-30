@@ -46,6 +46,8 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
+  role          String    @default("user") // "user" | "admin"
+  costMultiplier Float    @default(1.5)    // Multiplier for cost display (1.0 for admin)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -63,6 +65,7 @@ model Credits {
   balance         Int      @default(500) // Initial 500 kie points
   totalSpent      Int      @default(0)   // Total credits spent
   totalEarned     Int      @default(500) // Total credits earned/purchased
+  totalRealCost   Float    @default(0)   // Total real USD cost
   lastUpdated     DateTime @default(now())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -76,14 +79,20 @@ model CreditTransaction {
   id          String   @id @default(cuid())
   creditsId   String
   amount      Int      // Negative for spending, positive for earning
-  type        String   // 'image', 'video', 'voiceover', 'bonus', 'purchase'
+  realCost    Float    @default(0)  // Actual USD cost for this transaction
+  type        String   // 'image', 'video', 'voiceover', 'scene', 'prompt', 'bonus', 'purchase'
+  provider    String?  // 'gemini', 'elevenlabs', 'grok', 'kie', 'nanoBanana', 'claude'
   description String?
   projectId   String?  // Optional reference to project
+  metadata    Json?    // Additional metadata (character count, tokens, etc.)
   createdAt   DateTime @default(now())
 
   credits Credits @relation(fields: [creditsId], references: [id], onDelete: Cascade)
 
   @@index([creditsId])
+  @@index([projectId])
+  @@index([type])
+  @@index([provider])
 }
 
 model VerificationToken {
@@ -176,4 +185,21 @@ model Scene {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+}
+
+// Action costs - stored in database for admin control
+// These define the real USD cost per action and provider
+model ActionCost {
+  id          String   @id @default(cuid())
+  actionType  String   // 'image', 'video', 'voiceover', 'scene', 'character', 'prompt'
+  provider    String   // 'gemini', 'elevenlabs', 'grok', 'kie', 'nanoBanana', 'claude'
+  cost        Float    // Cost in USD
+  description String?  // Human-readable description
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([actionType, provider])
+  @@index([actionType])
+  @@index([provider])
 }

@@ -7,12 +7,16 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { spendCredits, COSTS } from '@/lib/services/credits';
+import { ACTION_COSTS } from '@/lib/services/real-costs';
+import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 
 export const maxDuration = 60; // Allow up to 60 seconds for image generation
 
 interface ImageGenerationRequest {
   prompt: string;
   aspectRatio?: string;
+  projectId?: string;
   referenceImages?: Array<{
     name: string;
     imageUrl: string; // base64 data URL
@@ -21,7 +25,7 @@ interface ImageGenerationRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, aspectRatio = '1:1', referenceImages = [] }: ImageGenerationRequest = await request.json();
+    const { prompt, aspectRatio = '1:1', projectId, referenceImages = [] }: ImageGenerationRequest = await request.json();
 
     // Get API key from user's database settings or fallback to env
     let apiKey = process.env.GEMINI_API_KEY;
@@ -113,9 +117,38 @@ export async function POST(request: NextRequest) {
     if (generatedImage?.base64) {
       // The mimeType might be stored as 'mediaType' in some versions
       const mimeType = (generatedImage as any).mimeType || (generatedImage as any).mediaType || 'image/png';
+      const base64DataUrl = `data:${mimeType};base64,${generatedImage.base64}`;
+
+      // Track cost if user is authenticated
+      const realCost = ACTION_COSTS.image.gemini;
+      if (session?.user?.id) {
+        await spendCredits(
+          session.user.id,
+          COSTS.IMAGE_GENERATION,
+          'image',
+          'Gemini image generation',
+          projectId,
+          'gemini'
+        );
+      }
+
+      // Upload to S3 if configured, otherwise return base64
+      let imageUrl = base64DataUrl;
+      if (isS3Configured()) {
+        console.log('[S3] Uploading generated image to S3...');
+        const uploadResult = await uploadImageToS3(base64DataUrl, projectId);
+        if (uploadResult.success && uploadResult.url) {
+          imageUrl = uploadResult.url;
+          console.log('[S3] Image uploaded successfully:', uploadResult.url);
+        } else {
+          console.warn('[S3] Upload failed, falling back to base64:', uploadResult.error);
+        }
+      }
+
       return NextResponse.json({
-        imageUrl: `data:${mimeType};base64,${generatedImage.base64}`,
-        cost: 0.04, // ~$0.04 per image
+        imageUrl,
+        cost: realCost,
+        storage: isS3Configured() && !imageUrl.startsWith('data:') ? 's3' : 'base64',
       });
     }
 

@@ -40,6 +40,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import type { Project, Character } from '@/types/project';
 import { v4 as uuidv4 } from 'uuid';
+import { CostBadge } from '@/components/shared/CostBadge';
+import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
 
 interface Step2Props {
   project: Project;
@@ -403,6 +405,9 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
                       >
                         <Sparkles className="w-4 h-4 mr-2" />
                         {t('steps.characters.generateImage')}
+                        <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                          {formatCostCompact(ACTION_COSTS.image.gemini)}
+                        </Badge>
                       </Button>
                     );
                   })()}
@@ -537,6 +542,11 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
                 <>
                   <Zap className="w-4 h-4 mr-2" />
                   {t('steps.characters.generateAll')}
+                  <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                    {(project.characters.length - charactersWithImages) > 0
+                      ? formatCostCompact(ACTION_COSTS.image.gemini * (project.characters.length - charactersWithImages))
+                      : `${formatCostCompact(ACTION_COSTS.image.gemini)}/ea`}
+                  </Badge>
                 </>
               )}
             </Button>

@@ -542,6 +542,43 @@
       "dashboardDesc": "View all your projects"
     }
   },
+  "landing": {
+    "badge": "AI-Powered Film Creation",
+    "title": "Create Amazing Short Films with AI",
+    "subtitle": "Transform your story ideas into stunning animated films. Generate characters, scenes, videos, and voiceovers with the power of AI.",
+    "getStarted": "Get Started Free",
+    "features": {
+      "prompt": {
+        "title": "Story & Prompt",
+        "description": "Define your story concept and generate a master prompt to guide all content creation."
+      },
+      "characters": {
+        "title": "Character Creation",
+        "description": "Create unique characters with AI-generated images and consistent visual descriptions."
+      },
+      "images": {
+        "title": "Scene Images",
+        "description": "Generate beautiful scene images with text-to-image AI technology."
+      },
+      "videos": {
+        "title": "Video Generation",
+        "description": "Convert your scene images into animated 6-second video clips."
+      },
+      "voiceover": {
+        "title": "Voice Generation",
+        "description": "Add professional voiceovers with AI voices in multiple languages."
+      },
+      "export": {
+        "title": "Easy Export",
+        "description": "Export all assets ready for editing in CapCut or other video editors."
+      }
+    },
+    "cta": {
+      "title": "Ready to Create Your Film?",
+      "description": "Sign up for free and start creating amazing AI-generated films today.",
+      "button": "Create Free Account"
+    }
+  },
   "settingsPage": {
     "subtitle": "Manage your account and API keys",
     "general": "General",
@@ -566,6 +603,11 @@
     "manageAccount": "Manage your account details",
     "connectEmail": "Connect email for cloud sync",
     "cloudSyncNote": "Sign in to enable cloud sync and access your projects from any device.",
+    "authenticated": "Signed In",
+    "user": "User",
+    "guestUser": "Guest User",
+    "guestMode": "Guest Mode",
+    "usingLocalStorage": "Using local storage",
     "dataPrivacy": "Data & Privacy",
     "controlData": "Control your data",
     "exportAllData": "Export All Data",

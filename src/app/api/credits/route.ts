@@ -8,8 +8,9 @@ import {
   getTransactionHistory,
   COSTS,
 } from '@/lib/services/credits';
+import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
 
-// GET - Get user's credits and optionally transaction history
+// GET - Get user's credits and optionally transaction history (with 30-min cache)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -17,11 +18,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userId = session.user.id;
     const { searchParams } = new URL(request.url);
     const includeHistory = searchParams.get('history') === 'true';
     const historyLimit = parseInt(searchParams.get('limit') || '20');
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
-    const credits = await getOrCreateCredits(session.user.id);
+    // Create cache key based on query params
+    const cacheKey = `${cacheKeys.userCredits(userId)}:history=${includeHistory}:limit=${historyLimit}`;
+
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedData = cache.get<object>(cacheKey);
+      if (cachedData) {
+        console.log(`[Cache HIT] Credits for user ${userId}`);
+        return NextResponse.json(cachedData, {
+          headers: { 'X-Cache': 'HIT' },
+        });
+      }
+    }
+
+    console.log(`[Cache MISS] Fetching credits from DB for user ${userId}`);
+
+    const credits = await getOrCreateCredits(userId);
 
     const response: {
       credits: typeof credits;
@@ -33,17 +52,41 @@ export async function GET(request: NextRequest) {
     };
 
     if (includeHistory) {
-      response.transactions = await getTransactionHistory(
-        session.user.id,
-        historyLimit
-      );
+      response.transactions = await getTransactionHistory(userId, historyLimit);
     }
 
-    return NextResponse.json(response);
+    // Cache for 30 minutes
+    cache.set(cacheKey, response, cacheTTL.MEDIUM);
+
+    return NextResponse.json(response, {
+      headers: { 'X-Cache': 'MISS' },
+    });
   } catch (error) {
     console.error('Credits API error:', error);
+
+    // Check if it's a database quota error
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isQuotaError = errorMessage.includes('data transfer quota') || errorMessage.includes('quota');
+
+    if (isQuotaError) {
+      // Return fallback data when database is unavailable
+      return NextResponse.json({
+        credits: {
+          balance: 0,
+          totalSpent: 0,
+          totalEarned: 0,
+          totalRealCost: 0,
+          lastUpdated: new Date(),
+        },
+        costs: COSTS,
+        transactions: [],
+        error: 'Database temporarily unavailable (quota exceeded)',
+        isOffline: true,
+      });
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get credits' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
@@ -82,6 +125,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Invalidate all credit-related caches for this user
+      cache.invalidateUser(session.user.id);
+      console.log(`[Cache INVALIDATED] All caches for user ${session.user.id} after spending credits`);
+
       return NextResponse.json({
         success: true,
         balance: result.balance,
@@ -95,6 +142,10 @@ export async function POST(request: NextRequest) {
         type,
         description
       );
+
+      // Invalidate all credit-related caches for this user
+      cache.invalidateUser(session.user.id);
+      console.log(`[Cache INVALIDATED] All caches for user ${session.user.id} after adding credits`);
 
       return NextResponse.json({
         success: result.success,
