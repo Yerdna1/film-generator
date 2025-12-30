@@ -41,3 +41,31 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# prisma
+prisma/*.db
+prisma/*.db-journal
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# logs
+logs/
+*.log
+
+# cache
+.cache/
+.turbo/
+
+# local files
+*.local
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.playwright-mcp/
