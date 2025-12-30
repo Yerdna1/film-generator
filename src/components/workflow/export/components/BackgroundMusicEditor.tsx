@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Project, BackgroundMusic } from '@/types/project';
+import type { Project, BackgroundMusic, MusicProvider } from '@/types/project';
 import type { SunoModel, GenerationState } from '../hooks/useBackgroundMusic';
 
 interface BackgroundMusicEditorProps {
@@ -45,9 +45,11 @@ interface BackgroundMusicEditorProps {
   prompt: string;
   model: SunoModel;
   instrumental: boolean;
+  provider: MusicProvider;
   onSetPrompt: (prompt: string) => void;
   onSetModel: (model: SunoModel) => void;
   onSetInstrumental: (instrumental: boolean) => void;
+  onSetProvider: (provider: MusicProvider) => void;
   onGenerateMusic: () => Promise<void>;
   onCancelGeneration: () => void;
   onApplyPreviewToProject: () => void;
@@ -65,6 +67,11 @@ const modelOptions: { value: SunoModel; label: string; description: string }[] =
   { value: 'V5', label: 'V5', description: 'Latest cutting-edge model' },
 ];
 
+const providerOptions: { value: MusicProvider; label: string; description: string }[] = [
+  { value: 'piapi', label: 'PiAPI', description: 'Recommended - works everywhere' },
+  { value: 'suno', label: 'Suno Direct', description: 'Via sunoapi.org' },
+];
+
 export function BackgroundMusicEditor({
   project,
   currentMusic,
@@ -76,9 +83,11 @@ export function BackgroundMusicEditor({
   prompt,
   model,
   instrumental,
+  provider,
   onSetPrompt,
   onSetModel,
   onSetInstrumental,
+  onSetProvider,
   onGenerateMusic,
   onCancelGeneration,
   onApplyPreviewToProject,
@@ -285,6 +294,27 @@ export function BackgroundMusicEditor({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label className="text-xs">Provider</Label>
+                <Select value={provider} onValueChange={(v) => onSetProvider(v as MusicProvider)}>
+                  <SelectTrigger className="bg-white/5 border-white/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {providerOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div>
+                          <span>{opt.label}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {opt.description}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-xs">Model</Label>
                 <Select value={model} onValueChange={(v) => onSetModel(v as SunoModel)}>
                   <SelectTrigger className="bg-white/5 border-white/10">
@@ -304,20 +334,17 @@ export function BackgroundMusicEditor({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs">Options</Label>
-                <div className="flex items-center gap-2 h-9 px-3 rounded-md bg-white/5 border border-white/10">
-                  <Switch
-                    checked={instrumental}
-                    onCheckedChange={onSetInstrumental}
-                    id="instrumental"
-                  />
-                  <Label htmlFor="instrumental" className="text-xs cursor-pointer">
-                    Instrumental (no vocals)
-                  </Label>
-                </div>
-              </div>
+            <div className="flex items-center gap-2 h-9 px-3 rounded-md bg-white/5 border border-white/10">
+              <Switch
+                checked={instrumental}
+                onCheckedChange={onSetInstrumental}
+                id="instrumental"
+              />
+              <Label htmlFor="instrumental" className="text-xs cursor-pointer">
+                Instrumental (no vocals)
+              </Label>
             </div>
 
             <div className="flex gap-2">
@@ -327,7 +354,7 @@ export function BackgroundMusicEditor({
                 className="flex-1 bg-purple-600 hover:bg-purple-700"
               >
                 <Wand2 className="w-4 h-4 mr-2" />
-                Generate with Suno AI
+                Generate Music
               </Button>
               <Button
                 variant="outline"
@@ -341,14 +368,25 @@ export function BackgroundMusicEditor({
 
             <p className="text-xs text-muted-foreground text-center">
               10 credits per generation • Powered by{' '}
-              <a
-                href="https://sunoapi.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-400 hover:underline"
-              >
-                sunoapi.org
-              </a>
+              {provider === 'piapi' ? (
+                <a
+                  href="https://piapi.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-pink-400 hover:underline"
+                >
+                  PiAPI
+                </a>
+              ) : (
+                <a
+                  href="https://sunoapi.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-400 hover:underline"
+                >
+                  sunoapi.org
+                </a>
+              )}
             </p>
           </div>
         )}

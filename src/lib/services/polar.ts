@@ -82,7 +82,7 @@ export async function createCheckout(
 
     // Create checkout session via Polar
     const checkout = await polar.checkouts.create({
-      productId: planConfig.productId,
+      products: [planConfig.productId],
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
       customerEmail: userEmail,
       metadata: {

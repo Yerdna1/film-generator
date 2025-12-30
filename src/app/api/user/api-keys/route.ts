@@ -28,7 +28,9 @@ export async function GET() {
         nanoBananaApiKey: '',
         sunoApiKey: '',
         openRouterApiKey: '',
+        piapiApiKey: '',
         llmProvider: 'openrouter', // Default to OpenRouter
+        musicProvider: 'piapi', // Default to PiAPI
       });
     }
 
@@ -42,7 +44,9 @@ export async function GET() {
       nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
       sunoApiKey: apiKeys.sunoApiKey || '',
       openRouterApiKey: apiKeys.openRouterApiKey || '',
+      piapiApiKey: apiKeys.piapiApiKey || '',
       llmProvider: apiKeys.llmProvider || 'openrouter',
+      musicProvider: apiKeys.musicProvider || 'piapi',
     });
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -75,7 +79,9 @@ export async function POST(request: NextRequest) {
       nanoBananaApiKey,
       sunoApiKey,
       openRouterApiKey,
+      piapiApiKey,
       llmProvider,
+      musicProvider,
     } = body;
 
     const apiKeys = await prisma.apiKeys.upsert({
@@ -89,7 +95,9 @@ export async function POST(request: NextRequest) {
         ...(nanoBananaApiKey !== undefined && { nanoBananaApiKey }),
         ...(sunoApiKey !== undefined && { sunoApiKey }),
         ...(openRouterApiKey !== undefined && { openRouterApiKey }),
+        ...(piapiApiKey !== undefined && { piapiApiKey }),
         ...(llmProvider !== undefined && { llmProvider }),
+        ...(musicProvider !== undefined && { musicProvider }),
       },
       create: {
         userId: session.user.id,
@@ -101,7 +109,9 @@ export async function POST(request: NextRequest) {
         nanoBananaApiKey: nanoBananaApiKey || null,
         sunoApiKey: sunoApiKey || null,
         openRouterApiKey: openRouterApiKey || null,
+        piapiApiKey: piapiApiKey || null,
         llmProvider: llmProvider || 'openrouter',
+        musicProvider: musicProvider || 'piapi',
       },
     });
 

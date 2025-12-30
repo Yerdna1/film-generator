@@ -1,10 +1,11 @@
+import type { TargetAndTransition } from 'framer-motion';
 import type { TransitionType } from '@/types/project';
 
 // Transition variants for Framer Motion
 export const transitionVariants: Record<TransitionType, {
-  initial: object;
-  animate: object;
-  exit: object;
+  initial: TargetAndTransition;
+  animate: TargetAndTransition;
+  exit: TargetAndTransition;
 }> = {
   none: { initial: { opacity: 1 }, animate: { opacity: 1 }, exit: { opacity: 1 } },
   fade: {
@@ -51,9 +52,9 @@ export const transitionVariants: Record<TransitionType, {
 
 // Caption animation variants
 export const captionAnimations: Record<string, {
-  initial: object;
-  animate: object;
-  exit: object;
+  initial: TargetAndTransition;
+  animate: TargetAndTransition;
+  exit: TargetAndTransition;
 }> = {
   none: { initial: {}, animate: {}, exit: {} },
   fadeIn: {

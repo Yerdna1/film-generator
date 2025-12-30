@@ -159,11 +159,12 @@ export const ACTION_COSTS = {
   // Music generation - per track
   music: {
     suno: 0.05,      // ~$0.05 per music track
+    piapi: 0.05,     // ~$0.05 per music track via PiAPI
   },
 } as const;
 
 // Type definitions
-export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'nanoBanana' | 'claude' | 'suno';
+export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'nanoBanana' | 'claude' | 'suno' | 'piapi';
 export type ActionType = 'image' | 'video' | 'voiceover' | 'scene' | 'character' | 'prompt' | 'music';
 
 export interface CostEstimate {

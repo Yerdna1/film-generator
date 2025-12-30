@@ -138,9 +138,11 @@ export function Step6Export({ project: initialProject }: Step6Props) {
         prompt={backgroundMusic.prompt}
         model={backgroundMusic.model}
         instrumental={backgroundMusic.instrumental}
+        provider={backgroundMusic.provider}
         onSetPrompt={backgroundMusic.setPrompt}
         onSetModel={backgroundMusic.setModel}
         onSetInstrumental={backgroundMusic.setInstrumental}
+        onSetProvider={backgroundMusic.setProvider}
         onGenerateMusic={backgroundMusic.generateMusic}
         onCancelGeneration={backgroundMusic.cancelGeneration}
         onApplyPreviewToProject={backgroundMusic.applyPreviewToProject}

@@ -157,6 +157,9 @@ export interface Project {
 // LLM Provider selection - OpenRouter is default (works everywhere including Vercel)
 export type LLMProvider = 'openrouter' | 'claude-sdk';
 
+// Music Provider selection - PiAPI is default (unified API for Suno/Udio)
+export type MusicProvider = 'piapi' | 'suno';
+
 // API configuration
 export interface ApiConfig {
   geminiApiKey?: string;
@@ -166,7 +169,10 @@ export interface ApiConfig {
   nanoBananaApiKey?: string;
   claudeApiKey?: string;
   openRouterApiKey?: string;  // OpenRouter API key for LLM access
+  piapiApiKey?: string;  // PiAPI key for music generation
+  sunoApiKey?: string;  // Suno API key (alternative)
   llmProvider?: LLMProvider;  // Default: 'openrouter'
+  musicProvider?: MusicProvider;  // Default: 'piapi'
 }
 
 // User type

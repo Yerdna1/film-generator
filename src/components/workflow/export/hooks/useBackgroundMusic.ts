@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useProjectStore } from '@/lib/stores/project-store';
-import type { Project, BackgroundMusic } from '@/types/project';
+import type { Project, BackgroundMusic, MusicProvider } from '@/types/project';
 
 export type SunoModel = 'V4' | 'V4.5' | 'V4.5ALL' | 'V4.5PLUS' | 'V5';
 
@@ -13,6 +13,7 @@ export interface GenerationState {
   status: 'idle' | 'processing' | 'complete' | 'error';
   progress: number;
   error: string | null;
+  provider?: MusicProvider;
 }
 
 export interface UseBackgroundMusicReturn {
@@ -35,6 +36,8 @@ export interface UseBackgroundMusicReturn {
   setModel: (model: SunoModel) => void;
   instrumental: boolean;
   setInstrumental: (instrumental: boolean) => void;
+  provider: MusicProvider;
+  setProvider: (provider: MusicProvider) => void;
 
   // Actions
   generateMusic: () => Promise<void>;
@@ -55,6 +58,7 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState<SunoModel>('V4.5');
   const [instrumental, setInstrumental] = useState(true);
+  const [provider, setProvider] = useState<MusicProvider>('piapi'); // Default to PiAPI
 
   // Generation state
   const [generationState, setGenerationState] = useState<GenerationState>({
@@ -96,13 +100,14 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
       status: 'processing',
       progress: 0,
       error: null,
+      provider,
     });
 
     abortControllerRef.current = new AbortController();
 
     try {
-      // Start generation
-      const response = await fetch('/api/suno', {
+      // Start generation - use unified /api/music endpoint
+      const response = await fetch('/api/music', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -110,6 +115,7 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
           model,
           instrumental,
           projectId: project.id,
+          provider, // Pass selected provider
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -121,13 +127,14 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
       }
 
       const taskId = data.taskId;
-      setGenerationState(prev => ({ ...prev, taskId, progress: 10 }));
+      const usedProvider = data.provider || provider;
+      setGenerationState(prev => ({ ...prev, taskId, progress: 10, provider: usedProvider }));
 
       // Start polling for status
       pollIntervalRef.current = setInterval(async () => {
         try {
           const statusResponse = await fetch(
-            `/api/suno?taskId=${taskId}&projectId=${project.id}`,
+            `/api/music?taskId=${taskId}&projectId=${project.id}&provider=${usedProvider}`,
             { signal: abortControllerRef.current?.signal }
           );
           const statusData = await statusResponse.json();
@@ -146,6 +153,7 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
               status: 'complete',
               progress: 100,
               error: null,
+              provider: usedProvider,
             });
           } else if (statusData.status === 'error') {
             if (pollIntervalRef.current) {
@@ -159,6 +167,7 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
               status: 'error',
               progress: 0,
               error: statusData.error || 'Music generation failed',
+              provider: usedProvider,
             });
           } else {
             // Still processing - increment progress
@@ -186,9 +195,10 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
         status: 'error',
         progress: 0,
         error: err instanceof Error ? err.message : 'Unknown error',
+        provider,
       });
     }
-  }, [prompt, model, instrumental, project.id]);
+  }, [prompt, model, instrumental, project.id, provider]);
 
   const cancelGeneration = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -217,7 +227,7 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
       audioUrl: previewUrl,
       duration: 0, // Will be set when audio loads
       volume: 0.3,
-      source: 'suno',
+      source: generationState.provider === 'piapi' ? 'suno' : 'suno', // Both use 'suno' as source type for now
       sunoPrompt: prompt,
     };
 
@@ -232,7 +242,7 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
       progress: 0,
       error: null,
     });
-  }, [previewUrl, prompt, project.id, updateProject]);
+  }, [previewUrl, prompt, project.id, updateProject, generationState.provider]);
 
   const removeMusic = useCallback(() => {
     updateProject(project.id, { backgroundMusic: undefined, musicVolume: undefined });
@@ -315,6 +325,8 @@ export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
     setModel,
     instrumental,
     setInstrumental,
+    provider,
+    setProvider,
     generateMusic,
     cancelGeneration,
     applyPreviewToProject,

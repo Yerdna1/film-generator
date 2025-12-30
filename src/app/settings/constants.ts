@@ -1,4 +1,4 @@
-import { Sparkles, Mic, Zap, Image as ImageIcon, Router } from 'lucide-react';
+import { Sparkles, Mic, Zap, Image as ImageIcon, Router, Music } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface ApiProvider {
@@ -10,6 +10,7 @@ export interface ApiProvider {
   bgColor: string;
   link: string;
   isLLMProvider?: boolean;  // Marks providers that can be used for scene generation
+  isMusicProvider?: boolean;  // Marks providers that can be used for music generation
 }
 
 // LLM Provider options for scene generation
@@ -34,6 +35,32 @@ export const llmProviderOptions: LLMProviderOption[] = [
     name: 'Claude SDK/CLI',
     description: 'Requires Claude CLI installed locally. Does not work on Vercel or cloud deployments.',
     requiresApiKey: false,
+  },
+];
+
+// Music Provider options for background music generation
+export interface MusicProviderOption {
+  id: 'piapi' | 'suno';
+  name: string;
+  description: string;
+  requiresApiKey: boolean;
+  apiKeyField: string;
+}
+
+export const musicProviderOptions: MusicProviderOption[] = [
+  {
+    id: 'piapi',
+    name: 'PiAPI (Recommended)',
+    description: 'Access Suno, Udio, and other music models via unified API. Works everywhere.',
+    requiresApiKey: true,
+    apiKeyField: 'piapiApiKey',
+  },
+  {
+    id: 'suno',
+    name: 'Suno AI (Direct)',
+    description: 'Direct Suno API via sunoapi.org. Alternative if you already have a Suno API key.',
+    requiresApiKey: true,
+    apiKeyField: 'sunoApiKey',
   },
 ];
 
@@ -103,12 +130,23 @@ export const apiProviders: ApiProvider[] = [
     link: 'https://console.anthropic.com',
   },
   {
+    key: 'piapiApiKey',
+    name: 'PiAPI',
+    description: 'Music generation via Suno/Udio (recommended - unified API)',
+    icon: Music,
+    color: 'text-pink-400',
+    bgColor: 'bg-pink-500/20',
+    link: 'https://piapi.ai/workspace',
+    isMusicProvider: true,
+  },
+  {
     key: 'sunoApiKey',
     name: 'Suno AI (via sunoapi.org)',
-    description: 'AI music generation for background tracks',
+    description: 'AI music generation for background tracks (alternative)',
     icon: Mic,
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/20',
     link: 'https://sunoapi.org/api-key',
+    isMusicProvider: true,
   },
 ];
