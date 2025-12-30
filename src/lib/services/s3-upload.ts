@@ -54,16 +54,20 @@ export async function uploadBase64ToS3(
     }
 
     // Parse base64 data URL
-    let mimeType = 'image/png';
+    let mimeType = 'application/octet-stream';
     let base64Content = base64Data;
 
     if (base64Data.startsWith('data:')) {
-      const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+      // Match data URL format - handle MIME types with parameters (e.g., audio/L16;rate=24000)
+      const matches = base64Data.match(/^data:([^;,]+)[^,]*,(.+)$/);
       if (matches) {
         mimeType = matches[1];
         base64Content = matches[2];
       }
     }
+
+    // Extract base MIME type (without parameters like ;rate=24000)
+    const baseMimeType = mimeType.split(';')[0].toLowerCase();
 
     // Determine file extension from mime type
     const extMap: Record<string, string> = {
@@ -84,8 +88,20 @@ export async function uploadBase64ToS3(
       'audio/ogg': 'ogg',
       'audio/webm': 'webm',
       'audio/aac': 'aac',
+      'audio/l16': 'wav',  // PCM audio from Gemini TTS
+      'audio/pcm': 'wav',  // Raw PCM audio
+      'audio/raw': 'wav',  // Raw audio
     };
-    const extension = extMap[mimeType] || 'bin';
+
+    // Try exact match first, then base MIME type
+    let extension = extMap[mimeType] || extMap[baseMimeType];
+
+    // If still no match but it's audio, default to wav
+    if (!extension && baseMimeType.startsWith('audio/')) {
+      extension = 'wav';
+    }
+
+    extension = extension || 'bin';
 
     // Generate unique key
     const key = `${folder}/${uuidv4()}.${extension}`;
@@ -109,7 +125,7 @@ export async function uploadBase64ToS3(
     // Construct public URL
     const url = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 
-    console.log('Uploaded image to S3:', url);
+    console.log(`[S3] Uploaded ${baseMimeType} to:`, url);
 
     return {
       success: true,

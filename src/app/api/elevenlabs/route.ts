@@ -111,7 +111,8 @@ export async function POST(request: NextRequest) {
         `ElevenLabs TTS (${text.length} chars)`,
         projectId,
         'elevenlabs',
-        { characterCount: text.length }
+        { characterCount: text.length },
+        realCost  // Pass the calculated real cost
       );
     }
 

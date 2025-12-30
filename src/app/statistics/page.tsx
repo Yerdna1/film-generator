@@ -72,6 +72,7 @@ const typeColors: Record<string, string> = {
 
 const providerLabels: Record<string, string> = {
   gemini: 'Google Gemini',
+  'gemini-tts': 'Gemini TTS',
   elevenlabs: 'ElevenLabs',
   grok: 'Grok AI',
   kie: 'Kie.ai',

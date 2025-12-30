@@ -153,7 +153,7 @@ export const ACTION_COSTS = {
 } as const;
 
 // Type definitions
-export type Provider = 'gemini' | 'elevenlabs' | 'grok' | 'kie' | 'nanoBanana' | 'claude';
+export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'nanoBanana' | 'claude';
 export type ActionType = 'image' | 'video' | 'voiceover' | 'scene' | 'character' | 'prompt';
 
 export interface CostEstimate {

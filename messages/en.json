@@ -26,7 +26,12 @@
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
-    "info": "Info"
+    "info": "Info",
+    "page": "Page",
+    "firstPage": "First page",
+    "lastPage": "Last page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page"
   },
   "auth": {
     "signIn": "Sign In",
@@ -184,7 +189,8 @@
       "voiceoverNote": "Voiceover audio is not included - add dialogue audio from Step 5 in your video editor (CapCut)",
       "costEstimate": "Cost Estimate",
       "remaining": "Remaining",
-      "totalCost": "Total Cost"
+      "totalCost": "Total Cost",
+      "scenesOnPage": "Scenes {start}-{end} of {total}"
     },
     "voiceover": {
       "title": "Voiceover",

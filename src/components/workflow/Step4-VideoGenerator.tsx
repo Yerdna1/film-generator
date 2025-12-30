@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -24,6 +24,10 @@ import {
   Settings2,
   Coins,
   Square,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { COSTS } from '@/lib/services/credits';
 import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
@@ -62,6 +66,12 @@ interface SceneVideoState {
   };
 }
 
+// Pagination configuration - 12 scenes ≈ 1 minute of video (12 × 6s = 72s)
+const ITEMS_PER_PAGE = 12;
+
+// Video cache to prevent re-downloading
+const videoCache = new Map<string, string>();
+
 export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
   const t = useTranslations();
   const { updateScene, projects } = useProjectStore();
@@ -73,18 +83,92 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [videoMode, setVideoMode] = useState<'fun' | 'normal'>('normal');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Ref for stop generation flag (useRef updates immediately, unlike state)
   const stopGenerationRef = useRef(false);
 
+  // Cache blob URLs for videos to prevent re-downloading
+  const videoBlobCache = useRef<Map<string, string>>(new Map());
+
   const scenesWithImages = project.scenes.filter((s) => s.imageUrl);
   const scenesWithVideos = project.scenes.filter((s) => s.videoUrl);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(project.scenes.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedScenes = project.scenes.slice(startIndex, endIndex);
 
   // Count scenes that need generation (no video OR has error status)
   const scenesNeedingGeneration = scenesWithImages.filter((s) => {
     const status = videoStates[s.id]?.status;
     return !s.videoUrl || status === 'error';
   });
+
+  // Helper function to get cached video URL or cache it
+  const getCachedVideoUrl = useCallback((originalUrl: string): string => {
+    // If already in cache, return cached blob URL
+    if (videoBlobCache.current.has(originalUrl)) {
+      return videoBlobCache.current.get(originalUrl)!;
+    }
+
+    // For S3/remote URLs, fetch and cache as blob
+    if (originalUrl.startsWith('http') && !originalUrl.includes('blob:')) {
+      // Return original URL for now, will be cached after fetch
+      return originalUrl;
+    }
+
+    return originalUrl;
+  }, []);
+
+  // Prefetch and cache videos for current page
+  useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    const prefetchVideos = async () => {
+      for (const scene of paginatedScenes) {
+        // Check if component is still mounted
+        if (!isMounted) break;
+
+        if (scene.videoUrl && !videoBlobCache.current.has(scene.videoUrl)) {
+          try {
+            // Skip if it's already a blob URL or base64
+            if (scene.videoUrl.startsWith('blob:') || scene.videoUrl.startsWith('data:')) {
+              continue;
+            }
+
+            // Fetch and cache as blob for faster playback
+            const response = await fetch(scene.videoUrl, { signal: abortController.signal });
+            if (response.ok && isMounted) {
+              const blob = await response.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              videoBlobCache.current.set(scene.videoUrl, blobUrl);
+              // Trigger re-render to use cached URL only if still mounted
+              if (isMounted) {
+                setVideoStates(prev => ({ ...prev }));
+              }
+            }
+          } catch (error) {
+            // Ignore abort errors
+            if (error instanceof Error && error.name === 'AbortError') {
+              continue;
+            }
+            console.warn(`Failed to cache video for scene ${scene.id}:`, error);
+          }
+        }
+      }
+    };
+
+    prefetchVideos();
+
+    // Cleanup when component unmounts or dependencies change
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [currentPage, paginatedScenes]);
 
   const getSceneStatus = (sceneId: string): VideoStatus => {
     const scene = project.scenes.find((s) => s.id === sceneId);
@@ -472,11 +556,130 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
         </div>
       )}
 
+      {/* Pagination Controls - Top */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between glass rounded-xl p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>
+              {t('common.page')} {currentPage} / {totalPages}
+            </span>
+            <span className="text-white/30">|</span>
+            <span>
+              {t('steps.videos.scenesOnPage', {
+                start: startIndex + 1,
+                end: Math.min(endIndex, project.scenes.length),
+                total: project.scenes.length
+              })}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/10 hover:bg-white/5"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.firstPage')}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/10 hover:bg-white/5"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.previousPage')}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1 mx-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? 'default' : 'outline'}
+                    size="icon"
+                    className={`h-8 w-8 ${
+                      currentPage === pageNum
+                        ? 'bg-orange-600 hover:bg-orange-500 border-0'
+                        : 'border-white/10 hover:bg-white/5'
+                    }`}
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/10 hover:bg-white/5"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.nextPage')}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/10 hover:bg-white/5"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.lastPage')}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      )}
+
       {/* Scenes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {project.scenes.map((scene, index) => {
+        {paginatedScenes.map((scene, index) => {
           const status = getSceneStatus(scene.id);
           const progress = videoStates[scene.id]?.progress || 0;
+          const actualIndex = startIndex + index; // Actual scene index in full list
+          const cachedVideoUrl = scene.videoUrl ? getCachedVideoUrl(scene.videoUrl) : undefined;
 
           return (
             <motion.div
@@ -490,10 +693,11 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
                 <div className="relative aspect-video bg-black/30">
                   {scene.videoUrl ? (
                     <video
-                      src={scene.videoUrl}
+                      src={videoBlobCache.current.get(scene.videoUrl) || scene.videoUrl}
                       className="w-full h-full object-cover"
                       poster={scene.imageUrl}
                       controls={playingVideo === scene.id}
+                      preload="metadata"
                       onPlay={() => setPlayingVideo(scene.id)}
                       onPause={() => setPlayingVideo(null)}
                     />
@@ -542,7 +746,7 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
                   {/* Scene Number Badge */}
                   <div className="absolute top-2 left-2">
                     <Badge className="bg-black/60 text-white border-0">
-                      {t('steps.scenes.sceneLabel')} {scene.number || index + 1}
+                      {t('steps.scenes.sceneLabel')} {scene.number || actualIndex + 1}
                     </Badge>
                   </div>
 
@@ -663,6 +867,55 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
           );
         })}
       </div>
+
+      {/* Pagination Controls - Bottom */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center glass rounded-xl p-4">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-white/10 hover:bg-white/5"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-white/10 hover:bg-white/5"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            <span className="px-4 text-sm">
+              {t('common.page')} {currentPage} / {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-white/10 hover:bg-white/5"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-white/10 hover:bg-white/5"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Grok Instructions */}
       <div className="glass rounded-xl p-6 space-y-4">

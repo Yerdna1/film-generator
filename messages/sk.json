@@ -26,7 +26,12 @@
     "error": "Chyba",
     "success": "Úspech",
     "warning": "Upozornenie",
-    "info": "Informácia"
+    "info": "Informácia",
+    "page": "Strana",
+    "firstPage": "Prvá strana",
+    "lastPage": "Posledná strana",
+    "previousPage": "Predchádzajúca strana",
+    "nextPage": "Nasledujúca strana"
   },
   "auth": {
     "signIn": "Prihlásiť sa",
@@ -184,7 +189,8 @@
       "voiceoverNote": "Hlasový komentár nie je zahrnutý - pridajte dialógy z kroku 5 vo video editore (CapCut)",
       "costEstimate": "Odhad nákladov",
       "remaining": "Zostáva",
-      "totalCost": "Celková cena"
+      "totalCost": "Celková cena",
+      "scenesOnPage": "Scény {start}-{end} z {total}"
     },
     "voiceover": {
       "title": "Hlasový komentár",

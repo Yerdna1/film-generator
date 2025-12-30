@@ -42,6 +42,7 @@ export interface DialogueLine {
   text: string;
   audioUrl?: string;
   audioDuration?: number;
+  ttsProvider?: 'elevenlabs' | 'gemini-tts';  // Track which TTS was used
 }
 
 // Character definition

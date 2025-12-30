@@ -10,6 +10,50 @@ import { uploadAudioToS3, isS3Configured } from '@/lib/services/s3-upload';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
+/**
+ * Add WAV headers to raw PCM audio data
+ * @param pcmData - Raw PCM audio buffer
+ * @param sampleRate - Sample rate (e.g., 24000)
+ * @param numChannels - Number of channels (1 for mono, 2 for stereo)
+ * @param bitsPerSample - Bits per sample (typically 16)
+ * @returns Buffer with WAV headers prepended
+ */
+function addWavHeaders(
+  pcmData: Buffer,
+  sampleRate: number,
+  numChannels: number,
+  bitsPerSample: number
+): Buffer {
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const dataSize = pcmData.length;
+  const headerSize = 44;
+  const fileSize = headerSize + dataSize - 8;
+
+  const header = Buffer.alloc(headerSize);
+
+  // RIFF chunk descriptor
+  header.write('RIFF', 0);
+  header.writeUInt32LE(fileSize, 4);
+  header.write('WAVE', 8);
+
+  // fmt sub-chunk
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16); // Subchunk1Size (16 for PCM)
+  header.writeUInt16LE(1, 20); // AudioFormat (1 for PCM)
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+
+  // data sub-chunk
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
+
+  return Buffer.concat([header, pcmData]);
+}
+
 // Available voices for Gemini TTS
 export const geminiVoices = [
   { id: 'Aoede', name: 'Aoede', description: 'Natural female voice' },
@@ -56,8 +100,9 @@ export async function POST(request: NextRequest) {
         ? `Hovor po slovensky s prirodzeným prízvukom: "${text}"`
         : text;
 
+    // Use gemini-2.5-flash-preview-tts for TTS - this model supports audio output
     const response = await fetch(
-      `${GEMINI_API_URL}/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `${GEMINI_API_URL}/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -102,7 +147,25 @@ export async function POST(request: NextRequest) {
     if (audioData) {
       // Calculate real cost based on character count
       const realCost = calculateVoiceCost(text.length, 'geminiTts');
-      const base64AudioUrl = `data:${audioData.mimeType};base64,${audioData.data}`;
+
+      // Gemini returns raw PCM audio (audio/L16) - we need to convert to WAV
+      let base64AudioUrl: string;
+      const mimeType = audioData.mimeType?.toLowerCase() || '';
+
+      if (mimeType.includes('l16') || mimeType.includes('pcm')) {
+        // Extract sample rate from mime type (e.g., "audio/L16;rate=24000")
+        const rateMatch = mimeType.match(/rate=(\d+)/);
+        const sampleRate = rateMatch ? parseInt(rateMatch[1]) : 24000;
+
+        // Convert raw PCM to WAV by adding headers
+        const pcmBuffer = Buffer.from(audioData.data, 'base64');
+        const wavBuffer = addWavHeaders(pcmBuffer, sampleRate, 1, 16);
+        const wavBase64 = wavBuffer.toString('base64');
+        base64AudioUrl = `data:audio/wav;base64,${wavBase64}`;
+      } else {
+        // Other audio formats - use as-is
+        base64AudioUrl = `data:${audioData.mimeType};base64,${audioData.data}`;
+      }
 
       // Track cost if user is authenticated
       if (session?.user?.id) {
@@ -112,8 +175,9 @@ export async function POST(request: NextRequest) {
           'voiceover',
           `Gemini TTS (${text.length} chars)`,
           projectId,
-          'gemini',
-          { characterCount: text.length }
+          'gemini-tts',
+          { characterCount: text.length },
+          realCost  // Pass the calculated real cost
         );
       }
 

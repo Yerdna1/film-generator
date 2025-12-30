@@ -16,7 +16,6 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  Globe,
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useProjectStore } from '@/lib/stores/project-store';
-import type { Project, Character, DialogueLine, VoiceLanguage, VoiceProvider } from '@/types/project';
+import type { Project, Character, DialogueLine, VoiceProvider } from '@/types/project';
 import { ACTION_COSTS, formatCostCompact, calculateVoiceCost } from '@/lib/services/real-costs';
 
 interface Step5Props {
@@ -74,13 +73,39 @@ const elevenLabsVoices = [
   { id: 'emily', name: 'Emily', description: 'Calm, young, American female' },
 ];
 
-// Gemini TTS voices (Slovak)
+// Gemini TTS voices (supports Slovak and other languages)
 const geminiVoices = [
-  { id: 'sk-male-1', name: 'Martin', description: 'Slovak male, clear' },
-  { id: 'sk-female-1', name: 'Zuzana', description: 'Slovak female, warm' },
-  { id: 'sk-male-2', name: 'Peter', description: 'Slovak male, deep' },
-  { id: 'sk-female-2', name: 'Anna', description: 'Slovak female, young' },
+  { id: 'Aoede', name: 'Aoede', description: 'Natural female voice' },
+  { id: 'Charon', name: 'Charon', description: 'Deep male voice' },
+  { id: 'Fenrir', name: 'Fenrir', description: 'Young male voice' },
+  { id: 'Kore', name: 'Kore', description: 'Soft female voice' },
+  { id: 'Puck', name: 'Puck', description: 'Playful voice' },
+  { id: 'Zephyr', name: 'Zephyr', description: 'Gentle voice' },
+  { id: 'Enceladus', name: 'Enceladus', description: 'Clear male voice' },
+  { id: 'Iapetus', name: 'Iapetus', description: 'Warm male voice' },
 ];
+
+// Helper to migrate old placeholder voice IDs to valid Gemini TTS voices
+const getValidGeminiVoice = (voiceId: string | undefined): string => {
+  // Check if it's already a valid Gemini voice
+  if (voiceId && geminiVoices.some(v => v.id.toLowerCase() === voiceId.toLowerCase())) {
+    // Return with proper casing
+    const found = geminiVoices.find(v => v.id.toLowerCase() === voiceId.toLowerCase());
+    return found?.id || 'Aoede';
+  }
+  // Map old placeholder IDs to valid voices
+  const migrationMap: Record<string, string> = {
+    'sk-male-1': 'Charon',
+    'sk-male-2': 'Fenrir',
+    'sk-male-3': 'Enceladus',
+    'sk-male-4': 'Iapetus',
+    'sk-female-1': 'Aoede',
+    'sk-female-2': 'Kore',
+    'sk-female-3': 'Zephyr',
+    'sk-child-1': 'Puck',
+  };
+  return migrationMap[voiceId || ''] || 'Aoede';
+};
 
 export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props) {
   const t = useTranslations();
@@ -97,7 +122,7 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
 
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
-  const voices = project.voiceSettings.language === 'sk' ? geminiVoices : elevenLabsVoices;
+  const voices = project.voiceSettings.provider === 'gemini-tts' ? geminiVoices : elevenLabsVoices;
 
   const allDialogueLines = project.scenes.flatMap((scene) =>
     scene.dialogue.map((line) => ({
@@ -109,11 +134,6 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
   );
 
   const generatedCount = allDialogueLines.filter((line) => line.audioUrl).length;
-
-  const handleLanguageChange = (lang: VoiceLanguage) => {
-    const provider: VoiceProvider = lang === 'sk' ? 'gemini-tts' : 'elevenlabs';
-    updateVoiceSettings(project.id, { language: lang, provider });
-  };
 
   const handleVoiceChange = (characterId: string, voiceId: string) => {
     const voice = voices.find((v) => v.id === voiceId);
@@ -152,25 +172,27 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
 
       let response;
 
-      if (project.voiceSettings.language === 'sk') {
-        // Use Gemini TTS for Slovak
+      if (project.voiceSettings.provider === 'gemini-tts') {
+        // Use Gemini TTS
         response = await fetch('/api/gemini/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: line.text,
-            voiceName: character?.voiceId || 'Aoede',
-            language: 'sk',
+            voiceName: getValidGeminiVoice(character?.voiceId),
+            language: project.voiceSettings.language,
+            projectId: project.id,
           }),
         });
       } else {
-        // Use ElevenLabs for English
+        // Use ElevenLabs
         response = await fetch('/api/elevenlabs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: line.text,
             voiceId: character?.voiceId || 'pNInz6obpgDQGcFmaJgB', // Default to Adam
+            projectId: project.id,
           }),
         });
       }
@@ -183,9 +205,10 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
       if (response.ok) {
         const data = await response.json();
         if (data.audioUrl && scene) {
-          // Update the scene's dialogue with the audio URL
+          // Update the scene's dialogue with the audio URL and provider
+          const usedProvider = project.voiceSettings.provider;
           const updatedDialogue = scene.dialogue.map((d) =>
-            d.id === lineId ? { ...d, audioUrl: data.audioUrl } : d
+            d.id === lineId ? { ...d, audioUrl: data.audioUrl, ttsProvider: usedProvider } : d
           );
           updateScene(project.id, sceneId, { dialogue: updatedDialogue });
 
@@ -207,7 +230,7 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
         [lineId]: {
           status: 'error',
           progress: 0,
-          error: errorData.error || `API not configured - set ${project.voiceSettings.language === 'sk' ? 'GEMINI_API_KEY' : 'ELEVENLABS_API_KEY'} in .env.local`
+          error: errorData.error || `API not configured - set ${project.voiceSettings.provider === 'gemini-tts' ? 'GEMINI_API_KEY' : 'ELEVENLABS_API_KEY'} in .env.local`
         },
       }));
     } catch (error) {
@@ -278,35 +301,43 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
         <p className="text-muted-foreground">{t('steps.voiceover.description')}</p>
       </div>
 
-      {/* Language & Progress Bar */}
+      {/* Provider Selection & Progress Bar */}
       <div className="glass rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <Globe className="w-5 h-5 text-violet-400" />
-            <Select
-              value={project.voiceSettings.language}
-              onValueChange={(val) => handleLanguageChange(val as VoiceLanguage)}
-            >
-              <SelectTrigger className="w-40 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                <SelectItem value="en">
-                  <span className="flex items-center gap-2">
-                    🇬🇧 English
-                  </span>
-                </SelectItem>
-                <SelectItem value="sk">
-                  <span className="flex items-center gap-2">
-                    🇸🇰 Slovenčina
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Badge variant="outline" className="border-violet-500/30 text-violet-400">
-              {project.voiceSettings.provider === 'elevenlabs' ? 'ElevenLabs' : 'Gemini TTS'}
-            </Badge>
+          <div className="flex items-center gap-2">
+            <Mic className="w-5 h-5 text-violet-400" />
+            <span className="text-sm text-muted-foreground mr-2">TTS Provider:</span>
+            {/* Direct provider selection buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant={project.voiceSettings.provider === 'elevenlabs' ? 'default' : 'outline'}
+                size="sm"
+                className={`${
+                  project.voiceSettings.provider === 'elevenlabs'
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white border-0'
+                    : 'border-white/10 hover:bg-white/5'
+                }`}
+                onClick={() => {
+                  updateVoiceSettings(project.id, { language: 'en', provider: 'elevenlabs' });
+                }}
+              >
+                🇬🇧 ElevenLabs
+              </Button>
+              <Button
+                variant={project.voiceSettings.provider === 'gemini-tts' ? 'default' : 'outline'}
+                size="sm"
+                className={`${
+                  project.voiceSettings.provider === 'gemini-tts'
+                    ? 'bg-green-600 hover:bg-green-500 text-white border-0'
+                    : 'border-white/10 hover:bg-white/5'
+                }`}
+                onClick={() => {
+                  updateVoiceSettings(project.id, { language: 'sk', provider: 'gemini-tts' });
+                }}
+              >
+                🇸🇰 Gemini TTS
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -424,7 +455,7 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
               <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
                 {(() => {
                   const remaining = allDialogueLines.length - generatedCount;
-                  const perItemCost = project.voiceSettings.language === 'sk'
+                  const perItemCost = project.voiceSettings.provider === 'gemini-tts'
                     ? ACTION_COSTS.voiceover.geminiTts
                     : ACTION_COSTS.voiceover.elevenlabs;
                   return remaining > 0
@@ -513,13 +544,25 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
 
                         {/* Dialogue Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="font-semibold text-violet-400">
                               {character?.name || line.characterName}
                             </span>
                             {character?.voiceName && (
                               <Badge variant="outline" className="text-xs border-white/10">
                                 {character.voiceName}
+                              </Badge>
+                            )}
+                            {/* Show TTS provider badge if audio was generated */}
+                            {line.audioUrl && line.ttsProvider && (
+                              <Badge
+                                className={`text-xs border-0 ${
+                                  line.ttsProvider === 'elevenlabs'
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : 'bg-green-500/20 text-green-400'
+                                }`}
+                              >
+                                {line.ttsProvider === 'elevenlabs' ? '🇬🇧 ElevenLabs' : '🇸🇰 Gemini TTS'}
                               </Badge>
                             )}
                           </div>
@@ -579,7 +622,7 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
                               {t('steps.voiceover.generate')}
                               <span className="ml-1 text-[10px] opacity-70">
                                 {formatCostCompact(
-                                  project.voiceSettings.language === 'sk'
+                                  project.voiceSettings.provider === 'gemini-tts'
                                     ? ACTION_COSTS.voiceover.geminiTts
                                     : ACTION_COSTS.voiceover.elevenlabs
                                 )}
@@ -603,22 +646,22 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
           {t('steps.voiceover.providerInfo')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className={`glass rounded-lg p-4 border-2 ${project.voiceSettings.language === 'en' ? 'border-violet-500/30' : 'border-transparent'}`}>
+          <div className={`glass rounded-lg p-4 border-2 ${project.voiceSettings.provider === 'elevenlabs' ? 'border-blue-500/30' : 'border-transparent'}`}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-medium">🇬🇧 ElevenLabs</span>
-              {project.voiceSettings.language === 'en' && (
-                <Badge className="bg-violet-500/20 text-violet-400 border-0">Active</Badge>
+              {project.voiceSettings.provider === 'elevenlabs' && (
+                <Badge className="bg-blue-500/20 text-blue-400 border-0">Active</Badge>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
               {t('steps.voiceover.elevenLabsDescription')}
             </p>
           </div>
-          <div className={`glass rounded-lg p-4 border-2 ${project.voiceSettings.language === 'sk' ? 'border-violet-500/30' : 'border-transparent'}`}>
+          <div className={`glass rounded-lg p-4 border-2 ${project.voiceSettings.provider === 'gemini-tts' ? 'border-green-500/30' : 'border-transparent'}`}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-medium">🇸🇰 Gemini TTS</span>
-              {project.voiceSettings.language === 'sk' && (
-                <Badge className="bg-violet-500/20 text-violet-400 border-0">Active</Badge>
+              {project.voiceSettings.provider === 'gemini-tts' && (
+                <Badge className="bg-green-500/20 text-green-400 border-0">Active</Badge>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
