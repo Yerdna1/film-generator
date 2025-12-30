@@ -7,7 +7,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { spendCredits, COSTS } from '@/lib/services/credits';
+import { spendCredits, getImageCreditCost } from '@/lib/services/credits';
 import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 
@@ -148,10 +148,11 @@ export async function POST(request: NextRequest) {
 
       // Track cost if user is authenticated - use resolution-based pricing
       const realCost = getImageCost(resolution);
+      const creditCost = getImageCreditCost(resolution);
       if (session?.user?.id) {
         await spendCredits(
           session.user.id,
-          COSTS.IMAGE_GENERATION,
+          creditCost,  // Resolution-specific credits (1K/2K: 27, 4K: 48)
           'image',
           `Gemini image generation (${resolution.toUpperCase()})`,
           projectId,

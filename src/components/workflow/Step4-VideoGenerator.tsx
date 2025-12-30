@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,6 +23,7 @@ import {
   Volume2,
   Settings2,
   Coins,
+  Square,
 } from 'lucide-react';
 import { COSTS } from '@/lib/services/credits';
 import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
@@ -73,8 +74,17 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [videoMode, setVideoMode] = useState<'fun' | 'normal'>('normal');
 
+  // Ref for stop generation flag (useRef updates immediately, unlike state)
+  const stopGenerationRef = useRef(false);
+
   const scenesWithImages = project.scenes.filter((s) => s.imageUrl);
   const scenesWithVideos = project.scenes.filter((s) => s.videoUrl);
+
+  // Count scenes that need generation (no video OR has error status)
+  const scenesNeedingGeneration = scenesWithImages.filter((s) => {
+    const status = videoStates[s.id]?.status;
+    return !s.videoUrl || status === 'error';
+  });
 
   const getSceneStatus = (sceneId: string): VideoStatus => {
     const scene = project.scenes.find((s) => s.id === sceneId);
@@ -182,7 +192,8 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
       }));
 
       try {
-        const response = await fetch(`/api/grok?taskId=${taskId}`);
+        // Pass projectId for cost tracking
+        const response = await fetch(`/api/grok?taskId=${taskId}&projectId=${project.id}`);
         if (response.ok) {
           const data = await response.json();
           if (data.status === 'complete' && data.videoUrl) {
@@ -206,13 +217,43 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
   };
 
   const handleGenerateAll = async () => {
+    // Prevent multiple simultaneous generations
+    if (isGeneratingAll) {
+      console.log('Video generation already in progress, ignoring duplicate call');
+      return;
+    }
+
     setIsGeneratingAll(true);
+    stopGenerationRef.current = false; // Reset stop flag
+
+    // Rate limiting: kie.ai allows 20 requests per 10 seconds
+    // Using 1.5 second delay to be safe and avoid 429 errors
+    const RATE_LIMIT_DELAY_MS = 1500;
+
     for (const scene of scenesWithImages) {
-      if (!scene.videoUrl) {
+      // Check if stop was requested
+      if (stopGenerationRef.current) {
+        console.log('Video generation stopped by user');
+        break;
+      }
+
+      // Generate video if scene doesn't have one OR if it has an error status
+      const currentStatus = videoStates[scene.id]?.status;
+      const needsGeneration = !scene.videoUrl || currentStatus === 'error';
+
+      if (needsGeneration) {
         await generateSceneVideo(scene);
+        // Wait to respect rate limit before next request
+        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
       }
     }
     setIsGeneratingAll(false);
+    stopGenerationRef.current = false; // Reset flag when done
+  };
+
+  const handleStopGeneration = () => {
+    stopGenerationRef.current = true;
+    console.log('Stop generation requested');
   };
 
   // Build full I2V prompt with dialogue (matching navod.txt format)
@@ -354,14 +395,14 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">{t('steps.videos.remaining')}</p>
                 <p className="font-semibold text-lg">
-                  {scenesWithImages.length - scenesWithVideos.length}
+                  {scenesNeedingGeneration.length}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">{t('steps.videos.totalCost')}</p>
                 <p className="font-semibold text-lg text-green-400">
-                  {(scenesWithImages.length - scenesWithVideos.length) > 0
-                    ? formatCostCompact((scenesWithImages.length - scenesWithVideos.length) * ACTION_COSTS.video.grok)
+                  {scenesNeedingGeneration.length > 0
+                    ? formatCostCompact(scenesNeedingGeneration.length * ACTION_COSTS.video.grok)
                     : `${formatCostCompact(ACTION_COSTS.video.grok)}/ea`}
                 </p>
               </div>
@@ -395,33 +436,29 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
           <ExternalLink className="w-4 h-4 mr-2" />
           {t('steps.videos.openGrok')}
         </Button>
-        <Button
-          className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
-          disabled={scenesWithImages.length === 0 || isGeneratingAll}
-          onClick={handleGenerateAll}
-        >
-          {isGeneratingAll ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-              </motion.div>
-              {t('steps.videos.generating')}
-            </>
-          ) : (
-            <>
-              <Zap className="w-4 h-4 mr-2" />
-              {t('steps.videos.generateAll')}
-              <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                {(scenesWithImages.length - scenesWithVideos.length) > 0
-                  ? formatCostCompact((scenesWithImages.length - scenesWithVideos.length) * ACTION_COSTS.video.grok)
-                  : `${formatCostCompact(ACTION_COSTS.video.grok)}/ea`}
-              </Badge>
-            </>
-          )}
-        </Button>
+        {isGeneratingAll ? (
+          <Button
+            className="bg-red-600 hover:bg-red-500 text-white border-0"
+            onClick={handleStopGeneration}
+          >
+            <Square className="w-4 h-4 mr-2" />
+            Stop
+          </Button>
+        ) : (
+          <Button
+            className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
+            disabled={scenesWithImages.length === 0}
+            onClick={handleGenerateAll}
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            {t('steps.videos.generateAll')}
+            <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+              {scenesNeedingGeneration.length > 0
+                ? formatCostCompact(scenesNeedingGeneration.length * ACTION_COSTS.video.grok)
+                : `${formatCostCompact(ACTION_COSTS.video.grok)}/ea`}
+            </Badge>
+          </Button>
+        )}
       </div>
 
       {/* Warning if no images */}

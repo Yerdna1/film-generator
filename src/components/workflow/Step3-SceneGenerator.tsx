@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -26,6 +26,7 @@ import {
   Copy,
   ExternalLink,
   CheckCircle2,
+  Square,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,6 +92,9 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
   const [generatingImageForScene, setGeneratingImageForScene] = useState<string | null>(null);
   const [isGeneratingAllImages, setIsGeneratingAllImages] = useState(false);
   const [sceneAspectRatio, setSceneAspectRatio] = useState<AspectRatio>('16:9');
+
+  // Ref for stop generation flag (useRef updates immediately, unlike state)
+  const stopGenerationRef = useRef(false);
   const [showPromptsDialog, setShowPromptsDialog] = useState(false);
 
   const [newScene, setNewScene] = useState({
@@ -319,6 +323,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
           prompt: scene.textToImagePrompt,
           aspectRatio: sceneAspectRatio,
           resolution: imageResolution,
+          projectId: project.id, // Pass projectId for cost tracking
           referenceImages, // Pass character images for visual consistency
         }),
       });
@@ -343,6 +348,12 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
 
   // Generate all scene images - includes character images as reference for consistency
   const handleGenerateAllSceneImages = async () => {
+    // Prevent multiple simultaneous generations
+    if (isGeneratingAllImages) {
+      console.log('Generation already in progress, ignoring duplicate call');
+      return;
+    }
+
     const scenesWithoutImages = project.scenes.filter((s) => !s.imageUrl);
     if (scenesWithoutImages.length === 0) {
       alert('All scenes already have images');
@@ -358,10 +369,17 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
       }));
 
     setIsGeneratingAllImages(true);
+    stopGenerationRef.current = false; // Reset stop flag
 
     try {
       const imageResolution = project.settings?.imageResolution || '2k';
       for (const scene of scenesWithoutImages) {
+        // Check if stop was requested
+        if (stopGenerationRef.current) {
+          console.log('Image generation stopped by user');
+          break;
+        }
+
         setGeneratingImageForScene(scene.id);
 
         const response = await fetch('/api/gemini/image', {
@@ -371,6 +389,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             prompt: scene.textToImagePrompt,
             aspectRatio: sceneAspectRatio,
             resolution: imageResolution,
+            projectId: project.id, // Pass projectId for cost tracking
             referenceImages, // Pass character images for visual consistency
           }),
         });
@@ -399,7 +418,13 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
     } finally {
       setGeneratingImageForScene(null);
       setIsGeneratingAllImages(false);
+      stopGenerationRef.current = false; // Reset flag when done
     }
+  };
+
+  const handleStopImageGeneration = () => {
+    stopGenerationRef.current = true;
+    console.log('Stop image generation requested');
   };
 
   const scenesWithImages = project.scenes.filter((s) => s.imageUrl).length;
@@ -945,36 +970,35 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
           <RefreshCw className="w-4 h-4 mr-2" />
           {t('steps.scenes.regenerateAll')}
         </Button>
-        <Button
-          className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0"
-          disabled={project.scenes.length === 0 || isGeneratingAllImages || scenesWithImages === project.scenes.length}
-          onClick={handleGenerateAllSceneImages}
-        >
-          {isGeneratingAllImages ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-              </motion.div>
-              {t('steps.characters.generating')} ({scenesWithImages}/{project.scenes.length})
-            </>
-          ) : scenesWithImages === project.scenes.length ? (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
-              All Images Generated
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
-              {t('steps.scenes.generateAllImages')} ({project.scenes.length - scenesWithImages} remaining)
-              <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                {formatCostCompact(getImageCost(project.settings?.imageResolution || '2k') * (project.scenes.length - scenesWithImages))}
-              </Badge>
-            </>
-          )}
-        </Button>
+        {isGeneratingAllImages ? (
+          <Button
+            className="bg-red-600 hover:bg-red-500 text-white border-0"
+            onClick={handleStopImageGeneration}
+          >
+            <Square className="w-4 h-4 mr-2" />
+            Stop ({scenesWithImages}/{project.scenes.length})
+          </Button>
+        ) : scenesWithImages === project.scenes.length ? (
+          <Button
+            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0"
+            disabled
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            All Images Generated
+          </Button>
+        ) : (
+          <Button
+            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0"
+            disabled={project.scenes.length === 0}
+            onClick={handleGenerateAllSceneImages}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {t('steps.scenes.generateAllImages')} ({project.scenes.length - scenesWithImages} remaining)
+            <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+              {formatCostCompact(getImageCost(project.settings?.imageResolution || '2k') * (project.scenes.length - scenesWithImages))}
+            </Badge>
+          </Button>
+        )}
       </div>
 
       {/* Tip */}

@@ -2,14 +2,30 @@
 import { prisma } from '@/lib/db/prisma';
 import { getActionCost, type Provider, type ActionType } from './real-costs';
 
-// Cost configuration (in kie points)
+// Cost configuration (in credits)
+// Based on real API costs: 1 credit ≈ $0.005 (video baseline: 20 credits = $0.10)
 export const COSTS = {
-  IMAGE_GENERATION: 5,    // Per image (Gemini/NanoBanana)
-  VIDEO_GENERATION: 20,   // Per 6s video (Grok Imagine via kie.ai)
-  VOICEOVER_LINE: 2,      // Per dialogue line (Gemini TTS/ElevenLabs)
-  SCENE_GENERATION: 1,    // Per scene text generation (Claude/Gemini)
-  CHARACTER_GENERATION: 1, // Per character prompt generation
+  // Image generation by resolution
+  IMAGE_GENERATION: 27,      // Default (2K) - for backward compatibility
+  IMAGE_GENERATION_1K: 27,   // 1K image ($0.134) - same as 2K
+  IMAGE_GENERATION_2K: 27,   // 2K image ($0.134)
+  IMAGE_GENERATION_4K: 48,   // 4K image ($0.24)
+  // Other operations
+  VIDEO_GENERATION: 20,      // Per 6s video ($0.10)
+  VOICEOVER_LINE: 6,         // Per dialogue line - ElevenLabs ($0.03)
+  SCENE_GENERATION: 2,       // Per scene - Claude ($0.01)
+  CHARACTER_GENERATION: 2,   // Per character - Claude ($0.008)
 } as const;
+
+// Helper to get image credit cost by resolution
+export function getImageCreditCost(resolution: '1k' | '2k' | '4k' = '2k'): number {
+  switch (resolution) {
+    case '1k': return COSTS.IMAGE_GENERATION_1K;
+    case '2k': return COSTS.IMAGE_GENERATION_2K;
+    case '4k': return COSTS.IMAGE_GENERATION_4K;
+    default: return COSTS.IMAGE_GENERATION_2K;
+  }
+}
 
 export type CostType = keyof typeof COSTS;
 

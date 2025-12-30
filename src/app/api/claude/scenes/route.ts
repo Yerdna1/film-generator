@@ -175,7 +175,9 @@ Return ONLY the JSON array, no other text.`;
       'scene',
       `Claude scene generation (${sceneCount} scenes)`,
       projectId,
-      'claude'
+      'claude',
+      undefined,  // metadata
+      realCost    // pass the total real cost for all scenes
     );
 
     return NextResponse.json({ scenes: scenesWithIds, cost: realCost });

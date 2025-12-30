@@ -70,9 +70,10 @@ export const PROVIDER_COSTS = {
     imageGenerationFast: 0.02, // Fast: $0.02 per image
   },
 
-  // Claude (Anthropic)
+  // Claude (Anthropic) - Claude Sonnet 4 / Claude 3.5 Sonnet
+  // Input: $3.00 per 1M tokens ($0.003 per 1K)
+  // Output: $15.00 per 1M tokens ($0.015 per 1K)
   claude: {
-    // Per 1K tokens (Claude 3.5 Sonnet)
     textInputPer1K: 0.003,
     textOutputPer1K: 0.015,
   },
@@ -126,23 +127,28 @@ export const ACTION_COSTS = {
     geminiTts: 0.002,
   },
 
-  // Scene generation (text)
+  // Scene generation (text) - per scene
+  // Claude batch generation: ~5000 input + ~40000 output for 60 scenes
+  // Input: 5000 × $0.003/1K = $0.015, Output: 40000 × $0.015/1K = $0.60
+  // Total ~$0.615 for 60 scenes = $0.01 per scene
   scene: {
     gemini: 0.001,
-    claude: 0.005,
+    claude: 0.01,    // Updated: ~$0.60 for 60 scenes
     grok: 0.003,
   },
 
-  // Character description generation
+  // Character description generation - per character
+  // Claude: ~500 input + ~400 output tokens = $0.0015 + $0.006 = $0.0075
   character: {
     gemini: 0.0005,
-    claude: 0.002,
+    claude: 0.008,   // Updated: realistic cost per character
   },
 
-  // Master prompt generation
+  // Master prompt generation - per prompt
+  // Claude: ~500 input + ~600 output tokens = $0.0015 + $0.009 = $0.0105
   prompt: {
     gemini: 0.001,
-    claude: 0.005,
+    claude: 0.012,   // Updated: realistic cost per prompt
   },
 } as const;
 
