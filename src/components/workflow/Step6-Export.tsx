@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import JSZip from 'jszip';
 import {
   Download,
   FileJson,
@@ -23,6 +24,13 @@ import {
   Play,
   Scissors,
   Coins,
+  ImageDown,
+  VideoIcon,
+  Music,
+  Archive,
+  FileDown,
+  Loader2,
+  MessageSquareText,
 } from 'lucide-react';
 import { COSTS } from '@/lib/services/credits';
 import { Button } from '@/components/ui/button';
@@ -54,6 +62,10 @@ export function Step6Export({ project: initialProject }: Step6Props) {
 
   const [exportFormat, setExportFormat] = useState<ExportFormat>('json');
   const [isExporting, setIsExporting] = useState(false);
+  const [downloadingImages, setDownloadingImages] = useState(false);
+  const [downloadingVideos, setDownloadingVideos] = useState(false);
+  const [downloadingAudio, setDownloadingAudio] = useState(false);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   // Calculate completion stats
   const totalCharacters = project.characters.length;
@@ -205,6 +217,283 @@ export function Step6Export({ project: initialProject }: Step6Props) {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${project.name.replace(/\s+/g, '_')}_capcut_project.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Helper function to fetch file as blob
+  const fetchAsBlob = async (url: string): Promise<Blob | null> => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      return await response.blob();
+    } catch (error) {
+      console.error('Failed to fetch:', url, error);
+      return null;
+    }
+  };
+
+  // Helper function to get file extension from URL or mime type
+  const getExtension = (url: string, mimeType?: string): string => {
+    if (mimeType) {
+      if (mimeType.includes('mp4')) return 'mp4';
+      if (mimeType.includes('webm')) return 'webm';
+      if (mimeType.includes('png')) return 'png';
+      if (mimeType.includes('jpeg') || mimeType.includes('jpg')) return 'jpg';
+      if (mimeType.includes('webp')) return 'webp';
+      if (mimeType.includes('mp3')) return 'mp3';
+      if (mimeType.includes('wav')) return 'wav';
+      if (mimeType.includes('ogg')) return 'ogg';
+    }
+    // Try to get from URL
+    const match = url.match(/\.([a-z0-9]+)(?:\?|$)/i);
+    if (match) return match[1];
+    return 'bin';
+  };
+
+  // Download all images as ZIP
+  const handleDownloadImages = async () => {
+    setDownloadingImages(true);
+    try {
+      const zip = new JSZip();
+      const imagesFolder = zip.folder('images');
+      const charactersFolder = imagesFolder?.folder('characters');
+      const scenesFolder = imagesFolder?.folder('scenes');
+
+      // Download character images
+      for (const char of project.characters) {
+        if (char.imageUrl) {
+          const blob = await fetchAsBlob(char.imageUrl);
+          if (blob) {
+            const ext = getExtension(char.imageUrl, blob.type);
+            charactersFolder?.file(`${char.name.replace(/\s+/g, '_')}.${ext}`, blob);
+          }
+        }
+      }
+
+      // Download scene images
+      for (const scene of project.scenes) {
+        if (scene.imageUrl) {
+          const blob = await fetchAsBlob(scene.imageUrl);
+          if (blob) {
+            const ext = getExtension(scene.imageUrl, blob.type);
+            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            scenesFolder?.file(`scene_${String(sceneNum).padStart(2, '0')}_${scene.title.replace(/\s+/g, '_')}.${ext}`, blob);
+          }
+        }
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/\s+/g, '_')}_images.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download images:', error);
+    } finally {
+      setDownloadingImages(false);
+    }
+  };
+
+  // Download all videos as ZIP
+  const handleDownloadVideos = async () => {
+    setDownloadingVideos(true);
+    try {
+      const zip = new JSZip();
+      const videosFolder = zip.folder('videos');
+
+      for (const scene of project.scenes) {
+        if (scene.videoUrl) {
+          const blob = await fetchAsBlob(scene.videoUrl);
+          if (blob) {
+            const ext = getExtension(scene.videoUrl, blob.type);
+            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            videosFolder?.file(`scene_${String(sceneNum).padStart(2, '0')}_${scene.title.replace(/\s+/g, '_')}.${ext}`, blob);
+          }
+        }
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/\s+/g, '_')}_videos.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download videos:', error);
+    } finally {
+      setDownloadingVideos(false);
+    }
+  };
+
+  // Download all audio as ZIP
+  const handleDownloadAudio = async () => {
+    setDownloadingAudio(true);
+    try {
+      const zip = new JSZip();
+      const audioFolder = zip.folder('audio');
+
+      for (const scene of project.scenes) {
+        const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+        const sceneFolder = audioFolder?.folder(`scene_${String(sceneNum).padStart(2, '0')}`);
+
+        for (let i = 0; i < scene.dialogue.length; i++) {
+          const line = scene.dialogue[i];
+          if (line.audioUrl) {
+            const blob = await fetchAsBlob(line.audioUrl);
+            if (blob) {
+              const ext = getExtension(line.audioUrl, blob.type);
+              sceneFolder?.file(`${String(i + 1).padStart(2, '0')}_${line.characterName?.replace(/\s+/g, '_') || 'unknown'}.${ext}`, blob);
+            }
+          }
+        }
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/\s+/g, '_')}_audio.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download audio:', error);
+    } finally {
+      setDownloadingAudio(false);
+    }
+  };
+
+  // Download ALL assets as ZIP
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true);
+    try {
+      const zip = new JSZip();
+
+      // Images folder
+      const imagesFolder = zip.folder('images');
+      const charactersFolder = imagesFolder?.folder('characters');
+      const scenesFolder = imagesFolder?.folder('scenes');
+
+      for (const char of project.characters) {
+        if (char.imageUrl) {
+          const blob = await fetchAsBlob(char.imageUrl);
+          if (blob) {
+            const ext = getExtension(char.imageUrl, blob.type);
+            charactersFolder?.file(`${char.name.replace(/\s+/g, '_')}.${ext}`, blob);
+          }
+        }
+      }
+
+      for (const scene of project.scenes) {
+        if (scene.imageUrl) {
+          const blob = await fetchAsBlob(scene.imageUrl);
+          if (blob) {
+            const ext = getExtension(scene.imageUrl, blob.type);
+            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            scenesFolder?.file(`scene_${String(sceneNum).padStart(2, '0')}_${scene.title.replace(/\s+/g, '_')}.${ext}`, blob);
+          }
+        }
+      }
+
+      // Videos folder
+      const videosFolder = zip.folder('videos');
+      for (const scene of project.scenes) {
+        if (scene.videoUrl) {
+          const blob = await fetchAsBlob(scene.videoUrl);
+          if (blob) {
+            const ext = getExtension(scene.videoUrl, blob.type);
+            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            videosFolder?.file(`scene_${String(sceneNum).padStart(2, '0')}_${scene.title.replace(/\s+/g, '_')}.${ext}`, blob);
+          }
+        }
+      }
+
+      // Audio folder
+      const audioFolder = zip.folder('audio');
+      for (const scene of project.scenes) {
+        const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+        const sceneAudioFolder = audioFolder?.folder(`scene_${String(sceneNum).padStart(2, '0')}`);
+
+        for (let i = 0; i < scene.dialogue.length; i++) {
+          const line = scene.dialogue[i];
+          if (line.audioUrl) {
+            const blob = await fetchAsBlob(line.audioUrl);
+            if (blob) {
+              const ext = getExtension(line.audioUrl, blob.type);
+              sceneAudioFolder?.file(`${String(i + 1).padStart(2, '0')}_${line.characterName?.replace(/\s+/g, '_') || 'unknown'}.${ext}`, blob);
+            }
+          }
+        }
+      }
+
+      // Add dialogues.txt
+      let dialoguesText = `# ${project.story.title || project.name}\n# Dialogues\n\n`;
+      for (const scene of project.scenes) {
+        const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+        dialoguesText += `## Scene ${sceneNum}: ${scene.title}\n\n`;
+        for (const line of scene.dialogue) {
+          dialoguesText += `${line.characterName}: "${line.text}"\n`;
+        }
+        dialoguesText += '\n';
+      }
+      zip.file('dialogues.txt', dialoguesText);
+
+      // Add project.json
+      const projectJson = exportProject(project.id);
+      if (projectJson) {
+        zip.file('project.json', projectJson);
+      }
+
+      // Add prompts.md
+      const markdown = exportProjectAsMarkdown(
+        project.story,
+        project.characters,
+        project.scenes,
+        project.style
+      );
+      zip.file('prompts.md', markdown);
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/\s+/g, '_')}_complete.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download all assets:', error);
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
+  // Download dialogues as text file
+  const handleDownloadDialogues = () => {
+    let dialoguesText = `# ${project.story.title || project.name}\n# Complete Dialogues\n\n`;
+
+    for (const scene of project.scenes) {
+      const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+      dialoguesText += `═══════════════════════════════════════════════════════════════\n`;
+      dialoguesText += `SCENE ${sceneNum}: ${scene.title}\n`;
+      dialoguesText += `═══════════════════════════════════════════════════════════════\n\n`;
+
+      if (scene.dialogue.length === 0) {
+        dialoguesText += `(No dialogue)\n\n`;
+      } else {
+        for (const line of scene.dialogue) {
+          dialoguesText += `${line.characterName}:\n"${line.text}"\n\n`;
+        }
+      }
+    }
+
+    const blob = new Blob([dialoguesText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${project.name.replace(/\s+/g, '_')}_dialogues.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -550,6 +839,115 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                 {t('steps.export.capcutDescription')}
               </p>
             </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Download Assets */}
+      <Card className="glass border-white/10 border-purple-500/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Archive className="w-5 h-5 text-purple-400" />
+            {t('steps.export.downloadAssets')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            {t('steps.export.downloadAssetsDescription')}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Download Images */}
+            <Button
+              onClick={handleDownloadImages}
+              disabled={downloadingImages || (scenesWithImages === 0 && charactersWithImages === 0)}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500/50 disabled:opacity-50"
+            >
+              {downloadingImages ? (
+                <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+              ) : (
+                <ImageDown className="w-6 h-6 text-purple-400" />
+              )}
+              <span className="font-medium">Images</span>
+              <span className="text-xs text-muted-foreground">
+                {scenesWithImages + charactersWithImages} files
+              </span>
+            </Button>
+
+            {/* Download Videos */}
+            <Button
+              onClick={handleDownloadVideos}
+              disabled={downloadingVideos || scenesWithVideos === 0}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 border-orange-500/30 hover:bg-orange-500/10 hover:border-orange-500/50 disabled:opacity-50"
+            >
+              {downloadingVideos ? (
+                <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+              ) : (
+                <VideoIcon className="w-6 h-6 text-orange-400" />
+              )}
+              <span className="font-medium">Videos</span>
+              <span className="text-xs text-muted-foreground">
+                {scenesWithVideos} files
+              </span>
+            </Button>
+
+            {/* Download Audio */}
+            <Button
+              onClick={handleDownloadAudio}
+              disabled={downloadingAudio || dialogueLinesWithAudio === 0}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 border-violet-500/30 hover:bg-violet-500/10 hover:border-violet-500/50 disabled:opacity-50"
+            >
+              {downloadingAudio ? (
+                <Loader2 className="w-6 h-6 text-violet-400 animate-spin" />
+              ) : (
+                <Music className="w-6 h-6 text-violet-400" />
+              )}
+              <span className="font-medium">Audio</span>
+              <span className="text-xs text-muted-foreground">
+                {dialogueLinesWithAudio} files
+              </span>
+            </Button>
+
+            {/* Download Dialogues */}
+            <Button
+              onClick={handleDownloadDialogues}
+              disabled={totalDialogueLines === 0}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/50 disabled:opacity-50"
+            >
+              <MessageSquareText className="w-6 h-6 text-cyan-400" />
+              <span className="font-medium">Dialogues</span>
+              <span className="text-xs text-muted-foreground">
+                {totalDialogueLines} lines
+              </span>
+            </Button>
+
+            {/* Download All */}
+            <Button
+              onClick={handleDownloadAll}
+              disabled={downloadingAll}
+              className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-br from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
+            >
+              {downloadingAll ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <FileDown className="w-6 h-6" />
+              )}
+              <span className="font-medium">All Assets</span>
+              <span className="text-xs text-white/70">
+                Complete ZIP
+              </span>
+            </Button>
+          </div>
+
+          {/* Download info */}
+          <div className="glass rounded-lg p-3 mt-4">
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-purple-400">Note:</strong> {t('steps.export.downloadNote')}
+            </p>
           </div>
         </CardContent>
       </Card>

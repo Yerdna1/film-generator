@@ -253,7 +253,10 @@
       "hasAudio": "Má audio",
       "missing": "Chýba",
       "creditsUsed": "Použité kredity",
-      "capcutDescription": "Štruktúra projektu pre video strih"
+      "capcutDescription": "Štruktúra projektu pre video strih",
+      "downloadAssets": "Stiahnuť súbory",
+      "downloadAssetsDescription": "Stiahnite všetok vygenerovaný obsah ako jednotlivé ZIP súbory alebo kompletný balík pre CapCut",
+      "downloadNote": "Videá sa sťahujú v pôvodnom formáte. Väčšie sťahovanie môže chvíľu trvať."
     }
   },
   "styles": {

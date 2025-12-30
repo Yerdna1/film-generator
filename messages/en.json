@@ -253,7 +253,10 @@
       "hasAudio": "Has audio",
       "missing": "Missing",
       "creditsUsed": "Credits Used",
-      "capcutDescription": "Project structure for video editing"
+      "capcutDescription": "Project structure for video editing",
+      "downloadAssets": "Download Assets",
+      "downloadAssetsDescription": "Download all generated content as individual ZIP files or a complete package for CapCut",
+      "downloadNote": "Videos are downloaded in their original format. Large downloads may take a moment to prepare."
     }
   },
   "styles": {
