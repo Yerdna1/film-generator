@@ -422,23 +422,9 @@ export async function getProjectStatistics(projectId: string): Promise<{
 }
 
 /**
- * Get user's cost multiplier (1.0 for admin, configured value for regular users)
+ * Get user's cost multiplier (1.0 for all users - show actual API costs)
  */
 export async function getUserCostMultiplier(userId: string): Promise<number> {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true, costMultiplier: true },
-    });
-
-    if (!user) return 1.5; // Default multiplier
-
-    // Admins see real cost (1.0 multiplier)
-    if (user.role === 'admin') return 1.0;
-
-    return user.costMultiplier ?? 1.5;
-  } catch (error) {
-    console.error('Error getting cost multiplier:', error);
-    return 1.5; // Default on error
-  }
+  // Show actual API costs to all users (no markup)
+  return 1.0;
 }
