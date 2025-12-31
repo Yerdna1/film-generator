@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
 import { useProjectStore } from '@/lib/stores/project-store';
@@ -19,8 +20,39 @@ interface Step3Props {
 }
 
 export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
-  const { apiConfig } = useProjectStore();
+  const { apiConfig, setApiConfig } = useProjectStore();
   const imageProvider: ImageProvider = apiConfig.imageProvider || 'gemini';
+
+  // Load provider settings from database on mount
+  useEffect(() => {
+    const loadProviderSettings = async () => {
+      try {
+        const response = await fetch('/api/user/api-keys');
+        if (response.ok) {
+          const data = await response.json();
+          // Update store with provider settings from DB
+          if (data.imageProvider || data.llmProvider || data.ttsProvider || data.musicProvider || data.videoProvider) {
+            setApiConfig({
+              imageProvider: data.imageProvider,
+              llmProvider: data.llmProvider,
+              ttsProvider: data.ttsProvider,
+              musicProvider: data.musicProvider,
+              videoProvider: data.videoProvider,
+              modalImageEndpoint: data.modalImageEndpoint,
+              modalImageEditEndpoint: data.modalImageEditEndpoint,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading provider settings:', error);
+      }
+    };
+
+    // Only load if not already set from DB
+    if (!apiConfig.imageProvider) {
+      loadProviderSettings();
+    }
+  }, [apiConfig.imageProvider, setApiConfig]);
 
   const {
     // Project data
