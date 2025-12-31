@@ -1,11 +1,53 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import { generateScenePrompt } from '@/lib/prompts/master-prompt';
 import type { Project, Scene, CameraShot, DialogueLine } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 2000; // 2 seconds
+
+// Helper function for exponential backoff retry - continues even when tab is hidden
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = MAX_RETRIES
+): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      return response;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check if it's a network/termination error that should be retried
+      const isRetryableError =
+        lastError.message.includes('terminated') ||
+        lastError.message.includes('signal') ||
+        lastError.message.includes('network') ||
+        lastError.message.includes('abort') ||
+        lastError.message.includes('timeout') ||
+        lastError.message.includes('Failed to fetch');
+
+      if (!isRetryableError || attempt === maxRetries) {
+        throw lastError;
+      }
+
+      // Longer delay when retrying to give Modal time to recover
+      const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
+      console.log(`[Retry] Attempt ${attempt + 1}/${maxRetries} failed: ${lastError.message}. Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
+}
 
 interface EditSceneData {
   title: string;
@@ -43,6 +85,102 @@ export function useSceneGenerator(initialProject: Project) {
   const [generatingImageForScene, setGeneratingImageForScene] = useState<string | null>(null);
   const [isGeneratingAllImages, setIsGeneratingAllImages] = useState(false);
   const stopGenerationRef = useRef(false);
+  const isVisibleRef = useRef(true);
+  const [failedScenes, setFailedScenes] = useState<number[]>([]);
+
+  // Background job state (Inngest)
+  const [backgroundJobId, setBackgroundJobId] = useState<string | null>(null);
+  const [backgroundJobProgress, setBackgroundJobProgress] = useState(0);
+  const [backgroundJobStatus, setBackgroundJobStatus] = useState<string | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track page visibility
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      isVisibleRef.current = document.visibilityState === 'visible';
+      console.log(`[Visibility] Tab is now ${isVisibleRef.current ? 'visible' : 'hidden'}`);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Check for existing background job on mount
+  useEffect(() => {
+    const checkExistingJob = async () => {
+      try {
+        const response = await fetch(`/api/jobs/generate-images?projectId=${project.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.activeJob) {
+            setBackgroundJobId(data.activeJob.id);
+            setBackgroundJobProgress(data.activeJob.progress);
+            setBackgroundJobStatus(data.activeJob.status);
+            startPolling(data.activeJob.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for existing job:', error);
+      }
+    };
+    checkExistingJob();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Start polling for job status
+  const startPolling = useCallback((jobId: string) => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/jobs/generate-images?jobId=${jobId}`);
+        if (response.ok) {
+          const job = await response.json();
+          setBackgroundJobProgress(job.progress);
+          setBackgroundJobStatus(job.status);
+
+          // If job is complete, stop polling and refresh scenes
+          if (job.status === 'completed' || job.status === 'completed_with_errors' || job.status === 'failed') {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+
+            // Trigger a refresh of the project data
+            window.dispatchEvent(new CustomEvent('credits-updated'));
+
+            // Show completion message
+            if (job.status === 'completed') {
+              alert(`All ${job.completedScenes} images generated successfully!`);
+            } else if (job.status === 'completed_with_errors') {
+              alert(`Generation complete: ${job.completedScenes} succeeded, ${job.failedScenes} failed.`);
+            } else {
+              alert('Image generation failed. Please try again.');
+            }
+
+            setBackgroundJobId(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error polling job status:', error);
+      }
+    };
+
+    // Poll immediately then every 3 seconds
+    poll();
+    pollIntervalRef.current = setInterval(poll, 3000);
+  }, []);
 
   // Edit State
   const [editSceneData, setEditSceneData] = useState<EditSceneData | null>(null);
@@ -203,7 +341,7 @@ export function useSceneGenerator(initialProject: Project) {
     }
   }, [project, addScene]);
 
-  // Generate image for a single scene
+  // Generate image for a single scene with retry logic
   const handleGenerateSceneImage = useCallback(async (scene: Scene) => {
     setGeneratingImageForScene(scene.id);
 
@@ -215,17 +353,21 @@ export function useSceneGenerator(initialProject: Project) {
           imageUrl: c.imageUrl!,
         }));
 
-      const response = await fetch('/api/image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: scene.textToImagePrompt,
-          aspectRatio: sceneAspectRatio,
-          resolution: imageResolution,
-          projectId: project.id,
-          referenceImages,
-        }),
-      });
+      const response = await fetchWithRetry(
+        '/api/image',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: scene.textToImagePrompt,
+            aspectRatio: sceneAspectRatio,
+            resolution: imageResolution,
+            projectId: project.id,
+            referenceImages,
+          }),
+        },
+        MAX_RETRIES
+      );
 
       const isInsufficientCredits = await handleApiResponse(response);
       if (isInsufficientCredits) {
@@ -249,7 +391,7 @@ export function useSceneGenerator(initialProject: Project) {
     }
   }, [project, sceneAspectRatio, imageResolution, handleApiResponse, updateScene]);
 
-  // Generate all scene images
+  // Generate all scene images with retry logic and visibility handling
   const handleGenerateAllSceneImages = useCallback(async () => {
     if (isGeneratingAllImages) {
       console.log('Generation already in progress, ignoring duplicate call');
@@ -271,6 +413,7 @@ export function useSceneGenerator(initialProject: Project) {
 
     setIsGeneratingAllImages(true);
     stopGenerationRef.current = false;
+    const newFailedScenes: number[] = [];
 
     try {
       for (const scene of scenesWithoutImages) {
@@ -280,46 +423,64 @@ export function useSceneGenerator(initialProject: Project) {
         }
 
         setGeneratingImageForScene(scene.id);
+        console.log(`[Scene ${scene.number}] Starting image generation... (tab visible: ${isVisibleRef.current})`);
 
-        const response = await fetch('/api/image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: scene.textToImagePrompt,
-            aspectRatio: sceneAspectRatio,
-            resolution: imageResolution,
-            projectId: project.id,
-            referenceImages,
-          }),
-        });
+        try {
+          const response = await fetchWithRetry(
+            '/api/image',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt: scene.textToImagePrompt,
+                aspectRatio: sceneAspectRatio,
+                resolution: imageResolution,
+                projectId: project.id,
+                referenceImages,
+              }),
+            },
+            MAX_RETRIES
+          );
 
-        const isInsufficientCredits = await handleApiResponse(response);
-        if (isInsufficientCredits) {
-          break;
+          const isInsufficientCredits = await handleApiResponse(response);
+          if (isInsufficientCredits) {
+            break;
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+            const errorMessage = errorData?.error || errorData?.message || 'Unknown error';
+            console.error(`[Scene ${scene.number}] Failed: ${errorMessage}`);
+            newFailedScenes.push(scene.number);
+            continue;
+          }
+
+          const { imageUrl } = await response.json();
+          await updateScene(project.id, scene.id, { imageUrl });
+          console.log(`[Scene ${scene.number}] Image saved to DB`);
+
+          window.dispatchEvent(new CustomEvent('credits-updated'));
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`[Scene ${scene.number}] Error after retries: ${errorMessage}`);
+          newFailedScenes.push(scene.number);
         }
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-          const errorMessage = errorData?.error || errorData?.message || 'Unknown error';
-          console.error(`Failed to generate image for scene ${scene.number}: ${errorMessage}`);
-          alert(`Scene ${scene.number} failed: ${errorMessage}`);
-          continue;
-        }
-
-        const { imageUrl } = await response.json();
-        await updateScene(project.id, scene.id, { imageUrl });
-        console.log(`[Scene ${scene.number}] Image saved to DB`);
-
-        window.dispatchEvent(new CustomEvent('credits-updated'));
+        // Small delay between scenes
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (error) {
       console.error('Error generating scene images:', error);
-      alert(`Error during batch generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGeneratingImageForScene(null);
       setIsGeneratingAllImages(false);
       stopGenerationRef.current = false;
+      setFailedScenes(newFailedScenes);
+
+      // Show summary of failed scenes if any
+      if (newFailedScenes.length > 0) {
+        alert(`Generation complete. ${newFailedScenes.length} scene(s) failed: ${newFailedScenes.join(', ')}. You can retry by clicking "Generate All Images" again.`);
+      }
     }
   }, [project, isGeneratingAllImages, sceneAspectRatio, imageResolution, handleApiResponse, updateScene]);
 
@@ -343,6 +504,51 @@ export function useSceneGenerator(initialProject: Project) {
     handleGenerateAllSceneImages();
   }, [project, updateScene, handleGenerateAllSceneImages]);
 
+  // Start background generation (Inngest) - works even when tab is closed
+  const handleStartBackgroundGeneration = useCallback(async () => {
+    if (backgroundJobId) {
+      alert('A background job is already running. Please wait for it to complete.');
+      return;
+    }
+
+    const scenesWithoutImages = project.scenes.filter((s) => !s.imageUrl);
+    if (scenesWithoutImages.length === 0) {
+      alert('All scenes already have images');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/jobs/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          aspectRatio: sceneAspectRatio,
+          resolution: imageResolution,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to start background generation');
+      }
+
+      const { jobId, totalScenes } = await response.json();
+
+      setBackgroundJobId(jobId);
+      setBackgroundJobProgress(0);
+      setBackgroundJobStatus('pending');
+      startPolling(jobId);
+
+      console.log(`[Background] Started job ${jobId} for ${totalScenes} scenes`);
+      alert(`Background generation started for ${totalScenes} scenes. You can safely close this tab - generation will continue on the server.`);
+
+    } catch (error) {
+      console.error('Error starting background generation:', error);
+      alert(`Failed to start background generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [project, backgroundJobId, sceneAspectRatio, imageResolution, startPolling]);
+
   return {
     // Project data
     project,
@@ -365,6 +571,13 @@ export function useSceneGenerator(initialProject: Project) {
     isGeneratingScenes,
     generatingImageForScene,
     isGeneratingAllImages,
+    failedScenes,
+
+    // Background Job State (Inngest)
+    backgroundJobId,
+    backgroundJobProgress,
+    backgroundJobStatus,
+    isBackgroundJobRunning: !!backgroundJobId && ['pending', 'processing'].includes(backgroundJobStatus || ''),
 
     // Edit State
     editSceneData,
@@ -383,6 +596,7 @@ export function useSceneGenerator(initialProject: Project) {
     handleGenerateAllSceneImages,
     handleStopImageGeneration,
     handleRegenerateAllImages,
+    handleStartBackgroundGeneration,
     deleteScene: (sceneId: string) => deleteScene(project.id, sceneId),
     updateSettings: (settings: Parameters<typeof updateSettings>[1]) => updateSettings(project.id, settings),
   };

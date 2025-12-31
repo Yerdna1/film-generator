@@ -236,3 +236,23 @@ model ActionCost {
   @@index([actionType])
   @@index([provider])
 }
+
+// Image generation job for background processing via Inngest
+model ImageGenerationJob {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  status          String    @default("pending") // pending, processing, completed, completed_with_errors, failed, cancelled
+  totalScenes     Int
+  completedScenes Int       @default(0)
+  failedScenes    Int       @default(0)
+  progress        Int       @default(0) // 0-100
+  errorDetails    String?   @db.Text
+  createdAt       DateTime  @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
