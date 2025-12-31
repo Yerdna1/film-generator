@@ -161,19 +161,23 @@ Return ONLY the JSON array.`;
           const data = await response.json();
           fullResponse = data.response || data.text || data.content || '';
         } else if (llmProvider === 'claude-sdk') {
-          // Use Claude API directly via Anthropic SDK
-          const Anthropic = (await import('@anthropic-ai/sdk')).default;
-          const anthropic = new Anthropic(); // Uses ANTHROPIC_API_KEY env var
+          // Use Claude CLI with --print mode (uses OAuth subscription, not API credits)
+          const { execSync } = await import('child_process');
 
-          const message = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 16384,
-            system: systemPrompt,
-            messages: [{ role: 'user', content: prompt }],
-          });
+          const fullPrompt = `${systemPrompt}\n\n${prompt}`;
 
-          const textContent = message.content.find((c: { type: string }) => c.type === 'text');
-          fullResponse = textContent && 'text' in textContent ? textContent.text : '';
+          // Call claude CLI with --print for non-interactive output
+          const result = execSync(
+            `claude -p --output-format text --dangerously-skip-permissions`,
+            {
+              input: fullPrompt,
+              encoding: 'utf-8',
+              maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large responses
+              timeout: 300000, // 5 minute timeout
+            }
+          );
+
+          fullResponse = result.toString();
         } else if (openRouterApiKey) {
           fullResponse = await callOpenRouter(
             openRouterApiKey,
