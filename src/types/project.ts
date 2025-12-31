@@ -66,7 +66,7 @@ export type VoiceProvider = 'gemini-tts' | 'elevenlabs';
 
 // Project settings
 export interface ProjectSettings {
-  sceneCount: 12 | 24 | 36 | 48 | 60;
+  sceneCount: 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360;
   characterCount: number;
   aspectRatio: AspectRatio;
   resolution: Resolution;

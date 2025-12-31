@@ -97,7 +97,7 @@ export function SceneHeader({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="glass-strong border-white/10">
-                {[12, 24, 36, 48, 60].map((count) => (
+                {[12, 24, 36, 48, 60, 120, 240, 360].map((count) => (
                   <SelectItem key={count} value={count.toString()}>
                     {count} {t('steps.scenes.scenesLabel')}
                   </SelectItem>

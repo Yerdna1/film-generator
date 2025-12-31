@@ -405,7 +405,7 @@ export function useSceneGenerator(initialProject: Project) {
 
   // Handle scene count change
   const handleSceneCountChange = useCallback((value: string) => {
-    updateSettings(project.id, { sceneCount: parseInt(value) as 12 | 24 | 36 | 48 | 60 });
+    updateSettings(project.id, { sceneCount: parseInt(value) as 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360 });
   }, [project.id, updateSettings]);
 
   // Generate all scenes with AI via Inngest background job

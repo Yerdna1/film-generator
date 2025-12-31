@@ -75,7 +75,7 @@ const styleOptions: Array<{
   },
 ];
 
-const sceneOptions = [12, 24, 36, 48, 60] as const;
+const sceneOptions = [12, 24, 36, 48, 60, 120, 240, 360] as const;
 
 export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const t = useTranslations();
@@ -85,7 +85,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const [step, setStep] = useState(1);
   const [projectName, setProjectName] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<StylePreset>('disney-pixar');
-  const [sceneCount, setSceneCount] = useState<12 | 24 | 36 | 48 | 60>(12);
+  const [sceneCount, setSceneCount] = useState<12 | 24 | 36 | 48 | 60 | 120 | 240 | 360>(12);
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreate = async () => {
