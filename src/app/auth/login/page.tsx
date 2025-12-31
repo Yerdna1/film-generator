@@ -35,7 +35,8 @@ export default function LoginPage() {
   const [error, setError] = useState(authError === 'CredentialsSignin' ? 'Invalid email or password' : '');
 
   // Check if Google OAuth is enabled via environment variable
-  const isGoogleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
+  // TODO: Revert to env var check after fixing Vercel build cache issue
+  const isGoogleEnabled = true; // process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -33,7 +33,8 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isGoogleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
+  // TODO: Revert to env var check after fixing Vercel build cache issue
+  const isGoogleEnabled = true; // process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
 
   const passwordRequirements = [
     { label: 'At least 8 characters', met: password.length >= 8 },
