@@ -160,6 +160,20 @@ Return ONLY the JSON array.`;
 
           const data = await response.json();
           fullResponse = data.response || data.text || data.content || '';
+        } else if (llmProvider === 'claude-sdk') {
+          // Use Claude API directly via Anthropic SDK
+          const Anthropic = (await import('@anthropic-ai/sdk')).default;
+          const anthropic = new Anthropic(); // Uses ANTHROPIC_API_KEY env var
+
+          const message = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 16384,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: prompt }],
+          });
+
+          const textContent = message.content.find((c: { type: string }) => c.type === 'text');
+          fullResponse = textContent && 'text' in textContent ? textContent.text : '';
         } else if (openRouterApiKey) {
           fullResponse = await callOpenRouter(
             openRouterApiKey,
