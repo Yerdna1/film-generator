@@ -32,7 +32,10 @@
       "Bash(vercel env add:*)",
       "Bash(vercel --prod:*)",
       "Bash(vercel env:*)",
-      "Bash(VERCEL_FORCE_NO_BUILD_CACHE=1 vercel:*)"
+      "Bash(VERCEL_FORCE_NO_BUILD_CACHE=1 vercel:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

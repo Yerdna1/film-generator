@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { ActionCosts } from '../types';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints } from '@/types/project';
 import { DEFAULT_OPENROUTER_MODEL } from '../constants';
+import { getCurrency, setCurrency as setCurrencyUtil, type Currency } from '@/lib/utils/currency';
 
 export function useSettings() {
   const tPage = useTranslations('settingsPage');
@@ -32,6 +33,7 @@ export function useSettings() {
   const [imageProvider, setImageProvider] = useState<ImageProvider>('gemini');
   const [videoProvider, setVideoProvider] = useState<VideoProvider>('kie');
   const [modalEndpoints, setModalEndpoints] = useState<ModalEndpoints>({});
+  const [currency, setCurrency] = useState<Currency>('EUR');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -46,8 +48,10 @@ export function useSettings() {
     const savedTTSProvider = (localStorage.getItem('app-tts-provider') as TTSProvider) || 'gemini-tts';
     const savedImageProvider = (localStorage.getItem('app-image-provider') as ImageProvider) || 'gemini';
     const savedVideoProvider = (localStorage.getItem('app-video-provider') as VideoProvider) || 'kie';
+    const savedCurrency = getCurrency();
 
     setLanguage(savedLanguage);
+    setCurrency(savedCurrency);
     setDarkMode(savedDarkMode);
     setReducedMotion(savedReducedMotion);
     setNotifyOnComplete(savedNotify);
@@ -190,6 +194,14 @@ export function useSettings() {
     setAutoSave(enabled);
     localStorage.setItem('app-auto-save', String(enabled));
   }, []);
+
+  const handleCurrencyChange = useCallback((newCurrency: Currency) => {
+    setCurrency(newCurrency);
+    setCurrencyUtil(newCurrency);
+    toast.success(tPage('toasts.currencyUpdated') || 'Currency updated', {
+      description: `${tPage('toasts.nowDisplaying') || 'Now displaying prices in'} ${newCurrency}`,
+    });
+  }, [tPage]);
 
   const handleLLMProviderChange = useCallback((provider: LLMProvider) => {
     setLLMProvider(provider);
@@ -384,6 +396,7 @@ export function useSettings() {
     imageProvider,
     videoProvider,
     modalEndpoints,
+    currency,
 
     // Actions
     toggleKeyVisibility,
@@ -394,6 +407,7 @@ export function useSettings() {
     handleReducedMotionChange,
     handleNotifyChange,
     handleAutoSaveChange,
+    handleCurrencyChange,
     handleExportData,
     handleDeleteAllData,
     fetchActionCosts,

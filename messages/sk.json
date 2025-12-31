@@ -715,7 +715,9 @@
       "modalEndpointsSavedDesc": "Vaše vlastné endpointy sú nakonfigurované",
       "saveFailed": "Uloženie zlyhalo",
       "modelChanged": "Model aktualizovaný",
-      "nowUsing": "Teraz sa používa"
+      "nowUsing": "Teraz sa používa",
+      "currencyUpdated": "Mena aktualizovaná",
+      "nowDisplaying": "Ceny sa teraz zobrazujú v"
     },
     "llmProvider": "LLM Poskytovateľ pre generovanie scén",
     "llmProviderDescription": "Vyberte poskytovateľa LLM pre generovanie scén. OpenRouter je odporúčaný pre Vercel nasadenia.",

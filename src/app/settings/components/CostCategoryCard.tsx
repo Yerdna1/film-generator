@@ -1,8 +1,8 @@
 'use client';
 
 import type { LucideIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import type { ActionCostItem } from '../types';
+import { formatPriceCompact, getCurrencySymbol } from '@/lib/utils/currency';
 
 interface CostCategoryCardProps {
   title: string;
@@ -21,6 +21,8 @@ export function CostCategoryCard({
   bgColor,
   costs,
 }: CostCategoryCardProps) {
+  const currencySymbol = getCurrencySymbol();
+
   return (
     <div className="glass rounded-xl p-4">
       <div className="flex items-center gap-3 mb-3">
@@ -41,9 +43,14 @@ export function CostCategoryCard({
                 <p className="text-xs text-muted-foreground">{cost.description}</p>
               )}
             </div>
-            <Badge variant="outline" className="border-green-500/30 text-green-400 font-mono">
-              ${cost.cost.toFixed(4)}
-            </Badge>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-bold text-green-400">
+                {formatPriceCompact(cost.cost)}
+              </span>
+              <span className="text-sm text-green-400/70">
+                {currencySymbol}
+              </span>
+            </div>
           </div>
         ))}
       </div>

@@ -38,6 +38,7 @@ export default function SettingsPage() {
     imageProvider,
     videoProvider,
     modalEndpoints,
+    currency,
 
     // Actions
     toggleKeyVisibility,
@@ -48,6 +49,7 @@ export default function SettingsPage() {
     handleReducedMotionChange,
     handleNotifyChange,
     handleAutoSaveChange,
+    handleCurrencyChange,
     handleExportData,
     handleDeleteAllData,
     fetchActionCosts,
@@ -66,7 +68,7 @@ export default function SettingsPage() {
       <SettingsHeader />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Tabs defaultValue="api" className="space-y-6">
             <TabsList className="glass w-full md:w-auto justify-start">
               <TabsTrigger value="api" className="gap-2">
@@ -121,11 +123,13 @@ export default function SettingsPage() {
                 reducedMotion={reducedMotion}
                 notifyOnComplete={notifyOnComplete}
                 autoSave={autoSave}
+                currency={currency}
                 onLanguageChange={handleLanguageChange}
                 onDarkModeChange={handleDarkModeChange}
                 onReducedMotionChange={handleReducedMotionChange}
                 onNotifyChange={handleNotifyChange}
                 onAutoSaveChange={handleAutoSaveChange}
+                onCurrencyChange={handleCurrencyChange}
               />
             </TabsContent>
 

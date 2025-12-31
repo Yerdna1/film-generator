@@ -29,6 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project, StylePreset } from '@/types/project';
+import { formatPriceWithSymbol, getCurrencySymbol } from '@/lib/utils/currency';
 
 interface ProjectCost {
   credits: number;
@@ -55,12 +56,12 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
   const styleConfig = styleColors[project.style];
   const progress = Math.round((project.currentStep / 6) * 100);
 
-  // Format real cost
+  // Format real cost using configured currency
   const formatRealCost = (amount: number) => {
-    if (amount === 0) return '$0.00';
-    if (amount < 0.01) return '<$0.01';
-    return `$${amount.toFixed(2)}`;
+    return formatPriceWithSymbol(amount);
   };
+
+  const currencySymbol = getCurrencySymbol();
 
   // Get the first available thumbnail image from scenes or characters
   const thumbnailUrl = useMemo(() => {
@@ -131,9 +132,8 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
                 {formatDate(project.updatedAt)}
               </p>
               {cost && cost.realCost > 0 && (
-                <p className="text-xs text-green-400 font-medium flex items-center gap-0.5">
-                  <DollarSign className="w-3 h-3" />
-                  {formatRealCost(cost.realCost).replace('$', '')}
+                <p className="text-xs text-green-400 font-medium">
+                  {formatRealCost(cost.realCost)}
                 </p>
               )}
             </div>

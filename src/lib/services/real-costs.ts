@@ -245,28 +245,22 @@ export function estimateCost(
 
 /**
  * Format cost as currency string
+ * @deprecated Use formatPrice from '@/lib/utils/currency' instead
  */
-export function formatCost(cost: number, currency: string = 'USD'): string {
-  if (cost < 0.01) {
-    return `<$0.01`;
-  }
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 3,
-  }).format(cost);
+export function formatCost(cost: number, currency: string = 'EUR'): string {
+  // Import dynamically to avoid circular dependencies
+  const { formatPrice } = require('@/lib/utils/currency');
+  return formatPrice(cost);
 }
 
 /**
  * Format cost with compact notation for buttons
+ * Uses the configured currency from settings
  */
 export function formatCostCompact(cost: number): string {
-  if (cost === 0) return 'Free';
-  if (cost < 0.001) return '<$0.001';
-  if (cost < 0.01) return `$${cost.toFixed(3)}`;
-  if (cost < 1) return `$${cost.toFixed(2)}`;
-  return `$${cost.toFixed(2)}`;
+  // Import dynamically to avoid circular dependencies
+  const { formatPriceWithSymbol } = require('@/lib/utils/currency');
+  return formatPriceWithSymbol(cost);
 }
 
 /**
