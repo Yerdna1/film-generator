@@ -702,6 +702,8 @@
     "piapiApiKey": "PiAPI API Key",
     "piapiApiKeyDescription": "Your PiAPI API key for music generation (Suno, Udio)",
     "sunoApiKey": "Suno API Key",
-    "sunoApiKeyDescription": "Your Suno API key for direct music generation"
+    "sunoApiKeyDescription": "Your Suno API key for direct music generation",
+    "apiKeyRequired": "API key required - configure below",
+    "recommended": "Recommended"
   }
 }

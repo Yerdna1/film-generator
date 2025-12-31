@@ -702,6 +702,8 @@
     "piapiApiKey": "PiAPI API kľúč",
     "piapiApiKeyDescription": "Váš PiAPI API kľúč pre generovanie hudby (Suno, Udio)",
     "sunoApiKey": "Suno API kľúč",
-    "sunoApiKeyDescription": "Váš Suno API kľúč pre priame generovanie hudby"
+    "sunoApiKeyDescription": "Váš Suno API kľúč pre priame generovanie hudby",
+    "apiKeyRequired": "API kľúč je potrebný - nakonfigurujte nižšie",
+    "recommended": "Odporúčané"
   }
 }
