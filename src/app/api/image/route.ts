@@ -11,7 +11,7 @@ import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 import type { ImageProvider } from '@/types/project';
 
-export const maxDuration = 60; // Allow up to 60 seconds for image generation
+export const maxDuration = 300; // Allow up to 5 minutes for image generation (Modal cold start can take ~2-3 min)
 
 interface ImageGenerationRequest {
   prompt: string;
