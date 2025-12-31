@@ -105,7 +105,28 @@ export function useSceneGenerator(initialProject: Project) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Check for existing background job on mount
+  // Refresh project data from server with cache bypass
+  const refreshProjectData = useCallback(async () => {
+    try {
+      const projectResponse = await fetch(`/api/projects?refresh=true`);
+      if (projectResponse.ok) {
+        const projects = await projectResponse.json();
+        const updatedProject = projects.find((p: { id: string }) => p.id === project.id);
+        if (updatedProject) {
+          // Update scenes in store with fresh data from DB
+          for (const scene of updatedProject.scenes) {
+            if (scene.imageUrl) {
+              updateScene(project.id, scene.id, { imageUrl: scene.imageUrl });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing project data:', error);
+    }
+  }, [project.id, updateScene]);
+
+  // Check for existing background job on mount and refresh data
   useEffect(() => {
     const checkExistingJob = async () => {
       try {
@@ -123,6 +144,9 @@ export function useSceneGenerator(initialProject: Project) {
         console.error('Error checking for existing job:', error);
       }
     };
+
+    // Always refresh project data on mount to get latest images from DB
+    refreshProjectData();
     checkExistingJob();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
@@ -157,8 +181,27 @@ export function useSceneGenerator(initialProject: Project) {
               pollIntervalRef.current = null;
             }
 
-            // Trigger a refresh of the project data
+            // Trigger a refresh of the project data with cache bypass
             window.dispatchEvent(new CustomEvent('credits-updated'));
+
+            // Reload project data from DB with cache bypass
+            try {
+              const projectResponse = await fetch(`/api/projects?refresh=true`);
+              if (projectResponse.ok) {
+                const projects = await projectResponse.json();
+                const updatedProject = projects.find((p: { id: string }) => p.id === project.id);
+                if (updatedProject) {
+                  // Update scenes in store with fresh data from DB
+                  for (const scene of updatedProject.scenes) {
+                    if (scene.imageUrl) {
+                      updateScene(project.id, scene.id, { imageUrl: scene.imageUrl });
+                    }
+                  }
+                }
+              }
+            } catch (refreshError) {
+              console.error('Error refreshing project data:', refreshError);
+            }
 
             // Show completion message
             if (job.status === 'completed') {
@@ -180,7 +223,7 @@ export function useSceneGenerator(initialProject: Project) {
     // Poll immediately then every 3 seconds
     poll();
     pollIntervalRef.current = setInterval(poll, 3000);
-  }, []);
+  }, [project.id, updateScene]);
 
   // Edit State
   const [editSceneData, setEditSceneData] = useState<EditSceneData | null>(null);

@@ -64,7 +64,8 @@ export const generateImagesBatch = inngest.createFunction(
               aspect_ratio: aspectRatio,
             };
 
-            if (imageProvider === 'modal-edit') {
+            // Always include reference images for character consistency
+            if (referenceImages.length > 0) {
               body.reference_images = referenceImages.map((r: { name: string; imageUrl: string }) => r.imageUrl);
             }
 

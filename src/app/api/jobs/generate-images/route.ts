@@ -118,17 +118,23 @@ export async function GET(request: NextRequest) {
 
     if (projectId) {
       // Get active jobs for project
-      const jobs = await prisma.imageGenerationJob.findMany({
-        where: {
-          projectId,
-          userId: session.user.id,
-          status: { in: ['pending', 'processing'] },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      });
+      try {
+        const jobs = await prisma.imageGenerationJob.findMany({
+          where: {
+            projectId,
+            userId: session.user.id,
+            status: { in: ['pending', 'processing'] },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        });
 
-      return NextResponse.json({ activeJob: jobs[0] || null });
+        return NextResponse.json({ activeJob: jobs[0] || null });
+      } catch (dbError) {
+        // If the table doesn't exist yet or other DB error, return no active job
+        console.warn('Error checking for active jobs:', dbError);
+        return NextResponse.json({ activeJob: null });
+      }
     }
 
     return NextResponse.json({ error: 'Job ID or Project ID required' }, { status: 400 });
