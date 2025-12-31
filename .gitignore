@@ -69,3 +69,4 @@ logs/
 /blob-report/
 /playwright/.cache/
 .playwright-mcp/
+modal/__pycache__/
