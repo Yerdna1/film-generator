@@ -4,27 +4,60 @@
 
 When `llmProvider` is set to `claude-sdk`, the app uses the **Claude CLI** with `--print` mode instead of the Anthropic API. This uses the user's **OAuth subscription** (Claude Pro/Max), NOT API credits!
 
-### How it works:
-```typescript
-const { execSync } = await import('child_process');
+### Critical: OAuth vs API Key Authentication
 
-const result = execSync(
-  `claude -p --output-format text --dangerously-skip-permissions`,
-  {
-    input: fullPrompt,
-    encoding: 'utf-8',
-    maxBuffer: 50 * 1024 * 1024, // 50MB buffer
-    timeout: 300000, // 5 minute timeout
-  }
-);
+The Claude CLI can authenticate via:
+1. **OAuth session** (FREE with Claude Pro/Max subscription)
+2. **ANTHROPIC_API_KEY** (billed to API credits)
+
+**IMPORTANT:** If `ANTHROPIC_API_KEY` is present in the environment, the CLI will use it instead of OAuth. To force OAuth authentication, you MUST remove the ANTHROPIC_API_KEY from the environment passed to the CLI.
+
+### How it works:
+
+```typescript
+import { spawnSync } from 'child_process';
+
+// Full path to claude CLI (nvm installation)
+const claudePath = '/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude';
+
+// CRITICAL: Remove ANTHROPIC_API_KEY to force OAuth authentication
+const cleanEnv = { ...process.env };
+delete cleanEnv.ANTHROPIC_API_KEY;
+
+const result = spawnSync(claudePath, ['-p', '--output-format', 'text'], {
+  input: fullPrompt,
+  encoding: 'utf-8',
+  maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large responses
+  timeout: 300000, // 5 minute timeout
+  env: {
+    ...cleanEnv,
+    PATH: process.env.PATH + ':/Users/andrejpt/.nvm/versions/node/v22.21.1/bin',
+    HOME: '/Users/andrejpt',
+    USER: 'andrejpt',
+  },
+  cwd: '/Volumes/DATA/Python/film-generator',
+});
+
+if (result.error) throw result.error;
+if (result.status !== 0) {
+  throw new Error(`Claude CLI failed: ${result.stderr}`);
+}
+
+const response = result.stdout;
 ```
 
 ### Key points:
-- `claude -p` = print mode (non-interactive)
-- `--output-format text` = plain text output
-- `--dangerously-skip-permissions` = skip permission dialogs for automation
-- Input is passed via stdin
-- Uses OAuth subscription, NOT ANTHROPIC_API_KEY credits
+- `claude -p` = print mode (non-interactive, outputs to stdout)
+- `--output-format text` = plain text output (no JSON wrapper)
+- Input is passed via `input` option to spawnSync (stdin)
+- **Must remove ANTHROPIC_API_KEY from env to use OAuth subscription**
+- Uses spawnSync for synchronous execution with better error handling
+
+### Why spawnSync instead of execSync:
+- Better error handling (separate stdout, stderr, exit code)
+- Handles large outputs without shell escaping issues
+- Can pass input via stdin cleanly
+- Provides signal information for debugging
 
 ### Provider settings in DB (ApiKeys table):
 - `llmProvider: 'claude-sdk'` = Use Claude CLI (free with subscription)

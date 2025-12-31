@@ -162,22 +162,56 @@ Return ONLY the JSON array.`;
           fullResponse = data.response || data.text || data.content || '';
         } else if (llmProvider === 'claude-sdk') {
           // Use Claude CLI with --print mode (uses OAuth subscription, not API credits)
-          const { execSync } = await import('child_process');
+          const { spawnSync } = await import('child_process');
+          const fs = await import('fs');
+          const os = await import('os');
+          const path = await import('path');
 
           const fullPrompt = `${systemPrompt}\n\n${prompt}`;
 
-          // Call claude CLI with --print for non-interactive output
-          const result = execSync(
-            `claude -p --output-format text --dangerously-skip-permissions`,
-            {
+          // Write prompt to temp file to avoid stdin issues
+          const tmpFile = path.join(os.tmpdir(), `claude-prompt-${Date.now()}.txt`);
+          fs.writeFileSync(tmpFile, fullPrompt, 'utf-8');
+
+          // Full path to claude CLI (nvm installation)
+          const claudePath = '/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude';
+
+          try {
+            // Build env without ANTHROPIC_API_KEY so CLI uses OAuth instead
+            const cleanEnv = { ...process.env };
+            delete cleanEnv.ANTHROPIC_API_KEY; // Remove so CLI uses OAuth session
+
+            // Call claude CLI with --print for non-interactive output
+            const result = spawnSync(claudePath, ['-p', '--output-format', 'text'], {
               input: fullPrompt,
               encoding: 'utf-8',
               maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large responses
               timeout: 300000, // 5 minute timeout
-            }
-          );
+              env: {
+                ...cleanEnv,
+                PATH: process.env.PATH + ':/Users/andrejpt/.nvm/versions/node/v22.21.1/bin',
+                HOME: '/Users/andrejpt',
+                USER: 'andrejpt',
+              },
+              cwd: '/Volumes/DATA/Python/film-generator',
+            });
 
-          fullResponse = result.toString();
+            if (result.error) {
+              throw result.error;
+            }
+
+            if (result.status !== 0) {
+              console.error('[Claude CLI] stderr:', result.stderr);
+              console.error('[Claude CLI] stdout:', result.stdout?.slice(0, 500));
+              console.error('[Claude CLI] signal:', result.signal);
+              throw new Error(`Claude CLI exited with code ${result.status}. stderr: ${result.stderr}. stdout: ${result.stdout?.slice(0, 200)}`);
+            }
+
+            fullResponse = result.stdout;
+          } finally {
+            // Clean up temp file
+            try { fs.unlinkSync(tmpFile); } catch {}
+          }
         } else if (openRouterApiKey) {
           fullResponse = await callOpenRouter(
             openRouterApiKey,
