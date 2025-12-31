@@ -692,6 +692,16 @@
       "exportFailedDesc": "Failed to export data. Please try again.",
       "dataDeleted": "Data Deleted",
       "dataDeletedDesc": "All your data has been permanently deleted."
-    }
+    },
+    "llmProvider": "LLM Provider for Scene Generation",
+    "llmProviderDescription": "Choose which LLM provider to use for generating scenes. OpenRouter is recommended for Vercel deployments.",
+    "musicProvider": "Music Generation Provider",
+    "musicProviderDescription": "Choose which provider to use for AI music generation. PiAPI is recommended as it works everywhere.",
+    "openRouterApiKey": "OpenRouter API Key",
+    "openRouterApiKeyDescription": "Your OpenRouter API key for accessing Claude and other models",
+    "piapiApiKey": "PiAPI API Key",
+    "piapiApiKeyDescription": "Your PiAPI API key for music generation (Suno, Udio)",
+    "sunoApiKey": "Suno API Key",
+    "sunoApiKeyDescription": "Your Suno API key for direct music generation"
   }
 }
