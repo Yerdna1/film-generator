@@ -179,7 +179,24 @@ Return ONLY the JSON array.`;
         if (cleanResponse.endsWith('```')) cleanResponse = cleanResponse.slice(0, -3);
         cleanResponse = cleanResponse.trim();
 
-        const scenes = JSON.parse(cleanResponse);
+        let scenes;
+        try {
+          scenes = JSON.parse(cleanResponse);
+        } catch (parseError) {
+          console.error(`[Inngest Scenes] Batch ${batchIndex + 1} JSON parse failed:`, cleanResponse.slice(0, 500));
+          throw new Error(`Failed to parse LLM response as JSON for batch ${batchIndex + 1}`);
+        }
+
+        // Validate we got the expected number of scenes
+        if (!Array.isArray(scenes)) {
+          throw new Error(`Batch ${batchIndex + 1} returned non-array response`);
+        }
+
+        if (scenes.length < batchSize) {
+          console.warn(`[Inngest Scenes] Batch ${batchIndex + 1} returned ${scenes.length}/${batchSize} scenes - retrying`);
+          throw new Error(`Batch ${batchIndex + 1} returned only ${scenes.length} of ${batchSize} expected scenes`);
+        }
+
         console.log(`[Inngest Scenes] Batch ${batchIndex + 1} generated ${scenes.length} scenes`);
         return scenes;
       });
