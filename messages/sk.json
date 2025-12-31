@@ -691,7 +691,13 @@
       "exportFailed": "Export zlyhal",
       "exportFailedDesc": "Nepodarilo sa exportovať dáta. Skúste to znova.",
       "dataDeleted": "Dáta vymazané",
-      "dataDeletedDesc": "Všetky vaše dáta boli trvalo vymazané."
+      "dataDeletedDesc": "Všetky vaše dáta boli trvalo vymazané.",
+      "llmProviderChanged": "LLM Poskytovateľ aktualizovaný",
+      "llmProviderOpenRouter": "Používa sa OpenRouter pre generovanie scén",
+      "llmProviderClaudeSDK": "Používa sa Claude SDK pre generovanie scén",
+      "musicProviderChanged": "Poskytovateľ hudby aktualizovaný",
+      "musicProviderPiAPI": "Používa sa PiAPI pre generovanie hudby",
+      "musicProviderSuno": "Používa sa Suno pre generovanie hudby"
     },
     "llmProvider": "LLM Poskytovateľ pre generovanie scén",
     "llmProviderDescription": "Vyberte poskytovateľa LLM pre generovanie scén. OpenRouter je odporúčaný pre Vercel nasadenia.",

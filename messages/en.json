@@ -691,7 +691,13 @@
       "exportFailed": "Export Failed",
       "exportFailedDesc": "Failed to export data. Please try again.",
       "dataDeleted": "Data Deleted",
-      "dataDeletedDesc": "All your data has been permanently deleted."
+      "dataDeletedDesc": "All your data has been permanently deleted.",
+      "llmProviderChanged": "LLM Provider Updated",
+      "llmProviderOpenRouter": "Using OpenRouter for scene generation",
+      "llmProviderClaudeSDK": "Using Claude SDK for scene generation",
+      "musicProviderChanged": "Music Provider Updated",
+      "musicProviderPiAPI": "Using PiAPI for music generation",
+      "musicProviderSuno": "Using Suno for music generation"
     },
     "llmProvider": "LLM Provider for Scene Generation",
     "llmProviderDescription": "Choose which LLM provider to use for generating scenes. OpenRouter is recommended for Vercel deployments.",
