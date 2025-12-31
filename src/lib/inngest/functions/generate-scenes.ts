@@ -262,8 +262,9 @@ Return ONLY the JSON array.`;
 
     // Spend credits
     await step.run('spend-credits', async () => {
-      const provider = llmProvider === 'modal' ? 'modal' : 'openrouter';
-      const realCost = llmProvider === 'modal' ? 0 : ACTION_COSTS.scene.claude * allScenes.length;
+      const provider = llmProvider === 'modal' ? 'modal' : llmProvider === 'claude-sdk' ? 'claude-sdk' : 'openrouter';
+      // Claude SDK uses ANTHROPIC_API_KEY which is free with Claude Code subscription
+      const realCost = (llmProvider === 'modal' || llmProvider === 'claude-sdk') ? 0 : ACTION_COSTS.scene.claude * allScenes.length;
       await spendCredits(
         userId,
         COSTS.SCENE_GENERATION * allScenes.length,
