@@ -81,22 +81,31 @@ export const generateScenesBatch = inngest.createFunction(
 
     // Calculate batches
     const totalBatches = Math.ceil(sceneCount / SCENES_PER_BATCH);
-    let allScenes: Array<{
-      number: number;
-      title: string;
-      cameraShot: string;
-      textToImagePrompt: string;
-      imageToVideoPrompt: string;
-      dialogue: Array<{ characterName: string; text: string }>;
-    }> = [];
+    let totalSavedScenes = 0;
 
     console.log(`[Inngest Scenes] Will generate ${sceneCount} scenes in ${totalBatches} batches`);
+
+    // Check how many scenes already exist (for resume after partial failure)
+    const existingSceneCount = await step.run('check-existing-scenes', async () => {
+      return prisma.scene.count({ where: { projectId } });
+    });
+
+    if (existingSceneCount > 0) {
+      console.log(`[Inngest Scenes] Found ${existingSceneCount} existing scenes, will continue from there`);
+      totalSavedScenes = existingSceneCount;
+    }
 
     // Generate scenes in batches
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
       const startScene = batchIndex * SCENES_PER_BATCH + 1;
       const endScene = Math.min((batchIndex + 1) * SCENES_PER_BATCH, sceneCount);
       const batchSize = endScene - startScene + 1;
+
+      // Skip batches that are already saved
+      if (startScene <= existingSceneCount) {
+        console.log(`[Inngest Scenes] Skipping batch ${batchIndex + 1} (scenes ${startScene}-${endScene}) - already saved`);
+        continue;
+      }
 
       const batchScenes = await step.run(`generate-batch-${batchIndex + 1}`, async () => {
         console.log(`[Inngest Scenes] Generating batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}`);
@@ -224,8 +233,10 @@ Return ONLY the JSON array.`;
           throw new Error('No LLM provider available');
         }
 
-        // Parse JSON response
+        // Parse JSON response with multiple fallback strategies
         let cleanResponse = fullResponse.trim();
+
+        // Strategy 1: Remove markdown code blocks
         if (cleanResponse.startsWith('```json')) cleanResponse = cleanResponse.slice(7);
         if (cleanResponse.startsWith('```')) cleanResponse = cleanResponse.slice(3);
         if (cleanResponse.endsWith('```')) cleanResponse = cleanResponse.slice(0, -3);
@@ -234,9 +245,33 @@ Return ONLY the JSON array.`;
         let scenes;
         try {
           scenes = JSON.parse(cleanResponse);
-        } catch (parseError) {
-          console.error(`[Inngest Scenes] Batch ${batchIndex + 1} JSON parse failed:`, cleanResponse.slice(0, 500));
-          throw new Error(`Failed to parse LLM response as JSON for batch ${batchIndex + 1}`);
+        } catch (parseError1) {
+          // Strategy 2: Find JSON array in response
+          const jsonArrayMatch = fullResponse.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (jsonArrayMatch) {
+            try {
+              scenes = JSON.parse(jsonArrayMatch[0]);
+            } catch (parseError2) {
+              // Strategy 3: Try to fix common JSON issues
+              let fixedJson = jsonArrayMatch[0]
+                .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
+                .replace(/,\s*\]/g, ']') // Remove trailing commas in arrays
+                .replace(/[\x00-\x1F\x7F]/g, ' '); // Remove control characters
+
+              try {
+                scenes = JSON.parse(fixedJson);
+              } catch (parseError3) {
+                console.error(`[Inngest Scenes] Batch ${batchIndex + 1} JSON parse failed after 3 attempts`);
+                console.error(`[Inngest Scenes] Response start:`, fullResponse.slice(0, 300));
+                console.error(`[Inngest Scenes] Response end:`, fullResponse.slice(-300));
+                throw new Error(`Failed to parse LLM response as JSON for batch ${batchIndex + 1}`);
+              }
+            }
+          } else {
+            console.error(`[Inngest Scenes] Batch ${batchIndex + 1} no JSON array found in response`);
+            console.error(`[Inngest Scenes] Response:`, fullResponse.slice(0, 500));
+            throw new Error(`No JSON array found in LLM response for batch ${batchIndex + 1}`);
+          }
         }
 
         // Validate we got the expected number of scenes
@@ -253,61 +288,78 @@ Return ONLY the JSON array.`;
         return scenes;
       });
 
-      allScenes = [...allScenes, ...batchScenes];
+      // Save this batch to DB immediately (so we don't lose progress if later batch fails)
+      await step.run(`save-batch-${batchIndex + 1}`, async () => {
+        console.log(`[Inngest Scenes] Saving batch ${batchIndex + 1} (${batchScenes.length} scenes) to DB`);
+
+        for (const scene of batchScenes) {
+          // Check if scene already exists (in case of retry)
+          const existingScene = await prisma.scene.findFirst({
+            where: { projectId, number: scene.number },
+          });
+
+          if (existingScene) {
+            console.log(`[Inngest Scenes] Scene ${scene.number} already exists, skipping`);
+            continue;
+          }
+
+          const dialogue = scene.dialogue?.map((line: { characterName: string; text: string }) => {
+            const character = characters.find(
+              (c: { name: string }) => c.name.toLowerCase() === line.characterName?.toLowerCase()
+            );
+            return {
+              id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              characterId: character?.id || characters[0]?.id || '',
+              characterName: line.characterName || 'Unknown',
+              text: line.text || '',
+            };
+          }) || [];
+
+          await prisma.scene.create({
+            data: {
+              projectId,
+              number: scene.number,
+              title: scene.title || `Scene ${scene.number}`,
+              description: '',
+              textToImagePrompt: scene.textToImagePrompt || '',
+              imageToVideoPrompt: scene.imageToVideoPrompt || '',
+              cameraShot: scene.cameraShot || 'medium',
+              dialogue: dialogue,
+              duration: 6,
+            },
+          });
+        }
+
+        return batchScenes.length;
+      });
+
+      totalSavedScenes += batchScenes.length;
 
       // Update progress after each batch
       await step.run(`update-progress-${batchIndex + 1}`, async () => {
-        const progress = Math.round(((batchIndex + 1) / totalBatches) * 80); // Reserve 20% for saving
+        const progress = Math.round(((batchIndex + 1) / totalBatches) * 100);
         await prisma.sceneGenerationJob.update({
           where: { id: jobId },
-          data: { progress, completedScenes: allScenes.length },
+          data: { progress, completedScenes: totalSavedScenes },
         });
       });
     }
 
-    // Save scenes to database
-    await step.run('save-scenes-to-db', async () => {
-      console.log(`[Inngest Scenes] Saving ${allScenes.length} scenes to DB`);
-
-      for (const scene of allScenes) {
-        const dialogue = scene.dialogue?.map((line: { characterName: string; text: string }) => {
-          const character = characters.find(
-            (c: { name: string }) => c.name.toLowerCase() === line.characterName?.toLowerCase()
-          );
-          return {
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            characterId: character?.id || characters[0]?.id || '',
-            characterName: line.characterName || 'Unknown',
-            text: line.text || '',
-          };
-        }) || [];
-
-        await prisma.scene.create({
-          data: {
-            projectId,
-            number: scene.number,
-            title: scene.title || `Scene ${scene.number}`,
-            description: '',
-            textToImagePrompt: scene.textToImagePrompt || '',
-            imageToVideoPrompt: scene.imageToVideoPrompt || '',
-            cameraShot: scene.cameraShot || 'medium',
-            dialogue: dialogue,
-            duration: 6,
-          },
-        });
-      }
+    // Get final scene count from DB (most accurate)
+    const finalSceneCount = await step.run('get-final-count', async () => {
+      return prisma.scene.count({ where: { projectId } });
     });
 
     // Spend credits
     await step.run('spend-credits', async () => {
       const provider = llmProvider === 'modal' ? 'modal' : llmProvider === 'claude-sdk' ? 'claude-sdk' : 'openrouter';
-      // Claude SDK uses ANTHROPIC_API_KEY which is free with Claude Code subscription
-      const realCost = (llmProvider === 'modal' || llmProvider === 'claude-sdk') ? 0 : ACTION_COSTS.scene.claude * allScenes.length;
+      // Claude SDK uses OAuth which is free with Claude Code subscription
+      const realCost = (llmProvider === 'modal' || llmProvider === 'claude-sdk') ? 0 : ACTION_COSTS.scene.claude * finalSceneCount;
       await spendCredits(
         userId,
-        COSTS.SCENE_GENERATION * allScenes.length,
+        COSTS.SCENE_GENERATION * finalSceneCount,
         'scene',
-        `${llmProvider} scene generation (${allScenes.length} scenes in ${totalBatches} batches)`,
+        `${llmProvider} scene generation (${finalSceneCount} scenes in ${totalBatches} batches)`,
         projectId,
         provider,
         undefined,
@@ -322,14 +374,14 @@ Return ONLY the JSON array.`;
         data: {
           status: 'completed',
           completedAt: new Date(),
-          completedScenes: allScenes.length,
+          completedScenes: finalSceneCount,
           progress: 100,
         },
       });
     });
 
-    console.log(`[Inngest Scenes] Job ${jobId} completed with ${allScenes.length} scenes in ${totalBatches} batches`);
+    console.log(`[Inngest Scenes] Job ${jobId} completed with ${finalSceneCount} scenes in ${totalBatches} batches`);
 
-    return { success: true, sceneCount: allScenes.length, batches: totalBatches };
+    return { success: true, sceneCount: finalSceneCount, batches: totalBatches };
   }
 );
