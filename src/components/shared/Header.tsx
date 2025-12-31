@@ -99,19 +99,6 @@ export function Header() {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
-            {/* New Project Button */}
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                asChild
-                className="hidden sm:flex bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300"
-              >
-                <Link href="/project/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t('nav.newProject')}
-                </Link>
-              </Button>
-            </motion.div>
-
             {/* Credits Display (for logged-in users) */}
             {user && <CreditsDisplay className="hidden sm:flex" />}
 
