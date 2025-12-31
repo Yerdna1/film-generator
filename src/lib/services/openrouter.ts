@@ -62,8 +62,8 @@ export const OPENROUTER_MODELS = {
 
 export type OpenRouterModelKey = keyof typeof OPENROUTER_MODELS;
 
-// Default model for scene generation - Claude 3.5 Sonnet for best quality
-export const DEFAULT_OPENROUTER_MODEL = OPENROUTER_MODELS['claude-3.5-sonnet'];
+// Default model for scene generation - Claude 4.5 Sonnet for best quality
+export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-4.5-sonnet';
 
 /**
  * Call the OpenRouter API

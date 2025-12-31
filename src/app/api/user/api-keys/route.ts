@@ -28,7 +28,7 @@ export async function GET() {
         nanoBananaApiKey: '',
         sunoApiKey: '',
         openRouterApiKey: '',
-        openRouterModel: 'anthropic/claude-sonnet-4', // Default model
+        openRouterModel: 'anthropic/claude-4.5-sonnet', // Default model
         piapiApiKey: '',
         llmProvider: 'openrouter', // Default to OpenRouter
         musicProvider: 'piapi', // Default to PiAPI
@@ -45,7 +45,7 @@ export async function GET() {
       nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
       sunoApiKey: apiKeys.sunoApiKey || '',
       openRouterApiKey: apiKeys.openRouterApiKey || '',
-      openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-sonnet-4',
+      openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
       piapiApiKey: apiKeys.piapiApiKey || '',
       llmProvider: apiKeys.llmProvider || 'openrouter',
       musicProvider: apiKeys.musicProvider || 'piapi',
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         nanoBananaApiKey: nanoBananaApiKey || null,
         sunoApiKey: sunoApiKey || null,
         openRouterApiKey: openRouterApiKey || null,
-        openRouterModel: openRouterModel || 'anthropic/claude-sonnet-4',
+        openRouterModel: openRouterModel || 'anthropic/claude-4.5-sonnet',
         piapiApiKey: piapiApiKey || null,
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',

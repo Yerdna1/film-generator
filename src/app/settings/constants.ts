@@ -12,32 +12,70 @@ export interface OpenRouterModelOption {
 }
 
 export const openRouterModels: OpenRouterModelOption[] = [
+  // Claude Models (Latest)
   {
-    id: 'anthropic/claude-sonnet-4',
-    name: 'Claude Sonnet 4',
-    description: 'Latest Claude model - excellent for creative writing and complex tasks',
+    id: 'anthropic/claude-4.5-sonnet',
+    name: 'Claude 4.5 Sonnet',
+    description: 'Latest Claude - best for creative writing and complex tasks',
     contextLength: 200000,
     pricing: '$3/$15 per 1M tokens',
     recommended: true,
   },
   {
-    id: 'anthropic/claude-3.5-sonnet',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Fast and capable, great balance of speed and quality',
+    id: 'anthropic/claude-4.5-opus',
+    name: 'Claude 4.5 Opus',
+    description: 'Most capable Claude model - highest quality output',
+    contextLength: 200000,
+    pricing: '$15/$75 per 1M tokens',
+  },
+  {
+    id: 'anthropic/claude-4.5-haiku',
+    name: 'Claude 4.5 Haiku',
+    description: 'Fastest Claude 4.5 - matches Sonnet 4 at lower cost',
+    contextLength: 200000,
+    pricing: '$0.80/$4 per 1M tokens',
+  },
+  {
+    id: 'anthropic/claude-sonnet-4',
+    name: 'Claude Sonnet 4',
+    description: 'Previous gen flagship - still excellent quality',
     contextLength: 200000,
     pricing: '$3/$15 per 1M tokens',
   },
+  // Gemini Models (Latest)
   {
-    id: 'anthropic/claude-3.5-haiku',
-    name: 'Claude 3.5 Haiku',
-    description: 'Fastest Claude model - good for quick tasks',
-    contextLength: 200000,
-    pricing: '$0.25/$1.25 per 1M tokens',
+    id: 'google/gemini-3-flash-preview',
+    name: 'Gemini 3 Flash (Preview)',
+    description: 'Latest Gemini 3 - cutting edge performance',
+    contextLength: 1000000,
+    pricing: '$0.10/$0.40 per 1M tokens',
   },
+  {
+    id: 'google/gemini-3-pro-preview',
+    name: 'Gemini 3 Pro (Preview)',
+    description: 'Gemini 3 Pro - advanced reasoning capabilities',
+    contextLength: 1000000,
+    pricing: '$1.25/$5 per 1M tokens',
+  },
+  {
+    id: 'google/gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    description: 'Google flagship - 1M context, excellent quality',
+    contextLength: 1000000,
+    pricing: '$1.25/$5 per 1M tokens',
+  },
+  {
+    id: 'google/gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    description: 'Fast and efficient with huge context window',
+    contextLength: 1000000,
+    pricing: '$0.075/$0.30 per 1M tokens',
+  },
+  // OpenAI Models
   {
     id: 'openai/gpt-4o',
     name: 'GPT-4o',
-    description: 'OpenAI flagship model with vision capabilities',
+    description: 'OpenAI flagship with vision capabilities',
     contextLength: 128000,
     pricing: '$2.50/$10 per 1M tokens',
   },
@@ -48,44 +86,33 @@ export const openRouterModels: OpenRouterModelOption[] = [
     contextLength: 128000,
     pricing: '$0.15/$0.60 per 1M tokens',
   },
+  // Grok Models
   {
-    id: 'google/gemini-2.0-flash-001',
-    name: 'Gemini 2.0 Flash',
-    description: 'Google latest fast model with excellent capabilities',
-    contextLength: 1000000,
-    pricing: '$0.10/$0.40 per 1M tokens',
-  },
-  {
-    id: 'google/gemini-pro-1.5',
-    name: 'Gemini Pro 1.5',
-    description: 'Google advanced model with 1M context window',
-    contextLength: 1000000,
-    pricing: '$1.25/$5 per 1M tokens',
-  },
-  {
-    id: 'meta-llama/llama-3.3-70b-instruct',
-    name: 'Llama 3.3 70B',
-    description: 'Meta open-source model, great quality and free tier available',
+    id: 'x-ai/grok-4-fast',
+    name: 'Grok 4 Fast',
+    description: 'xAI latest model - excellent for coding',
     contextLength: 131072,
-    pricing: '$0.40/$0.40 per 1M tokens',
+    pricing: '$2/$10 per 1M tokens',
   },
+  // DeepSeek
   {
     id: 'deepseek/deepseek-chat',
-    name: 'DeepSeek Chat',
-    description: 'Powerful and very affordable Chinese model',
+    name: 'DeepSeek V3',
+    description: 'Powerful and very affordable',
     contextLength: 64000,
     pricing: '$0.14/$0.28 per 1M tokens',
   },
+  // Llama
   {
-    id: 'mistralai/mistral-large-2411',
-    name: 'Mistral Large',
-    description: 'Mistral flagship model with strong reasoning',
-    contextLength: 128000,
-    pricing: '$2/$6 per 1M tokens',
+    id: 'meta-llama/llama-3.3-70b-instruct',
+    name: 'Llama 3.3 70B',
+    description: 'Meta open-source, great quality',
+    contextLength: 131072,
+    pricing: '$0.40/$0.40 per 1M tokens',
   },
 ];
 
-export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-sonnet-4';
+export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-4.5-sonnet';
 
 export interface ApiProvider {
   key: string;

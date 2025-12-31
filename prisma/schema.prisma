@@ -133,7 +133,7 @@ model ApiKeys {
   nanoBananaApiKey String?
   sunoApiKey       String?  // Suno.ai API key for music generation
   openRouterApiKey String?  // OpenRouter API key for LLM access
-  openRouterModel  String   @default("anthropic/claude-sonnet-4") // Selected OpenRouter model
+  openRouterModel  String   @default("anthropic/claude-4.5-sonnet") // Selected OpenRouter model
   piapiApiKey      String?  // PiAPI key for music generation (Suno/Udio via PiAPI)
   llmProvider      String   @default("openrouter") // "openrouter" | "claude-sdk" - default to OpenRouter
   musicProvider    String   @default("piapi") // "piapi" | "suno" - default to PiAPI

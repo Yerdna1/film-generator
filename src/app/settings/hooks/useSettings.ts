@@ -47,6 +47,34 @@ export function useSettings() {
     setOpenRouterModel(savedOpenRouterModel);
   }, []);
 
+  // Fetch API keys from database for authenticated users
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      try {
+        const response = await fetch('/api/user/api-keys');
+        if (response.ok) {
+          const data = await response.json();
+          // Update local state and store with fetched API keys
+          setLocalConfig(data);
+          setApiConfig(data);
+          // Update provider settings if returned from API
+          if (data.llmProvider) {
+            setLLMProvider(data.llmProvider);
+            localStorage.setItem('app-llm-provider', data.llmProvider);
+          }
+          if (data.openRouterModel) {
+            setOpenRouterModel(data.openRouterModel);
+            localStorage.setItem('app-openrouter-model', data.openRouterModel);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+      }
+    };
+
+    fetchApiKeys();
+  }, [setApiConfig]);
+
   const fetchActionCosts = useCallback(async () => {
     if (actionCosts) return;
     setCostsLoading(true);
