@@ -697,7 +697,9 @@
       "llmProviderClaudeSDK": "Používa sa Claude SDK pre generovanie scén",
       "musicProviderChanged": "Poskytovateľ hudby aktualizovaný",
       "musicProviderPiAPI": "Používa sa PiAPI pre generovanie hudby",
-      "musicProviderSuno": "Používa sa Suno pre generovanie hudby"
+      "musicProviderSuno": "Používa sa Suno pre generovanie hudby",
+      "modelChanged": "Model aktualizovaný",
+      "nowUsing": "Teraz sa používa"
     },
     "llmProvider": "LLM Poskytovateľ pre generovanie scén",
     "llmProviderDescription": "Vyberte poskytovateľa LLM pre generovanie scén. OpenRouter je odporúčaný pre Vercel nasadenia.",
@@ -710,6 +712,9 @@
     "sunoApiKey": "Suno API kľúč",
     "sunoApiKeyDescription": "Váš Suno API kľúč pre priame generovanie hudby",
     "apiKeyRequired": "API kľúč je potrebný - nakonfigurujte nižšie",
-    "recommended": "Odporúčané"
+    "recommended": "Odporúčané",
+    "selectModel": "Vyberte model",
+    "modelContext": "Kontext",
+    "modelPricing": "Cena"
   }
 }

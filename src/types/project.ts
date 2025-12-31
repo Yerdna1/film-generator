@@ -169,6 +169,7 @@ export interface ApiConfig {
   nanoBananaApiKey?: string;
   claudeApiKey?: string;
   openRouterApiKey?: string;  // OpenRouter API key for LLM access
+  openRouterModel?: string;  // OpenRouter model ID (e.g., 'anthropic/claude-sonnet-4')
   piapiApiKey?: string;  // PiAPI key for music generation
   sunoApiKey?: string;  // Suno API key (alternative)
   llmProvider?: LLMProvider;  // Default: 'openrouter'

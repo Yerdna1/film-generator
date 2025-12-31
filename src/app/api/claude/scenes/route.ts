@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
     // Default to OpenRouter if no preference set
     const llmProvider = userApiKeys?.llmProvider || 'openrouter';
     const openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
+    const openRouterModel = userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
 
     // Validate API key for OpenRouter
     if (llmProvider === 'openrouter' && !openRouterApiKey) {
@@ -178,7 +179,7 @@ Return ONLY the JSON array, no other text.`;
         openRouterApiKey!,
         systemPrompt,
         prompt,
-        DEFAULT_OPENROUTER_MODEL,
+        openRouterModel,
         8192
       );
     } else {

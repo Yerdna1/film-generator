@@ -1,6 +1,92 @@
 import { Sparkles, Mic, Zap, Image as ImageIcon, Router, Music } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+// OpenRouter model options
+export interface OpenRouterModelOption {
+  id: string;
+  name: string;
+  description: string;
+  contextLength: number;
+  pricing: string;
+  recommended?: boolean;
+}
+
+export const openRouterModels: OpenRouterModelOption[] = [
+  {
+    id: 'anthropic/claude-sonnet-4',
+    name: 'Claude Sonnet 4',
+    description: 'Latest Claude model - excellent for creative writing and complex tasks',
+    contextLength: 200000,
+    pricing: '$3/$15 per 1M tokens',
+    recommended: true,
+  },
+  {
+    id: 'anthropic/claude-3.5-sonnet',
+    name: 'Claude 3.5 Sonnet',
+    description: 'Fast and capable, great balance of speed and quality',
+    contextLength: 200000,
+    pricing: '$3/$15 per 1M tokens',
+  },
+  {
+    id: 'anthropic/claude-3.5-haiku',
+    name: 'Claude 3.5 Haiku',
+    description: 'Fastest Claude model - good for quick tasks',
+    contextLength: 200000,
+    pricing: '$0.25/$1.25 per 1M tokens',
+  },
+  {
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
+    description: 'OpenAI flagship model with vision capabilities',
+    contextLength: 128000,
+    pricing: '$2.50/$10 per 1M tokens',
+  },
+  {
+    id: 'openai/gpt-4o-mini',
+    name: 'GPT-4o Mini',
+    description: 'Fast and affordable GPT-4 variant',
+    contextLength: 128000,
+    pricing: '$0.15/$0.60 per 1M tokens',
+  },
+  {
+    id: 'google/gemini-2.0-flash-001',
+    name: 'Gemini 2.0 Flash',
+    description: 'Google latest fast model with excellent capabilities',
+    contextLength: 1000000,
+    pricing: '$0.10/$0.40 per 1M tokens',
+  },
+  {
+    id: 'google/gemini-pro-1.5',
+    name: 'Gemini Pro 1.5',
+    description: 'Google advanced model with 1M context window',
+    contextLength: 1000000,
+    pricing: '$1.25/$5 per 1M tokens',
+  },
+  {
+    id: 'meta-llama/llama-3.3-70b-instruct',
+    name: 'Llama 3.3 70B',
+    description: 'Meta open-source model, great quality and free tier available',
+    contextLength: 131072,
+    pricing: '$0.40/$0.40 per 1M tokens',
+  },
+  {
+    id: 'deepseek/deepseek-chat',
+    name: 'DeepSeek Chat',
+    description: 'Powerful and very affordable Chinese model',
+    contextLength: 64000,
+    pricing: '$0.14/$0.28 per 1M tokens',
+  },
+  {
+    id: 'mistralai/mistral-large-2411',
+    name: 'Mistral Large',
+    description: 'Mistral flagship model with strong reasoning',
+    contextLength: 128000,
+    pricing: '$2/$6 per 1M tokens',
+  },
+];
+
+export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-sonnet-4';
+
 export interface ApiProvider {
   key: string;
   name: string;

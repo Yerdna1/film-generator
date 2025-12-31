@@ -28,6 +28,7 @@ export async function GET() {
         nanoBananaApiKey: '',
         sunoApiKey: '',
         openRouterApiKey: '',
+        openRouterModel: 'anthropic/claude-sonnet-4', // Default model
         piapiApiKey: '',
         llmProvider: 'openrouter', // Default to OpenRouter
         musicProvider: 'piapi', // Default to PiAPI
@@ -44,6 +45,7 @@ export async function GET() {
       nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
       sunoApiKey: apiKeys.sunoApiKey || '',
       openRouterApiKey: apiKeys.openRouterApiKey || '',
+      openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-sonnet-4',
       piapiApiKey: apiKeys.piapiApiKey || '',
       llmProvider: apiKeys.llmProvider || 'openrouter',
       musicProvider: apiKeys.musicProvider || 'piapi',
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
       nanoBananaApiKey,
       sunoApiKey,
       openRouterApiKey,
+      openRouterModel,
       piapiApiKey,
       llmProvider,
       musicProvider,
@@ -95,6 +98,7 @@ export async function POST(request: NextRequest) {
         ...(nanoBananaApiKey !== undefined && { nanoBananaApiKey }),
         ...(sunoApiKey !== undefined && { sunoApiKey }),
         ...(openRouterApiKey !== undefined && { openRouterApiKey }),
+        ...(openRouterModel !== undefined && { openRouterModel }),
         ...(piapiApiKey !== undefined && { piapiApiKey }),
         ...(llmProvider !== undefined && { llmProvider }),
         ...(musicProvider !== undefined && { musicProvider }),
@@ -109,6 +113,7 @@ export async function POST(request: NextRequest) {
         nanoBananaApiKey: nanoBananaApiKey || null,
         sunoApiKey: sunoApiKey || null,
         openRouterApiKey: openRouterApiKey || null,
+        openRouterModel: openRouterModel || 'anthropic/claude-sonnet-4',
         piapiApiKey: piapiApiKey || null,
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',

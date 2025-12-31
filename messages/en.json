@@ -697,7 +697,9 @@
       "llmProviderClaudeSDK": "Using Claude SDK for scene generation",
       "musicProviderChanged": "Music Provider Updated",
       "musicProviderPiAPI": "Using PiAPI for music generation",
-      "musicProviderSuno": "Using Suno for music generation"
+      "musicProviderSuno": "Using Suno for music generation",
+      "modelChanged": "Model Updated",
+      "nowUsing": "Now using"
     },
     "llmProvider": "LLM Provider for Scene Generation",
     "llmProviderDescription": "Choose which LLM provider to use for generating scenes. OpenRouter is recommended for Vercel deployments.",
@@ -710,6 +712,9 @@
     "sunoApiKey": "Suno API Key",
     "sunoApiKeyDescription": "Your Suno API key for direct music generation",
     "apiKeyRequired": "API key required - configure below",
-    "recommended": "Recommended"
+    "recommended": "Recommended",
+    "selectModel": "Select Model",
+    "modelContext": "Context",
+    "modelPricing": "Pricing"
   }
 }

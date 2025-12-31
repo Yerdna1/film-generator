@@ -32,6 +32,7 @@ export default function SettingsPage() {
     apiConfig,
     projects,
     llmProvider,
+    openRouterModel,
 
     // Actions
     toggleKeyVisibility,
@@ -46,6 +47,7 @@ export default function SettingsPage() {
     handleDeleteAllData,
     fetchActionCosts,
     handleLLMProviderChange,
+    handleOpenRouterModelChange,
   } = useSettings();
 
   return (
@@ -81,10 +83,12 @@ export default function SettingsPage() {
                 localConfig={localConfig as Record<string, string | undefined>}
                 apiConfig={apiConfig}
                 llmProvider={llmProvider}
+                openRouterModel={openRouterModel}
                 onToggleVisibility={toggleKeyVisibility}
                 onSaveKey={handleSaveKey}
                 onUpdateConfig={updateLocalConfig}
                 onLLMProviderChange={handleLLMProviderChange}
+                onOpenRouterModelChange={handleOpenRouterModelChange}
               />
             </TabsContent>
 

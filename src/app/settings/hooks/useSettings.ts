@@ -7,6 +7,7 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import { toast } from 'sonner';
 import type { ActionCosts } from '../types';
 import type { LLMProvider } from '@/types/project';
+import { DEFAULT_OPENROUTER_MODEL } from '../constants';
 
 export function useSettings() {
   const tPage = useTranslations('settingsPage');
@@ -25,6 +26,7 @@ export function useSettings() {
   const [actionCosts, setActionCosts] = useState<ActionCosts | null>(null);
   const [costsLoading, setCostsLoading] = useState(false);
   const [llmProvider, setLLMProvider] = useState<LLMProvider>('openrouter');
+  const [openRouterModel, setOpenRouterModel] = useState<string>(DEFAULT_OPENROUTER_MODEL);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -34,6 +36,7 @@ export function useSettings() {
     const savedNotify = localStorage.getItem('app-notify-complete') !== 'false';
     const savedAutoSave = localStorage.getItem('app-auto-save') !== 'false';
     const savedLLMProvider = (localStorage.getItem('app-llm-provider') as LLMProvider) || 'openrouter';
+    const savedOpenRouterModel = localStorage.getItem('app-openrouter-model') || DEFAULT_OPENROUTER_MODEL;
 
     setLanguage(savedLanguage);
     setDarkMode(savedDarkMode);
@@ -41,6 +44,7 @@ export function useSettings() {
     setNotifyOnComplete(savedNotify);
     setAutoSave(savedAutoSave);
     setLLMProvider(savedLLMProvider);
+    setOpenRouterModel(savedOpenRouterModel);
   }, []);
 
   const fetchActionCosts = useCallback(async () => {
@@ -137,6 +141,19 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
+  const handleOpenRouterModelChange = useCallback((model: string) => {
+    setOpenRouterModel(model);
+    localStorage.setItem('app-openrouter-model', model);
+    // Also save to apiConfig for persistence in the store
+    setApiConfig({ openRouterModel: model });
+    toast.success(
+      tPage('toasts.modelChanged') || 'Model updated',
+      {
+        description: `${tPage('toasts.nowUsing') || 'Now using'} ${model.split('/').pop()}`,
+      }
+    );
+  }, [setApiConfig, tPage]);
+
   const handleExportData = useCallback(async () => {
     setIsExporting(true);
     try {
@@ -208,6 +225,7 @@ export function useSettings() {
     apiConfig,
     projects,
     llmProvider,
+    openRouterModel,
 
     // Actions
     toggleKeyVisibility,
@@ -222,5 +240,6 @@ export function useSettings() {
     handleDeleteAllData,
     fetchActionCosts,
     handleLLMProviderChange,
+    handleOpenRouterModelChange,
   };
 }

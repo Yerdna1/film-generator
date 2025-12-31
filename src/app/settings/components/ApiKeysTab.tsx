@@ -2,10 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Key, Cpu, Check } from 'lucide-react';
+import { Key, Cpu, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { ApiProviderCard } from './ApiProviderCard';
-import { apiProviders, llmProviderOptions } from '../constants';
+import { apiProviders, llmProviderOptions, openRouterModels, DEFAULT_OPENROUTER_MODEL } from '../constants';
 import type { LLMProvider, ApiConfig } from '@/types/project';
 
 interface ApiKeysTabProps {
@@ -14,10 +16,12 @@ interface ApiKeysTabProps {
   localConfig: Record<string, string | undefined>;
   apiConfig: ApiConfig;
   llmProvider: LLMProvider;
+  openRouterModel: string;
   onToggleVisibility: (key: string) => void;
   onSaveKey: (key: string) => void;
   onUpdateConfig: (key: string, value: string) => void;
   onLLMProviderChange: (provider: LLMProvider) => void;
+  onOpenRouterModelChange: (model: string) => void;
 }
 
 export function ApiKeysTab({
@@ -26,10 +30,12 @@ export function ApiKeysTab({
   localConfig,
   apiConfig,
   llmProvider,
+  openRouterModel,
   onToggleVisibility,
   onSaveKey,
   onUpdateConfig,
   onLLMProviderChange,
+  onOpenRouterModelChange,
 }: ApiKeysTabProps) {
   const t = useTranslations('settings');
   const tPage = useTranslations('settingsPage');
@@ -93,6 +99,61 @@ export function ApiKeysTab({
               )}
             </motion.div>
           ))}
+
+          {/* OpenRouter Model Selection */}
+          {llmProvider === 'openrouter' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-medium">{tPage('selectModel') || 'Select Model'}</span>
+              </div>
+              <Select
+                value={openRouterModel || DEFAULT_OPENROUTER_MODEL}
+                onValueChange={onOpenRouterModelChange}
+              >
+                <SelectTrigger className="w-full bg-white/5 border-white/10">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {openRouterModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{model.name}</span>
+                        {model.recommended && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400">
+                            {tPage('recommended') || 'Recommended'}
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Selected model details */}
+              {openRouterModel && (
+                <div className="mt-3 text-xs text-muted-foreground">
+                  {(() => {
+                    const selectedModel = openRouterModels.find(m => m.id === openRouterModel);
+                    if (!selectedModel) return null;
+                    return (
+                      <div className="space-y-1">
+                        <p>{selectedModel.description}</p>
+                        <div className="flex gap-4 text-[10px]">
+                          <span>Context: {(selectedModel.contextLength / 1000).toFixed(0)}K tokens</span>
+                          <span>Pricing: {selectedModel.pricing}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </motion.div>
+          )}
         </CardContent>
       </Card>
 
