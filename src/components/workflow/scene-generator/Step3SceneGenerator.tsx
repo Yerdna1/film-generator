@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks/useSceneGenerator';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   SceneHeader,
   SceneCard,
@@ -15,6 +17,8 @@ import {
   QuickActions,
 } from './components';
 
+const SCENES_PER_PAGE = 20;
+
 interface Step3Props {
   project: Project;
 }
@@ -23,7 +27,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
   const { apiConfig, setApiConfig } = useProjectStore();
   const imageProvider: ImageProvider = apiConfig.imageProvider || 'gemini';
 
-  // Load provider settings from database on mount
+  // Load provider settings from database on mount (always load to ensure fresh data)
   useEffect(() => {
     const loadProviderSettings = async () => {
       try {
@@ -50,11 +54,8 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
       }
     };
 
-    // Only load if not already set from DB
-    if (!apiConfig.imageProvider) {
-      loadProviderSettings();
-    }
-  }, [apiConfig.imageProvider, setApiConfig]);
+    loadProviderSettings();
+  }, [setApiConfig]);
 
   const {
     // Project data
@@ -114,8 +115,25 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
   const handleGenerateImages = useInngest ? handleStartBackgroundGeneration : handleGenerateAllSceneImages;
   const isGenerating = useInngest ? isBackgroundJobRunning : isGeneratingAllImages;
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(project.scenes.length / SCENES_PER_PAGE);
+
+  const paginatedScenes = useMemo(() => {
+    const start = (currentPage - 1) * SCENES_PER_PAGE;
+    const end = start + SCENES_PER_PAGE;
+    return project.scenes.slice(start, end);
+  }, [project.scenes, currentPage]);
+
+  // Reset to page 1 if current page is out of bounds
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, totalPages]);
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
       {/* Header & Progress */}
       <SceneHeader
         sceneCount={project.settings.sceneCount}
@@ -135,13 +153,68 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         onGenerateAllScenes={handleGenerateAllScenes}
       />
 
-      {/* Scenes List */}
-      <div className="space-y-4">
-        {project.scenes.map((scene, index) => (
+      {/* Pagination Info */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between glass rounded-xl px-4 py-3">
+          <span className="text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * SCENES_PER_PAGE + 1}-{Math.min(currentPage * SCENES_PER_PAGE, project.scenes.length)} of {project.scenes.length} scenes
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="border-white/10"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Prev
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => {
+                  // Show first, last, current, and neighbors
+                  if (page === 1 || page === totalPages) return true;
+                  if (Math.abs(page - currentPage) <= 1) return true;
+                  return false;
+                })
+                .map((page, idx, arr) => (
+                  <span key={page} className="flex items-center">
+                    {idx > 0 && arr[idx - 1] !== page - 1 && (
+                      <span className="text-muted-foreground px-1">...</span>
+                    )}
+                    <Button
+                      variant={page === currentPage ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={page === currentPage ? "bg-emerald-600" : "border-white/10"}
+                    >
+                      {page}
+                    </Button>
+                  </span>
+                ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="border-white/10"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Scenes Grid - 2 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {paginatedScenes.map((scene) => (
           <SceneCard
             key={scene.id}
             scene={scene}
-            index={index}
+            index={scene.number - 1}
             isExpanded={expandedScenes.includes(scene.id)}
             isGeneratingImage={generatingImageForScene === scene.id}
             isGeneratingAllImages={isGeneratingAllImages}
@@ -155,17 +228,46 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             onPreviewImage={setPreviewImage}
           />
         ))}
-
-        {/* Add Scene Button */}
-        {project.scenes.length < project.settings.sceneCount && (
-          <AddSceneDialog
-            open={isAddingScene}
-            onOpenChange={setIsAddingScene}
-            characters={project.characters}
-            onAddScene={handleAddScene}
-          />
-        )}
       </div>
+
+      {/* Add Scene Button */}
+      {project.scenes.length < project.settings.sceneCount && (
+        <AddSceneDialog
+          open={isAddingScene}
+          onOpenChange={setIsAddingScene}
+          characters={project.characters}
+          onAddScene={handleAddScene}
+        />
+      )}
+
+      {/* Bottom Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="border-white/10"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Prev
+          </Button>
+          <span className="text-sm text-muted-foreground px-4">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="border-white/10"
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <QuickActions
