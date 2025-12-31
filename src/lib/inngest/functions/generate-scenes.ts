@@ -4,13 +4,15 @@ import { spendCredits, COSTS } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
 
+// Maximum scenes per LLM call to avoid token limits
+const SCENES_PER_BATCH = 30;
+
 // Generate scenes for a project using LLM - runs in background
 export const generateScenesBatch = inngest.createFunction(
   {
     id: 'generate-scenes-batch',
     name: 'Generate Scenes',
     retries: 2,
-    // Allow up to 5 minutes for scene generation
   },
   { event: 'scenes/generate.batch' },
   async ({ event, step }) => {
@@ -59,7 +61,7 @@ export const generateScenesBatch = inngest.createFunction(
       return { success: false, error: 'Modal LLM endpoint not configured' };
     }
 
-    // Build the prompt
+    // Character descriptions for prompts
     const characterDescriptions = characters
       .map((c: { name: string; masterPrompt?: string; description?: string }) =>
         `[${c.name.toUpperCase()}] Master Prompt:\n${c.masterPrompt || c.description}`)
@@ -75,8 +77,31 @@ export const generateScenesBatch = inngest.createFunction(
     };
 
     const styleDescription = styleMapping[style] || styleMapping['disney-pixar'];
+    const systemPrompt = 'You are a professional film director and screenwriter specializing in animated short films. Generate detailed scene breakdowns in the exact JSON format requested. Return ONLY valid JSON, no markdown code blocks or explanations.';
 
-    const prompt = `Generate a complete ${sceneCount}-scene breakdown for a 3D animated short film.
+    // Calculate batches
+    const totalBatches = Math.ceil(sceneCount / SCENES_PER_BATCH);
+    let allScenes: Array<{
+      number: number;
+      title: string;
+      cameraShot: string;
+      textToImagePrompt: string;
+      imageToVideoPrompt: string;
+      dialogue: Array<{ characterName: string; text: string }>;
+    }> = [];
+
+    console.log(`[Inngest Scenes] Will generate ${sceneCount} scenes in ${totalBatches} batches`);
+
+    // Generate scenes in batches
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const startScene = batchIndex * SCENES_PER_BATCH + 1;
+      const endScene = Math.min((batchIndex + 1) * SCENES_PER_BATCH, sceneCount);
+      const batchSize = endScene - startScene + 1;
+
+      const batchScenes = await step.run(`generate-batch-${batchIndex + 1}`, async () => {
+        console.log(`[Inngest Scenes] Generating batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}`);
+
+        const prompt = `Generate scenes ${startScene} to ${endScene} (${batchSize} scenes) for a 3D animated short film.
 
 STORY CONCEPT: "${story.concept}"
 TITLE: "${story.title || 'Untitled'}"
@@ -84,91 +109,98 @@ GENRE: ${story.genre || 'adventure'}
 TONE: ${story.tone || 'heartfelt'}
 SETTING: ${story.setting || 'various locations'}
 STYLE: ${styleDescription}
+TOTAL FILM LENGTH: ${sceneCount} scenes
 
-CHARACTER MASTER PROMPTS (CRITICAL - include these EXACT descriptions in EVERY scene's textToImagePrompt for visual consistency):
+CHARACTER MASTER PROMPTS (CRITICAL - include these EXACT descriptions in EVERY scene's textToImagePrompt):
 ${characterDescriptions}
 
-CRITICAL CAMERA RULE: Do not generate wide landscape shots where characters are tiny. You must prioritize Medium Shots (waist up) and Close-ups (face focus) so the characters are large, detailed, and fill the frame.
+${batchIndex > 0 ? `CONTEXT: This is batch ${batchIndex + 1} of ${totalBatches}. Continue the story from scene ${startScene}. Maintain narrative continuity.` : ''}
 
-For each scene, provide EXACTLY this format (use JSON array):
+CRITICAL CAMERA RULE: Prioritize Medium Shots (waist up) and Close-ups (face focus) so characters are large and fill the frame.
+
+For each scene, provide EXACTLY this format (JSON array):
 
 [
   {
-    "number": 1,
+    "number": ${startScene},
     "title": "Scene Title",
     "cameraShot": "medium" or "close-up",
-    "textToImagePrompt": "CHARACTERS (use exact descriptions):\\n[CHARACTER_NAME]: [paste their full master prompt here]\\n\\nSCENE: Medium Shot of... or Close-up of... [detailed visual description]. Characters are large and clearly visible in the foreground. ${styleDescription}.",
-    "imageToVideoPrompt": "[Movement and facial expression description. Include subtle animations and emotional reactions.]",
+    "textToImagePrompt": "CHARACTERS:\\n[CHARACTER_NAME]: [full master prompt]\\n\\nSCENE: Medium Shot of... [detailed description]. ${styleDescription}.",
+    "imageToVideoPrompt": "[Movement and expression description]",
     "dialogue": [
-      { "characterName": "CharacterName", "text": "Dialogue line..." }
+      { "characterName": "CharacterName", "text": "Dialogue..." }
     ]
   }
 ]
 
-IMPORTANT: In each textToImagePrompt, you MUST include the full character master prompts at the beginning, followed by the scene description. This ensures visual consistency across all scenes.
+Generate exactly ${batchSize} scenes (numbered ${startScene} to ${endScene}). Each scene should:
+1. Include ALL character master prompts in textToImagePrompt
+2. Feature ${characterNames} prominently
+3. Include dialogue for at least one character
+4. Progress the story naturally${batchIndex > 0 ? ' from where the previous batch ended' : ''}
 
-Generate exactly ${sceneCount} scenes. Each scene should:
-1. Include ALL character master prompts at the beginning of textToImagePrompt
-2. Start scene description with "Medium Shot of..." or "Close-up of..."
-3. Feature ${characterNames} prominently in the foreground
-4. Include dialogue for at least one character
-5. Progress the story naturally
+Return ONLY the JSON array.`;
 
-Return ONLY the JSON array, no other text.`;
+        let fullResponse = '';
 
-    const systemPrompt = 'You are a professional film director and screenwriter specializing in animated short films. Generate detailed scene breakdowns in the exact JSON format requested. Return ONLY valid JSON, no markdown code blocks or explanations.';
+        if (llmProvider === 'modal' && modalLlmEndpoint) {
+          const response = await fetch(modalLlmEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt,
+              system_prompt: systemPrompt,
+              max_tokens: 16384,
+            }),
+          });
 
-    // Generate scenes using LLM
-    const result = await step.run('generate-scenes-llm', async () => {
-      console.log(`[Inngest Scenes] Calling LLM provider: ${llmProvider}`);
+          if (!response.ok) {
+            throw new Error(`Modal LLM failed: ${await response.text()}`);
+          }
 
-      let fullResponse = '';
-
-      if (llmProvider === 'modal' && modalLlmEndpoint) {
-        const response = await fetch(modalLlmEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          const data = await response.json();
+          fullResponse = data.response || data.text || data.content || '';
+        } else if (openRouterApiKey) {
+          fullResponse = await callOpenRouter(
+            openRouterApiKey,
+            systemPrompt,
             prompt,
-            system_prompt: systemPrompt,
-            max_tokens: 8192,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Modal LLM failed: ${await response.text()}`);
+            openRouterModel,
+            16384
+          );
+        } else {
+          throw new Error('No LLM provider available');
         }
 
-        const data = await response.json();
-        fullResponse = data.response || data.text || data.content || '';
-      } else if (openRouterApiKey) {
-        fullResponse = await callOpenRouter(
-          openRouterApiKey,
-          systemPrompt,
-          prompt,
-          openRouterModel,
-          8192
-        );
-      } else {
-        throw new Error('No LLM provider available');
-      }
+        // Parse JSON response
+        let cleanResponse = fullResponse.trim();
+        if (cleanResponse.startsWith('```json')) cleanResponse = cleanResponse.slice(7);
+        if (cleanResponse.startsWith('```')) cleanResponse = cleanResponse.slice(3);
+        if (cleanResponse.endsWith('```')) cleanResponse = cleanResponse.slice(0, -3);
+        cleanResponse = cleanResponse.trim();
 
-      // Parse JSON response
-      let cleanResponse = fullResponse.trim();
-      if (cleanResponse.startsWith('```json')) cleanResponse = cleanResponse.slice(7);
-      if (cleanResponse.startsWith('```')) cleanResponse = cleanResponse.slice(3);
-      if (cleanResponse.endsWith('```')) cleanResponse = cleanResponse.slice(0, -3);
-      cleanResponse = cleanResponse.trim();
+        const scenes = JSON.parse(cleanResponse);
+        console.log(`[Inngest Scenes] Batch ${batchIndex + 1} generated ${scenes.length} scenes`);
+        return scenes;
+      });
 
-      const scenes = JSON.parse(cleanResponse);
-      return scenes;
-    });
+      allScenes = [...allScenes, ...batchScenes];
+
+      // Update progress after each batch
+      await step.run(`update-progress-${batchIndex + 1}`, async () => {
+        const progress = Math.round(((batchIndex + 1) / totalBatches) * 80); // Reserve 20% for saving
+        await prisma.sceneGenerationJob.update({
+          where: { id: jobId },
+          data: { progress, completedScenes: allScenes.length },
+        });
+      });
+    }
 
     // Save scenes to database
     await step.run('save-scenes-to-db', async () => {
-      console.log(`[Inngest Scenes] Saving ${result.length} scenes to DB`);
+      console.log(`[Inngest Scenes] Saving ${allScenes.length} scenes to DB`);
 
-      for (const scene of result) {
+      for (const scene of allScenes) {
         const dialogue = scene.dialogue?.map((line: { characterName: string; text: string }) => {
           const character = characters.find(
             (c: { name: string }) => c.name.toLowerCase() === line.characterName?.toLowerCase()
@@ -200,12 +232,12 @@ Return ONLY the JSON array, no other text.`;
     // Spend credits
     await step.run('spend-credits', async () => {
       const provider = llmProvider === 'modal' ? 'modal' : 'openrouter';
-      const realCost = llmProvider === 'modal' ? 0 : ACTION_COSTS.scene.claude * sceneCount;
+      const realCost = llmProvider === 'modal' ? 0 : ACTION_COSTS.scene.claude * allScenes.length;
       await spendCredits(
         userId,
-        COSTS.SCENE_GENERATION * sceneCount,
+        COSTS.SCENE_GENERATION * allScenes.length,
         'scene',
-        `${llmProvider} scene generation (${sceneCount} scenes)`,
+        `${llmProvider} scene generation (${allScenes.length} scenes in ${totalBatches} batches)`,
         projectId,
         provider,
         undefined,
@@ -220,14 +252,14 @@ Return ONLY the JSON array, no other text.`;
         data: {
           status: 'completed',
           completedAt: new Date(),
-          completedScenes: result.length,
+          completedScenes: allScenes.length,
           progress: 100,
         },
       });
     });
 
-    console.log(`[Inngest Scenes] Job ${jobId} completed with ${result.length} scenes`);
+    console.log(`[Inngest Scenes] Job ${jobId} completed with ${allScenes.length} scenes in ${totalBatches} batches`);
 
-    return { success: true, sceneCount: result.length };
+    return { success: true, sceneCount: allScenes.length, batches: totalBatches };
   }
 );
