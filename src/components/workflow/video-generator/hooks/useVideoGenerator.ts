@@ -125,7 +125,7 @@ export function useVideoGenerator(initialProject: Project) {
       }));
 
       try {
-        const response = await fetch(`/api/grok?taskId=${taskId}&projectId=${project.id}`);
+        const response = await fetch(`/api/video?taskId=${taskId}&projectId=${project.id}`);
         if (response.ok) {
           const data = await response.json();
           if (data.status === 'complete' && data.videoUrl) {
@@ -159,7 +159,8 @@ export function useVideoGenerator(initialProject: Project) {
       }));
 
       const fullPrompt = buildFullI2VPrompt(scene);
-      const response = await fetch('/api/grok', {
+      // Use unified video endpoint - routes based on user's videoProvider setting
+      const response = await fetch('/api/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -217,7 +218,7 @@ export function useVideoGenerator(initialProject: Project) {
         [scene.id]: {
           status: 'error',
           progress: 0,
-          error: errorData.error || 'API not configured - set GROK_API_KEY in .env.local'
+          error: errorData.error || 'Video API not configured - check Settings'
         },
       }));
     } catch (error) {

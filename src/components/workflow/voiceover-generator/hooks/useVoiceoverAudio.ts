@@ -42,30 +42,18 @@ export function useVoiceoverAudio(project: Project) {
         [lineId]: { status: 'generating', progress: 30 },
       }));
 
-      let response;
-
-      if (project.voiceSettings.provider === 'gemini-tts') {
-        response = await fetch('/api/gemini/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: line.text,
-            voiceName: getValidGeminiVoice(character?.voiceId),
-            language: project.voiceSettings.language,
-            projectId: project.id,
-          }),
-        });
-      } else {
-        response = await fetch('/api/elevenlabs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: line.text,
-            voiceId: character?.voiceId || 'pNInz6obpgDQGcFmaJgB',
-            projectId: project.id,
-          }),
-        });
-      }
+      // Use unified TTS endpoint - routes based on user's ttsProvider setting
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: line.text,
+          voiceName: getValidGeminiVoice(character?.voiceId),
+          voiceId: character?.voiceId || 'pNInz6obpgDQGcFmaJgB',
+          language: project.voiceSettings.language,
+          projectId: project.id,
+        }),
+      });
 
       const isInsufficientCredits = await handleApiResponse(response);
       if (isInsufficientCredits) {
@@ -106,7 +94,7 @@ export function useVoiceoverAudio(project: Project) {
         [lineId]: {
           status: 'error',
           progress: 0,
-          error: errorData.error || `API not configured - set ${project.voiceSettings.provider === 'gemini-tts' ? 'GEMINI_API_KEY' : 'ELEVENLABS_API_KEY'} in .env.local`
+          error: errorData.error || 'TTS API not configured - check Settings'
         },
       }));
     } catch (error) {
