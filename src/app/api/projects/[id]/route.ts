@@ -130,7 +130,21 @@ export async function PUT(
       settings,
       story,
       voiceSettings,
+      scenes,
+      backgroundMusic,
     } = body;
+
+    // If scenes are provided, update their order (numbers)
+    if (scenes && Array.isArray(scenes)) {
+      await Promise.all(
+        scenes.map((scene: { id: string; number: number }) =>
+          prisma.scene.update({
+            where: { id: scene.id },
+            data: { number: scene.number },
+          })
+        )
+      );
+    }
 
     const project = await prisma.project.update({
       where: { id },
@@ -143,6 +157,7 @@ export async function PUT(
         ...(settings !== undefined && { settings }),
         ...(story !== undefined && { story }),
         ...(voiceSettings !== undefined && { voiceSettings }),
+        ...(backgroundMusic !== undefined && { settings: { ...((settings as object) || {}), backgroundMusic } }),
       },
       include: {
         characters: true,

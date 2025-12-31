@@ -53,6 +53,8 @@ export interface BackgroundMusic {
   volume: number; // 0-1
   source: 'upload' | 'suno' | 'url';
   sunoPrompt?: string; // If generated via Suno
+  startOffset?: number; // seconds from start to trim (for timeline positioning)
+  endOffset?: number; // seconds from end to trim
 }
 
 // Image resolution for Gemini 3 Pro Image pricing

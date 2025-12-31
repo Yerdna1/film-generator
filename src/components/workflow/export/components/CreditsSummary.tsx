@@ -7,9 +7,10 @@ import type { CreditsSpent } from '../types';
 
 interface CreditsSummaryProps {
   credits: CreditsSpent;
+  compact?: boolean;
 }
 
-export function CreditsSummary({ credits }: CreditsSummaryProps) {
+export function CreditsSummary({ credits, compact = false }: CreditsSummaryProps) {
   const t = useTranslations();
 
   return (

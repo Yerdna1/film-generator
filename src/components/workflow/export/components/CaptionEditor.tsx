@@ -54,6 +54,7 @@ interface CaptionEditorProps {
   onAutoGenerateAllCaptions: () => void;
   onClearAllCaptions: () => void;
   onClearAllScenesCaptions: () => void;
+  compact?: boolean;
 }
 
 const animationOptions = [
@@ -101,6 +102,7 @@ export function CaptionEditor({
   onAutoGenerateAllCaptions,
   onClearAllCaptions,
   onClearAllScenesCaptions,
+  compact = false,
 }: CaptionEditorProps) {
   const t = useTranslations();
   const currentScene = project.scenes[selectedSceneIndex];
@@ -122,6 +124,136 @@ export function CaptionEditor({
     const secs = seconds % 60;
     return `${mins}:${secs.toFixed(1).padStart(4, '0')}`;
   };
+
+  // Compact version
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Captions ({totalCaptionsAllScenes})
+          </h4>
+          {anySceneHasDialogue && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onAutoGenerateAllCaptions}
+              className="h-6 px-2 text-[10px] text-yellow-400 hover:bg-yellow-500/10"
+            >
+              <Wand2 className="w-3 h-3 mr-1" />
+              Auto Generate
+            </Button>
+          )}
+        </div>
+
+        {/* Scene thumbnails */}
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {project.scenes.slice(0, 10).map((scene, index) => {
+            const captionCount = scene.captions?.length || 0;
+            return (
+              <button
+                key={scene.id}
+                onClick={() => onSetSelectedSceneIndex(index)}
+                className={cn(
+                  'flex-shrink-0 w-10 h-7 rounded overflow-hidden border transition-all relative',
+                  index === selectedSceneIndex
+                    ? 'border-yellow-500'
+                    : 'border-white/10 hover:border-white/30'
+                )}
+              >
+                {scene.imageUrl ? (
+                  <img src={scene.imageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                    <span className="text-[8px] text-muted-foreground">{index + 1}</span>
+                  </div>
+                )}
+                {captionCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-yellow-500 text-[8px] flex items-center justify-center text-black font-bold">
+                    {captionCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {project.scenes.length > 10 && (
+            <span className="text-[10px] text-muted-foreground self-center px-1">+{project.scenes.length - 10}</span>
+          )}
+        </div>
+
+        {/* Current scene captions */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">Scene {selectedSceneIndex + 1}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartNewCaption}
+              className="h-5 px-1.5 text-[10px]"
+            >
+              <Plus className="w-2.5 h-2.5 mr-0.5" />
+              Add
+            </Button>
+          </div>
+          {sceneCaptions.length > 0 ? (
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {sceneCaptions.map((caption) => (
+                <div
+                  key={caption.id}
+                  className="flex items-center gap-1.5 p-1.5 rounded bg-white/5 group text-[10px]"
+                >
+                  <span className="flex-1 truncate">{caption.text || '(empty)'}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 opacity-0 group-hover:opacity-100"
+                    onClick={() => onStartEditingCaption(caption)}
+                  >
+                    <Type className="w-2.5 h-2.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:text-red-400"
+                    onClick={() => onDeleteCaption(caption.id)}
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted-foreground text-center py-2">No captions</p>
+          )}
+        </div>
+
+        {/* Editing form - simplified */}
+        {isEditing && editingCaption && (
+          <div className="space-y-2 p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
+            <Textarea
+              value={editingCaption.text}
+              onChange={(e) => onUpdateCaptionField('text', e.target.value)}
+              placeholder="Caption text..."
+              className="min-h-[50px] text-xs bg-white/5 border-white/10"
+            />
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" onClick={onCancelEditing} className="h-6 text-[10px] flex-1">
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => onSaveCaption(editingCaption)}
+                disabled={!editingCaption.text.trim()}
+                className="h-6 text-[10px] flex-1 bg-yellow-600 hover:bg-yellow-700"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <Card className="glass border-white/10 border-yellow-500/20">

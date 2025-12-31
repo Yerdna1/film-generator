@@ -57,6 +57,7 @@ interface BackgroundMusicEditorProps {
   onUploadMusic: (file: File) => Promise<void>;
   onTogglePreview: () => void;
   onClearPreview: () => void;
+  compact?: boolean;
 }
 
 const modelOptions: { value: SunoModel; label: string; description: string }[] = [
@@ -95,6 +96,7 @@ export function BackgroundMusicEditor({
   onUploadMusic,
   onTogglePreview,
   onClearPreview,
+  compact = false,
 }: BackgroundMusicEditorProps) {
   const t = useTranslations();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,6 +117,142 @@ export function BackgroundMusicEditor({
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Compact version
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Music
+          </h4>
+          {hasMusic && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-purple-500/30 text-purple-400">
+              {currentMusic?.source === 'suno' ? 'AI' : 'Upload'}
+            </Badge>
+          )}
+        </div>
+
+        {/* Hidden elements */}
+        {previewUrl && <audio ref={previewRef} src={previewUrl} onEnded={() => onClearPreview()} />}
+        <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileSelect} className="hidden" />
+
+        {/* Current music display */}
+        {hasMusic && currentMusic ? (
+          <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-purple-500/20"
+                onClick={onTogglePreview}
+              >
+                {isPreviewPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </Button>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{currentMusic.title || 'Background Music'}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {currentMusic.duration ? formatDuration(currentMusic.duration) : 'Unknown duration'}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 hover:text-red-400"
+                onClick={onRemoveMusic}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {/* Generation state */}
+            {generationState.status !== 'idle' && generationState.status !== 'complete' ? (
+              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
+                <div className="flex items-center gap-2">
+                  {generationState.status === 'processing' ? (
+                    <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                  ) : generationState.status === 'error' ? (
+                    <AlertCircle className="w-4 h-4 text-red-400" />
+                  ) : null}
+                  <span className="text-[10px] flex-1">
+                    {generationState.status === 'processing' && (
+                      generationState.progress > 0 ? `Processing (${generationState.progress}%)` : 'Generating...'
+                    )}
+                    {generationState.status === 'error' && generationState.error}
+                  </span>
+                  {generationState.status === 'processing' && (
+                    <Button variant="ghost" size="sm" onClick={onCancelGeneration} className="h-5 px-1.5 text-[10px]">
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+                {generationState.status === 'processing' && generationState.progress > 0 && (
+                  <Progress value={generationState.progress} className="h-1 mt-2" />
+                )}
+              </div>
+            ) : previewUrl ? (
+              <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={onTogglePreview}
+                  >
+                    {isPreviewPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                  </Button>
+                  <span className="text-[10px] flex-1">Preview ready</span>
+                  <Button
+                    size="sm"
+                    onClick={onApplyPreviewToProject}
+                    className="h-5 px-1.5 text-[10px] bg-green-600 hover:bg-green-700"
+                  >
+                    <Check className="w-2.5 h-2.5 mr-0.5" />
+                    Apply
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={onClearPreview} className="h-5 px-1 text-[10px]">
+                    <X className="w-2.5 h-2.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Simple prompt input */}
+                <Input
+                  value={prompt}
+                  onChange={(e) => onSetPrompt(e.target.value)}
+                  placeholder="Describe the music style..."
+                  className="h-8 text-xs bg-white/5 border-white/10"
+                />
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    onClick={onGenerateMusic}
+                    disabled={!prompt.trim()}
+                    className="h-7 text-[10px] flex-1 bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Wand2 className="w-3 h-3 mr-1" />
+                    Generate
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-7 text-[10px] border-white/10"
+                  >
+                    <Upload className="w-3 h-3 mr-1" />
+                    Upload
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <Card className="glass border-white/10 border-purple-500/20">

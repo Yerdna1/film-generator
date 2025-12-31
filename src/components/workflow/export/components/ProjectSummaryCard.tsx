@@ -11,10 +11,42 @@ import type { ProjectStats } from '../types';
 interface ProjectSummaryCardProps {
   project: Project;
   stats: ProjectStats;
+  compact?: boolean;
 }
 
-export function ProjectSummaryCard({ project, stats }: ProjectSummaryCardProps) {
+export function ProjectSummaryCard({ project, stats, compact = false }: ProjectSummaryCardProps) {
   const t = useTranslations();
+
+  // Compact version - just a small badge-like display
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+        <div className="flex items-center gap-1.5">
+          <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-xs font-medium">{stats.totalScenes}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Video className="w-3.5 h-3.5 text-orange-400" />
+          <span className="text-xs font-medium">{stats.scenesWithVideos}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Mic className="w-3.5 h-3.5 text-violet-400" />
+          <span className="text-xs font-medium">{stats.dialogueLinesWithAudio}</span>
+        </div>
+        <Badge
+          className={`text-[10px] px-1.5 py-0 ${
+            stats.overallProgress >= 80
+              ? 'bg-green-500/20 text-green-400'
+              : stats.overallProgress >= 50
+              ? 'bg-amber-500/20 text-amber-400'
+              : 'bg-red-500/20 text-red-400'
+          } border-0`}
+        >
+          {stats.overallProgress}%
+        </Badge>
+      </div>
+    );
+  }
 
   return (
     <Card className="glass border-white/10 overflow-hidden">

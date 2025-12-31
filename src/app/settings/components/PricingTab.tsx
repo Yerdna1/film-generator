@@ -10,6 +10,7 @@ import {
   FileText,
   Users,
   Wand2,
+  Music,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CostCategoryCard } from './CostCategoryCard';
@@ -96,6 +97,15 @@ export function PricingTab({ actionCosts, costsLoading }: PricingTabProps) {
                 iconColor="text-amber-400"
                 bgColor="bg-amber-500/20"
                 costs={actionCosts.prompt}
+              />
+
+              <CostCategoryCard
+                title="Music Generation"
+                description="Cost per background music track"
+                icon={Music}
+                iconColor="text-pink-400"
+                bgColor="bg-pink-500/20"
+                costs={actionCosts.music}
               />
             </div>
           ) : (

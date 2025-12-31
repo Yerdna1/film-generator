@@ -1,6 +1,10 @@
 export async function fetchAsBlob(url: string): Promise<Blob | null> {
   try {
-    const response = await fetch(url);
+    // Use proxy for S3 URLs to avoid CORS issues
+    const isS3Url = url.includes('s3.') && url.includes('amazonaws.com');
+    const fetchUrl = isS3Url ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+
+    const response = await fetch(fetchUrl);
     if (!response.ok) return null;
     return await response.blob();
   } catch (error) {

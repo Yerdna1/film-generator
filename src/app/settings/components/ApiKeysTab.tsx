@@ -359,9 +359,8 @@ export function ApiKeysTab({
         </CardContent>
       </Card>
 
-      {/* Modal.com Endpoints - Only show if any Modal provider is selected */}
-      {isModalUsed && (
-        <Card className="glass border-white/10 border-l-4 border-l-cyan-500">
+      {/* Modal.com Endpoints - Always show so users can configure endpoints */}
+      <Card className="glass border-white/10 border-l-4 border-l-cyan-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Server className="w-5 h-5 text-cyan-400" />
@@ -418,7 +417,6 @@ export function ApiKeysTab({
             </Button>
           </CardContent>
         </Card>
-      )}
 
       {/* API Keys */}
       <Card className="glass border-white/10">

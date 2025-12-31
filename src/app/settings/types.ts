@@ -11,6 +11,7 @@ export interface ActionCosts {
   scene: ActionCostItem[];
   character: ActionCostItem[];
   prompt: ActionCostItem[];
+  music: ActionCostItem[];
 }
 
 export interface SettingsState {

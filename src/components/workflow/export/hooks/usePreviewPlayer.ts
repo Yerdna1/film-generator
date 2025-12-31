@@ -62,9 +62,15 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
   const totalDuration = totalScenes * SCENE_DURATION;
   const currentMovieTime = currentIndex * SCENE_DURATION + (progress / 100) * SCENE_DURATION;
 
-  // Get cached video URL
+  // Get video URL (use proxy for S3 URLs to avoid CORS)
   const getVideoUrl = useCallback((url: string) => {
-    return videoBlobCache.current.get(url) || url;
+    // Check cache first
+    const cached = videoBlobCache.current.get(url);
+    if (cached) return cached;
+
+    // Use proxy for S3 URLs
+    const isS3Url = url.includes('s3.') && url.includes('amazonaws.com');
+    return isS3Url ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
   }, []);
 
   // Clear all timers
@@ -201,21 +207,26 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
     }
   }, []);
 
-  // Handle video can play
+  // Handle video can play - this is called when video has enough data to start
   const handleVideoCanPlay = useCallback(() => {
-    if (!isPlaying || !videoRef.current) return;
+    if (!videoRef.current) return;
 
     const video = videoRef.current;
+
+    // Set seek position if needed
     if (seekPositionRef.current > 0 && Math.abs(video.currentTime - seekPositionRef.current) > 0.5) {
       video.currentTime = seekPositionRef.current;
     }
 
-    playPromiseRef.current = video.play();
-    playPromiseRef.current.catch((error) => {
-      if (error.name !== 'AbortError') {
-        console.error('Video playback error:', error);
-      }
-    });
+    // Only play if we're supposed to be playing
+    if (isPlaying) {
+      playPromiseRef.current = video.play();
+      playPromiseRef.current.catch((error) => {
+        if (error.name !== 'AbortError') {
+          console.error('Video playback error:', error);
+        }
+      });
+    }
   }, [isPlaying]);
 
   // Update caption based on playback time
@@ -255,13 +266,19 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
     }
   }, [currentIndex, volume, isMuted]);
 
-  // Prefetch video blobs
+  // Prefetch video blobs (use proxy for S3 URLs)
   useEffect(() => {
     const prefetchVideos = async () => {
       for (const scene of project.scenes) {
         if (scene.videoUrl && !videoBlobCache.current.has(scene.videoUrl)) {
           try {
-            const response = await fetch(scene.videoUrl);
+            // Use proxy for S3 URLs to avoid CORS
+            const isS3Url = scene.videoUrl.includes('s3.') && scene.videoUrl.includes('amazonaws.com');
+            const fetchUrl = isS3Url ? `/api/proxy?url=${encodeURIComponent(scene.videoUrl)}` : scene.videoUrl;
+
+            const response = await fetch(fetchUrl);
+            if (!response.ok) continue;
+
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
             videoBlobCache.current.set(scene.videoUrl, blobUrl);
@@ -306,7 +323,10 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
 
     if (scene.videoUrl && videoRef.current) {
       const video = videoRef.current;
-      if (video.readyState >= 3) {
+
+      // Try to play - if video is ready, play immediately
+      // If not ready, the onCanPlay handler will play it
+      const tryPlay = () => {
         if (seekPositionRef.current > 0) {
           video.currentTime = seekPositionRef.current;
         }
@@ -316,8 +336,15 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
             console.error('Video playback error:', error);
           }
         });
+      };
+
+      if (video.readyState >= 2) {
+        // HAVE_CURRENT_DATA or better - try to play
+        tryPlay();
       }
+      // If not ready, onCanPlay will trigger playback
     } else {
+      // Image-only scene - use timer
       const startOffset = seekPositionRef.current * 1000;
       const startTime = Date.now() - startOffset;
       const duration = SCENE_DURATION * 1000;

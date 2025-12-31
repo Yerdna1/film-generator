@@ -1,9 +1,26 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
-import { Download } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Download,
+  ChevronRight,
+  ChevronLeft,
+  Film,
+  Subtitles,
+  Music,
+  Video,
+  Trash2,
+  Sparkles,
+  Pause,
+  Play,
+  X,
+} from 'lucide-react';
 import { useProjectStore } from '@/lib/stores/project-store';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Project } from '@/types/project';
 
 // Hooks
@@ -14,20 +31,17 @@ import {
   useDownloadHandlers,
   useCaptionEditor,
   useBackgroundMusic,
+  useTimelineEditor,
 } from './export/hooks';
 
 // Components
 import {
   ProjectSummaryCard,
   MoviePreview,
-  TimelineView,
-  CreditsSummary,
-  ExportOptions,
-  DownloadAssets,
-  PromptsPreview,
-  NextSteps,
   CaptionEditor,
   BackgroundMusicEditor,
+  MultiTrackTimeline,
+  SceneList,
 } from './export/components';
 
 interface Step6Props {
@@ -36,155 +50,466 @@ interface Step6Props {
 
 export function Step6Export({ project: initialProject }: Step6Props) {
   const t = useTranslations();
-  const { projects } = useProjectStore();
+  const { projects, deleteScene } = useProjectStore();
+  const [sidePanelOpen, setSidePanelOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<'scenes' | 'captions' | 'music' | 'export'>('scenes');
 
   // Get live project data from store
   const project = projects.find((p) => p.id === initialProject.id) || initialProject;
 
   // Custom hooks
-  const { stats, credits } = useProjectStats(project);
+  const { stats } = useProjectStats(project);
   const previewPlayer = usePreviewPlayer(project);
   const exportHandlers = useExportHandlers(project);
   const downloadHandlers = useDownloadHandlers(project);
   const captionEditor = useCaptionEditor(project);
   const backgroundMusic = useBackgroundMusic(project);
+  const timelineEditor = useTimelineEditor(project);
+
+  // Handle seek from timeline
+  const handleTimelineSeek = (time: number) => {
+    const sceneIndex = Math.floor(time / 6); // 6 seconds per scene
+    if (sceneIndex !== previewPlayer.currentIndex) {
+      previewPlayer.jumpToScene(sceneIndex);
+    }
+  };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 mb-4"
-        >
-          <Download className="w-8 h-8 text-green-400" />
-        </motion.div>
-        <h2 className="text-2xl font-bold mb-2">{t('steps.export.title')}</h2>
-        <p className="text-muted-foreground">{t('steps.export.description')}</p>
+    <div className="w-full max-w-[1920px] mx-auto space-y-2 px-1">
+      {/* Header - Minimal */}
+      <div className="flex items-center justify-between py-1">
+        <div className="flex items-center gap-2">
+          <Film className="w-5 h-5 text-green-500" />
+          <h2 className="text-lg font-semibold">{t('steps.export.title')}</h2>
+        </div>
+        <ProjectSummaryCard project={project} stats={stats} compact />
       </div>
 
-      {/* Project Summary Card */}
-      <ProjectSummaryCard project={project} stats={stats} />
+      {/* Main Editor Layout */}
+      <div className="flex gap-2">
+        {/* Preview + Timeline Section */}
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Movie Preview - Very Compact */}
+          {stats.totalScenes > 0 && (
+            <Card className="glass border-white/10 overflow-hidden">
+              <CardContent className="p-1.5">
+                <MoviePreview
+                  project={project}
+                  isPlaying={previewPlayer.isPlaying}
+                  currentIndex={previewPlayer.currentIndex}
+                  progress={previewPlayer.progress}
+                  volume={previewPlayer.volume}
+                  isMuted={previewPlayer.isMuted}
+                  musicVolumeDb={previewPlayer.musicVolumeDb}
+                  currentCaption={previewPlayer.currentCaption}
+                  currentMovieTime={previewPlayer.currentMovieTime}
+                  totalDuration={previewPlayer.totalDuration}
+                  videoRef={previewPlayer.videoRef}
+                  musicRef={previewPlayer.musicRef}
+                  onTogglePlayPause={previewPlayer.togglePlayPause}
+                  onGoToNext={previewPlayer.goToNext}
+                  onGoToPrevious={previewPlayer.goToPrevious}
+                  onJumpToFirst={previewPlayer.jumpToFirst}
+                  onJumpToLast={previewPlayer.jumpToLast}
+                  onJumpToScene={previewPlayer.jumpToScene}
+                  onSeek={previewPlayer.handleSeek}
+                  onVolumeChange={previewPlayer.handleVolumeChange}
+                  onToggleMute={previewPlayer.toggleMute}
+                  onMusicVolumeDbChange={previewPlayer.handleMusicVolumeDbChange}
+                  onVideoEnded={previewPlayer.handleVideoEnded}
+                  onVideoTimeUpdate={previewPlayer.handleVideoTimeUpdate}
+                  onVideoCanPlay={previewPlayer.handleVideoCanPlay}
+                  getVideoUrl={previewPlayer.getVideoUrl}
+                  compact
+                />
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Movie Preview */}
-      {stats.totalScenes > 0 && (
-        <MoviePreview
-          project={project}
-          isPlaying={previewPlayer.isPlaying}
-          currentIndex={previewPlayer.currentIndex}
-          progress={previewPlayer.progress}
-          volume={previewPlayer.volume}
-          isMuted={previewPlayer.isMuted}
-          musicVolumeDb={previewPlayer.musicVolumeDb}
-          currentCaption={previewPlayer.currentCaption}
-          currentMovieTime={previewPlayer.currentMovieTime}
-          totalDuration={previewPlayer.totalDuration}
-          videoRef={previewPlayer.videoRef}
-          musicRef={previewPlayer.musicRef}
-          onTogglePlayPause={previewPlayer.togglePlayPause}
-          onGoToNext={previewPlayer.goToNext}
-          onGoToPrevious={previewPlayer.goToPrevious}
-          onJumpToFirst={previewPlayer.jumpToFirst}
-          onJumpToLast={previewPlayer.jumpToLast}
-          onJumpToScene={previewPlayer.jumpToScene}
-          onSeek={previewPlayer.handleSeek}
-          onVolumeChange={previewPlayer.handleVolumeChange}
-          onToggleMute={previewPlayer.toggleMute}
-          onMusicVolumeDbChange={previewPlayer.handleMusicVolumeDbChange}
-          onVideoEnded={previewPlayer.handleVideoEnded}
-          onVideoTimeUpdate={previewPlayer.handleVideoTimeUpdate}
-          onVideoCanPlay={previewPlayer.handleVideoCanPlay}
-          getVideoUrl={previewPlayer.getVideoUrl}
-        />
-      )}
+          {/* Multi-Track Timeline - Always visible */}
+          {stats.totalScenes > 0 && (
+            <MultiTrackTimeline
+              project={project}
+              currentTime={previewPlayer.currentMovieTime}
+              timelineEditor={timelineEditor}
+              onSeek={handleTimelineSeek}
+            />
+          )}
+        </div>
 
-      {/* Timeline View */}
-      <TimelineView project={project} stats={stats} />
+        {/* Side Panel */}
+        <AnimatePresence mode="wait">
+          {sidePanelOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 340, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex-shrink-0 overflow-hidden"
+            >
+              <Card className="glass border-black/10 dark:border-white/10 h-full">
+                <CardContent className="p-0">
+                  <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+                    <TabsList className="w-full grid grid-cols-4 rounded-none bg-black/[0.02] dark:bg-white/[0.02] h-11">
+                      <TabsTrigger
+                        value="scenes"
+                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400 data-[state=active]:shadow-none"
+                      >
+                        <Video className="w-4 h-4" />
+                        Scenes
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="captions"
+                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-yellow-500/15 data-[state=active]:text-yellow-600 dark:data-[state=active]:text-yellow-400 data-[state=active]:shadow-none"
+                      >
+                        <Subtitles className="w-4 h-4" />
+                        Subs
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="music"
+                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=active]:shadow-none"
+                      >
+                        <Music className="w-4 h-4" />
+                        Music
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="export"
+                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-none"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export
+                      </TabsTrigger>
+                    </TabsList>
 
-      {/* Caption Editor */}
-      {stats.totalScenes > 0 && (
-        <CaptionEditor
-          project={project}
-          selectedSceneIndex={captionEditor.selectedSceneIndex}
-          editingCaption={captionEditor.editingCaption}
-          isEditing={captionEditor.isEditing}
-          sceneCaptions={captionEditor.sceneCaptions}
-          hasUnsavedChanges={captionEditor.hasUnsavedChanges}
-          onSetSelectedSceneIndex={captionEditor.setSelectedSceneIndex}
-          onStartEditingCaption={captionEditor.startEditingCaption}
-          onStartNewCaption={captionEditor.startNewCaption}
-          onCancelEditing={captionEditor.cancelEditing}
-          onSaveCaption={captionEditor.saveCaption}
-          onDeleteCaption={captionEditor.deleteCaption}
-          onUpdateCaptionField={captionEditor.updateCaptionField}
-          onUpdateCaptionStyle={captionEditor.updateCaptionStyle}
-          onAutoGenerateCaptions={captionEditor.autoGenerateCaptions}
-          onAutoGenerateAllCaptions={captionEditor.autoGenerateAllCaptions}
-          onClearAllCaptions={captionEditor.clearAllCaptions}
-          onClearAllScenesCaptions={captionEditor.clearAllScenesCaptions}
-        />
-      )}
+                    <div className="max-h-[600px] overflow-y-auto">
+                      {/* SCENES TAB */}
+                      <TabsContent value="scenes" className="m-0 p-4">
+                        <div className="space-y-3">
+                          <p className="text-xs text-muted-foreground">
+                            {project.scenes.length} scenes · {Math.round(project.scenes.length * 6 / 60)} min
+                          </p>
 
-      {/* Background Music Editor */}
-      <BackgroundMusicEditor
-        project={project}
-        currentMusic={backgroundMusic.currentMusic}
-        hasMusic={backgroundMusic.hasMusic}
-        generationState={backgroundMusic.generationState}
-        previewUrl={backgroundMusic.previewUrl}
-        isPreviewPlaying={backgroundMusic.isPreviewPlaying}
-        previewRef={backgroundMusic.previewRef}
-        prompt={backgroundMusic.prompt}
-        model={backgroundMusic.model}
-        instrumental={backgroundMusic.instrumental}
-        provider={backgroundMusic.provider}
-        onSetPrompt={backgroundMusic.setPrompt}
-        onSetModel={backgroundMusic.setModel}
-        onSetInstrumental={backgroundMusic.setInstrumental}
-        onSetProvider={backgroundMusic.setProvider}
-        onGenerateMusic={backgroundMusic.generateMusic}
-        onCancelGeneration={backgroundMusic.cancelGeneration}
-        onApplyPreviewToProject={backgroundMusic.applyPreviewToProject}
-        onRemoveMusic={backgroundMusic.removeMusic}
-        onUploadMusic={backgroundMusic.uploadMusic}
-        onTogglePreview={backgroundMusic.togglePreview}
-        onClearPreview={backgroundMusic.clearPreview}
-      />
+                          <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
+                            {project.scenes.map((scene, index) => (
+                              <div
+                                key={scene.id}
+                                onClick={() => {
+                                  timelineEditor.selectScene(scene.id);
+                                  previewPlayer.jumpToScene(index);
+                                }}
+                                className={`group flex items-center gap-2.5 p-2 rounded-md border transition-all cursor-pointer ${
+                                  timelineEditor.selectedSceneId === scene.id
+                                    ? 'border-orange-500/50 bg-orange-500/10'
+                                    : 'border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] hover:border-orange-500/30 hover:bg-orange-500/5'
+                                }`}
+                              >
+                                <div className="relative w-14 h-9 rounded overflow-hidden bg-black/20 dark:bg-black/50 flex-shrink-0">
+                                  {scene.imageUrl ? (
+                                    <img src={scene.imageUrl} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">{index + 1}</div>
+                                  )}
+                                  {scene.videoUrl && (
+                                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-green-500" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{index + 1}. {scene.title || 'Untitled'}</p>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Delete this scene?')) {
+                                      deleteScene(project.id, scene.id);
+                                    }
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
 
-      {/* Credits Summary */}
-      <CreditsSummary credits={credits} />
+                          {project.scenes.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Film className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                              <p className="text-sm">No scenes</p>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
 
-      {/* Export Options */}
-      <ExportOptions
-        onExportJSON={exportHandlers.handleExportJSON}
-        onExportMarkdown={exportHandlers.handleExportMarkdown}
-        onExportText={exportHandlers.handleExportText}
-        onExportCapCut={exportHandlers.handleExportCapCut}
-      />
+                      {/* CAPTIONS TAB */}
+                      <TabsContent value="captions" className="m-0 p-4">
+                        <div className="space-y-4">
+                          {/* Auto-generate button */}
+                          {project.scenes.some(s => s.dialogue?.length > 0) && (
+                            <button
+                              onClick={captionEditor.autoGenerateAllCaptions}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 transition-all"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              Auto-generate All
+                            </button>
+                          )}
 
-      {/* Download Assets */}
-      <DownloadAssets
-        stats={stats}
-        downloadingImages={downloadHandlers.downloadingImages}
-        downloadingVideos={downloadHandlers.downloadingVideos}
-        downloadingAudio={downloadHandlers.downloadingAudio}
-        downloadingAll={downloadHandlers.downloadingAll}
-        onDownloadImages={downloadHandlers.handleDownloadImages}
-        onDownloadVideos={downloadHandlers.handleDownloadVideos}
-        onDownloadAudio={downloadHandlers.handleDownloadAudio}
-        onDownloadDialogues={downloadHandlers.handleDownloadDialogues}
-        onDownloadAll={downloadHandlers.handleDownloadAll}
-      />
+                          {/* Scene selector - vertical list with big thumbnails */}
+                          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                            {project.scenes.map((scene, index) => {
+                              const count = scene.captions?.length || 0;
+                              const isSelected = captionEditor.selectedSceneIndex === index;
+                              return (
+                                <button
+                                  key={scene.id}
+                                  onClick={() => captionEditor.setSelectedSceneIndex(index)}
+                                  className={`w-full flex items-center gap-3 p-2 rounded-md border-2 transition-all text-left ${
+                                    isSelected ? 'border-yellow-500 bg-yellow-500/10' : 'border-transparent hover:border-yellow-500/30 hover:bg-yellow-500/5'
+                                  }`}
+                                >
+                                  <div className="relative w-16 h-10 rounded overflow-hidden bg-black/20 dark:bg-black/50 flex-shrink-0">
+                                    {scene.imageUrl ? (
+                                      <img src={scene.imageUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">{index + 1}</div>
+                                    )}
+                                    {scene.videoUrl && (
+                                      <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-green-500" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{index + 1}. {scene.title || 'Untitled'}</p>
+                                  </div>
+                                  {count > 0 && (
+                                    <span className="px-2 py-0.5 rounded-full bg-yellow-500 text-xs font-bold text-black">{count}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
 
-      {/* Prompts Preview */}
-      <PromptsPreview project={project} getFullMarkdown={exportHandlers.getFullMarkdown} />
+                          {/* Current scene captions */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">Scene {captionEditor.selectedSceneIndex + 1}</span>
+                              <button onClick={captionEditor.startNewCaption} className="text-sm text-yellow-600 dark:text-yellow-400 hover:underline">+ Add</button>
+                            </div>
 
-      {/* Next Steps */}
-      <NextSteps
-        overallProgress={stats.overallProgress}
-        onExportMarkdown={exportHandlers.handleExportMarkdown}
-      />
+                            {captionEditor.sceneCaptions.length > 0 ? (
+                              <div className="space-y-1.5">
+                                {captionEditor.sceneCaptions.map((caption) => (
+                                  <div key={caption.id} className="group flex items-start gap-2 p-2 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] hover:border-yellow-500/30 transition-all">
+                                    <p className="flex-1 text-sm leading-relaxed">{caption.text}</p>
+                                    <button onClick={() => captionEditor.deleteCaption(caption.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all shrink-0">
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground text-center py-6">No captions for this scene</p>
+                            )}
+                          </div>
+
+                          {/* Editing form */}
+                          {captionEditor.isEditing && captionEditor.editingCaption && (
+                            <div className="space-y-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
+                              <textarea
+                                value={captionEditor.editingCaption.text}
+                                onChange={(e) => captionEditor.updateCaptionField('text', e.target.value)}
+                                placeholder="Enter caption text..."
+                                className="w-full h-20 px-3 py-2 rounded-md bg-white dark:bg-black/30 border border-black/10 dark:border-white/10 text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:border-yellow-500/50"
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={captionEditor.cancelEditing} className="flex-1 py-2 rounded-md text-sm border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-all">Cancel</button>
+                                <button onClick={() => captionEditor.saveCaption(captionEditor.editingCaption!)} className="flex-1 py-2 rounded-md text-sm font-medium text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 transition-all">Save</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* MUSIC TAB */}
+                      <TabsContent value="music" className="m-0 p-4">
+                        <div className="space-y-4">
+                          {backgroundMusic.previewUrl && (
+                            <audio ref={backgroundMusic.previewRef} src={backgroundMusic.previewUrl} onEnded={backgroundMusic.clearPreview} />
+                          )}
+
+                          {backgroundMusic.hasMusic && backgroundMusic.currentMusic ? (
+                            <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5">
+                              <div className="flex items-center gap-3">
+                                <button onClick={backgroundMusic.togglePreview} className="w-11 h-11 rounded-full bg-purple-500/20 hover:bg-purple-500/30 flex items-center justify-center transition-all">
+                                  {backgroundMusic.isPreviewPlaying ? <Pause className="w-5 h-5 text-purple-600 dark:text-purple-400" /> : <Play className="w-5 h-5 text-purple-600 dark:text-purple-400 ml-0.5" />}
+                                </button>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{backgroundMusic.currentMusic.title || 'Background Music'}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {backgroundMusic.currentMusic.duration ? `${Math.floor(backgroundMusic.currentMusic.duration / 60)}:${String(Math.floor(backgroundMusic.currentMusic.duration % 60)).padStart(2, '0')}` : '—'}
+                                  </p>
+                                </div>
+                                <button onClick={backgroundMusic.removeMusic} className="p-2 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : backgroundMusic.generationState.status !== 'idle' ? (
+                            <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-5 h-5 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin" />
+                                <div className="flex-1">
+                                  <p className="text-sm">
+                                    {backgroundMusic.generationState.status === 'processing' && (
+                                      backgroundMusic.generationState.progress > 0
+                                        ? `Generating ${backgroundMusic.generationState.progress}%`
+                                        : 'Starting...'
+                                    )}
+                                    {backgroundMusic.generationState.status === 'error' && backgroundMusic.generationState.error}
+                                  </p>
+                                  {backgroundMusic.generationState.status === 'processing' && backgroundMusic.generationState.progress > 0 && (
+                                    <div className="mt-2 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                                      <div className="h-full bg-gradient-to-r from-purple-500 to-violet-500 transition-all" style={{ width: `${backgroundMusic.generationState.progress}%` }} />
+                                    </div>
+                                  )}
+                                </div>
+                                <button onClick={backgroundMusic.cancelGeneration} className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground transition-all">
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : backgroundMusic.previewUrl ? (
+                            <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                              <div className="flex items-center gap-3">
+                                <button onClick={backgroundMusic.togglePreview} className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                  {backgroundMusic.isPreviewPlaying ? <Pause className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Play className="w-4 h-4 text-emerald-600 dark:text-emerald-400 ml-0.5" />}
+                                </button>
+                                <span className="flex-1 text-sm">Preview ready</span>
+                                <button onClick={backgroundMusic.applyPreviewToProject} className="px-3 py-1.5 rounded text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 transition-all">Apply</button>
+                                <button onClick={backgroundMusic.clearPreview} className="p-1.5 hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <input
+                                value={backgroundMusic.prompt}
+                                onChange={(e) => backgroundMusic.setPrompt(e.target.value)}
+                                placeholder="Describe music style..."
+                                className="w-full px-3 py-2.5 rounded-md bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/10 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500/40 transition-all"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={backgroundMusic.generateMusic}
+                                  disabled={!backgroundMusic.prompt.trim()}
+                                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400 disabled:opacity-40 transition-all"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  Generate
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'audio/*';
+                                    input.onchange = (e) => {
+                                      const file = (e.target as HTMLInputElement).files?.[0];
+                                      if (file) backgroundMusic.uploadMusic(file);
+                                    };
+                                    input.click();
+                                  }}
+                                  className="px-4 py-2.5 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] text-sm text-muted-foreground hover:border-purple-500/30 transition-all"
+                                >
+                                  Upload
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* EXPORT TAB */}
+                      <TabsContent value="export" className="m-0 p-4">
+                        <div className="space-y-4">
+                          <p className="text-xs text-muted-foreground">
+                            {stats.scenesWithVideos} videos · {stats.scenesWithImages} images · {stats.dialogueLinesWithAudio} audio
+                          </p>
+
+                          <div className="space-y-2">
+                            <button
+                              onClick={downloadHandlers.handleDownloadAll}
+                              disabled={downloadHandlers.downloadingAll}
+                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
+                            >
+                              {downloadHandlers.downloadingAll ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              Download All
+                            </button>
+
+                            <button
+                              onClick={exportHandlers.handleExportCapCut}
+                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] text-sm font-medium hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all"
+                            >
+                              <svg className="h-4 w-4 text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                                <circle cx="12" cy="13" r="3" />
+                              </svg>
+                              Export for CapCut
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-1">
+                            <div className="h-px flex-1 bg-black/5 dark:bg-white/10" />
+                            <span className="text-xs text-muted-foreground">or</span>
+                            <div className="h-px flex-1 bg-black/5 dark:bg-white/10" />
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={downloadHandlers.handleDownloadVideos}
+                              disabled={downloadHandlers.downloadingVideos || stats.scenesWithVideos === 0}
+                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-orange-500/30 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-30"
+                            >
+                              Videos
+                            </button>
+                            <button
+                              onClick={downloadHandlers.handleDownloadAudio}
+                              disabled={downloadHandlers.downloadingAudio || stats.dialogueLinesWithAudio === 0}
+                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-violet-500/30 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-30"
+                            >
+                              Audio
+                            </button>
+                            <button
+                              onClick={exportHandlers.handleExportJSON}
+                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-blue-500/30 hover:text-blue-600 dark:hover:text-blue-400"
+                            >
+                              JSON
+                            </button>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Side Panel Toggle (when closed) */}
+        {!sidePanelOpen && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="flex-shrink-0 h-8 w-8 border border-black/10 dark:border-white/10"
+            onClick={() => setSidePanelOpen(true)}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
+        )}
+      </div>
+
     </div>
   );
 }

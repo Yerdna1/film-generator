@@ -25,6 +25,7 @@ interface DownloadAssetsProps {
   onDownloadAudio: () => Promise<void>;
   onDownloadDialogues: () => void;
   onDownloadAll: () => Promise<void>;
+  compact?: boolean;
 }
 
 export function DownloadAssets({
@@ -38,8 +39,60 @@ export function DownloadAssets({
   onDownloadAudio,
   onDownloadDialogues,
   onDownloadAll,
+  compact = false,
 }: DownloadAssetsProps) {
   const t = useTranslations();
+
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Download</h4>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Button
+            onClick={onDownloadVideos}
+            disabled={downloadingVideos || stats.scenesWithVideos === 0}
+            variant="outline"
+            className="h-auto py-2 px-2 flex-col gap-1 border-white/10 hover:bg-orange-500/10 hover:border-orange-500/30"
+          >
+            {downloadingVideos ? (
+              <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+            ) : (
+              <VideoIcon className="w-4 h-4 text-orange-400" />
+            )}
+            <span className="text-[10px]">Videos</span>
+            <span className="text-[9px] text-muted-foreground">{stats.scenesWithVideos}</span>
+          </Button>
+          <Button
+            onClick={onDownloadAudio}
+            disabled={downloadingAudio || stats.dialogueLinesWithAudio === 0}
+            variant="outline"
+            className="h-auto py-2 px-2 flex-col gap-1 border-white/10 hover:bg-violet-500/10 hover:border-violet-500/30"
+          >
+            {downloadingAudio ? (
+              <Loader2 className="w-4 h-4 text-violet-400 animate-spin" />
+            ) : (
+              <Music className="w-4 h-4 text-violet-400" />
+            )}
+            <span className="text-[10px]">Audio</span>
+            <span className="text-[9px] text-muted-foreground">{stats.dialogueLinesWithAudio}</span>
+          </Button>
+          <Button
+            onClick={onDownloadAll}
+            disabled={downloadingAll}
+            className="h-auto py-2 px-2 flex-col gap-1 bg-gradient-to-br from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
+          >
+            {downloadingAll ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            <span className="text-[10px]">All</span>
+            <span className="text-[9px] text-white/70">ZIP</span>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card className="glass border-white/10 border-purple-500/20">
@@ -55,7 +108,6 @@ export function DownloadAssets({
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Download Images */}
           <Button
             onClick={onDownloadImages}
             disabled={downloadingImages || (stats.scenesWithImages === 0 && stats.charactersWithImages === 0)}
@@ -72,8 +124,6 @@ export function DownloadAssets({
               {stats.scenesWithImages + stats.charactersWithImages} files
             </span>
           </Button>
-
-          {/* Download Videos */}
           <Button
             onClick={onDownloadVideos}
             disabled={downloadingVideos || stats.scenesWithVideos === 0}
@@ -88,8 +138,6 @@ export function DownloadAssets({
             <span className="font-medium">Videos</span>
             <span className="text-xs text-muted-foreground">{stats.scenesWithVideos} files</span>
           </Button>
-
-          {/* Download Audio */}
           <Button
             onClick={onDownloadAudio}
             disabled={downloadingAudio || stats.dialogueLinesWithAudio === 0}
@@ -104,8 +152,6 @@ export function DownloadAssets({
             <span className="font-medium">Audio</span>
             <span className="text-xs text-muted-foreground">{stats.dialogueLinesWithAudio} files</span>
           </Button>
-
-          {/* Download Dialogues */}
           <Button
             onClick={onDownloadDialogues}
             disabled={stats.totalDialogueLines === 0}
@@ -116,8 +162,6 @@ export function DownloadAssets({
             <span className="font-medium">Dialogues</span>
             <span className="text-xs text-muted-foreground">{stats.totalDialogueLines} lines</span>
           </Button>
-
-          {/* Download All */}
           <Button
             onClick={onDownloadAll}
             disabled={downloadingAll}
@@ -131,13 +175,6 @@ export function DownloadAssets({
             <span className="font-medium">All Assets</span>
             <span className="text-xs text-white/70">Complete ZIP</span>
           </Button>
-        </div>
-
-        {/* Download info */}
-        <div className="glass rounded-lg p-3 mt-4">
-          <p className="text-xs text-muted-foreground">
-            <strong className="text-purple-400">Note:</strong> {t('steps.export.downloadNote')}
-          </p>
         </div>
       </CardContent>
     </Card>
