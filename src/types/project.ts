@@ -166,7 +166,7 @@ export type MusicProvider = 'piapi' | 'suno' | 'modal';
 export type TTSProvider = 'gemini-tts' | 'elevenlabs' | 'modal';
 
 // Image Provider selection for image generation
-export type ImageProvider = 'gemini' | 'modal';
+export type ImageProvider = 'gemini' | 'modal' | 'modal-edit';
 
 // Video Provider selection for video generation
 export type VideoProvider = 'kie' | 'modal';
@@ -176,6 +176,7 @@ export interface ModalEndpoints {
   llmEndpoint?: string;      // e.g., https://your-app--llm.modal.run
   ttsEndpoint?: string;      // e.g., https://your-app--tts.modal.run
   imageEndpoint?: string;    // e.g., https://your-app--image.modal.run
+  imageEditEndpoint?: string; // e.g., https://your-app--image-edit.modal.run (Qwen-Image-Edit)
   videoEndpoint?: string;    // e.g., https://your-app--video.modal.run
   musicEndpoint?: string;    // e.g., https://your-app--ace-step.modal.run (ACE-Step)
 }

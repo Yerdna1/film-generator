@@ -104,6 +104,7 @@ export function useSettings() {
             llmEndpoint: data.modalLlmEndpoint || '',
             ttsEndpoint: data.modalTtsEndpoint || '',
             imageEndpoint: data.modalImageEndpoint || '',
+            imageEditEndpoint: data.modalImageEditEndpoint || '',
             videoEndpoint: data.modalVideoEndpoint || '',
             musicEndpoint: data.modalMusicEndpoint || '',
           });
@@ -326,7 +327,8 @@ export function useSettings() {
 
     const descriptions: Record<ImageProvider, string> = {
       'gemini': tPage('toasts.imageProviderGemini') || 'Using Gemini for image generation',
-      'modal': tPage('toasts.imageProviderModal') || 'Using self-hosted model on Modal.com',
+      'modal': tPage('toasts.imageProviderModal') || 'Using Qwen-Image on Modal.com',
+      'modal-edit': tPage('toasts.imageProviderModalEdit') || 'Using Qwen-Image-Edit for character consistency',
     };
     toast.success(
       tPage('toasts.imageProviderChanged') || 'Image provider updated',
@@ -373,6 +375,7 @@ export function useSettings() {
           modalLlmEndpoint: modalEndpoints.llmEndpoint || null,
           modalTtsEndpoint: modalEndpoints.ttsEndpoint || null,
           modalImageEndpoint: modalEndpoints.imageEndpoint || null,
+          modalImageEditEndpoint: modalEndpoints.imageEditEndpoint || null,
           modalVideoEndpoint: modalEndpoints.videoEndpoint || null,
           modalMusicEndpoint: modalEndpoints.musicEndpoint || null,
         }),

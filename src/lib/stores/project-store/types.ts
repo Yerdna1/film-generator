@@ -37,12 +37,12 @@ export interface ProjectActions {
 
   // Character actions
   addCharacter: (projectId: string, character: Omit<Character, 'id'>) => Promise<void>;
-  updateCharacter: (projectId: string, characterId: string, updates: Partial<Character>) => void;
+  updateCharacter: (projectId: string, characterId: string, updates: Partial<Character>) => Promise<void>;
   deleteCharacter: (projectId: string, characterId: string) => Promise<void>;
 
   // Scene actions
   addScene: (projectId: string, scene: Omit<Scene, 'id'>) => Promise<void>;
-  updateScene: (projectId: string, sceneId: string, updates: Partial<Scene>) => void;
+  updateScene: (projectId: string, sceneId: string, updates: Partial<Scene>) => Promise<void>;
   deleteScene: (projectId: string, sceneId: string) => Promise<void>;
   setScenes: (projectId: string, scenes: Scene[]) => void;
 

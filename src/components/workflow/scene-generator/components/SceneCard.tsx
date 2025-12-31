@@ -69,63 +69,62 @@ export function SceneCard({
     >
       <Card className="glass border-white/10 overflow-hidden">
         <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Scene Number */}
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center font-bold text-emerald-400">
-                  {scene.number || index + 1}
+          <CardHeader className="p-2">
+            <div className="flex items-center gap-2">
+              {/* Scene Image or Placeholder */}
+              {scene.imageUrl ? (
+                <button
+                  onClick={() => onPreviewImage(scene.imageUrl!)}
+                  className="relative w-48 h-32 rounded-lg overflow-hidden group flex-shrink-0"
+                >
+                  <img
+                    src={scene.imageUrl}
+                    alt={scene.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-black/60 flex items-center justify-center font-bold text-emerald-400 text-sm">
+                    {scene.number || index + 1}
+                  </div>
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Expand className="w-6 h-6 text-white" />
+                  </div>
+                </button>
+              ) : (
+                <div className="relative w-48 h-32 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
+                  <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-emerald-500/20 flex items-center justify-center font-bold text-emerald-400 text-sm">
+                    {scene.number || index + 1}
+                  </div>
+                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
                 </div>
+              )}
 
-                {/* Scene Image or Placeholder */}
-                {scene.imageUrl ? (
-                  <button
-                    onClick={() => onPreviewImage(scene.imageUrl!)}
-                    className="relative w-16 h-10 rounded-lg overflow-hidden group"
-                  >
-                    <img
-                      src={scene.imageUrl}
-                      alt={scene.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Expand className="w-4 h-4 text-white" />
-                    </div>
-                  </button>
-                ) : (
-                  <div className="w-16 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-                    <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                )}
-
-                <div>
-                  <CardTitle className="text-base">{scene.title}</CardTitle>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">
-                      <Camera className="w-3 h-3 mr-1" />
-                      {scene.cameraShot}
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-base truncate">{scene.title}</CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">
+                    <Camera className="w-3 h-3 mr-1" />
+                    {scene.cameraShot}
+                  </Badge>
+                  {scene.dialogue.length > 0 && (
+                    <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400">
+                      <MessageSquare className="w-3 h-3 mr-1" />
+                      {scene.dialogue.length}
                     </Badge>
-                    {scene.dialogue.length > 0 && (
-                      <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400">
-                        <MessageSquare className="w-3 h-3 mr-1" />
-                        {scene.dialogue.length}
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={onDelete}
-                  className="text-muted-foreground hover:text-red-400"
+                  className="text-muted-foreground hover:text-red-400 h-8 w-8"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
                     {isExpanded ? (
                       <ChevronUp className="w-4 h-4" />
                     ) : (

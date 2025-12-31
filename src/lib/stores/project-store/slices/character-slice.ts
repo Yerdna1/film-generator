@@ -5,7 +5,7 @@ import { debounceSync } from '../utils';
 
 export interface CharacterSlice {
   addCharacter: (projectId: string, character: Omit<Character, 'id'>) => Promise<void>;
-  updateCharacter: (projectId: string, characterId: string, updates: Partial<Character>) => void;
+  updateCharacter: (projectId: string, characterId: string, updates: Partial<Character>) => Promise<void>;
   deleteCharacter: (projectId: string, characterId: string) => Promise<void>;
 }
 
@@ -66,27 +66,10 @@ export const createCharacterSlice: StateCreator<CharacterSlice> = (set, get) => 
     }
   },
 
-  updateCharacter: (projectId, characterId, updates) => {
+  updateCharacter: async (projectId, characterId, updates) => {
     const hasImageUpdate = 'imageUrl' in updates;
 
-    const syncToDb = async () => {
-      try {
-        await fetch(`/api/projects/${projectId}/characters/${characterId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        });
-      } catch (error) {
-        console.error('Error syncing character update to DB:', error);
-      }
-    };
-
-    if (hasImageUpdate) {
-      syncToDb();
-    } else {
-      debounceSync(syncToDb);
-    }
-
+    // Update local state first for responsive UI
     try {
       set((state) => ({
         projects: state.projects.map((p) =>
@@ -111,6 +94,30 @@ export const createCharacterSlice: StateCreator<CharacterSlice> = (set, get) => 
       }));
     } catch (error) {
       console.warn('LocalStorage update failed (quota exceeded), but data is synced to DB:', error);
+    }
+
+    // Sync to DB - await for image updates to ensure they're saved
+    const syncToDb = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/characters/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        if (!response.ok) {
+          console.error('Failed to sync character to DB:', await response.text());
+        }
+      } catch (error) {
+        console.error('Error syncing character update to DB:', error);
+      }
+    };
+
+    if (hasImageUpdate) {
+      // For image updates, await the sync to ensure it's saved
+      await syncToDb();
+    } else {
+      // For other updates, debounce to avoid too many requests
+      debounceSync(syncToDb);
     }
   },
 

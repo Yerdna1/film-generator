@@ -39,6 +39,7 @@ export async function GET() {
         modalLlmEndpoint: '',
         modalTtsEndpoint: '',
         modalImageEndpoint: '',
+        modalImageEditEndpoint: '',
         modalVideoEndpoint: '',
         modalMusicEndpoint: '',
       });
@@ -65,6 +66,7 @@ export async function GET() {
       modalLlmEndpoint: apiKeys.modalLlmEndpoint || '',
       modalTtsEndpoint: apiKeys.modalTtsEndpoint || '',
       modalImageEndpoint: apiKeys.modalImageEndpoint || '',
+      modalImageEditEndpoint: apiKeys.modalImageEditEndpoint || '',
       modalVideoEndpoint: apiKeys.modalVideoEndpoint || '',
       modalMusicEndpoint: apiKeys.modalMusicEndpoint || '',
     });
@@ -109,6 +111,7 @@ export async function POST(request: NextRequest) {
       modalLlmEndpoint,
       modalTtsEndpoint,
       modalImageEndpoint,
+      modalImageEditEndpoint,
       modalVideoEndpoint,
       modalMusicEndpoint,
     } = body;
@@ -134,6 +137,7 @@ export async function POST(request: NextRequest) {
         ...(modalLlmEndpoint !== undefined && { modalLlmEndpoint }),
         ...(modalTtsEndpoint !== undefined && { modalTtsEndpoint }),
         ...(modalImageEndpoint !== undefined && { modalImageEndpoint }),
+        ...(modalImageEditEndpoint !== undefined && { modalImageEditEndpoint }),
         ...(modalVideoEndpoint !== undefined && { modalVideoEndpoint }),
         ...(modalMusicEndpoint !== undefined && { modalMusicEndpoint }),
       },
@@ -157,6 +161,7 @@ export async function POST(request: NextRequest) {
         modalLlmEndpoint: modalLlmEndpoint || null,
         modalTtsEndpoint: modalTtsEndpoint || null,
         modalImageEndpoint: modalImageEndpoint || null,
+        modalImageEditEndpoint: modalImageEditEndpoint || null,
         modalVideoEndpoint: modalVideoEndpoint || null,
         modalMusicEndpoint: modalMusicEndpoint || null,
       },

@@ -138,14 +138,15 @@ model ApiKeys {
   llmProvider      String   @default("openrouter") // "openrouter" | "claude-sdk" | "modal"
   musicProvider    String   @default("piapi") // "piapi" | "suno" | "modal"
   ttsProvider      String   @default("gemini-tts") // "gemini-tts" | "elevenlabs" | "modal"
-  imageProvider    String   @default("gemini") // "gemini" | "nanoBanana" | "modal"
+  imageProvider    String   @default("gemini") // "gemini" | "modal" | "modal-edit"
   videoProvider    String   @default("kie") // "kie" | "modal"
   // Modal.com self-hosted endpoints
-  modalLlmEndpoint   String?  // e.g., https://your-app--llm.modal.run
-  modalTtsEndpoint   String?  // e.g., https://your-app--tts.modal.run
-  modalImageEndpoint String?  // e.g., https://your-app--image.modal.run
-  modalVideoEndpoint String?  // e.g., https://your-app--video.modal.run
-  modalMusicEndpoint String?  // e.g., https://your-app--ace-step.modal.run (ACE-Step)
+  modalLlmEndpoint       String?  // e.g., https://your-app--llm.modal.run
+  modalTtsEndpoint       String?  // e.g., https://your-app--tts.modal.run
+  modalImageEndpoint     String?  // e.g., https://your-app--image.modal.run
+  modalImageEditEndpoint String?  // e.g., https://your-app--image-edit.modal.run (Qwen-Image-Edit)
+  modalVideoEndpoint     String?  // e.g., https://your-app--video.modal.run
+  modalMusicEndpoint     String?  // e.g., https://your-app--ace-step.modal.run (ACE-Step)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -5,7 +5,7 @@ import { debounceSync } from '../utils';
 
 export interface SceneSlice {
   addScene: (projectId: string, scene: Omit<Scene, 'id'>) => Promise<void>;
-  updateScene: (projectId: string, sceneId: string, updates: Partial<Scene>) => void;
+  updateScene: (projectId: string, sceneId: string, updates: Partial<Scene>) => Promise<void>;
   deleteScene: (projectId: string, sceneId: string) => Promise<void>;
   setScenes: (projectId: string, scenes: Scene[]) => void;
 }
@@ -67,27 +67,10 @@ export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
     }
   },
 
-  updateScene: (projectId, sceneId, updates) => {
+  updateScene: async (projectId, sceneId, updates) => {
     const hasMediaUpdate = 'imageUrl' in updates || 'videoUrl' in updates || 'audioUrl' in updates;
 
-    const syncToDb = async () => {
-      try {
-        await fetch(`/api/projects/${projectId}/scenes/${sceneId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        });
-      } catch (error) {
-        console.error('Error syncing scene update to DB:', error);
-      }
-    };
-
-    if (hasMediaUpdate) {
-      syncToDb();
-    } else {
-      debounceSync(syncToDb);
-    }
-
+    // Update local state first for responsive UI
     try {
       set((state) => ({
         projects: state.projects.map((p) =>
@@ -112,6 +95,30 @@ export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
       }));
     } catch (error) {
       console.warn('LocalStorage update failed (quota exceeded), but data is synced to DB:', error);
+    }
+
+    // Sync to DB - await for media updates to ensure they're saved
+    const syncToDb = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/scenes/${sceneId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        if (!response.ok) {
+          console.error('Failed to sync scene to DB:', await response.text());
+        }
+      } catch (error) {
+        console.error('Error syncing scene update to DB:', error);
+      }
+    };
+
+    if (hasMediaUpdate) {
+      // For media updates (images, videos, audio), await the sync to ensure it's saved
+      await syncToDb();
+    } else {
+      // For other updates, debounce to avoid too many requests
+      debounceSync(syncToDb);
     }
   },
 

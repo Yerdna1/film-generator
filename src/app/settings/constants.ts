@@ -235,7 +235,7 @@ export const ttsProviderOptions: TTSProviderOption[] = [
 
 // Image Provider options for image generation
 export interface ImageProviderOption {
-  id: 'gemini' | 'modal';
+  id: 'gemini' | 'modal' | 'modal-edit';
   name: string;
   description: string;
   requiresApiKey: boolean;
@@ -254,11 +254,19 @@ export const imageProviderOptions: ImageProviderOption[] = [
   },
   {
     id: 'modal',
-    name: 'Modal (Self-Hosted)',
-    description: 'Self-hosted image model (e.g., FLUX, Stable Diffusion) on Modal.com.',
+    name: 'Modal Qwen-Image',
+    description: 'Self-hosted Qwen-Image (20B) - fast general image generation.',
     requiresApiKey: false,
     requiresEndpoint: true,
     endpointField: 'modalImageEndpoint',
+  },
+  {
+    id: 'modal-edit',
+    name: 'Modal Qwen-Image-Edit (Best Consistency)',
+    description: 'Qwen-Image-Edit-2511 - uses reference images for character consistency.',
+    requiresApiKey: false,
+    requiresEndpoint: true,
+    endpointField: 'modalImageEditEndpoint',
   },
 ];
 
@@ -335,6 +343,13 @@ export const modalEndpoints: ModalEndpointConfig[] = [
     description: 'Self-hosted ACE-Step music generation - 4min music in 20s',
     placeholder: 'https://your-app--ace-step.modal.run',
     docsUrl: 'https://modal.com/docs/examples/generate_music',
+  },
+  {
+    id: 'modalImageEditEndpoint',
+    name: 'Image Edit Endpoint (Qwen-Edit)',
+    description: 'Qwen-Image-Edit-2511 - uses reference images for character consistency',
+    placeholder: 'https://your-app--image-edit.modal.run',
+    docsUrl: 'https://huggingface.co/Qwen/Qwen-Image-Edit-2511',
   },
 ];
 

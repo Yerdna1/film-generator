@@ -238,7 +238,7 @@ export function useSceneGenerator(initialProject: Project) {
       }
 
       const { imageUrl } = await response.json();
-      updateScene(project.id, scene.id, { imageUrl });
+      await updateScene(project.id, scene.id, { imageUrl });
 
       window.dispatchEvent(new CustomEvent('credits-updated'));
     } catch (error) {
@@ -281,7 +281,7 @@ export function useSceneGenerator(initialProject: Project) {
 
         setGeneratingImageForScene(scene.id);
 
-        const response = await fetch('/api/gemini/image', {
+        const response = await fetch('/api/image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -307,7 +307,8 @@ export function useSceneGenerator(initialProject: Project) {
         }
 
         const { imageUrl } = await response.json();
-        updateScene(project.id, scene.id, { imageUrl });
+        await updateScene(project.id, scene.id, { imageUrl });
+        console.log(`[Scene ${scene.number}] Image saved to DB`);
 
         window.dispatchEvent(new CustomEvent('credits-updated'));
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -333,7 +334,7 @@ export function useSceneGenerator(initialProject: Project) {
     // Clear all existing images first
     for (const scene of project.scenes) {
       if (scene.imageUrl) {
-        updateScene(project.id, scene.id, { imageUrl: undefined });
+        await updateScene(project.id, scene.id, { imageUrl: undefined });
       }
     }
     // Small delay to ensure state updates

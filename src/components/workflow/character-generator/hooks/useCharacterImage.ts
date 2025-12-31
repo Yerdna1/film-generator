@@ -52,7 +52,8 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
       if (response.ok) {
         const data = await response.json();
         if (data.imageUrl) {
-          updateCharacter(project.id, character.id, { imageUrl: data.imageUrl });
+          await updateCharacter(project.id, character.id, { imageUrl: data.imageUrl });
+          console.log(`[Character ${character.name}] Image saved to DB`);
           setImageStates((prev) => ({
             ...prev,
             [character.id]: { status: 'complete', progress: 100 },

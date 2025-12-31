@@ -42,7 +42,8 @@ interface SceneHeaderProps {
 
 const IMAGE_PROVIDER_LABELS: Record<ImageProvider, string> = {
   gemini: 'Gemini',
-  modal: 'Modal',
+  modal: 'Modal Qwen',
+  'modal-edit': 'Qwen-Edit',
 };
 
 export function SceneHeader({

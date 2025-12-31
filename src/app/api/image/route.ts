@@ -1,5 +1,5 @@
 // Unified Image API Route - Routes to appropriate provider based on user settings
-// Supports: Gemini, Modal (self-hosted)
+// Supports: Gemini, Modal (Qwen-Image), Modal-Edit (Qwen-Image-Edit for character consistency)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
@@ -139,19 +139,30 @@ async function generateWithModal(
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('[Modal] Response not OK:', response.status, errorText);
     throw new Error(`Modal image generation failed: ${errorText}`);
   }
 
-  const data = await response.json();
+  console.log('[Modal] Response OK, parsing JSON...');
+  let data;
+  try {
+    data = await response.json();
+    console.log('[Modal] Response keys:', Object.keys(data));
+  } catch (parseError) {
+    console.error('[Modal] JSON parse error:', parseError);
+    throw new Error(`Failed to parse Modal response: ${parseError}`);
+  }
 
   // Modal endpoint should return { image: base64 } or { imageUrl: url }
   let imageUrl: string;
   if (data.image) {
     // Base64 image returned
+    console.log('[Modal] Got image field, length:', data.image.length);
     imageUrl = data.image.startsWith('data:') ? data.image : `data:image/png;base64,${data.image}`;
   } else if (data.imageUrl) {
     imageUrl = data.imageUrl;
   } else {
+    console.error('[Modal] No image field in response:', data);
     throw new Error('Modal endpoint did not return an image');
   }
 
@@ -160,17 +171,125 @@ async function generateWithModal(
   const creditCost = getImageCreditCost(resolution);
 
   if (userId) {
-    await spendCredits(userId, creditCost, 'image', `Modal image generation (${resolution.toUpperCase()})`, projectId, 'modal', undefined, realCost);
+    console.log('[Modal] Spending credits:', creditCost);
+    try {
+      await spendCredits(userId, creditCost, 'image', `Modal image generation (${resolution.toUpperCase()})`, projectId, 'modal', undefined, realCost);
+      console.log('[Modal] Credits spent successfully');
+    } catch (creditError) {
+      console.error('[Modal] Credit spending error:', creditError);
+      throw creditError;
+    }
   }
 
   // Upload to S3 if configured and we got base64
   if (isS3Configured() && imageUrl.startsWith('data:')) {
-    const uploadResult = await uploadImageToS3(imageUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      imageUrl = uploadResult.url;
+    console.log('[Modal] Uploading to S3...');
+    try {
+      const uploadResult = await uploadImageToS3(imageUrl, projectId);
+      console.log('[Modal] S3 upload result:', uploadResult.success, uploadResult.url?.slice(0, 50));
+      if (uploadResult.success && uploadResult.url) {
+        imageUrl = uploadResult.url;
+      }
+    } catch (s3Error) {
+      console.error('[Modal] S3 upload error:', s3Error);
+      // Continue with base64 if S3 fails
     }
   }
 
+  console.log('[Modal] Returning imageUrl length:', imageUrl.length);
+  return { imageUrl, cost: realCost, storage: imageUrl.startsWith('data:') ? 'base64' : 's3' };
+}
+
+// Generate image using Modal-Edit (Qwen-Image-Edit-2511) with reference images for character consistency
+async function generateWithModalEdit(
+  prompt: string,
+  aspectRatio: string,
+  resolution: ImageResolution,
+  projectId: string | undefined,
+  modalEndpoint: string,
+  referenceImages: Array<{ name: string; imageUrl: string }>,
+  userId: string | undefined
+): Promise<{ imageUrl: string; cost: number; storage: string }> {
+  console.log('[Modal-Edit] Generating image with endpoint:', modalEndpoint);
+  console.log('[Modal-Edit] Reference images:', referenceImages.length);
+
+  // Prepare reference images as base64 for the Modal endpoint
+  const refImageUrls: string[] = [];
+  for (const ref of referenceImages) {
+    if (ref.imageUrl) {
+      refImageUrls.push(ref.imageUrl);
+    }
+  }
+
+  const response = await fetch(modalEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      aspect_ratio: aspectRatio,
+      reference_images: refImageUrls,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[Modal-Edit] Response not OK:', response.status, errorText);
+    throw new Error(`Modal-Edit image generation failed: ${errorText}`);
+  }
+
+  console.log('[Modal-Edit] Response OK, parsing JSON...');
+  let data;
+  try {
+    data = await response.json();
+    console.log('[Modal-Edit] Response keys:', Object.keys(data));
+  } catch (parseError) {
+    console.error('[Modal-Edit] JSON parse error:', parseError);
+    throw new Error(`Failed to parse Modal-Edit response: ${parseError}`);
+  }
+
+  // Modal endpoint should return { image: base64 } or { imageUrl: url }
+  let imageUrl: string;
+  if (data.image) {
+    console.log('[Modal-Edit] Got image field, length:', data.image.length);
+    imageUrl = data.image.startsWith('data:') ? data.image : `data:image/png;base64,${data.image}`;
+  } else if (data.imageUrl) {
+    imageUrl = data.imageUrl;
+  } else {
+    console.error('[Modal-Edit] No image field in response:', data);
+    throw new Error('Modal-Edit endpoint did not return an image');
+  }
+
+  // Modal is self-hosted, so we track minimal cost (just credits for tracking)
+  const realCost = 0; // Self-hosted = no API cost
+  const creditCost = getImageCreditCost(resolution);
+
+  if (userId) {
+    console.log('[Modal-Edit] Spending credits:', creditCost);
+    try {
+      await spendCredits(userId, creditCost, 'image', `Modal-Edit image generation (${resolution.toUpperCase()})`, projectId, 'modal-edit', undefined, realCost);
+      console.log('[Modal-Edit] Credits spent successfully');
+    } catch (creditError) {
+      console.error('[Modal-Edit] Credit spending error:', creditError);
+      throw creditError;
+    }
+  }
+
+  // Upload to S3 if configured and we got base64
+  if (isS3Configured() && imageUrl.startsWith('data:')) {
+    console.log('[Modal-Edit] Uploading to S3...');
+    try {
+      const uploadResult = await uploadImageToS3(imageUrl, projectId);
+      console.log('[Modal-Edit] S3 upload result:', uploadResult.success, uploadResult.url?.slice(0, 50));
+      if (uploadResult.success && uploadResult.url) {
+        imageUrl = uploadResult.url;
+      }
+    } catch (s3Error) {
+      console.error('[Modal-Edit] S3 upload error:', s3Error);
+      // Continue with base64 if S3 fails
+    }
+  }
+
+  console.log('[Modal-Edit] Returning imageUrl length:', imageUrl.length);
   return { imageUrl, cost: realCost, storage: imageUrl.startsWith('data:') ? 'base64' : 's3' };
 }
 
@@ -186,6 +305,7 @@ export async function POST(request: NextRequest) {
     let imageProvider: ImageProvider = 'gemini';
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let modalImageEndpoint: string | null = null;
+    let modalImageEditEndpoint: string | null = null;
 
     if (session?.user?.id) {
       const userApiKeys = await prisma.apiKeys.findUnique({
@@ -201,6 +321,7 @@ export async function POST(request: NextRequest) {
           geminiApiKey = userApiKeys.geminiApiKey;
         }
         modalImageEndpoint = userApiKeys.modalImageEndpoint;
+        modalImageEditEndpoint = userApiKeys.modalImageEditEndpoint;
       }
 
       // Pre-check credit balance
@@ -219,6 +340,18 @@ export async function POST(request: NextRequest) {
     console.log(`[Image] Using provider: ${imageProvider}`);
 
     // Route to appropriate provider
+    if (imageProvider === 'modal-edit') {
+      if (!modalImageEditEndpoint) {
+        return NextResponse.json(
+          { error: 'Modal Image-Edit endpoint not configured. Please add your endpoint URL in Settings.' },
+          { status: 400 }
+        );
+      }
+
+      const result = await generateWithModalEdit(prompt, aspectRatio, resolution, projectId, modalImageEditEndpoint, referenceImages, session?.user?.id);
+      return NextResponse.json(result);
+    }
+
     if (imageProvider === 'modal') {
       if (!modalImageEndpoint) {
         return NextResponse.json(
