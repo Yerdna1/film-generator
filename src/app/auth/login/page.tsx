@@ -34,6 +34,7 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState(authError === 'CredentialsSignin' ? 'Invalid email or password' : '');
 
+  // Check if Google OAuth is enabled via environment variable
   const isGoogleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
 
   const handleSubmit = async (e: React.FormEvent) => {
