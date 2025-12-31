@@ -1,7 +1,8 @@
 'use client';
 
 import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
-import type { Project } from '@/types/project';
+import type { Project, ImageProvider } from '@/types/project';
+import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks/useSceneGenerator';
 import {
   SceneHeader,
@@ -18,6 +19,8 @@ interface Step3Props {
 }
 
 export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
+  const { apiConfig } = useProjectStore();
+  const imageProvider: ImageProvider = apiConfig.imageProvider || 'gemini';
 
   const {
     // Project data
@@ -72,6 +75,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         scenesWithImages={scenesWithImages}
         imageResolution={imageResolution}
         aspectRatio={sceneAspectRatio}
+        imageProvider={imageProvider}
         hasCharacters={project.characters.length > 0}
         isGeneratingScenes={isGeneratingScenes}
         onSceneCountChange={handleSceneCountChange}

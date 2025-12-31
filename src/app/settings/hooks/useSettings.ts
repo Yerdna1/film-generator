@@ -203,11 +203,22 @@ export function useSettings() {
     });
   }, [tPage]);
 
-  const handleLLMProviderChange = useCallback((provider: LLMProvider) => {
+  const handleLLMProviderChange = useCallback(async (provider: LLMProvider) => {
     setLLMProvider(provider);
     localStorage.setItem('app-llm-provider', provider);
-    // Also save to apiConfig for persistence in the store
     setApiConfig({ llmProvider: provider });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ llmProvider: provider }),
+      });
+    } catch (error) {
+      console.error('Failed to sync llmProvider to database:', error);
+    }
+
     const descriptions: Record<LLMProvider, string> = {
       'openrouter': tPage('toasts.llmProviderOpenRouter') || 'Using OpenRouter for scene generation',
       'claude-sdk': tPage('toasts.llmProviderClaudeSDK') || 'Using Claude SDK/CLI for scene generation',
@@ -219,11 +230,22 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
-  const handleOpenRouterModelChange = useCallback((model: string) => {
+  const handleOpenRouterModelChange = useCallback(async (model: string) => {
     setOpenRouterModel(model);
     localStorage.setItem('app-openrouter-model', model);
-    // Also save to apiConfig for persistence in the store
     setApiConfig({ openRouterModel: model });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ openRouterModel: model }),
+      });
+    } catch (error) {
+      console.error('Failed to sync openRouterModel to database:', error);
+    }
+
     toast.success(
       tPage('toasts.modelChanged') || 'Model updated',
       {
@@ -232,10 +254,22 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
-  const handleMusicProviderChange = useCallback((provider: MusicProvider) => {
+  const handleMusicProviderChange = useCallback(async (provider: MusicProvider) => {
     setMusicProvider(provider);
     localStorage.setItem('app-music-provider', provider);
     setApiConfig({ musicProvider: provider });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ musicProvider: provider }),
+      });
+    } catch (error) {
+      console.error('Failed to sync musicProvider to database:', error);
+    }
+
     const descriptions: Record<MusicProvider, string> = {
       'piapi': tPage('toasts.musicProviderPiAPI') || 'Using PiAPI for music generation',
       'suno': tPage('toasts.musicProviderSuno') || 'Using Suno AI for music generation',
@@ -247,10 +281,22 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
-  const handleTTSProviderChange = useCallback((provider: TTSProvider) => {
+  const handleTTSProviderChange = useCallback(async (provider: TTSProvider) => {
     setTTSProvider(provider);
     localStorage.setItem('app-tts-provider', provider);
     setApiConfig({ ttsProvider: provider });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ttsProvider: provider }),
+      });
+    } catch (error) {
+      console.error('Failed to sync ttsProvider to database:', error);
+    }
+
     const descriptions: Record<TTSProvider, string> = {
       'gemini-tts': tPage('toasts.ttsProviderGemini') || 'Using Gemini TTS for voiceovers',
       'elevenlabs': tPage('toasts.ttsProviderElevenLabs') || 'Using ElevenLabs for voiceovers',
@@ -262,10 +308,22 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
-  const handleImageProviderChange = useCallback((provider: ImageProvider) => {
+  const handleImageProviderChange = useCallback(async (provider: ImageProvider) => {
     setImageProvider(provider);
     localStorage.setItem('app-image-provider', provider);
     setApiConfig({ imageProvider: provider });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageProvider: provider }),
+      });
+    } catch (error) {
+      console.error('Failed to sync imageProvider to database:', error);
+    }
+
     const descriptions: Record<ImageProvider, string> = {
       'gemini': tPage('toasts.imageProviderGemini') || 'Using Gemini for image generation',
       'nanoBanana': tPage('toasts.imageProviderNanoBanana') || 'Using Nano Banana for images',
@@ -277,10 +335,22 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
-  const handleVideoProviderChange = useCallback((provider: VideoProvider) => {
+  const handleVideoProviderChange = useCallback(async (provider: VideoProvider) => {
     setVideoProvider(provider);
     localStorage.setItem('app-video-provider', provider);
     setApiConfig({ videoProvider: provider });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoProvider: provider }),
+      });
+    } catch (error) {
+      console.error('Failed to sync videoProvider to database:', error);
+    }
+
     const descriptions: Record<VideoProvider, string> = {
       'kie': tPage('toasts.videoProviderKie') || 'Using Kie.ai for video generation',
       'modal': tPage('toasts.videoProviderModal') || 'Using self-hosted model on Modal.com',

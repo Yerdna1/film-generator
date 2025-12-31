@@ -23,6 +23,7 @@ import {
   type ImageResolution,
   type AspectRatio,
 } from '@/lib/services/real-costs';
+import type { ImageProvider } from '@/types/project';
 
 interface SceneHeaderProps {
   sceneCount: number;
@@ -30,6 +31,7 @@ interface SceneHeaderProps {
   scenesWithImages: number;
   imageResolution: ImageResolution;
   aspectRatio: AspectRatio;
+  imageProvider: ImageProvider;
   hasCharacters: boolean;
   isGeneratingScenes: boolean;
   onSceneCountChange: (value: string) => void;
@@ -38,12 +40,19 @@ interface SceneHeaderProps {
   onGenerateAllScenes: () => void;
 }
 
+const IMAGE_PROVIDER_LABELS: Record<ImageProvider, string> = {
+  gemini: 'Gemini',
+  nanoBanana: 'Nano Banana',
+  modal: 'Modal',
+};
+
 export function SceneHeader({
   sceneCount,
   totalScenes,
   scenesWithImages,
   imageResolution,
   aspectRatio,
+  imageProvider,
   hasCharacters,
   isGeneratingScenes,
   onSceneCountChange,
@@ -134,7 +143,10 @@ export function SceneHeader({
             </Select>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Badge variant="outline" className="border-purple-500/30 text-purple-400">
+              {IMAGE_PROVIDER_LABELS[imageProvider]}
+            </Badge>
             <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
               {totalScenes} / {sceneCount} {t('steps.scenes.scenesLabel')}
             </Badge>
