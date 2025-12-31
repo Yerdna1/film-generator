@@ -97,6 +97,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
     handleStopImageGeneration,
     handleRegenerateAllImages,
     handleStartBackgroundGeneration,
+    handleGenerateBatch,
     backgroundJobId,
     backgroundJobProgress,
     isBackgroundJobRunning,
@@ -179,6 +180,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
           }
         }}
         onGenerateAllImages={handleGenerateImages}
+        onGenerateBatch={useInngest ? handleGenerateBatch : undefined}
         onStopGeneration={handleStopImageGeneration}
         backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
       />

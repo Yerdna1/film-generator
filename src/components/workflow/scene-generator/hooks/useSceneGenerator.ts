@@ -626,7 +626,7 @@ export function useSceneGenerator(initialProject: Project) {
   }, [project, updateScene, handleGenerateAllSceneImages]);
 
   // Start background generation (Inngest) - works even when tab is closed
-  const handleStartBackgroundGeneration = useCallback(async () => {
+  const handleStartBackgroundGeneration = useCallback(async (limit?: number) => {
     if (backgroundJobId) {
       alert('A background job is already running. Please wait for it to complete.');
       return;
@@ -646,6 +646,7 @@ export function useSceneGenerator(initialProject: Project) {
           projectId: project.id,
           aspectRatio: sceneAspectRatio,
           resolution: imageResolution,
+          limit,
         }),
       });
 
@@ -662,13 +663,18 @@ export function useSceneGenerator(initialProject: Project) {
       startPolling(jobId);
 
       console.log(`[Background] Started job ${jobId} for ${totalScenes} scenes`);
-      alert(`Background generation started for ${totalScenes} scenes. You can safely close this tab - generation will continue on the server.`);
+      alert(`Background generation started for ${totalScenes} images. You can safely close this tab - generation will continue on the server.`);
 
     } catch (error) {
       console.error('Error starting background generation:', error);
       alert(`Failed to start background generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [project, backgroundJobId, sceneAspectRatio, imageResolution, startPolling]);
+
+  // Generate a batch of images (limited number)
+  const handleGenerateBatch = useCallback((batchSize: number) => {
+    handleStartBackgroundGeneration(batchSize);
+  }, [handleStartBackgroundGeneration]);
 
   return {
     // Project data
@@ -724,6 +730,7 @@ export function useSceneGenerator(initialProject: Project) {
     handleStopImageGeneration,
     handleRegenerateAllImages,
     handleStartBackgroundGeneration,
+    handleGenerateBatch,
     deleteScene: (sceneId: string) => deleteScene(project.id, sceneId),
     updateSettings: (settings: Parameters<typeof updateSettings>[1]) => updateSettings(project.id, settings),
   };

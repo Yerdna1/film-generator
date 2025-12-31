@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId, aspectRatio = '16:9', resolution = '2k' } = body;
-    console.log('[Jobs] Request body:', { projectId, aspectRatio, resolution });
+    const { projectId, aspectRatio = '16:9', resolution = '2k', limit } = body;
+    console.log('[Jobs] Request body:', { projectId, aspectRatio, resolution, limit });
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
@@ -42,11 +42,17 @@ export async function POST(request: NextRequest) {
     console.log('[Jobs] Project found:', project.scenes.length, 'scenes,', project.characters.length, 'characters');
 
     // Get scenes that need images
-    const scenesWithoutImages = project.scenes.filter(s => !s.imageUrl);
+    let scenesWithoutImages = project.scenes.filter(s => !s.imageUrl);
     console.log('[Jobs] Scenes without images:', scenesWithoutImages.length);
 
     if (scenesWithoutImages.length === 0) {
       return NextResponse.json({ error: 'All scenes already have images' }, { status: 400 });
+    }
+
+    // Apply limit if specified (for batch generation)
+    if (limit && limit > 0 && limit < scenesWithoutImages.length) {
+      scenesWithoutImages = scenesWithoutImages.slice(0, limit);
+      console.log('[Jobs] Limited to first', limit, 'scenes');
     }
 
     // Create job record
