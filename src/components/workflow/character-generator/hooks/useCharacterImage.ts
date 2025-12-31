@@ -25,7 +25,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
       }));
 
       const imageResolution = project.settings?.imageResolution || '2k';
-      const response = await fetch('/api/gemini/image', {
+      const response = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -42,7 +42,6 @@ interface SceneHeaderProps {
 
 const IMAGE_PROVIDER_LABELS: Record<ImageProvider, string> = {
   gemini: 'Gemini',
-  nanoBanana: 'Nano Banana',
   modal: 'Modal',
 };
 

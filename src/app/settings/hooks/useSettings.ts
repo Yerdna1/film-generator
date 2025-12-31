@@ -326,7 +326,6 @@ export function useSettings() {
 
     const descriptions: Record<ImageProvider, string> = {
       'gemini': tPage('toasts.imageProviderGemini') || 'Using Gemini for image generation',
-      'nanoBanana': tPage('toasts.imageProviderNanoBanana') || 'Using Nano Banana for images',
       'modal': tPage('toasts.imageProviderModal') || 'Using self-hosted model on Modal.com',
     };
     toast.success(

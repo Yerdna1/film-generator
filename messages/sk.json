@@ -330,7 +330,6 @@
     "kieKey": "Kie.ai API kľúč",
     "grokKey": "Grok API kľúč",
     "elevenLabsKey": "ElevenLabs API kľúč",
-    "nanoBananaKey": "Nano Banana API kľúč",
     "claudeKey": "Claude API kľúč",
     "saveKeys": "Uložiť API kľúče",
     "language": "Jazyk rozhrania",
@@ -532,8 +531,7 @@
     "thirdPartyServicesList": [
       "Google Gemini - Pre generovanie textu, obrázkov a slovenský TTS",
       "Kie.ai (Grok Imagine) - Pre generovanie image-to-video",
-      "ElevenLabs - Pre generovanie anglického hlasového komentára",
-      "Nano Banana - Pre vysokokvalitné generovanie obrázkov"
+      "ElevenLabs - Pre generovanie anglického hlasového komentára"
     ],
     "thirdPartyServicesNote": "Každá služba má vlastnú politiku ochrany súkromia. Keď tieto služby používate cez Generátor filmov, vaše dáta podliehajú ich príslušným politikám ochrany súkromia.",
     "cookies": "Cookies a sledovanie",
@@ -706,7 +704,6 @@
       "ttsProviderModal": "Používa sa vlastný TTS na Modal.com",
       "imageProviderChanged": "Poskytovateľ obrázkov aktualizovaný",
       "imageProviderGemini": "Používa sa Gemini pre generovanie obrázkov",
-      "imageProviderNanoBanana": "Používa sa Nano Banana pre obrázky",
       "imageProviderModal": "Používa sa vlastný model na Modal.com",
       "videoProviderChanged": "Poskytovateľ videa aktualizovaný",
       "videoProviderKie": "Používa sa Kie.ai pre generovanie videa",

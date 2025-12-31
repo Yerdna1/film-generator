@@ -166,7 +166,7 @@ export type MusicProvider = 'piapi' | 'suno' | 'modal';
 export type TTSProvider = 'gemini-tts' | 'elevenlabs' | 'modal';
 
 // Image Provider selection for image generation
-export type ImageProvider = 'gemini' | 'nanoBanana' | 'modal';
+export type ImageProvider = 'gemini' | 'modal';
 
 // Video Provider selection for video generation
 export type VideoProvider = 'kie' | 'modal';
@@ -186,7 +186,6 @@ export interface ApiConfig {
   grokApiKey?: string;
   kieApiKey?: string;  // Kie.ai API key for Grok Imagine
   elevenLabsApiKey?: string;
-  nanoBananaApiKey?: string;
   claudeApiKey?: string;
   openRouterApiKey?: string;  // OpenRouter API key for LLM access
   openRouterModel?: string;  // OpenRouter model ID (e.g., 'anthropic/claude-sonnet-4')

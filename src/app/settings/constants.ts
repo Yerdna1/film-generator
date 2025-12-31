@@ -235,7 +235,7 @@ export const ttsProviderOptions: TTSProviderOption[] = [
 
 // Image Provider options for image generation
 export interface ImageProviderOption {
-  id: 'gemini' | 'nanoBanana' | 'modal';
+  id: 'gemini' | 'modal';
   name: string;
   description: string;
   requiresApiKey: boolean;
@@ -251,13 +251,6 @@ export const imageProviderOptions: ImageProviderOption[] = [
     description: 'Google Gemini for image generation. High quality, good pricing.',
     requiresApiKey: true,
     apiKeyField: 'geminiApiKey',
-  },
-  {
-    id: 'nanoBanana',
-    name: 'Nano Banana',
-    description: 'Alternative image generation provider.',
-    requiresApiKey: true,
-    apiKeyField: 'nanoBananaApiKey',
   },
   {
     id: 'modal',
@@ -391,15 +384,6 @@ export const apiProviders: ApiProvider[] = [
     color: 'text-orange-300',
     bgColor: 'bg-orange-400/20',
     link: 'https://console.x.ai',
-  },
-  {
-    key: 'nanoBananaApiKey',
-    name: 'Nano Banana',
-    description: 'High-quality image generation',
-    icon: ImageIcon,
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-500/20',
-    link: 'https://nano-banana.com',
   },
   {
     key: 'claudeApiKey',

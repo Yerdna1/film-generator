@@ -330,7 +330,6 @@
     "kieKey": "Kie.ai API Key",
     "grokKey": "Grok API Key",
     "elevenLabsKey": "ElevenLabs API Key",
-    "nanoBananaKey": "Nano Banana API Key",
     "claudeKey": "Claude API Key",
     "saveKeys": "Save API Keys",
     "language": "Interface Language",
@@ -532,8 +531,7 @@
     "thirdPartyServicesList": [
       "Google Gemini - For text generation, image generation, and Slovak TTS",
       "Kie.ai (Grok Imagine) - For image-to-video generation",
-      "ElevenLabs - For English voiceover generation",
-      "Nano Banana - For high-quality image generation"
+      "ElevenLabs - For English voiceover generation"
     ],
     "thirdPartyServicesNote": "Each service has its own privacy policy. When you use these services through Film Generator, your data is subject to their respective privacy policies.",
     "cookies": "Cookies & Tracking",
@@ -706,7 +704,6 @@
       "ttsProviderModal": "Using self-hosted TTS on Modal.com",
       "imageProviderChanged": "Image Provider Updated",
       "imageProviderGemini": "Using Gemini for image generation",
-      "imageProviderNanoBanana": "Using Nano Banana for images",
       "imageProviderModal": "Using self-hosted model on Modal.com",
       "videoProviderChanged": "Video Provider Updated",
       "videoProviderKie": "Using Kie.ai for video generation",
