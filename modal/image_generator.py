@@ -21,7 +21,7 @@ image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git")
     .pip_install(
-        "torch==2.4.0",
+        "torch>=2.5.0",  # Qwen-Image requires PyTorch 2.5+ for enable_gqa
         "git+https://github.com/huggingface/diffusers",
         "transformers>=4.44.0",
         "accelerate>=0.33.0",
