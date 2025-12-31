@@ -31,14 +31,11 @@ export async function GET(request: NextRequest) {
     if (!forceRefresh) {
       const cachedData = cache.get<object>(cacheKey);
       if (cachedData) {
-        console.log(`[Cache HIT] Credits for user ${userId}`);
         return NextResponse.json(cachedData, {
           headers: { 'X-Cache': 'HIT' },
         });
       }
     }
-
-    console.log(`[Cache MISS] Fetching credits from DB for user ${userId}`);
 
     const credits = await getOrCreateCredits(userId);
 

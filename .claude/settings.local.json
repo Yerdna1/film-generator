@@ -55,7 +55,8 @@
       "mcp__playwright__browser_network_requests",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" DIRECT_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" npx prisma db push:*)",
       "Bash(npx prisma generate:*)",
-      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" node:*)"
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" node:*)",
+      "mcp__playwright__browser_handle_dialog"
     ]
   }
 }

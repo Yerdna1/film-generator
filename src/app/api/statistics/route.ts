@@ -22,14 +22,12 @@ export async function GET(request: NextRequest) {
     if (!forceRefresh) {
       const cachedStats = cache.get<object>(cacheKey);
       if (cachedStats) {
-        console.log(`[Cache HIT] Statistics for user ${userId}`);
         return NextResponse.json(cachedStats, {
           headers: { 'X-Cache': 'HIT' },
         });
       }
     }
 
-    console.log(`[Cache MISS] Fetching statistics from DB for user ${userId}`);
 
     // Get user statistics
     const statistics = await getUserStatistics(userId);
@@ -88,7 +86,6 @@ export async function GET(request: NextRequest) {
 
     // Cache for 1 hour
     cache.set(cacheKey, responseData, cacheTTL.LONG);
-    console.log(`[Cache SET] Statistics cached for 2 hours`);
 
     return NextResponse.json(responseData, {
       headers: { 'X-Cache': 'MISS' },

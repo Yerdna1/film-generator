@@ -26,14 +26,12 @@ export async function GET(request: NextRequest) {
     if (!forceRefresh) {
       const cachedProjects = cache.get<unknown[]>(cacheKey);
       if (cachedProjects) {
-        console.log(`[Cache HIT] Projects for user ${userId}`);
         return NextResponse.json(cachedProjects, {
           headers: { 'X-Cache': 'HIT' },
         });
       }
     }
 
-    console.log(`[Cache MISS] Fetching projects from DB for user ${userId}`);
 
     const projects = await prisma.project.findMany({
       where: { userId },
@@ -89,7 +87,6 @@ export async function GET(request: NextRequest) {
 
     // Cache for 2 hours
     cache.set(cacheKey, transformedProjects, cacheTTL.LONG);
-    console.log(`[Cache SET] Projects cached for 2 hours`);
 
     return NextResponse.json(transformedProjects, {
       headers: { 'X-Cache': 'MISS' },

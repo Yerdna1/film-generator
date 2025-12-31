@@ -29,14 +29,12 @@ export async function GET() {
     // Check cache first
     const cachedCosts = cache.get<GroupedCosts>(COSTS_CACHE_KEY);
     if (cachedCosts) {
-      console.log('[Cache HIT] Action costs');
       return NextResponse.json({
         costs: cachedCosts,
         cached: true,
       });
     }
 
-    console.log('[Cache MISS] Fetching action costs from DB');
 
     // Fetch all active costs from database
     const costs = await prisma.actionCost.findMany({

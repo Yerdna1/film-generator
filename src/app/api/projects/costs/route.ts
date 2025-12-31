@@ -29,14 +29,12 @@ export async function GET(request: NextRequest) {
     if (!forceRefresh) {
       const cachedCosts = cache.get<object>(cacheKey);
       if (cachedCosts) {
-        console.log(`[Cache HIT] Project costs for user ${userId}`);
         return NextResponse.json(cachedCosts, {
           headers: { 'X-Cache': 'HIT' },
         });
       }
     }
 
-    console.log(`[Cache MISS] Fetching project costs from DB for user ${userId}`);
 
     // Get cost multiplier for user
     const multiplier = await getUserCostMultiplier(userId);
@@ -85,7 +83,6 @@ export async function GET(request: NextRequest) {
 
     // Cache for 2 hours
     cache.set(cacheKey, responseData, cacheTTL.LONG);
-    console.log(`[Cache SET] Project costs cached for 2 hours`);
 
     return NextResponse.json(responseData, {
       headers: { 'X-Cache': 'MISS' },
