@@ -32,6 +32,15 @@ export async function GET() {
         piapiApiKey: '',
         llmProvider: 'openrouter', // Default to OpenRouter
         musicProvider: 'piapi', // Default to PiAPI
+        ttsProvider: 'gemini-tts', // Default to Gemini TTS
+        imageProvider: 'gemini', // Default to Gemini
+        videoProvider: 'kie', // Default to Kie.ai
+        // Modal endpoints (empty by default)
+        modalLlmEndpoint: '',
+        modalTtsEndpoint: '',
+        modalImageEndpoint: '',
+        modalVideoEndpoint: '',
+        modalMusicEndpoint: '',
       });
     }
 
@@ -49,6 +58,15 @@ export async function GET() {
       piapiApiKey: apiKeys.piapiApiKey || '',
       llmProvider: apiKeys.llmProvider || 'openrouter',
       musicProvider: apiKeys.musicProvider || 'piapi',
+      ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
+      imageProvider: apiKeys.imageProvider || 'gemini',
+      videoProvider: apiKeys.videoProvider || 'kie',
+      // Modal endpoints
+      modalLlmEndpoint: apiKeys.modalLlmEndpoint || '',
+      modalTtsEndpoint: apiKeys.modalTtsEndpoint || '',
+      modalImageEndpoint: apiKeys.modalImageEndpoint || '',
+      modalVideoEndpoint: apiKeys.modalVideoEndpoint || '',
+      modalMusicEndpoint: apiKeys.modalMusicEndpoint || '',
     });
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -85,6 +103,14 @@ export async function POST(request: NextRequest) {
       piapiApiKey,
       llmProvider,
       musicProvider,
+      ttsProvider,
+      imageProvider,
+      videoProvider,
+      modalLlmEndpoint,
+      modalTtsEndpoint,
+      modalImageEndpoint,
+      modalVideoEndpoint,
+      modalMusicEndpoint,
     } = body;
 
     const apiKeys = await prisma.apiKeys.upsert({
@@ -102,6 +128,14 @@ export async function POST(request: NextRequest) {
         ...(piapiApiKey !== undefined && { piapiApiKey }),
         ...(llmProvider !== undefined && { llmProvider }),
         ...(musicProvider !== undefined && { musicProvider }),
+        ...(ttsProvider !== undefined && { ttsProvider }),
+        ...(imageProvider !== undefined && { imageProvider }),
+        ...(videoProvider !== undefined && { videoProvider }),
+        ...(modalLlmEndpoint !== undefined && { modalLlmEndpoint }),
+        ...(modalTtsEndpoint !== undefined && { modalTtsEndpoint }),
+        ...(modalImageEndpoint !== undefined && { modalImageEndpoint }),
+        ...(modalVideoEndpoint !== undefined && { modalVideoEndpoint }),
+        ...(modalMusicEndpoint !== undefined && { modalMusicEndpoint }),
       },
       create: {
         userId: session.user.id,
@@ -117,6 +151,14 @@ export async function POST(request: NextRequest) {
         piapiApiKey: piapiApiKey || null,
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',
+        ttsProvider: ttsProvider || 'gemini-tts',
+        imageProvider: imageProvider || 'gemini',
+        videoProvider: videoProvider || 'kie',
+        modalLlmEndpoint: modalLlmEndpoint || null,
+        modalTtsEndpoint: modalTtsEndpoint || null,
+        modalImageEndpoint: modalImageEndpoint || null,
+        modalVideoEndpoint: modalVideoEndpoint || null,
+        modalMusicEndpoint: modalMusicEndpoint || null,
       },
     });
 

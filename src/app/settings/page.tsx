@@ -33,6 +33,11 @@ export default function SettingsPage() {
     projects,
     llmProvider,
     openRouterModel,
+    musicProvider,
+    ttsProvider,
+    imageProvider,
+    videoProvider,
+    modalEndpoints,
 
     // Actions
     toggleKeyVisibility,
@@ -48,6 +53,12 @@ export default function SettingsPage() {
     fetchActionCosts,
     handleLLMProviderChange,
     handleOpenRouterModelChange,
+    handleMusicProviderChange,
+    handleTTSProviderChange,
+    handleImageProviderChange,
+    handleVideoProviderChange,
+    handleModalEndpointChange,
+    handleSaveModalEndpoints,
   } = useSettings();
 
   return (
@@ -84,11 +95,22 @@ export default function SettingsPage() {
                 apiConfig={apiConfig}
                 llmProvider={llmProvider}
                 openRouterModel={openRouterModel}
+                musicProvider={musicProvider}
+                ttsProvider={ttsProvider}
+                imageProvider={imageProvider}
+                videoProvider={videoProvider}
+                modalEndpoints={modalEndpoints}
                 onToggleVisibility={toggleKeyVisibility}
                 onSaveKey={handleSaveKey}
                 onUpdateConfig={updateLocalConfig}
                 onLLMProviderChange={handleLLMProviderChange}
                 onOpenRouterModelChange={handleOpenRouterModelChange}
+                onMusicProviderChange={handleMusicProviderChange}
+                onTTSProviderChange={handleTTSProviderChange}
+                onImageProviderChange={handleImageProviderChange}
+                onVideoProviderChange={handleVideoProviderChange}
+                onModalEndpointChange={handleModalEndpointChange}
+                onSaveModalEndpoints={handleSaveModalEndpoints}
               />
             </TabsContent>
 

@@ -1,0 +1,253 @@
+navod je tu::
+
+The AI Blueprint
+
+
+
+https://www.youtube.com/watch?v=stysNDEAqVA
+-------------------------------------------------------------------------------------------
+alebo tiez tu:
+
+WealthWise
+
+https://www.youtube.com/watch?v=lYpSuTuxl9I
+
+on pouziva toto:
+
+https://www.jxp.com/z-image
+----------------------------------------------------------------------------------------------------------------------------------
+
+
+
+1.krok
+
+CHATGPT:
+treba dat velky prompt napr tento:
+
+Generate a complete creative package for a 12-scene 3D Animated Short Film (Style: High-quality Disney/Pixar 3D Render). Story Concept: "The Desert Search" — A young boy and his best friend (a furry purple monster) are driving their white delivery truck across a vast, hot desert. They are frantic, looking for their lost friend. INSTRUCTIONS FOR CONSISTENCY & SCALE: Define Characters Once: Use the Master Prompts below. CRITICAL CAMERA RULE: Do not generate wide landscape shots where characters are tiny. You must prioritize Medium Shots (waist up) and Close-ups (face focus) so the characters are large, detailed, and fill the frame. Step 1: Master Character Prompts Write two highly detailed Text-to-Image prompts to establish the look: [THE BOY]: (Write a detailed visual prompt for a 12-year-old boy in a Disney 3D style. He has a cute, expressive face, messy brown hair, and wears a blue delivery utility vest, shorts, and sneakers. He looks determined). [FUZZY]: (Write a detailed visual prompt for a cute, purple furry monster in a Disney 3D style. He has big expressive eyes, purple fur, and wears a matching blue delivery vest. He looks funny and lovable). Step 2: Scene Breakdown Generate the 12-scene script. For each scene, provide these two outputs: IMPORTANT: For every scene, specify "Medium Shot" or "Close-up" to keep characters large. (Text-to-Image Prompt): Describe the visual action. Start the prompt with "Medium Shot of..." or "Close up of..." ensuring The Boy and Fuzzy are large and clearly visible in the foreground. (Image-to-Video Prompt): Describe the movement and facial expressions. You must also include the character dialogue here.
+
+
+vysledok: 
+
+
+Below is a complete creative package designed for visual consistency, cinematic clarity, and character scale, following your CRITICAL CAMERA RULE at all times.
+
+🎬 3D Animated Short Film Package
+
+Title: The Desert Search
+Style: High-quality Disney / Pixar–style 3D render
+Tone: Emotional, adventurous, heartfelt, lightly comedic
+Setting: Sun-scorched desert highway, midday to sunset
+
+STEP 1 — MASTER CHARACTER PROMPTS
+
+(These define the characters ONCE. Reuse verbatim for consistency.)
+
+🧒 [THE BOY] — Master Character Prompt
+
+Text-to-Image Prompt:
+
+A 12-year-old boy in a high-quality Disney/Pixar 3D animation style, shown with a cute, expressive face and large, emotional eyes. He has slightly messy medium-brown hair that falls naturally over his forehead. His skin is warm-toned and sun-kissed from travel. He wears a bright blue delivery utility vest with visible stitching, small pockets, and a simple logo, over a light shirt, casual shorts, and worn sneakers. His posture is alert and determined, with subtle tension in his brows showing concern and courage. Soft cinematic lighting, detailed skin textures, smooth stylized proportions, realistic fabric folds, shallow depth of field, polished Pixar-quality render.
+
+🟣 [FUZZY] — Master Character Prompt
+
+Text-to-Image Prompt:
+
+A cute, purple furry monster in a high-quality Disney/Pixar 3D animation style. He has thick, fluffy purple fur with subtle color variation and softness, large expressive eyes full of emotion, and a round, lovable face. His body is small and slightly chubby, designed to feel huggable and friendly. He wears a matching blue delivery vest tailored for his shape, with tiny buttons and fabric seams. His expressions are exaggerated and comedic yet sincere. Highly detailed fur rendering, soft rim lighting, cinematic depth of field, polished Pixar-style proportions and textures.
+
+STEP 2 — 12-SCENE CINEMATIC BREAKDOWN
+
+⚠️ All scenes use Medium Shots or Close-ups only
+⚠️ Characters are always large and foregrounded
+
+🎞 SCENE 1 — The Heat Sets In
+
+Text-to-Image Prompt:
+Medium Shot of The Boy and Fuzzy sitting inside a white delivery truck cabin, framed waist-up through the windshield. The desert sun blazes outside, heat shimmer visible. The Boy grips the steering wheel tightly while Fuzzy leans forward nervously. Both characters are large and detailed in the foreground.
+
+Image-to-Video Prompt:
+The truck gently vibrates as it moves. The Boy squints forward, jaw tense. Fuzzy wipes imaginary sweat from his brow.
+Dialogue:
+Boy: “He should’ve met us hours ago…”
+Fuzzy: “What if he took a wrong road?”
+
+🎞 SCENE 2 — Growing Worry
+
+Text-to-Image Prompt:
+Close-up of The Boy’s face inside the truck, sweat on his forehead, eyes scanning the horizon reflected in the windshield.
+
+Image-to-Video Prompt:
+His eyes dart side to side, lips tightening with worry.
+Dialogue:
+Boy (quietly): “We’re not giving up.”
+
+🎞 SCENE 3 — Fuzzy Tries Humor
+
+Text-to-Image Prompt:
+Close-up of Fuzzy in the passenger seat, his purple fur slightly frazzled by heat, forcing a nervous smile.
+
+Image-to-Video Prompt:
+Fuzzy grins, then frowns when the joke lands flat.
+Dialogue:
+Fuzzy: “Hey… worst case, we invent a new desert delivery record?”
+
+🎞 SCENE 4 — The Empty Road
+
+Text-to-Image Prompt:
+Medium Shot of The Boy and Fuzzy inside the truck, both leaning forward, eyes wide, scanning the road ahead.
+
+Image-to-Video Prompt:
+The Boy slows the truck. Fuzzy presses his face to the glass.
+Dialogue:
+Fuzzy: “I don’t like how quiet it is.”
+Boy: “Me neither.”
+
+🎞 SCENE 5 — A Sign of Hope
+
+Text-to-Image Prompt:
+Close-up of The Boy’s face as his eyes suddenly light up, reflected sunlight flashing across his pupils.
+
+Image-to-Video Prompt:
+His expression shifts from fear to hope.
+Dialogue:
+Boy: “Wait… did you see that?”
+
+🎞 SCENE 6 — Fuzzy Spots It
+
+Text-to-Image Prompt:
+Close-up of Fuzzy pointing excitedly forward, mouth open, eyes wide.
+
+Image-to-Video Prompt:
+Fuzzy bounces in his seat, fur rippling.
+Dialogue:
+Fuzzy: “YES! Over there! Something blue!”
+
+🎞 SCENE 7 — Pulling Over
+
+Text-to-Image Prompt:
+Medium Shot of The Boy and Fuzzy jumping out of the truck, framed waist-up, desert wind blowing their clothes and fur.
+
+Image-to-Video Prompt:
+They land on the sand, turning quickly toward the distance.
+Dialogue:
+Boy: “Stay close.”
+
+🎞 SCENE 8 — Calling Out
+
+Text-to-Image Prompt:
+Medium Shot of The Boy cupping his hands and shouting, Fuzzy beside him looking anxious.
+
+Image-to-Video Prompt:
+Their voices echo faintly. Fuzzy’s ears droop.
+Dialogue:
+Boy: “Hello?!”
+Fuzzy: “We’re here!”
+
+🎞 SCENE 9 — The Response
+
+Text-to-Image Prompt:
+Close-up of both characters reacting—eyes widening at the same time.
+
+Image-to-Video Prompt:
+They freeze, then turn toward a distant sound.
+Dialogue (off-screen voice): “Help…?”
+
+🎞 SCENE 10 — Relief
+
+Text-to-Image Prompt:
+Close-up of Fuzzy’s face breaking into a huge relieved smile, eyes watering.
+
+Image-to-Video Prompt:
+Fuzzy laughs and sniffs.
+Dialogue:
+Fuzzy: “That’s him! I know that voice!”
+
+🎞 SCENE 11 — Determination
+
+Text-to-Image Prompt:
+Close-up of The Boy, eyes sharp and confident, sun flaring behind him.
+
+Image-to-Video Prompt:
+He nods firmly.
+Dialogue:
+Boy: “Let’s finish this.”
+
+🎞 SCENE 12 — Moving Forward (Ending Beat)
+
+Text-to-Image Prompt:
+Medium Shot of The Boy and Fuzzy running forward side by side, framed waist-up, smiles returning despite exhaustion.
+
+Image-to-Video Prompt:
+They run toward camera slightly, determination and hope clear on their faces.
+Dialogue:
+Fuzzy: “Best delivery ever.”
+Boy (smiling): “Not done yet.”
+
+🌟 END OF PACKAGE
+
+If you want next steps, I can:
+
+Convert this into Runway / Pika / Sora-ready prompts
+
+Add a lost friend character
+
+Write music & sound design cues
+
+Adapt this into a storyboard or shot list
+
+Just say the word.
+
+----------------------------------------------------------------------------------------------------------
+
+2.krok
+
+GEMINI AI STUDIO
+a NANO BANANA PRO 0.04 eur za fotku
+spravime zakladne postavy, cez promty, ktore spravilit chatgpt:
+
+🧒 [THE BOY] — Master Character Prompt
+
+Text-to-Image Prompt:
+
+A 12-year-old boy in a high-quality Disney/Pixar 3D animation style, shown with a cute, expressive face and large, emotional eyes. He has slightly messy medium-brown hair that falls naturally over his forehead. His skin is warm-toned and sun-kissed from travel. He wears a bright blue delivery utility vest with visible stitching, small pockets, and a simple logo, over a light shirt, casual shorts, and worn sneakers. His posture is alert and determined, with subtle tension in his brows showing concern and courage. Soft cinematic lighting, detailed skin textures, smooth stylized proportions, realistic fabric folds, shallow depth of field, polished Pixar-quality render.
+
+🟣 [FUZZY] — Master Character Prompt
+
+Text-to-Image Prompt:
+
+A cute, purple furry monster in a high-quality Disney/Pixar 3D animation style. He has thick, fluffy purple fur with subtle color variation and softness, large expressive eyes full of emotion, and a round, lovable face. His body is small and slightly chubby, designed to feel huggable and friendly. He wears a matching blue delivery vest tailored for his shape, with tiny buttons and fabric seams. His expressions are exaggerated and comedic yet sincere. Highly detailed fur rendering, soft rim lighting, cinematic depth of field, polished Pixar-style proportions and textures.
+
+--------------------------------------------------------------------------------------------------------------------------------
+2.krok tiez:
+--------------------------------------------------------------------------------------------------------------------------
+vsetkych 12 scen z GPT dame do gogle ai studia cez nano banana promptspravime
+12 obrazkov, pre kazdu scenu (spolu 12 obrazkov PRO 21:9 a 4 K)
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+
+3. krok
+
+otvorime GROK.COM/imagine
+
+upload image and pust dialogy image to video, spravi to 6 sekundove dialogue
+zopakuj to 12 x a mame 12 videi (spolu 12 x 6 sekund)
+vsetky videa stiahanmee
+----------------------------------------------------------------------------------------------------------------------------------
+
+4.krok
+----------------------------------------------------------------------------------------------------------------------------------
+CAPCUT freeze
+1, new project
+2, IMPOR
+3, daj na timeline zorad ich
+4, smooth transition pull in 0.3 - 0.5sec
+5, audio swoosh tam kde je transtioopn
+6, backtourc audio. -24 db aby bola slaba
+7, add captions
+8, animation soft ppopin to textures, mozno zelene pismo
+9, export do h.264
+
+
+
+

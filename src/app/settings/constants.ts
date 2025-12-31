@@ -128,11 +128,13 @@ export interface ApiProvider {
 
 // LLM Provider options for scene generation
 export interface LLMProviderOption {
-  id: 'openrouter' | 'claude-sdk';
+  id: 'openrouter' | 'claude-sdk' | 'modal';
   name: string;
   description: string;
   requiresApiKey: boolean;
   apiKeyField?: string;
+  requiresEndpoint?: boolean;
+  endpointField?: string;
 }
 
 export const llmProviderOptions: LLMProviderOption[] = [
@@ -149,15 +151,25 @@ export const llmProviderOptions: LLMProviderOption[] = [
     description: 'Requires Claude CLI installed locally. Does not work on Vercel or cloud deployments.',
     requiresApiKey: false,
   },
+  {
+    id: 'modal',
+    name: 'Modal (Self-Hosted)',
+    description: 'Self-hosted LLM (e.g., Llama 3, Mistral) on Modal.com GPU infrastructure.',
+    requiresApiKey: false,
+    requiresEndpoint: true,
+    endpointField: 'modalLlmEndpoint',
+  },
 ];
 
 // Music Provider options for background music generation
 export interface MusicProviderOption {
-  id: 'piapi' | 'suno';
+  id: 'piapi' | 'suno' | 'modal';
   name: string;
   description: string;
   requiresApiKey: boolean;
-  apiKeyField: string;
+  apiKeyField?: string;
+  requiresEndpoint?: boolean;
+  endpointField?: string;
 }
 
 export const musicProviderOptions: MusicProviderOption[] = [
@@ -174,6 +186,162 @@ export const musicProviderOptions: MusicProviderOption[] = [
     description: 'Direct Suno API via sunoapi.org. Alternative if you already have a Suno API key.',
     requiresApiKey: true,
     apiKeyField: 'sunoApiKey',
+  },
+  {
+    id: 'modal',
+    name: 'Modal (ACE-Step)',
+    description: 'Self-hosted ACE-Step music model on Modal.com. 4min music in 20s on A100.',
+    requiresApiKey: false,
+    requiresEndpoint: true,
+    endpointField: 'modalMusicEndpoint',
+  },
+];
+
+// TTS Provider options for voiceover generation
+export interface TTSProviderOption {
+  id: 'gemini-tts' | 'elevenlabs' | 'modal';
+  name: string;
+  description: string;
+  requiresApiKey: boolean;
+  apiKeyField?: string;
+  requiresEndpoint?: boolean;
+  endpointField?: string;
+}
+
+export const ttsProviderOptions: TTSProviderOption[] = [
+  {
+    id: 'gemini-tts',
+    name: 'Gemini TTS (Recommended)',
+    description: 'Google Gemini TTS with excellent Slovak language support.',
+    requiresApiKey: true,
+    apiKeyField: 'geminiApiKey',
+  },
+  {
+    id: 'elevenlabs',
+    name: 'ElevenLabs',
+    description: 'High-quality voices, best for English. Premium quality.',
+    requiresApiKey: true,
+    apiKeyField: 'elevenLabsApiKey',
+  },
+  {
+    id: 'modal',
+    name: 'Modal (Self-Hosted)',
+    description: 'Self-hosted TTS model (e.g., Bark, XTTS, Coqui) on Modal.com.',
+    requiresApiKey: false,
+    requiresEndpoint: true,
+    endpointField: 'modalTtsEndpoint',
+  },
+];
+
+// Image Provider options for image generation
+export interface ImageProviderOption {
+  id: 'gemini' | 'nanoBanana' | 'modal';
+  name: string;
+  description: string;
+  requiresApiKey: boolean;
+  apiKeyField?: string;
+  requiresEndpoint?: boolean;
+  endpointField?: string;
+}
+
+export const imageProviderOptions: ImageProviderOption[] = [
+  {
+    id: 'gemini',
+    name: 'Gemini (Recommended)',
+    description: 'Google Gemini for image generation. High quality, good pricing.',
+    requiresApiKey: true,
+    apiKeyField: 'geminiApiKey',
+  },
+  {
+    id: 'nanoBanana',
+    name: 'Nano Banana',
+    description: 'Alternative image generation provider.',
+    requiresApiKey: true,
+    apiKeyField: 'nanoBananaApiKey',
+  },
+  {
+    id: 'modal',
+    name: 'Modal (Self-Hosted)',
+    description: 'Self-hosted image model (e.g., FLUX, Stable Diffusion) on Modal.com.',
+    requiresApiKey: false,
+    requiresEndpoint: true,
+    endpointField: 'modalImageEndpoint',
+  },
+];
+
+// Video Provider options for video generation
+export interface VideoProviderOption {
+  id: 'kie' | 'modal';
+  name: string;
+  description: string;
+  requiresApiKey: boolean;
+  apiKeyField?: string;
+  requiresEndpoint?: boolean;
+  endpointField?: string;
+}
+
+export const videoProviderOptions: VideoProviderOption[] = [
+  {
+    id: 'kie',
+    name: 'Kie.ai (Grok Imagine)',
+    description: 'Image-to-video generation via Grok Imagine. Default provider.',
+    requiresApiKey: true,
+    apiKeyField: 'kieApiKey',
+  },
+  {
+    id: 'modal',
+    name: 'Modal (Self-Hosted)',
+    description: 'Self-hosted video model (e.g., Kling, SVD) on Modal.com.',
+    requiresApiKey: false,
+    requiresEndpoint: true,
+    endpointField: 'modalVideoEndpoint',
+  },
+];
+
+// Modal endpoint configuration
+export interface ModalEndpointConfig {
+  id: string;
+  name: string;
+  description: string;
+  placeholder: string;
+  docsUrl: string;
+}
+
+export const modalEndpoints: ModalEndpointConfig[] = [
+  {
+    id: 'modalLlmEndpoint',
+    name: 'LLM Endpoint',
+    description: 'Self-hosted LLM (e.g., Llama 3, Mistral) for scene generation',
+    placeholder: 'https://your-app--llm.modal.run',
+    docsUrl: 'https://modal.com/docs/examples/vllm_inference',
+  },
+  {
+    id: 'modalTtsEndpoint',
+    name: 'TTS Endpoint',
+    description: 'Self-hosted TTS (e.g., Bark, XTTS, Coqui) for voiceovers',
+    placeholder: 'https://your-app--tts.modal.run',
+    docsUrl: 'https://modal.com/docs/examples/text_to_speech',
+  },
+  {
+    id: 'modalImageEndpoint',
+    name: 'Image Endpoint',
+    description: 'Self-hosted image model (e.g., FLUX, Stable Diffusion)',
+    placeholder: 'https://your-app--image.modal.run',
+    docsUrl: 'https://modal.com/docs/examples/stable_diffusion',
+  },
+  {
+    id: 'modalVideoEndpoint',
+    name: 'Video Endpoint',
+    description: 'Self-hosted video model (e.g., Kling, SVD) for animations',
+    placeholder: 'https://your-app--video.modal.run',
+    docsUrl: 'https://modal.com/docs/examples',
+  },
+  {
+    id: 'modalMusicEndpoint',
+    name: 'Music Endpoint (ACE-Step)',
+    description: 'Self-hosted ACE-Step music generation - 4min music in 20s',
+    placeholder: 'https://your-app--ace-step.modal.run',
+    docsUrl: 'https://modal.com/docs/examples/generate_music',
   },
 ];
 

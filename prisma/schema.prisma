@@ -135,8 +135,17 @@ model ApiKeys {
   openRouterApiKey String?  // OpenRouter API key for LLM access
   openRouterModel  String   @default("anthropic/claude-4.5-sonnet") // Selected OpenRouter model
   piapiApiKey      String?  // PiAPI key for music generation (Suno/Udio via PiAPI)
-  llmProvider      String   @default("openrouter") // "openrouter" | "claude-sdk" - default to OpenRouter
-  musicProvider    String   @default("piapi") // "piapi" | "suno" - default to PiAPI
+  llmProvider      String   @default("openrouter") // "openrouter" | "claude-sdk" | "modal"
+  musicProvider    String   @default("piapi") // "piapi" | "suno" | "modal"
+  ttsProvider      String   @default("gemini-tts") // "gemini-tts" | "elevenlabs" | "modal"
+  imageProvider    String   @default("gemini") // "gemini" | "nanoBanana" | "modal"
+  videoProvider    String   @default("kie") // "kie" | "modal"
+  // Modal.com self-hosted endpoints
+  modalLlmEndpoint   String?  // e.g., https://your-app--llm.modal.run
+  modalTtsEndpoint   String?  // e.g., https://your-app--tts.modal.run
+  modalImageEndpoint String?  // e.g., https://your-app--image.modal.run
+  modalVideoEndpoint String?  // e.g., https://your-app--video.modal.run
+  modalMusicEndpoint String?  // e.g., https://your-app--ace-step.modal.run (ACE-Step)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -155,10 +155,28 @@ export interface Project {
 }
 
 // LLM Provider selection - OpenRouter is default (works everywhere including Vercel)
-export type LLMProvider = 'openrouter' | 'claude-sdk';
+export type LLMProvider = 'openrouter' | 'claude-sdk' | 'modal';
 
 // Music Provider selection - PiAPI is default (unified API for Suno/Udio)
-export type MusicProvider = 'piapi' | 'suno';
+export type MusicProvider = 'piapi' | 'suno' | 'modal';
+
+// TTS Provider selection for voiceover generation
+export type TTSProvider = 'gemini-tts' | 'elevenlabs' | 'modal';
+
+// Image Provider selection for image generation
+export type ImageProvider = 'gemini' | 'nanoBanana' | 'modal';
+
+// Video Provider selection for video generation
+export type VideoProvider = 'kie' | 'modal';
+
+// Modal.com endpoint configuration for self-hosted models
+export interface ModalEndpoints {
+  llmEndpoint?: string;      // e.g., https://your-app--llm.modal.run
+  ttsEndpoint?: string;      // e.g., https://your-app--tts.modal.run
+  imageEndpoint?: string;    // e.g., https://your-app--image.modal.run
+  videoEndpoint?: string;    // e.g., https://your-app--video.modal.run
+  musicEndpoint?: string;    // e.g., https://your-app--ace-step.modal.run (ACE-Step)
+}
 
 // API configuration
 export interface ApiConfig {
@@ -174,6 +192,11 @@ export interface ApiConfig {
   sunoApiKey?: string;  // Suno API key (alternative)
   llmProvider?: LLMProvider;  // Default: 'openrouter'
   musicProvider?: MusicProvider;  // Default: 'piapi'
+  ttsProvider?: TTSProvider;  // Default: 'gemini-tts'
+  imageProvider?: ImageProvider;  // Default: 'gemini'
+  videoProvider?: VideoProvider;  // Default: 'kie'
+  // Modal.com self-hosted endpoints
+  modalEndpoints?: ModalEndpoints;
 }
 
 // User type

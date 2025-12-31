@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { toast } from 'sonner';
 import type { ActionCosts } from '../types';
-import type { LLMProvider } from '@/types/project';
+import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints } from '@/types/project';
 import { DEFAULT_OPENROUTER_MODEL } from '../constants';
 
 export function useSettings() {
@@ -27,6 +27,11 @@ export function useSettings() {
   const [costsLoading, setCostsLoading] = useState(false);
   const [llmProvider, setLLMProvider] = useState<LLMProvider>('openrouter');
   const [openRouterModel, setOpenRouterModel] = useState<string>(DEFAULT_OPENROUTER_MODEL);
+  const [musicProvider, setMusicProvider] = useState<MusicProvider>('piapi');
+  const [ttsProvider, setTTSProvider] = useState<TTSProvider>('gemini-tts');
+  const [imageProvider, setImageProvider] = useState<ImageProvider>('gemini');
+  const [videoProvider, setVideoProvider] = useState<VideoProvider>('kie');
+  const [modalEndpoints, setModalEndpoints] = useState<ModalEndpoints>({});
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -37,6 +42,10 @@ export function useSettings() {
     const savedAutoSave = localStorage.getItem('app-auto-save') !== 'false';
     const savedLLMProvider = (localStorage.getItem('app-llm-provider') as LLMProvider) || 'openrouter';
     const savedOpenRouterModel = localStorage.getItem('app-openrouter-model') || DEFAULT_OPENROUTER_MODEL;
+    const savedMusicProvider = (localStorage.getItem('app-music-provider') as MusicProvider) || 'piapi';
+    const savedTTSProvider = (localStorage.getItem('app-tts-provider') as TTSProvider) || 'gemini-tts';
+    const savedImageProvider = (localStorage.getItem('app-image-provider') as ImageProvider) || 'gemini';
+    const savedVideoProvider = (localStorage.getItem('app-video-provider') as VideoProvider) || 'kie';
 
     setLanguage(savedLanguage);
     setDarkMode(savedDarkMode);
@@ -45,6 +54,10 @@ export function useSettings() {
     setAutoSave(savedAutoSave);
     setLLMProvider(savedLLMProvider);
     setOpenRouterModel(savedOpenRouterModel);
+    setMusicProvider(savedMusicProvider);
+    setTTSProvider(savedTTSProvider);
+    setImageProvider(savedImageProvider);
+    setVideoProvider(savedVideoProvider);
   }, []);
 
   // Fetch API keys from database for authenticated users
@@ -66,6 +79,30 @@ export function useSettings() {
             setOpenRouterModel(data.openRouterModel);
             localStorage.setItem('app-openrouter-model', data.openRouterModel);
           }
+          if (data.musicProvider) {
+            setMusicProvider(data.musicProvider);
+            localStorage.setItem('app-music-provider', data.musicProvider);
+          }
+          if (data.ttsProvider) {
+            setTTSProvider(data.ttsProvider);
+            localStorage.setItem('app-tts-provider', data.ttsProvider);
+          }
+          if (data.imageProvider) {
+            setImageProvider(data.imageProvider);
+            localStorage.setItem('app-image-provider', data.imageProvider);
+          }
+          if (data.videoProvider) {
+            setVideoProvider(data.videoProvider);
+            localStorage.setItem('app-video-provider', data.videoProvider);
+          }
+          // Load Modal endpoints
+          setModalEndpoints({
+            llmEndpoint: data.modalLlmEndpoint || '',
+            ttsEndpoint: data.modalTtsEndpoint || '',
+            imageEndpoint: data.modalImageEndpoint || '',
+            videoEndpoint: data.modalVideoEndpoint || '',
+            musicEndpoint: data.modalMusicEndpoint || '',
+          });
         }
       } catch (error) {
         console.error('Failed to fetch API keys:', error);
@@ -159,13 +196,14 @@ export function useSettings() {
     localStorage.setItem('app-llm-provider', provider);
     // Also save to apiConfig for persistence in the store
     setApiConfig({ llmProvider: provider });
+    const descriptions: Record<LLMProvider, string> = {
+      'openrouter': tPage('toasts.llmProviderOpenRouter') || 'Using OpenRouter for scene generation',
+      'claude-sdk': tPage('toasts.llmProviderClaudeSDK') || 'Using Claude SDK/CLI for scene generation',
+      'modal': tPage('toasts.llmProviderModal') || 'Using self-hosted LLM on Modal.com',
+    };
     toast.success(
       tPage('toasts.llmProviderChanged') || 'LLM provider updated',
-      {
-        description: provider === 'openrouter'
-          ? (tPage('toasts.llmProviderOpenRouter') || 'Using OpenRouter for scene generation')
-          : (tPage('toasts.llmProviderClaudeSDK') || 'Using Claude SDK/CLI for scene generation'),
-      }
+      { description: descriptions[provider] }
     );
   }, [setApiConfig, tPage]);
 
@@ -181,6 +219,93 @@ export function useSettings() {
       }
     );
   }, [setApiConfig, tPage]);
+
+  const handleMusicProviderChange = useCallback((provider: MusicProvider) => {
+    setMusicProvider(provider);
+    localStorage.setItem('app-music-provider', provider);
+    setApiConfig({ musicProvider: provider });
+    const descriptions: Record<MusicProvider, string> = {
+      'piapi': tPage('toasts.musicProviderPiAPI') || 'Using PiAPI for music generation',
+      'suno': tPage('toasts.musicProviderSuno') || 'Using Suno AI for music generation',
+      'modal': tPage('toasts.musicProviderModal') || 'Using ACE-Step on Modal.com for music',
+    };
+    toast.success(
+      tPage('toasts.musicProviderChanged') || 'Music provider updated',
+      { description: descriptions[provider] }
+    );
+  }, [setApiConfig, tPage]);
+
+  const handleTTSProviderChange = useCallback((provider: TTSProvider) => {
+    setTTSProvider(provider);
+    localStorage.setItem('app-tts-provider', provider);
+    setApiConfig({ ttsProvider: provider });
+    const descriptions: Record<TTSProvider, string> = {
+      'gemini-tts': tPage('toasts.ttsProviderGemini') || 'Using Gemini TTS for voiceovers',
+      'elevenlabs': tPage('toasts.ttsProviderElevenLabs') || 'Using ElevenLabs for voiceovers',
+      'modal': tPage('toasts.ttsProviderModal') || 'Using self-hosted TTS on Modal.com',
+    };
+    toast.success(
+      tPage('toasts.ttsProviderChanged') || 'TTS provider updated',
+      { description: descriptions[provider] }
+    );
+  }, [setApiConfig, tPage]);
+
+  const handleImageProviderChange = useCallback((provider: ImageProvider) => {
+    setImageProvider(provider);
+    localStorage.setItem('app-image-provider', provider);
+    setApiConfig({ imageProvider: provider });
+    const descriptions: Record<ImageProvider, string> = {
+      'gemini': tPage('toasts.imageProviderGemini') || 'Using Gemini for image generation',
+      'nanoBanana': tPage('toasts.imageProviderNanoBanana') || 'Using Nano Banana for images',
+      'modal': tPage('toasts.imageProviderModal') || 'Using self-hosted model on Modal.com',
+    };
+    toast.success(
+      tPage('toasts.imageProviderChanged') || 'Image provider updated',
+      { description: descriptions[provider] }
+    );
+  }, [setApiConfig, tPage]);
+
+  const handleVideoProviderChange = useCallback((provider: VideoProvider) => {
+    setVideoProvider(provider);
+    localStorage.setItem('app-video-provider', provider);
+    setApiConfig({ videoProvider: provider });
+    const descriptions: Record<VideoProvider, string> = {
+      'kie': tPage('toasts.videoProviderKie') || 'Using Kie.ai for video generation',
+      'modal': tPage('toasts.videoProviderModal') || 'Using self-hosted model on Modal.com',
+    };
+    toast.success(
+      tPage('toasts.videoProviderChanged') || 'Video provider updated',
+      { description: descriptions[provider] }
+    );
+  }, [setApiConfig, tPage]);
+
+  const handleModalEndpointChange = useCallback((endpointKey: keyof ModalEndpoints, value: string) => {
+    setModalEndpoints(prev => ({ ...prev, [endpointKey]: value }));
+  }, []);
+
+  const handleSaveModalEndpoints = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modalLlmEndpoint: modalEndpoints.llmEndpoint || null,
+          modalTtsEndpoint: modalEndpoints.ttsEndpoint || null,
+          modalImageEndpoint: modalEndpoints.imageEndpoint || null,
+          modalVideoEndpoint: modalEndpoints.videoEndpoint || null,
+          modalMusicEndpoint: modalEndpoints.musicEndpoint || null,
+        }),
+      });
+      if (response.ok) {
+        toast.success(
+          tPage('toasts.modalEndpointsSaved') || 'Modal endpoints saved',
+          { description: tPage('toasts.modalEndpointsSavedDesc') || 'Your self-hosted endpoints are configured' }
+        );
+      }
+    } catch (error) {
+      toast.error(tPage('toasts.saveFailed') || 'Failed to save');
+    }
+  }, [modalEndpoints, tPage]);
 
   const handleExportData = useCallback(async () => {
     setIsExporting(true);
@@ -254,6 +379,11 @@ export function useSettings() {
     projects,
     llmProvider,
     openRouterModel,
+    musicProvider,
+    ttsProvider,
+    imageProvider,
+    videoProvider,
+    modalEndpoints,
 
     // Actions
     toggleKeyVisibility,
@@ -269,5 +399,11 @@ export function useSettings() {
     fetchActionCosts,
     handleLLMProviderChange,
     handleOpenRouterModelChange,
+    handleMusicProviderChange,
+    handleTTSProviderChange,
+    handleImageProviderChange,
+    handleVideoProviderChange,
+    handleModalEndpointChange,
+    handleSaveModalEndpoints,
   };
 }
