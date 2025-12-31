@@ -740,6 +740,8 @@
     "recommended": "Odporúčané",
     "selectModel": "Vyberte model",
     "modelContext": "Kontext",
-    "modelPricing": "Cena"
+    "modelPricing": "Cena",
+    "currency": "Mena",
+    "currencyDescription": "Vyberte preferovanú menu pre zobrazenie nákladov"
   }
 }

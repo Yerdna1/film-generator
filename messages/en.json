@@ -715,7 +715,9 @@
       "modalEndpointsSavedDesc": "Your self-hosted endpoints are configured",
       "saveFailed": "Failed to save",
       "modelChanged": "Model Updated",
-      "nowUsing": "Now using"
+      "nowUsing": "Now using",
+      "currencyUpdated": "Currency Updated",
+      "nowDisplaying": "Now displaying prices in"
     },
     "llmProvider": "LLM Provider for Scene Generation",
     "llmProviderDescription": "Choose which LLM provider to use for generating scenes. OpenRouter is recommended for Vercel deployments.",
@@ -740,6 +742,8 @@
     "recommended": "Recommended",
     "selectModel": "Select Model",
     "modelContext": "Context",
-    "modelPricing": "Pricing"
+    "modelPricing": "Pricing",
+    "currency": "Currency",
+    "currencyDescription": "Choose your preferred currency for cost display"
   }
 }
