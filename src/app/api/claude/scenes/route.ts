@@ -40,6 +40,43 @@ async function queryClaudeSDK(prompt: string, systemPrompt: string): Promise<str
   }
 }
 
+// Query Modal LLM endpoint (self-hosted)
+async function queryModalLLM(prompt: string, systemPrompt: string, endpoint: string): Promise<string> {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        system_prompt: systemPrompt,
+        max_tokens: 8192,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Modal LLM request failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Handle various response formats from Modal endpoint
+    if (data.response) {
+      return data.response;
+    } else if (data.text) {
+      return data.text;
+    } else if (data.content) {
+      return data.content;
+    } else if (typeof data === 'string') {
+      return data;
+    }
+
+    throw new Error('Modal endpoint did not return expected response format');
+  } catch (error) {
+    throw new Error(`Modal LLM error: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 interface GenerateScenesRequest {
   projectId: string;
   story: {
@@ -119,11 +156,19 @@ export async function POST(request: NextRequest) {
     const llmProvider = userApiKeys?.llmProvider || 'openrouter';
     const openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
     const openRouterModel = userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
+    const modalLlmEndpoint = userApiKeys?.modalLlmEndpoint;
 
-    // Validate API key for OpenRouter
+    // Validate API key/endpoint for selected provider
     if (llmProvider === 'openrouter' && !openRouterApiKey) {
       return NextResponse.json(
         { error: 'OpenRouter API key is required. Please configure it in Settings.' },
+        { status: 400 }
+      );
+    }
+
+    if (llmProvider === 'modal' && !modalLlmEndpoint) {
+      return NextResponse.json(
+        { error: 'Modal LLM endpoint is required. Please configure it in Settings.' },
         { status: 400 }
       );
     }
@@ -173,7 +218,12 @@ Return ONLY the JSON array, no other text.`;
     // Call LLM based on provider preference
     let fullResponse = '';
 
-    if (llmProvider === 'openrouter') {
+    console.log(`[LLM] Using provider: ${llmProvider}`);
+
+    if (llmProvider === 'modal') {
+      // Use Modal self-hosted LLM endpoint
+      fullResponse = await queryModalLLM(prompt, systemPrompt, modalLlmEndpoint!);
+    } else if (llmProvider === 'openrouter') {
       // Use OpenRouter API (works on Vercel and everywhere)
       fullResponse = await callOpenRouter(
         openRouterApiKey!,
@@ -228,20 +278,21 @@ Return ONLY the JSON array, no other text.`;
       }) || [],
     }));
 
-    // Track cost for scene generation
-    const realCost = ACTION_COSTS.scene.claude * sceneCount;
+    // Track cost for scene generation - Modal is free (self-hosted)
+    const realCost = llmProvider === 'modal' ? 0 : ACTION_COSTS.scene.claude * sceneCount;
+    const providerName = llmProvider === 'modal' ? 'modal' : (llmProvider === 'openrouter' ? 'openrouter' : 'claude');
     await spendCredits(
       session.user.id,
       COSTS.SCENE_GENERATION * sceneCount,
       'scene',
-      `Claude scene generation (${sceneCount} scenes)`,
+      `${providerName} scene generation (${sceneCount} scenes)`,
       projectId,
-      'claude',
+      providerName,
       undefined,  // metadata
       realCost    // pass the total real cost for all scenes
     );
 
-    return NextResponse.json({ scenes: scenesWithIds, cost: realCost });
+    return NextResponse.json({ scenes: scenesWithIds, cost: realCost, provider: llmProvider });
   } catch (error) {
     console.error('Error generating scenes with Claude:', error);
     return NextResponse.json(

@@ -1,8 +1,9 @@
 // Unified Music Generation API Route
-// Supports: PiAPI (default) and Suno AI
+// Supports: PiAPI (default), Suno AI, and Modal (self-hosted ACE-Step)
 //
 // PiAPI: https://piapi.ai/docs/music-api/create-task
 // Suno: https://docs.sunoapi.org
+// Modal: Self-hosted music generation (e.g., ACE-Step)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
@@ -12,7 +13,7 @@ import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/services/piapi';
 import type { Provider } from '@/lib/services/real-costs';
 
-type MusicProvider = 'piapi' | 'suno';
+type MusicProvider = 'piapi' | 'suno' | 'modal';
 
 const SUNO_API_URL = 'https://api.sunoapi.org';
 
@@ -25,7 +26,67 @@ interface MusicGenerationRequest {
   projectId?: string;
   title?: string;
   style?: string;
-  provider?: 'piapi' | 'suno'; // Override provider from request
+  provider?: 'piapi' | 'suno' | 'modal'; // Override provider from request
+}
+
+// Generate music using Modal (self-hosted ACE-Step or similar)
+async function generateWithModal(
+  prompt: string,
+  instrumental: boolean,
+  title: string | undefined,
+  projectId: string | undefined,
+  modalEndpoint: string,
+  userId: string | undefined
+): Promise<{ audioUrl: string; cost: number; storage: string; status: string; title?: string }> {
+  console.log('[Modal] Generating music with endpoint:', modalEndpoint);
+
+  const response = await fetch(modalEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      instrumental,
+      title: title || 'Generated Music',
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Modal music generation failed: ${errorText}`);
+  }
+
+  const data = await response.json();
+
+  let audioUrl: string;
+  if (data.audio) {
+    audioUrl = data.audio.startsWith('data:') ? data.audio : `data:audio/wav;base64,${data.audio}`;
+  } else if (data.audioUrl) {
+    audioUrl = data.audioUrl;
+  } else {
+    throw new Error('Modal endpoint did not return audio');
+  }
+
+  const realCost = 0; // Self-hosted = no API cost
+
+  if (userId) {
+    await spendCredits(userId, COSTS.MUSIC_GENERATION || 10, 'music', `Modal music generation`, projectId, 'modal', undefined, realCost);
+  }
+
+  // Upload to S3 if configured
+  if (isS3Configured() && audioUrl.startsWith('data:')) {
+    const uploadResult = await uploadAudioToS3(audioUrl, projectId);
+    if (uploadResult.success && uploadResult.url) {
+      audioUrl = uploadResult.url;
+    }
+  }
+
+  return {
+    audioUrl,
+    cost: realCost,
+    storage: audioUrl.startsWith('data:') ? 'base64' : 's3',
+    status: 'complete',
+    title: data.title || title,
+  };
 }
 
 // Helper function to download audio and convert to base64
@@ -76,8 +137,35 @@ export async function POST(request: NextRequest) {
 
     // Determine which provider to use
     const provider = requestProvider || userApiKeys?.musicProvider || 'piapi';
+    const modalMusicEndpoint = userApiKeys?.modalMusicEndpoint;
 
-    // Get appropriate API key
+    console.log(`[Music] Using provider: ${provider}`);
+
+    // Handle Modal provider first (doesn't require API key)
+    if (provider === 'modal') {
+      if (!modalMusicEndpoint) {
+        return NextResponse.json(
+          { error: 'Modal music endpoint not configured. Please add your endpoint URL in Settings.' },
+          { status: 400 }
+        );
+      }
+
+      // Build the full prompt with style if provided
+      const fullPrompt = style ? `${style}: ${prompt}` : prompt;
+
+      // Modal returns audio directly (synchronous)
+      const result = await generateWithModal(
+        fullPrompt,
+        instrumental,
+        title,
+        undefined,
+        modalMusicEndpoint,
+        session.user.id
+      );
+      return NextResponse.json(result);
+    }
+
+    // Get appropriate API key for PiAPI or Suno
     let apiKey: string | null = null;
     if (provider === 'piapi') {
       apiKey = userApiKeys?.piapiApiKey || process.env.PIAPI_API_KEY || null;
