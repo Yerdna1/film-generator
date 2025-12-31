@@ -42,4 +42,26 @@ export type InngestEvents = {
       }>;
     };
   };
+  'scenes/generate.batch': {
+    data: {
+      projectId: string;
+      userId: string;
+      jobId: string;
+      story: {
+        title: string;
+        concept: string;
+        genre: string;
+        tone: string;
+        setting: string;
+      };
+      characters: Array<{
+        id: string;
+        name: string;
+        description: string;
+        masterPrompt?: string;
+      }>;
+      style: string;
+      sceneCount: number;
+    };
+  };
 };

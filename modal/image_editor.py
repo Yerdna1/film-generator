@@ -23,6 +23,7 @@ image = (
     .apt_install("git")
     .pip_install(
         "torch>=2.5.0",
+        "torchvision",
         "git+https://github.com/huggingface/diffusers",
         "transformers>=4.44.0",
         "accelerate>=0.33.0",

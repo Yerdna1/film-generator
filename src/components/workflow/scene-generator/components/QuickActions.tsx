@@ -15,6 +15,7 @@ interface QuickActionsProps {
   onRegenerateAll: () => void;
   onGenerateAllImages: () => void;
   onStopGeneration: () => void;
+  backgroundJobProgress?: number;
 }
 
 export function QuickActions({
@@ -26,6 +27,7 @@ export function QuickActions({
   onRegenerateAll,
   onGenerateAllImages,
   onStopGeneration,
+  backgroundJobProgress,
 }: QuickActionsProps) {
   const t = useTranslations();
 
@@ -59,7 +61,9 @@ export function QuickActions({
           onClick={onStopGeneration}
         >
           <Square className="w-4 h-4 mr-2" />
-          Stop ({scenesWithImages}/{totalScenes})
+          {backgroundJobProgress !== undefined
+            ? `Processing... ${backgroundJobProgress}%`
+            : `Stop (${scenesWithImages}/${totalScenes})`}
         </Button>
       ) : scenesWithImages === totalScenes ? (
         <Button

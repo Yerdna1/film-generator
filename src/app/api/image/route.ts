@@ -337,10 +337,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Image] Using provider: ${imageProvider}`);
+    console.log(`[Image] Using provider: ${imageProvider}, reference images: ${referenceImages.length}`);
 
     // Route to appropriate provider
     if (imageProvider === 'modal-edit') {
+      // Modal-Edit (Qwen-Image-Edit) REQUIRES reference images
+      // Fall back to Gemini for character generation (no references)
+      if (referenceImages.length === 0) {
+        console.log('[Image] No reference images - falling back to Gemini for character generation');
+        if (!geminiApiKey) {
+          return NextResponse.json(
+            { error: 'Gemini API key required for character generation. Modal-Edit only works with reference images.' },
+            { status: 400 }
+          );
+        }
+        const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, session?.user?.id);
+        return NextResponse.json(result);
+      }
+
       if (!modalImageEditEndpoint) {
         return NextResponse.json(
           { error: 'Modal Image-Edit endpoint not configured. Please add your endpoint URL in Settings.' },

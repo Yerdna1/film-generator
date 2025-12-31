@@ -38,8 +38,10 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
               ttsProvider: data.ttsProvider,
               musicProvider: data.musicProvider,
               videoProvider: data.videoProvider,
-              modalImageEndpoint: data.modalImageEndpoint,
-              modalImageEditEndpoint: data.modalImageEditEndpoint,
+              modalEndpoints: {
+                imageEndpoint: data.modalImageEndpoint,
+                imageEditEndpoint: data.modalImageEditEndpoint,
+              },
             });
           }
         }
@@ -94,9 +96,22 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
     handleGenerateAllSceneImages,
     handleStopImageGeneration,
     handleRegenerateAllImages,
+    handleStartBackgroundGeneration,
+    backgroundJobId,
+    backgroundJobProgress,
+    isBackgroundJobRunning,
+    // Scene generation job state
+    sceneJobProgress,
+    sceneJobStatus,
+    isSceneJobRunning,
     deleteScene,
     updateSettings,
   } = useSceneGenerator(initialProject);
+
+  // Use Inngest for Modal providers (long-running), direct calls for Gemini (fast)
+  const useInngest = imageProvider === 'modal' || imageProvider === 'modal-edit';
+  const handleGenerateImages = useInngest ? handleStartBackgroundGeneration : handleGenerateAllSceneImages;
+  const isGenerating = useInngest ? isBackgroundJobRunning : isGeneratingAllImages;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -110,6 +125,9 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         imageProvider={imageProvider}
         hasCharacters={project.characters.length > 0}
         isGeneratingScenes={isGeneratingScenes}
+        sceneJobProgress={sceneJobProgress}
+        sceneJobStatus={sceneJobStatus}
+        isSceneJobRunning={isSceneJobRunning}
         onSceneCountChange={handleSceneCountChange}
         onImageResolutionChange={(value) => updateSettings({ imageResolution: value })}
         onAspectRatioChange={setSceneAspectRatio}
@@ -153,15 +171,16 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         totalScenes={project.scenes.length}
         scenesWithImages={scenesWithImages}
         imageResolution={imageResolution}
-        isGeneratingAllImages={isGeneratingAllImages}
+        isGeneratingAllImages={isGenerating}
         onCopyPrompts={() => setShowPromptsDialog(true)}
         onRegenerateAll={() => {
           if (confirm(`Are you sure you want to regenerate ALL ${project.scenes.length} scene images? This will cost approximately ${formatCostCompact(getImageCost(imageResolution) * project.scenes.length)}.`)) {
             handleRegenerateAllImages();
           }
         }}
-        onGenerateAllImages={handleGenerateAllSceneImages}
+        onGenerateAllImages={handleGenerateImages}
         onStopGeneration={handleStopImageGeneration}
+        backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
       />
 
       {/* Tip */}

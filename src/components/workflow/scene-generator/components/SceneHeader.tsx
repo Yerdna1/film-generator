@@ -34,6 +34,9 @@ interface SceneHeaderProps {
   imageProvider: ImageProvider;
   hasCharacters: boolean;
   isGeneratingScenes: boolean;
+  sceneJobProgress?: number;
+  sceneJobStatus?: string | null;
+  isSceneJobRunning?: boolean;
   onSceneCountChange: (value: string) => void;
   onImageResolutionChange: (value: ImageResolution) => void;
   onAspectRatioChange: (value: AspectRatio) => void;
@@ -55,6 +58,9 @@ export function SceneHeader({
   imageProvider,
   hasCharacters,
   isGeneratingScenes,
+  sceneJobProgress = 0,
+  sceneJobStatus,
+  isSceneJobRunning = false,
   onSceneCountChange,
   onImageResolutionChange,
   onAspectRatioChange,
@@ -161,34 +167,57 @@ export function SceneHeader({
           className="h-2"
         />
 
-        {/* Generate All Scenes Button */}
+        {/* Generate All Scenes Button or Progress */}
         {totalScenes === 0 && (
-          <div className="flex justify-center pt-2">
-            <Button
-              className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 px-6"
-              disabled={isGeneratingScenes || !hasCharacters}
-              onClick={onGenerateAllScenes}
-            >
-              {isGeneratingScenes ? (
-                <>
+          <div className="flex flex-col items-center gap-3 pt-2">
+            {isSceneJobRunning ? (
+              <div className="w-full max-w-md space-y-2">
+                <div className="flex items-center justify-center gap-2">
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Sparkles className="w-4 h-4 text-purple-400" />
                   </motion.div>
-                  {t('steps.scenes.generatingScenes')}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  {t('steps.scenes.generateWithAI')}
-                  <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                    {formatCostCompact(ACTION_COSTS.scene.claude * sceneCount)}
+                  <span className="text-sm text-muted-foreground">
+                    {sceneJobStatus === 'pending' ? 'Starting scene generation...' : 'Generating scenes with AI...'}
+                  </span>
+                  <Badge variant="outline" className="border-purple-500/30 text-purple-400 text-xs">
+                    {sceneJobProgress}%
                   </Badge>
-                </>
-              )}
-            </Button>
+                </div>
+                <Progress value={sceneJobProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground text-center">
+                  Background job running - you can safely close this tab
+                </p>
+              </div>
+            ) : (
+              <Button
+                className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 px-6"
+                disabled={isGeneratingScenes || !hasCharacters}
+                onClick={onGenerateAllScenes}
+              >
+                {isGeneratingScenes ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    </motion.div>
+                    {t('steps.scenes.generatingScenes')}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {t('steps.scenes.generateWithAI')}
+                    <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                      {formatCostCompact(ACTION_COSTS.scene.claude * sceneCount)}
+                    </Badge>
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
 

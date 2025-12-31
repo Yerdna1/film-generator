@@ -88,11 +88,17 @@ export function useSceneGenerator(initialProject: Project) {
   const isVisibleRef = useRef(true);
   const [failedScenes, setFailedScenes] = useState<number[]>([]);
 
-  // Background job state (Inngest)
+  // Background job state (Inngest) - for images
   const [backgroundJobId, setBackgroundJobId] = useState<string | null>(null);
   const [backgroundJobProgress, setBackgroundJobProgress] = useState(0);
   const [backgroundJobStatus, setBackgroundJobStatus] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Scene generation job state (Inngest)
+  const [sceneJobId, setSceneJobId] = useState<string | null>(null);
+  const [sceneJobProgress, setSceneJobProgress] = useState(0);
+  const [sceneJobStatus, setSceneJobStatus] = useState<string | null>(null);
+  const sceneJobPollRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track page visibility
   useEffect(() => {
@@ -112,19 +118,17 @@ export function useSceneGenerator(initialProject: Project) {
       if (projectResponse.ok) {
         const projects = await projectResponse.json();
         const updatedProject = projects.find((p: { id: string }) => p.id === project.id);
-        if (updatedProject) {
-          // Update scenes in store with fresh data from DB
-          for (const scene of updatedProject.scenes) {
-            if (scene.imageUrl) {
-              updateScene(project.id, scene.id, { imageUrl: scene.imageUrl });
-            }
-          }
+        if (updatedProject && updatedProject.scenes) {
+          // Sync ALL scenes from DB to ensure UI stays in sync
+          const { setScenes } = useProjectStore.getState();
+          setScenes(project.id, updatedProject.scenes);
+          console.log(`[Refresh] Synced ${updatedProject.scenes.length} scenes from DB`);
         }
       }
     } catch (error) {
       console.error('Error refreshing project data:', error);
     }
-  }, [project.id, updateScene]);
+  }, [project.id]);
 
   // Check for existing background job on mount and refresh data
   useEffect(() => {
@@ -156,6 +160,9 @@ export function useSceneGenerator(initialProject: Project) {
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+      }
+      if (sceneJobPollRef.current) {
+        clearInterval(sceneJobPollRef.current);
       }
     };
   }, []);
@@ -224,6 +231,78 @@ export function useSceneGenerator(initialProject: Project) {
     poll();
     pollIntervalRef.current = setInterval(poll, 3000);
   }, [project.id, updateScene]);
+
+  // Start polling for scene generation job status
+  const startSceneJobPolling = useCallback((jobId: string) => {
+    if (sceneJobPollRef.current) {
+      clearInterval(sceneJobPollRef.current);
+    }
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/jobs/generate-scenes?jobId=${jobId}`);
+        if (response.ok) {
+          const job = await response.json();
+          setSceneJobProgress(job.progress);
+          setSceneJobStatus(job.status);
+
+          // If job is complete, stop polling and refresh scenes
+          if (job.status === 'completed' || job.status === 'failed') {
+            if (sceneJobPollRef.current) {
+              clearInterval(sceneJobPollRef.current);
+              sceneJobPollRef.current = null;
+            }
+
+            // Trigger a refresh of the project data with cache bypass
+            window.dispatchEvent(new CustomEvent('credits-updated'));
+
+            // Reload scenes from DB
+            await refreshProjectData();
+
+            // Show completion message
+            if (job.status === 'completed') {
+              alert(`All ${job.completedScenes} scenes generated successfully!`);
+            } else {
+              alert(`Scene generation failed: ${job.errorDetails || 'Unknown error'}`);
+            }
+
+            setSceneJobId(null);
+            setIsGeneratingScenes(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error polling scene job status:', error);
+      }
+    };
+
+    // Poll immediately then every 3 seconds
+    poll();
+    sceneJobPollRef.current = setInterval(poll, 3000);
+  }, [refreshProjectData]);
+
+  // Check for existing scene generation job on mount
+  useEffect(() => {
+    const checkExistingSceneJob = async () => {
+      try {
+        const response = await fetch(`/api/jobs/generate-scenes?projectId=${project.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.activeJob) {
+            setSceneJobId(data.activeJob.id);
+            setSceneJobProgress(data.activeJob.progress);
+            setSceneJobStatus(data.activeJob.status);
+            setIsGeneratingScenes(true);
+            startSceneJobPolling(data.activeJob.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for existing scene job:', error);
+      }
+    };
+
+    checkExistingSceneJob();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]);
 
   // Edit State
   const [editSceneData, setEditSceneData] = useState<EditSceneData | null>(null);
@@ -329,17 +408,23 @@ export function useSceneGenerator(initialProject: Project) {
     updateSettings(project.id, { sceneCount: parseInt(value) as 12 | 24 | 36 | 48 | 60 });
   }, [project.id, updateSettings]);
 
-  // Generate all scenes with AI
+  // Generate all scenes with AI via Inngest background job
   const handleGenerateAllScenes = useCallback(async () => {
     if (project.characters.length === 0) {
       alert('Please add characters in Step 2 first');
       return;
     }
 
+    if (sceneJobId) {
+      alert('A scene generation job is already running. Please wait for it to complete.');
+      return;
+    }
+
     setIsGeneratingScenes(true);
 
     try {
-      const response = await fetch('/api/claude/scenes', {
+      // Use Inngest background job for reliable scene generation
+      const response = await fetch('/api/jobs/generate-scenes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -358,31 +443,24 @@ export function useSceneGenerator(initialProject: Project) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to generate scenes');
+        throw new Error(error.error || 'Failed to start scene generation');
       }
 
-      const { scenes: generatedScenes } = await response.json();
+      const { jobId, totalScenes } = await response.json();
 
-      for (const sceneData of generatedScenes) {
-        await addScene(project.id, {
-          number: sceneData.number,
-          title: sceneData.title,
-          description: sceneData.description || '',
-          textToImagePrompt: sceneData.textToImagePrompt,
-          imageToVideoPrompt: sceneData.imageToVideoPrompt,
-          dialogue: sceneData.dialogue || [],
-          cameraShot: sceneData.cameraShot === 'close-up' ? 'close-up' : 'medium',
-          duration: 6,
-        });
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
+      setSceneJobId(jobId);
+      setSceneJobProgress(0);
+      setSceneJobStatus('pending');
+      startSceneJobPolling(jobId);
+
+      console.log(`[Scenes] Started background job ${jobId} for ${totalScenes} scenes`);
+
     } catch (error) {
-      console.error('Error generating scenes:', error);
-      alert(`Failed to generate scenes: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
+      console.error('Error starting scene generation:', error);
+      alert(`Failed to start scene generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsGeneratingScenes(false);
     }
-  }, [project, addScene]);
+  }, [project, sceneJobId, startSceneJobPolling]);
 
   // Generate image for a single scene with retry logic
   const handleGenerateSceneImage = useCallback(async (scene: Scene) => {
@@ -616,11 +694,17 @@ export function useSceneGenerator(initialProject: Project) {
     isGeneratingAllImages,
     failedScenes,
 
-    // Background Job State (Inngest)
+    // Background Job State (Inngest) - for images
     backgroundJobId,
     backgroundJobProgress,
     backgroundJobStatus,
     isBackgroundJobRunning: !!backgroundJobId && ['pending', 'processing'].includes(backgroundJobStatus || ''),
+
+    // Scene Generation Job State (Inngest)
+    sceneJobId,
+    sceneJobProgress,
+    sceneJobStatus,
+    isSceneJobRunning: !!sceneJobId && ['pending', 'processing'].includes(sceneJobStatus || ''),
 
     // Edit State
     editSceneData,

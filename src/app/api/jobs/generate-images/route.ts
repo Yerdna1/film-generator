@@ -8,18 +8,25 @@ export const maxDuration = 30;
 // POST - Start a batch image generation job
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Jobs] POST request received');
+
     const session = await auth();
+    console.log('[Jobs] Auth session:', session?.user?.id ? 'authenticated' : 'not authenticated');
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId, aspectRatio = '16:9', resolution = '2k' } = await request.json();
+    const body = await request.json();
+    const { projectId, aspectRatio = '16:9', resolution = '2k' } = body;
+    console.log('[Jobs] Request body:', { projectId, aspectRatio, resolution });
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
     // Get project with scenes and characters
+    console.log('[Jobs] Fetching project...');
     const project = await prisma.project.findUnique({
       where: { id: projectId, userId: session.user.id },
       include: {
@@ -29,17 +36,21 @@ export async function POST(request: NextRequest) {
     });
 
     if (!project) {
+      console.log('[Jobs] Project not found');
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
+    console.log('[Jobs] Project found:', project.scenes.length, 'scenes,', project.characters.length, 'characters');
 
     // Get scenes that need images
     const scenesWithoutImages = project.scenes.filter(s => !s.imageUrl);
+    console.log('[Jobs] Scenes without images:', scenesWithoutImages.length);
 
     if (scenesWithoutImages.length === 0) {
       return NextResponse.json({ error: 'All scenes already have images' }, { status: 400 });
     }
 
     // Create job record
+    console.log('[Jobs] Creating job record...');
     const job = await prisma.imageGenerationJob.create({
       data: {
         projectId,
@@ -48,6 +59,7 @@ export async function POST(request: NextRequest) {
         status: 'pending',
       },
     });
+    console.log('[Jobs] Job created:', job.id);
 
     // Get reference images from characters
     const referenceImages = project.characters
@@ -56,8 +68,10 @@ export async function POST(request: NextRequest) {
         name: c.name,
         imageUrl: c.imageUrl!,
       }));
+    console.log('[Jobs] Reference images:', referenceImages.length);
 
     // Send event to Inngest
+    console.log('[Jobs] Sending event to Inngest...');
     await inngest.send({
       name: 'image/generate.batch',
       data: {
@@ -74,6 +88,7 @@ export async function POST(request: NextRequest) {
         referenceImages,
       },
     });
+    console.log('[Jobs] Inngest event sent successfully');
 
     console.log(`[Jobs] Started batch ${job.id} with ${scenesWithoutImages.length} scenes`);
 
@@ -83,9 +98,10 @@ export async function POST(request: NextRequest) {
       message: 'Image generation started in background',
     });
   } catch (error) {
-    console.error('Error starting image generation job:', error);
+    console.error('[Jobs] Error starting image generation job:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to start image generation' },
+      { error: `Failed to start image generation: ${errorMessage}` },
       { status: 500 }
     );
   }
