@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { Users } from 'lucide-react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { generateCharacterPrompt } from '@/lib/prompts/master-prompt';
@@ -117,6 +118,48 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
     setEditCharacterData(null);
   };
 
+  // Handle image upload
+  const handleUploadImage = useCallback(async (character: Character, file: File) => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Invalid File', {
+        description: 'Please upload an image file (PNG, JPG, etc.)',
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('File Too Large', {
+        description: 'Please upload an image smaller than 10MB',
+      });
+      return;
+    }
+
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        updateCharacter(project.id, character.id, { imageUrl: base64 });
+        toast.success('Image Uploaded', {
+          description: `Custom image set for ${character.name}`,
+        });
+      };
+      reader.onerror = () => {
+        toast.error('Upload Failed', {
+          description: 'Failed to read the image file',
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error('Upload Failed', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
+    }
+  }, [project.id, updateCharacter]);
+
   const charactersWithImages = project.characters.filter((c) => c.imageUrl).length;
 
   return (
@@ -160,6 +203,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
               onGenerateImage={generateCharacterImage}
               onRegeneratePrompt={regeneratePrompt}
               onPreviewImage={setPreviewImage}
+              onUploadImage={handleUploadImage}
               characterAspectRatio={characterAspectRatio}
             />
           </motion.div>

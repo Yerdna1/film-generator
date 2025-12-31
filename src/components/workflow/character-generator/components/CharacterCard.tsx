@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
@@ -10,6 +11,7 @@ import {
   User,
   CheckCircle2,
   Expand,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -28,8 +30,19 @@ export function CharacterCard({
   onGenerateImage,
   onRegeneratePrompt,
   onPreviewImage,
+  onUploadImage,
 }: CharacterCardProps) {
   const t = useTranslations();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onUploadImage(character, file);
+      // Reset input so the same file can be selected again
+      e.target.value = '';
+    }
+  };
 
   const status = character.imageUrl ? 'complete' : (imageState?.status || 'idle');
   const progress = imageState?.progress || 0;
@@ -116,24 +129,55 @@ export function CharacterCard({
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
+        {/* Hidden file input for upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
         {character.imageUrl ? (
-          <button
-            onClick={() => onPreviewImage(character.imageUrl!)}
-            className="relative w-full aspect-square rounded-xl overflow-hidden group mt-3"
-          >
-            <img
-              src={character.imageUrl}
-              alt={character.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Expand className="w-8 h-8 text-white" />
-            </div>
-          </button>
+          <div className="relative w-full aspect-square rounded-xl overflow-hidden group mt-3">
+            <button
+              onClick={() => onPreviewImage(character.imageUrl!)}
+              className="w-full h-full"
+            >
+              <img
+                src={character.imageUrl}
+                alt={character.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Expand className="w-8 h-8 text-white" />
+              </div>
+            </button>
+            {/* Upload overlay button */}
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute bottom-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 hover:bg-black/90 border-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              title="Upload custom image"
+            >
+              <Upload className="w-4 h-4 text-white" />
+            </Button>
+          </div>
         ) : (
-          <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex flex-col items-center justify-center gap-2 mt-3">
-            <User className="w-16 h-16 text-purple-400/50" />
+          <div
+            className="w-full aspect-square rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex flex-col items-center justify-center gap-3 mt-3 cursor-pointer hover:from-purple-500/30 hover:to-cyan-500/30 transition-colors group"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <User className="w-16 h-16 text-purple-400/50 group-hover:text-purple-400/70 transition-colors" />
             <span className="text-xs text-muted-foreground">No image generated</span>
+            <div className="flex items-center gap-1 text-xs text-purple-400">
+              <Upload className="w-3 h-3" />
+              <span>Click to upload</span>
+            </div>
           </div>
         )}
       </CardHeader>

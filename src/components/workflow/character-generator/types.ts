@@ -30,6 +30,7 @@ export interface CharacterCardProps {
   onGenerateImage: (character: Character) => void;
   onRegeneratePrompt: (character: Character) => void;
   onPreviewImage: (imageUrl: string) => void;
+  onUploadImage: (character: Character, file: File) => void;
   characterAspectRatio: AspectRatio;
 }
 

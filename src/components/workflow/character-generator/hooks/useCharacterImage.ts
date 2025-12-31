@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import type { Character, Project } from '@/types/project';
@@ -62,23 +63,33 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
       }
 
       const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || 'API not configured - set GEMINI_API_KEY in settings';
       console.warn('Image generation API failed:', errorData);
+      toast.error('Image Generation Failed', {
+        description: errorMessage,
+        duration: 5000,
+      });
       setImageStates((prev) => ({
         ...prev,
         [character.id]: {
           status: 'error',
           progress: 0,
-          error: errorData.error || 'API not configured - set GEMINI_API_KEY in .env.local'
+          error: errorMessage
         },
       }));
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Generation failed';
       console.error('Error generating character image:', error);
+      toast.error('Image Generation Failed', {
+        description: errorMessage,
+        duration: 5000,
+      });
       setImageStates((prev) => ({
         ...prev,
         [character.id]: {
           status: 'error',
           progress: 0,
-          error: error instanceof Error ? error.message : 'Generation failed'
+          error: errorMessage
         },
       }));
     }
