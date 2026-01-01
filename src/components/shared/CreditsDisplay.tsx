@@ -41,7 +41,8 @@ export function CreditsDisplay({ className }: CreditsDisplayProps) {
 
   const fetchCredits = async () => {
     try {
-      const res = await fetch('/api/credits?history=true&limit=10');
+      // Add cache-busting to ensure fresh data
+      const res = await fetch(`/api/credits?history=true&limit=10&t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         setData(data);
@@ -57,9 +58,10 @@ export function CreditsDisplay({ className }: CreditsDisplayProps) {
     fetchCredits();
   }, []);
 
-  // Listen for credit updates
+  // Listen for credit updates from admin or other sources
   useEffect(() => {
     const handleCreditUpdate = () => {
+      console.log('Credits update event received, refetching...');
       fetchCredits();
     };
 

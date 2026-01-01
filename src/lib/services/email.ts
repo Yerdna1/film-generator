@@ -145,7 +145,7 @@ export async function sendInvitationEmail({
     `.trim();
 
     await resend.emails.send({
-      from: 'Film Generator <noreply@send.artflowly.com>',
+      from: 'Film Generator <noreply@artflowly.com>',
       to,
       subject: `${inviterName} invited you to collaborate on "${projectName}"`,
       html,
@@ -218,7 +218,7 @@ export async function sendNotificationEmail({
     `.trim();
 
     await resend.emails.send({
-      from: 'Film Generator <noreply@send.artflowly.com>',
+      from: 'Film Generator <noreply@artflowly.com>',
       to,
       subject,
       html,

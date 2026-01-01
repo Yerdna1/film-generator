@@ -516,30 +516,33 @@ export default function AdminPage() {
                       <DollarSign className="w-4 h-4 mr-1" />
                       Set Credits
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className={user.isBlocked
-                        ? "text-green-600 border-green-600/30 hover:bg-green-600/10"
-                        : "text-red-600 border-red-600/30 hover:bg-red-600/10"
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBlockToggle(user);
-                      }}
-                    >
-                      {user.isBlocked ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Unblock
-                        </>
-                      ) : (
-                        <>
-                          <Ban className="w-4 h-4 mr-1" />
-                          Block
-                        </>
-                      )}
-                    </Button>
+                    {/* Don't show block button for admin user */}
+                    {user.email !== 'andrej.galad@gmail.com' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={user.isBlocked
+                          ? "text-green-600 border-green-600/30 hover:bg-green-600/10"
+                          : "text-red-600 border-red-600/30 hover:bg-red-600/10"
+                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBlockToggle(user);
+                        }}
+                      >
+                        {user.isBlocked ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Unblock
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="w-4 h-4 mr-1" />
+                            Block
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}

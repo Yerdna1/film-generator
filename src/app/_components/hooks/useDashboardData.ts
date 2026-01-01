@@ -14,7 +14,8 @@ export function useDashboardData(isAuthenticated: boolean) {
 
   const fetchCredits = useCallback(async () => {
     try {
-      const res = await fetch('/api/credits?history=true&limit=10');
+      // Add cache-busting to ensure fresh data
+      const res = await fetch(`/api/credits?history=true&limit=10&t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         setCreditsData(data);
