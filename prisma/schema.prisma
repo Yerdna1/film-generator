@@ -47,6 +47,8 @@ model User {
   password      String?
   role          String    @default("user") // "user" | "admin"
   costMultiplier Float    @default(1.5)    // Multiplier for cost display (1.0 for admin)
+  isBlocked     Boolean   @default(false)  // Admin can block users
+  isApproved    Boolean   @default(false)  // Admin must approve new users
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -85,9 +87,9 @@ model Subscription {
 model Credits {
   id              String   @id @default(cuid())
   userId          String   @unique
-  balance         Int      @default(500) // Initial 500 kie points
+  balance         Int      @default(0)   // Starting credits (from AppConfig)
   totalSpent      Int      @default(0)   // Total credits spent
-  totalEarned     Int      @default(500) // Total credits earned/purchased
+  totalEarned     Int      @default(0)   // Total credits earned/purchased
   totalRealCost   Float    @default(0)   // Total real USD cost
   lastUpdated     DateTime @default(now())
   createdAt       DateTime @default(now())
@@ -375,4 +377,12 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+}
+
+// App configuration - admin-controlled settings
+model AppConfig {
+  id        String   @id @default("app-config") // Single row
+  startingCredits Int @default(0) // Credits for new users (0 = no starting credits)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

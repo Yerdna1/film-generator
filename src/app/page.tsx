@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { NewProjectDialog } from '@/components/project/NewProjectDialog';
 import { ImportProjectDialog } from '@/components/project/ImportProjectDialog';
@@ -16,9 +17,31 @@ import {
 
 export default function DashboardPage() {
   const { status } = useSession();
+  const router = useRouter();
   const { projects, isLoading: projectsLoading } = useProjectStore();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [importProjectOpen, setImportProjectOpen] = useState(false);
+  const [userStatus, setUserStatus] = useState<{ isApproved: boolean; isBlocked: boolean } | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+
+  // Check user approval status
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/user/status')
+        .then(res => res.json())
+        .then(data => {
+          setUserStatus(data);
+          setStatusLoading(false);
+          // Redirect if not approved
+          if (data.isApproved === false) {
+            router.push('/pending-approval');
+          }
+        })
+        .catch(() => setStatusLoading(false));
+    } else {
+      setStatusLoading(false);
+    }
+  }, [status, router]);
 
   const { creditsData, projectCosts, creditsBreakdown } = useDashboardData(
     status === 'authenticated'
@@ -29,8 +52,13 @@ export default function DashboardPage() {
     return <LandingPage />;
   }
 
-  // Show loading state while auth or projects are loading
-  if (status === 'loading' || projectsLoading) {
+  // Show loading state while auth, projects, or user status are loading
+  if (status === 'loading' || projectsLoading || statusLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  // If user is not approved, they should be redirected (handled in useEffect)
+  if (userStatus && !userStatus.isApproved) {
     return <LoadingSkeleton />;
   }
 

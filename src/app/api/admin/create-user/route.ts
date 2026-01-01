@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { getStartingCredits } from '@/lib/services/app-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,13 +35,16 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Get starting credits from admin config
+    const startingCredits = await getStartingCredits();
+
     // Create credits for the user
     await prisma.credits.create({
       data: {
         userId: userId,
-        balance: 500,
+        balance: startingCredits,
         totalSpent: 0,
-        totalEarned: 500,
+        totalEarned: startingCredits,
         totalRealCost: 0,
       }
     });

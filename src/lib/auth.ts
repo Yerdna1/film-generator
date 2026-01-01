@@ -5,6 +5,9 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db/prisma';
 import type { Provider } from 'next-auth/providers';
+import { sendNotificationEmail } from '@/lib/services/email';
+
+const ADMIN_EMAIL = 'andrejgalad@gmail.com';
 
 // Check if Google OAuth is configured
 const isGoogleConfigured =
@@ -90,13 +93,66 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   events: {
     async createUser({ user }) {
-      // Create default API keys entry for new users
-      if (user.id) {
-        await prisma.apiKeys.create({
-          data: {
-            userId: user.id,
-          },
+      if (!user.id) return;
+
+      // Auto-approve admin
+      const isAdmin = user.email === ADMIN_EMAIL;
+
+      // Update user approval status and create API keys
+      await prisma.$transaction(async (tx) => {
+        // Set admin as approved
+        if (isAdmin) {
+          await tx.user.update({
+            where: { id: user.id },
+            data: { isApproved: true, role: 'admin' },
+          });
+        }
+
+        // Create default API keys entry
+        await tx.apiKeys.create({
+          data: { userId: user.id! },
         });
+      });
+
+      // If not admin, notify admin about new user
+      if (!isAdmin) {
+        try {
+          // Find admin user
+          const admin = await prisma.user.findUnique({
+            where: { email: ADMIN_EMAIL },
+          });
+
+          if (admin) {
+            // Create in-app notification for admin
+            await prisma.notification.create({
+              data: {
+                userId: admin.id,
+                type: 'new_user',
+                title: 'New User Registration',
+                message: `${user.name || user.email} has registered and is waiting for approval.`,
+                metadata: {
+                  newUserId: user.id,
+                  newUserEmail: user.email,
+                  newUserName: user.name,
+                },
+                actionUrl: '/admin',
+              },
+            });
+
+            // Send email to admin
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            await sendNotificationEmail({
+              to: ADMIN_EMAIL,
+              subject: `New User Registration: ${user.name || user.email}`,
+              title: 'New User Awaiting Approval',
+              message: `A new user has registered and is waiting for your approval:\n\nName: ${user.name || 'Not provided'}\nEmail: ${user.email}\n\nPlease review and approve or reject this user in the admin dashboard.`,
+              actionUrl: `${appUrl}/admin`,
+              actionText: 'Go to Admin Dashboard',
+            });
+          }
+        } catch (error) {
+          console.error('Failed to notify admin about new user:', error);
+        }
       }
     },
   },

@@ -1,6 +1,7 @@
 // Credits Service - Manage user credits for AI generation
 import { prisma } from '@/lib/db/prisma';
 import { getActionCost, type Provider, type ActionType } from './real-costs';
+import { getStartingCredits } from './app-config';
 
 // Cost configuration (in credits)
 // Based on real API costs: 1 credit ≈ $0.005 (video baseline: 20 credits = $0.10)
@@ -84,11 +85,14 @@ export async function getOrCreateCredits(userId: string): Promise<CreditsInfo> {
       };
     }
 
+    // Get starting credits from admin config (default 0)
+    const startingCredits = await getStartingCredits();
+
     credits = await prisma.credits.create({
       data: {
         userId,
-        balance: 500, // Initial credits
-        totalEarned: 500,
+        balance: startingCredits,
+        totalEarned: startingCredits,
         totalRealCost: 0,
       },
     });
