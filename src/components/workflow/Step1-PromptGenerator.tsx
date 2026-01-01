@@ -135,106 +135,109 @@ Format the output exactly like the base template but with richer, more detailed 
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
       {/* Header */}
       <div className="text-center">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 mb-4"
+          className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 mb-2"
         >
-          <Wand2 className="w-8 h-8 text-purple-400" />
+          <Wand2 className="w-6 h-6 text-purple-400" />
         </motion.div>
-        <h2 className="text-2xl font-bold mb-2">{t('steps.prompt.title')}</h2>
-        <p className="text-muted-foreground">{t('steps.prompt.description')}</p>
+        <h2 className="text-xl font-bold mb-1">{t('steps.prompt.title')}</h2>
+        <p className="text-sm text-muted-foreground">{t('steps.prompt.description')}</p>
       </div>
 
-      {/* Story Form */}
-      <div className="glass rounded-2xl p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Story Title */}
-          <div className="space-y-2">
-            <Label htmlFor="story-title">{t('steps.prompt.storyTitle')}</Label>
-            <Input
-              id="story-title"
-              placeholder={t('steps.prompt.storyTitlePlaceholder')}
-              value={project.story.title}
-              onChange={(e) => updateStory(project.id, { title: e.target.value })}
-              className="h-11 glass border-white/10 focus:border-purple-500/50"
+      {/* 2-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Column - Story Form */}
+        <div className="glass rounded-xl p-4 space-y-4">
+          <h3 className="text-sm font-semibold text-purple-400">Story Details</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Story Title */}
+            <div className="space-y-1">
+              <Label htmlFor="story-title" className="text-xs">{t('steps.prompt.storyTitle')}</Label>
+              <Input
+                id="story-title"
+                placeholder={t('steps.prompt.storyTitlePlaceholder')}
+                value={project.story.title}
+                onChange={(e) => updateStory(project.id, { title: e.target.value })}
+                className="h-9 glass border-white/10 focus:border-purple-500/50 text-sm"
+              />
+            </div>
+
+            {/* Setting */}
+            <div className="space-y-1">
+              <Label htmlFor="setting" className="text-xs">{t('steps.prompt.setting')}</Label>
+              <Input
+                id="setting"
+                placeholder={t('steps.prompt.settingPlaceholder')}
+                value={project.story.setting}
+                onChange={(e) => updateStory(project.id, { setting: e.target.value })}
+                className="h-9 glass border-white/10 focus:border-purple-500/50 text-sm"
+              />
+            </div>
+
+            {/* Genre */}
+            <div className="space-y-1">
+              <Label className="text-xs">{t('steps.prompt.genre')}</Label>
+              <Select
+                value={project.story.genre}
+                onValueChange={(value) => updateStory(project.id, { genre: value })}
+              >
+                <SelectTrigger className="h-9 glass border-white/10 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass-strong border-white/10">
+                  {genres.map((genre) => (
+                    <SelectItem key={genre} value={genre}>
+                      {t(`genres.${genre}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tone */}
+            <div className="space-y-1">
+              <Label className="text-xs">{t('steps.prompt.tone')}</Label>
+              <Select
+                value={project.story.tone}
+                onValueChange={(value) => updateStory(project.id, { tone: value })}
+              >
+                <SelectTrigger className="h-9 glass border-white/10 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass-strong border-white/10">
+                  {tones.map((tone) => (
+                    <SelectItem key={tone} value={tone}>
+                      {t(`tones.${tone}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Story Concept */}
+          <div className="space-y-1">
+            <Label htmlFor="concept" className="text-xs">{t('steps.prompt.concept')}</Label>
+            <Textarea
+              id="concept"
+              placeholder={t('steps.prompt.conceptPlaceholder')}
+              value={project.story.concept}
+              onChange={(e) => updateStory(project.id, { concept: e.target.value })}
+              className="min-h-[100px] glass border-white/10 focus:border-purple-500/50 resize-none text-sm"
             />
           </div>
 
-          {/* Setting */}
-          <div className="space-y-2">
-            <Label htmlFor="setting">{t('steps.prompt.setting')}</Label>
-            <Input
-              id="setting"
-              placeholder={t('steps.prompt.settingPlaceholder')}
-              value={project.story.setting}
-              onChange={(e) => updateStory(project.id, { setting: e.target.value })}
-              className="h-11 glass border-white/10 focus:border-purple-500/50"
-            />
-          </div>
-
-          {/* Genre */}
-          <div className="space-y-2">
-            <Label>{t('steps.prompt.genre')}</Label>
-            <Select
-              value={project.story.genre}
-              onValueChange={(value) => updateStory(project.id, { genre: value })}
-            >
-              <SelectTrigger className="h-11 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                {genres.map((genre) => (
-                  <SelectItem key={genre} value={genre}>
-                    {t(`genres.${genre}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Tone */}
-          <div className="space-y-2">
-            <Label>{t('steps.prompt.tone')}</Label>
-            <Select
-              value={project.story.tone}
-              onValueChange={(value) => updateStory(project.id, { tone: value })}
-            >
-              <SelectTrigger className="h-11 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                {tones.map((tone) => (
-                  <SelectItem key={tone} value={tone}>
-                    {t(`tones.${tone}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Story Concept */}
-        <div className="space-y-2">
-          <Label htmlFor="concept">{t('steps.prompt.concept')}</Label>
-          <Textarea
-            id="concept"
-            placeholder={t('steps.prompt.conceptPlaceholder')}
-            value={project.story.concept}
-            onChange={(e) => updateStory(project.id, { concept: e.target.value })}
-            className="min-h-[120px] glass border-white/10 focus:border-purple-500/50 resize-none"
-          />
-        </div>
-
-        {/* Generate Button */}
-        <div className="flex justify-center pt-4">
+          {/* Generate Button */}
           <Button
             onClick={handleGeneratePrompt}
             disabled={isGenerating || !project.story.title || !project.story.concept}
-            className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 h-12 px-8"
+            className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 h-10"
           >
             {isGenerating ? (
               <>
@@ -242,88 +245,95 @@ Format the output exactly like the base template but with richer, more detailed 
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                 >
-                  <RefreshCw className="w-5 h-5 mr-2" />
+                  <RefreshCw className="w-4 h-4 mr-2" />
                 </motion.div>
                 Generating...
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5 mr-2" />
+                <Sparkles className="w-4 h-4 mr-2" />
                 {t('steps.prompt.generatePrompt')}
               </>
             )}
           </Button>
-        </div>
-      </div>
 
-      {/* Generated Prompt */}
-      {project.masterPrompt && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
-        >
+          {/* Tip */}
+          <div className="glass rounded-lg p-3 border-l-4 border-cyan-500">
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-cyan-400">Tip:</strong> Copy the generated prompt and paste it into ChatGPT or Gemini for detailed breakdowns.
+            </p>
+          </div>
+        </div>
+
+        {/* Right Column - Generated Prompt */}
+        <div className="glass rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Wand2 className="w-5 h-5 text-purple-400" />
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Wand2 className="w-4 h-4 text-purple-400" />
               {t('steps.prompt.masterPrompt')}
             </h3>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="border-white/10 hover:bg-white/5"
-              >
-                <Edit3 className="w-4 h-4 mr-2" />
-                {t('steps.prompt.editPrompt')}
-              </Button>
-              <CopyButton text={project.masterPrompt} />
-            </div>
+            {project.masterPrompt && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="h-7 border-white/10 hover:bg-white/5 text-xs"
+                >
+                  <Edit3 className="w-3 h-3 mr-1" />
+                  {isEditing ? 'Cancel' : 'Edit'}
+                </Button>
+                <CopyButton text={project.masterPrompt} size="icon" className="h-7 w-7" />
+              </div>
+            )}
           </div>
 
-          <div className="glass rounded-xl p-6">
-            {isEditing ? (
-              <div className="space-y-4">
+          {project.masterPrompt ? (
+            isEditing ? (
+              <div className="space-y-3">
                 <Textarea
                   value={editedPrompt}
                   onChange={(e) => setEditedPrompt(e.target.value)}
-                  className="min-h-[300px] glass border-white/10 focus:border-purple-500/50 font-mono text-sm"
+                  className="min-h-[400px] glass border-white/10 focus:border-purple-500/50 font-mono text-xs"
                 />
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => {
                       setEditedPrompt(project.masterPrompt || '');
                       setIsEditing(false);
                     }}
-                    className="border-white/10"
+                    className="h-8 border-white/10"
                   >
                     {t('common.cancel')}
                   </Button>
                   <Button
+                    size="sm"
                     onClick={handleSaveEditedPrompt}
-                    className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0"
+                    className="h-8 bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0"
                   >
                     {t('common.save')}
                   </Button>
                 </div>
               </div>
             ) : (
-              <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-mono leading-relaxed">
-                {project.masterPrompt}
-              </pre>
-            )}
-          </div>
-
-          {/* Tip */}
-          <div className="glass rounded-xl p-4 border-l-4 border-cyan-500">
-            <p className="text-sm text-muted-foreground">
-              <strong className="text-cyan-400">Tip:</strong> Copy this prompt and paste it into ChatGPT or Gemini to generate detailed character and scene breakdowns. Then continue to the next step.
-            </p>
-          </div>
-        </motion.div>
-      )}
+              <div className="glass rounded-lg p-3 max-h-[500px] overflow-y-auto">
+                <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-mono leading-relaxed">
+                  {project.masterPrompt}
+                </pre>
+              </div>
+            )
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground/50">
+              <div className="text-center">
+                <Wand2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Fill in the story details and click Generate</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

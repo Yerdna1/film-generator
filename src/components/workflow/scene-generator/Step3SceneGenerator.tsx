@@ -5,8 +5,6 @@ import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks/useSceneGenerator';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   SceneHeader,
   SceneCard,
@@ -16,8 +14,8 @@ import {
   PromptsDialog,
   QuickActions,
 } from './components';
-
-const SCENES_PER_PAGE = 20;
+import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
+import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 
 interface Step3Props {
   project: Project;
@@ -129,12 +127,12 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(project.scenes.length / SCENES_PER_PAGE);
+  const startIndex = (currentPage - 1) * SCENES_PER_PAGE;
+  const endIndex = startIndex + SCENES_PER_PAGE;
 
   const paginatedScenes = useMemo(() => {
-    const start = (currentPage - 1) * SCENES_PER_PAGE;
-    const end = start + SCENES_PER_PAGE;
-    return project.scenes.slice(start, end);
-  }, [project.scenes, currentPage]);
+    return project.scenes.slice(startIndex, endIndex);
+  }, [project.scenes, startIndex, endIndex]);
 
   // Reset to page 1 if current page is out of bounds
   useEffect(() => {
@@ -164,63 +162,19 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         onGenerateAllScenes={handleGenerateAllScenes}
       />
 
-      {/* Pagination Info */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between glass rounded-xl px-4 py-3">
-          <span className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * SCENES_PER_PAGE + 1}-{Math.min(currentPage * SCENES_PER_PAGE, project.scenes.length)} of {project.scenes.length} scenes
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="border-white/10"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Prev
-            </Button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(page => {
-                  // Show first, last, current, and neighbors
-                  if (page === 1 || page === totalPages) return true;
-                  if (Math.abs(page - currentPage) <= 1) return true;
-                  return false;
-                })
-                .map((page, idx, arr) => (
-                  <span key={page} className="flex items-center">
-                    {idx > 0 && arr[idx - 1] !== page - 1 && (
-                      <span className="text-muted-foreground px-1">...</span>
-                    )}
-                    <Button
-                      variant={page === currentPage ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className={page === currentPage ? "bg-emerald-600" : "border-white/10"}
-                    >
-                      {page}
-                    </Button>
-                  </span>
-                ))}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="border-white/10"
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Pagination - Top */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        totalItems={project.scenes.length}
+        onPageChange={setCurrentPage}
+        variant="full"
+      />
 
-      {/* Scenes Grid - 2 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Scenes Grid - 2-3-4-5 columns like Step 4 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         {paginatedScenes.map((scene, idx) => (
           <SceneCard
             key={scene.id}
@@ -254,33 +208,15 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
       )}
 
       {/* Bottom Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="border-white/10"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Prev
-          </Button>
-          <span className="text-sm text-muted-foreground px-4">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="border-white/10"
-          >
-            Next
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        totalItems={project.scenes.length}
+        onPageChange={setCurrentPage}
+        variant="compact"
+      />
 
       {/* Quick Actions */}
       <QuickActions
@@ -289,11 +225,6 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         imageResolution={imageResolution}
         isGeneratingAllImages={isGenerating}
         onCopyPrompts={() => setShowPromptsDialog(true)}
-        onRegenerateAll={() => {
-          if (confirm(`Are you sure you want to regenerate ALL ${project.scenes.length} scene images? This will cost approximately ${formatCostCompact(getImageCost(imageResolution) * project.scenes.length)}.`)) {
-            handleRegenerateAllImages();
-          }
-        }}
         onGenerateAllImages={handleGenerateImages}
         onGenerateBatch={useInngest ? handleGenerateBatch : undefined}
         onStopGeneration={handleStopImageGeneration}
@@ -302,11 +233,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         onSelectAll={selectAll}
         onSelectAllWithImages={selectAllWithImages}
         onClearSelection={clearSelection}
-        onRegenerateSelected={() => {
-          if (confirm(`Regenerate ${selectedScenes.size} selected images? Cost: ~${formatCostCompact(getImageCost(imageResolution) * selectedScenes.size)}`)) {
-            handleRegenerateSelected();
-          }
-        }}
+        onRegenerateSelected={handleRegenerateSelected}
       />
 
       {/* Tip */}

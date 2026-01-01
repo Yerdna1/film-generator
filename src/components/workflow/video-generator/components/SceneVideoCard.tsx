@@ -114,6 +114,7 @@ export function SceneVideoCard({
             />
           ) : scene.imageUrl ? (
             <img
+              key={scene.imageUrl}
               src={scene.imageUrl}
               alt={scene.title}
               className="w-full h-full object-cover"
@@ -179,47 +180,35 @@ export function SceneVideoCard({
           </div>
         </div>
 
-        <CardContent className="p-4 space-y-3">
-          <div>
-            <h3 className="font-semibold truncate">{scene.title}</h3>
-            <p className="text-xs text-muted-foreground">
-              {scene.duration || 6}s • {scene.cameraShot}
-            </p>
+        <CardContent className="p-2 space-y-1.5">
+          {/* Title row with copy button */}
+          <div className="flex items-center justify-between gap-1">
+            <h3 className="font-medium text-sm truncate flex-1">{scene.title}</h3>
+            <CopyButton text={buildFullI2VPrompt(scene)} size="icon" className="h-5 w-5 shrink-0" />
           </div>
 
-          {/* Image-to-Video Prompt */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-orange-400">{t('steps.videos.i2vPrompt')}</span>
-              <CopyButton text={buildFullI2VPrompt(scene)} size="icon" className="h-5 w-5" />
-            </div>
-            <div className="glass rounded-lg p-2 max-h-16 overflow-y-auto">
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {scene.imageToVideoPrompt}
-              </p>
-            </div>
-          </div>
+          {/* Meta info */}
+          <p className="text-[10px] text-muted-foreground">
+            {scene.duration || 6}s • {scene.cameraShot}
+          </p>
 
-          {/* Dialogue Section */}
+          {/* I2V Prompt - single line with ellipsis */}
+          <p className="text-[10px] text-muted-foreground/70 truncate" title={scene.imageToVideoPrompt}>
+            {scene.imageToVideoPrompt}
+          </p>
+
+          {/* Dialogue - compact inline */}
           {scene.dialogue && scene.dialogue.length > 0 && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1">
-                <MessageSquare className="w-3 h-3 text-purple-400" />
-                <span className="text-xs text-purple-400">{t('steps.videos.dialogue')}</span>
-              </div>
-              <div className="glass rounded-lg p-2 max-h-20 overflow-y-auto space-y-1">
-                {scene.dialogue.map((line, idx) => (
-                  <p key={line.id || idx} className="text-xs">
-                    <span className="text-purple-300 font-medium">{line.characterName}:</span>{' '}
-                    <span className="text-muted-foreground">"{line.text}"</span>
-                  </p>
-                ))}
-              </div>
+            <div className="flex items-center gap-1 text-[10px]">
+              <MessageSquare className="w-3 h-3 text-purple-400 shrink-0" />
+              <span className="text-purple-300 truncate">
+                {scene.dialogue.map(d => d.characterName).join(', ')}
+              </span>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-2">
+          {/* Actions - compact */}
+          <div className="flex gap-1.5 pt-0.5">
             {scene.imageUrl ? (
               <>
                 <TooltipProvider>
@@ -228,7 +217,7 @@ export function SceneVideoCard({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 border-white/10 hover:bg-white/5"
+                        className="flex-1 h-7 border-white/10 hover:bg-white/5"
                         onClick={onGenerateVideo}
                         disabled={status === 'generating'}
                       >
@@ -237,10 +226,10 @@ export function SceneVideoCard({
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className="w-3.5 h-3.5" />
                           </motion.div>
                         ) : (
-                          <Sparkles className="w-4 h-4" />
+                          <Sparkles className="w-3.5 h-3.5" />
                         )}
                       </Button>
                     </TooltipTrigger>
@@ -257,9 +246,9 @@ export function SceneVideoCard({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-white/10 hover:bg-white/5"
+                          className="h-7 border-white/10 hover:bg-white/5"
                         >
-                          <Download className="w-4 h-4" />
+                          <Download className="w-3.5 h-3.5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -273,10 +262,10 @@ export function SceneVideoCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 border-amber-500/30 text-amber-400"
+                className="flex-1 h-7 border-amber-500/30 text-amber-400 text-xs"
                 disabled
               >
-                <Upload className="w-4 h-4 mr-2" />
+                <Upload className="w-3 h-3 mr-1" />
                 {t('steps.videos.needsImage')}
               </Button>
             )}

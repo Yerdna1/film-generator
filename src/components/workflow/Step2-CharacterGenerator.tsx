@@ -163,7 +163,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
   const charactersWithImages = project.characters.filter((c) => c.imageUrl).length;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
       {/* Header */}
       <div className="text-center">
         <motion.div
@@ -186,7 +186,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
       />
 
       {/* Characters Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {project.characters.map((character, index) => (
           <motion.div
             key={character.id}

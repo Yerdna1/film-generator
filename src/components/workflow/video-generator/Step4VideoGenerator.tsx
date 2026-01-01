@@ -65,7 +65,7 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
   } = useVideoGenerator(initialProject);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
       {/* Header & Progress */}
       <VideoHeader
         totalScenes={project.scenes.length}
@@ -113,7 +113,7 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
       />
 
       {/* Scenes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         {paginatedScenes.map((scene, index) => {
           const status = getSceneStatus(scene.id);
           const progress = videoStates[scene.id]?.progress || 0;

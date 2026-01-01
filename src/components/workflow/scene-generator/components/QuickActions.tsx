@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Copy, RefreshCw, Sparkles, Square, ChevronDown, CheckSquare, XSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { formatCostCompact, getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 
 interface QuickActionsProps {
@@ -18,7 +29,6 @@ interface QuickActionsProps {
   imageResolution: ImageResolution;
   isGeneratingAllImages: boolean;
   onCopyPrompts: () => void;
-  onRegenerateAll: () => void;
   onGenerateAllImages: () => void;
   onGenerateBatch?: (batchSize: number) => void;
   onStopGeneration: () => void;
@@ -40,7 +50,6 @@ export function QuickActions({
   imageResolution,
   isGeneratingAllImages,
   onCopyPrompts,
-  onRegenerateAll,
   onGenerateAllImages,
   onGenerateBatch,
   onStopGeneration,
@@ -54,6 +63,26 @@ export function QuickActions({
   const t = useTranslations();
   const remainingImages = totalScenes - scenesWithImages;
   const costPerImage = getImageCost(imageResolution);
+
+  // Confirmation dialog states
+  const [showGenerateAllConfirm, setShowGenerateAllConfirm] = useState(false);
+  const [showRegenerateSelectedConfirm, setShowRegenerateSelectedConfirm] = useState(false);
+
+  const handleGenerateAllClick = () => {
+    if (remainingImages > 5) {
+      setShowGenerateAllConfirm(true);
+    } else {
+      onGenerateAllImages();
+    }
+  };
+
+  const handleRegenerateSelectedClick = () => {
+    if (selectedCount > 5) {
+      setShowRegenerateSelectedConfirm(true);
+    } else {
+      onRegenerateSelected?.();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -98,7 +127,7 @@ export function QuickActions({
               <Button
                 size="sm"
                 className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
-                onClick={onRegenerateSelected}
+                onClick={handleRegenerateSelectedClick}
                 disabled={isGeneratingAllImages}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -126,15 +155,6 @@ export function QuickActions({
           <Badge variant="outline" className="ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
             FREE
           </Badge>
-        </Button>
-        <Button
-          variant="outline"
-          className="border-white/10 hover:bg-white/5"
-          disabled={totalScenes === 0 || isGeneratingAllImages}
-          onClick={onRegenerateAll}
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          {t('steps.scenes.regenerateAll')}
         </Button>
       {isGeneratingAllImages ? (
         <Button
@@ -193,7 +213,7 @@ export function QuickActions({
           <Button
             className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0"
             disabled={totalScenes === 0}
-            onClick={onGenerateAllImages}
+            onClick={handleGenerateAllClick}
           >
             <Sparkles className="w-4 h-4 mr-2" />
             {remainingImages <= 5 ? (
@@ -208,6 +228,56 @@ export function QuickActions({
         </div>
       )}
       </div>
+
+      {/* Confirmation Dialog - Generate All */}
+      <AlertDialog open={showGenerateAllConfirm} onOpenChange={setShowGenerateAllConfirm}>
+        <AlertDialogContent className="glass-strong border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generate {remainingImages} images?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to generate {remainingImages} images. This will cost approximately {formatCostCompact(costPerImage * remainingImages)}.
+              Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0"
+              onClick={() => {
+                setShowGenerateAllConfirm(false);
+                onGenerateAllImages();
+              }}
+            >
+              Yes, Generate All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation Dialog - Regenerate Selected */}
+      <AlertDialog open={showRegenerateSelectedConfirm} onOpenChange={setShowRegenerateSelectedConfirm}>
+        <AlertDialogContent className="glass-strong border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regenerate {selectedCount} images?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to regenerate {selectedCount} selected images. This will cost approximately {formatCostCompact(costPerImage * selectedCount)}.
+              Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0"
+              onClick={() => {
+                setShowRegenerateSelectedConfirm(false);
+                onRegenerateSelected?.();
+              }}
+            >
+              Yes, Regenerate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

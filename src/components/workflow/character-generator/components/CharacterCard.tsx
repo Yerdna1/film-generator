@@ -154,6 +154,7 @@ export function CharacterCard({
               className="w-full h-full"
             >
               <img
+                key={character.imageUrl}
                 src={character.imageUrl}
                 alt={character.name}
                 className="w-full h-full object-cover"
