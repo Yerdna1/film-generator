@@ -282,6 +282,31 @@ export default function ProjectWorkspacePage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Visibility Toggle (for admins) */}
+              {userRole === 'admin' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleVisibility}
+                  disabled={isUpdatingVisibility}
+                  className={`gap-2 ${
+                    visibility === 'public'
+                      ? 'text-green-400 hover:text-green-300'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={visibility === 'public' ? 'Public project - click to make private' : 'Private project - click to make public'}
+                >
+                  {visibility === 'public' ? (
+                    <Globe className="w-4 h-4" />
+                  ) : (
+                    <Lock className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {visibility === 'public' ? 'Public' : 'Private'}
+                  </span>
+                </Button>
+              )}
+
               {/* Team/Collaboration button */}
               <Button
                 variant="ghost"
