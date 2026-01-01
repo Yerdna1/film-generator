@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +11,7 @@ interface ImagePreviewModalProps {
   onClose: () => void;
 }
 
-export function ImagePreviewModal({ imageUrl, onClose }: ImagePreviewModalProps) {
+function ImagePreviewModalComponent({ imageUrl, onClose }: ImagePreviewModalProps) {
   return (
     <AnimatePresence>
       {imageUrl && (
@@ -24,17 +26,24 @@ export function ImagePreviewModal({ imageUrl, onClose }: ImagePreviewModalProps)
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.9 }}
-            className="relative max-w-4xl max-h-[90vh]"
+            className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={imageUrl}
-              alt="Preview"
-              className="max-w-full max-h-[90vh] rounded-xl"
-            />
+            <div className="relative w-full h-full max-w-4xl max-h-[90vh]">
+              <Image
+                src={imageUrl}
+                alt="Preview"
+                fill
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                className="object-contain rounded-xl"
+                priority
+                unoptimized={imageUrl.startsWith('data:') || imageUrl.includes('blob:')}
+              />
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
+              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 z-10"
               onClick={onClose}
             >
               <X className="w-5 h-5" />
@@ -45,3 +54,5 @@ export function ImagePreviewModal({ imageUrl, onClose }: ImagePreviewModalProps)
     </AnimatePresence>
   );
 }
+
+export const ImagePreviewModal = memo(ImagePreviewModalComponent);

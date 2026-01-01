@@ -1,7 +1,9 @@
 'use client';
 
+import { memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import {
   Image as ImageIcon,
   Trash2,
@@ -44,7 +46,7 @@ interface SceneCardProps {
   onPreviewImage: (imageUrl: string) => void;
 }
 
-export function SceneCard({
+function SceneCardComponent({
   scene,
   index,
   isExpanded,
@@ -77,10 +79,14 @@ export function SceneCard({
                   onClick={() => onPreviewImage(scene.imageUrl!)}
                   className="relative w-48 h-32 rounded-lg overflow-hidden group flex-shrink-0"
                 >
-                  <img
+                  <Image
                     src={scene.imageUrl}
                     alt={scene.title}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="192px"
+                    className="object-cover"
+                    loading="lazy"
+                    unoptimized={scene.imageUrl.startsWith('data:') || scene.imageUrl.includes('blob:')}
                   />
                   <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-black/60 flex items-center justify-center font-bold text-emerald-400 text-sm">
                     {scene.number || index + 1}
@@ -252,3 +258,20 @@ export function SceneCard({
     </motion.div>
   );
 }
+
+// Memoize to prevent re-renders when parent updates unrelated state
+export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.scene.id === nextProps.scene.id &&
+    prevProps.scene.imageUrl === nextProps.scene.imageUrl &&
+    prevProps.scene.title === nextProps.scene.title &&
+    prevProps.scene.textToImagePrompt === nextProps.scene.textToImagePrompt &&
+    prevProps.scene.imageToVideoPrompt === nextProps.scene.imageToVideoPrompt &&
+    prevProps.scene.dialogue.length === nextProps.scene.dialogue.length &&
+    prevProps.isExpanded === nextProps.isExpanded &&
+    prevProps.isGeneratingImage === nextProps.isGeneratingImage &&
+    prevProps.isGeneratingAllImages === nextProps.isGeneratingAllImages &&
+    prevProps.imageResolution === nextProps.imageResolution
+  );
+});

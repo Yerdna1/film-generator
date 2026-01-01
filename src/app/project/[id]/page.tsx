@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
-  Save,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -21,6 +20,23 @@ import { Step3SceneGenerator } from '@/components/workflow/Step3-SceneGenerator'
 import { Step4VideoGenerator } from '@/components/workflow/Step4-VideoGenerator';
 import { Step5VoiceoverGenerator } from '@/components/workflow/Step5-VoiceoverGenerator';
 import { Step6Export } from '@/components/workflow/Step6-Export';
+
+// Shallow compare for project updates - only trigger re-render for meaningful changes
+function hasProjectChanged(prev: ReturnType<typeof useProjectStore.getState>['projects'][0] | undefined, next: ReturnType<typeof useProjectStore.getState>['projects'][0] | undefined): boolean {
+  if (!prev || !next) return prev !== next;
+  if (prev.id !== next.id) return true;
+  if (prev.currentStep !== next.currentStep) return true;
+  if (prev.name !== next.name) return true;
+  if (prev.scenes.length !== next.scenes.length) return true;
+  if (prev.characters.length !== next.characters.length) return true;
+  // Deep check scene image URLs (important for image generation updates)
+  for (let i = 0; i < prev.scenes.length; i++) {
+    if (prev.scenes[i]?.imageUrl !== next.scenes[i]?.imageUrl) return true;
+    if (prev.scenes[i]?.videoUrl !== next.scenes[i]?.videoUrl) return true;
+    if (prev.scenes[i]?.audioUrl !== next.scenes[i]?.audioUrl) return true;
+  }
+  return false;
+}
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
@@ -49,13 +65,18 @@ export default function ProjectWorkspacePage() {
     setCurrentProject(params.id as string);
   }, [params.id, getProject, setCurrentProject, router, hasMounted]);
 
-  // Subscribe to store changes
+  // Track previous project state to avoid unnecessary re-renders
+  const prevProjectRef = useRef<ReturnType<typeof getProject>>(undefined);
+
+  // Subscribe to store changes with shallow comparison
   useEffect(() => {
     if (!hasMounted) return;
 
     const unsubscribe = useProjectStore.subscribe((state) => {
       const updated = state.projects.find((p) => p.id === params.id);
-      if (updated) {
+      // Only update if there are meaningful changes
+      if (hasProjectChanged(prevProjectRef.current, updated)) {
+        prevProjectRef.current = updated;
         setProject(updated);
       }
     });
