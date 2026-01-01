@@ -720,6 +720,14 @@ export function useSceneGenerator(initialProject: Project) {
     setIsGeneratingAllImages(true);
     stopGenerationRef.current = false;
 
+    // Get character reference images for consistency
+    const referenceImages = project.characters
+      .filter((c) => c.imageUrl)
+      .map((c) => ({
+        name: c.name,
+        imageUrl: c.imageUrl!,
+      }));
+
     try {
       for (const scene of scenesToRegenerate) {
         if (stopGenerationRef.current) break;
@@ -727,30 +735,41 @@ export function useSceneGenerator(initialProject: Project) {
         setGeneratingImageForScene(scene.id);
 
         try {
-          const response = await fetchWithRetry('/api/gemini/image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt: scene.textToImagePrompt,
-              projectId: project.id,
-              sceneId: scene.id,
-              aspectRatio: sceneAspectRatio,
-              resolution: imageResolution,
-            }),
-          });
+          const response = await fetchWithRetry(
+            '/api/image',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt: scene.textToImagePrompt,
+                aspectRatio: sceneAspectRatio,
+                resolution: imageResolution,
+                projectId: project.id,
+                referenceImages,
+              }),
+            },
+            MAX_RETRIES
+          );
 
-          if (response.ok) {
-            const data = await response.json();
-            handleApiResponse(data);
-            if (data.imageUrl) {
-              await updateScene(project.id, scene.id, { imageUrl: data.imageUrl });
-              // Remove from selection after successful regeneration
-              setSelectedScenes(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(scene.id);
-                return newSet;
-              });
-            }
+          const isInsufficientCredits = await handleApiResponse(response);
+          if (isInsufficientCredits) {
+            break;
+          }
+
+          if (!response.ok) {
+            console.error(`Error regenerating scene ${scene.number}: API returned ${response.status}`);
+            continue;
+          }
+
+          const data = await response.json();
+          if (data.imageUrl) {
+            await updateScene(project.id, scene.id, { imageUrl: data.imageUrl });
+            // Remove from selection after successful regeneration
+            setSelectedScenes(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(scene.id);
+              return newSet;
+            });
           }
         } catch (error) {
           console.error(`Error regenerating scene ${scene.number}:`, error);
