@@ -100,7 +100,7 @@ Please enhance this prompt with:
 5. Sample dialogue for each scene
 
 Format the output exactly like the base template but with richer, more detailed content. Keep the same structure with CHARACTER: and SCENE: sections.`,
-          model: 'gemini-1.5-pro',
+          model: 'gemini-2.0-flash',
         }),
       });
 
@@ -109,13 +109,22 @@ Format the output exactly like the base template but with richer, more detailed 
         if (data.text) {
           setMasterPrompt(project.id, data.text);
           setEditedPrompt(data.text);
+          // Dispatch credits update event
+          window.dispatchEvent(new CustomEvent('credits-updated'));
           setIsGenerating(false);
           return;
         }
       }
 
-      // Fallback to local generation if API fails
-      console.warn('Gemini API not available, using local generation');
+      // Check for insufficient credits error
+      if (response.status === 402) {
+        const errorData = await response.json();
+        console.warn('Insufficient credits for AI enhancement:', errorData);
+        // Fall back to local generation (free)
+      }
+
+      // Fallback to local generation if API fails or not enough credits
+      console.warn('Using local generation (no credits deducted)');
       setMasterPrompt(project.id, basePrompt);
       setEditedPrompt(basePrompt);
     } catch (error) {

@@ -21,7 +21,7 @@ export async function generateText(
 ): Promise<GeminiResponse> {
   try {
     const response = await fetch(
-      `${GEMINI_API_URL}/models/${config.model || 'gemini-1.5-pro'}:generateContent?key=${config.apiKey}`,
+      `${GEMINI_API_URL}/models/${config.model || 'gemini-2.0-flash'}:generateContent?key=${config.apiKey}`,
       {
         method: 'POST',
         headers: {

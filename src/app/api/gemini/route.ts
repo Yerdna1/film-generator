@@ -4,24 +4,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { spendCredits, checkBalance, COSTS } from '@/lib/services/credits';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
+// Cost for prompt enhancement (using scene generation cost as baseline)
+const PROMPT_ENHANCEMENT_COST = COSTS.SCENE_GENERATION;
+
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, model = 'gemini-1.5-pro' } = await request.json();
+    const { prompt, model = 'gemini-2.0-flash', skipCreditCheck = false } = await request.json();
+
+    // Get session and check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+
+    // Check credits before making API call (unless explicitly skipped for free operations)
+    if (!skipCreditCheck) {
+      const balanceCheck = await checkBalance(userId, PROMPT_ENHANCEMENT_COST);
+      if (!balanceCheck.hasEnough) {
+        return NextResponse.json(
+          {
+            error: `Insufficient credits. Need ${PROMPT_ENHANCEMENT_COST}, have ${balanceCheck.balance}`,
+            creditsRequired: PROMPT_ENHANCEMENT_COST,
+            balance: balanceCheck.balance
+          },
+          { status: 402 } // Payment Required
+        );
+      }
+    }
 
     // Get API key from user's database settings or fallback to env
     let apiKey = process.env.GEMINI_API_KEY;
 
-    const session = await auth();
-    if (session?.user?.id) {
-      const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId: session.user.id },
-      });
-      if (userApiKeys?.geminiApiKey) {
-        apiKey = userApiKeys.geminiApiKey;
-      }
+    const userApiKeys = await prisma.apiKeys.findUnique({
+      where: { userId },
+    });
+    if (userApiKeys?.geminiApiKey) {
+      apiKey = userApiKeys.geminiApiKey;
     }
 
     if (!apiKey) {
@@ -78,6 +105,23 @@ export async function POST(request: NextRequest) {
         { error: 'No text generated' },
         { status: 500 }
       );
+    }
+
+    // Deduct credits after successful generation (unless skipped)
+    if (!skipCreditCheck) {
+      const spendResult = await spendCredits(
+        userId,
+        PROMPT_ENHANCEMENT_COST,
+        'prompt',
+        'Master prompt enhancement via Gemini',
+        undefined, // no project ID for general prompts
+        'gemini'
+      );
+
+      if (!spendResult.success) {
+        console.error('Failed to deduct credits:', spendResult.error);
+        // Still return the text since generation succeeded
+      }
     }
 
     return NextResponse.json({ text });
