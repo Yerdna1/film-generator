@@ -16,7 +16,7 @@ import {
 
 export default function DashboardPage() {
   const { status } = useSession();
-  const { projects } = useProjectStore();
+  const { projects, isLoading: projectsLoading } = useProjectStore();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [importProjectOpen, setImportProjectOpen] = useState(false);
 
@@ -29,8 +29,8 @@ export default function DashboardPage() {
     return <LandingPage />;
   }
 
-  // Show loading state
-  if (status === 'loading') {
+  // Show loading state while auth or projects are loading
+  if (status === 'loading' || projectsLoading) {
     return <LoadingSkeleton />;
   }
 
