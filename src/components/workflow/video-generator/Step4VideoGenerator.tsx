@@ -53,6 +53,15 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
     handleGenerateVideo,
     handleGenerateAll,
     handleStopGeneration,
+
+    // Selection
+    selectedScenes,
+    toggleSceneSelection,
+    selectAll,
+    selectAllWithVideos,
+    selectAllWithoutVideos,
+    clearSelection,
+    handleGenerateSelected,
   } = useVideoGenerator(initialProject);
 
   return (
@@ -76,10 +85,17 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
         videoMode={videoMode}
         onVideoModeChange={setVideoMode}
         scenesWithImages={scenesWithImages.length}
+        scenesWithVideos={scenesWithVideos.length}
         scenesNeedingGeneration={scenesNeedingGeneration.length}
         isGeneratingAll={isGeneratingAll}
         onGenerateAll={handleGenerateAll}
         onStopGeneration={handleStopGeneration}
+        selectedCount={selectedScenes.size}
+        onSelectAll={selectAll}
+        onSelectAllWithVideos={selectAllWithVideos}
+        onSelectAllWithoutVideos={selectAllWithoutVideos}
+        onClearSelection={clearSelection}
+        onGenerateSelected={handleGenerateSelected}
       />
 
       {/* Warning if no images */}
@@ -115,6 +131,8 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
               progress={progress}
               isPlaying={playingVideo === scene.id}
               cachedVideoUrl={cachedVideoUrl}
+              isSelected={selectedScenes.has(scene.id)}
+              onToggleSelect={() => toggleSceneSelection(scene.id)}
               onPlay={() => setPlayingVideo(scene.id)}
               onPause={() => setPlayingVideo(null)}
               onGenerateVideo={() => handleGenerateVideo(scene)}

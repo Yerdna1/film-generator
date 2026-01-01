@@ -20,6 +20,7 @@ export function useVideoGenerator(initialProject: Project) {
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [videoMode, setVideoMode] = useState<VideoMode>('normal');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set());
 
   // Refs
   const stopGenerationRef = useRef(false);
@@ -276,6 +277,66 @@ export function useVideoGenerator(initialProject: Project) {
     console.log('Stop generation requested');
   }, []);
 
+  // Selection functions
+  const toggleSceneSelection = useCallback((sceneId: string) => {
+    setSelectedScenes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sceneId)) {
+        newSet.delete(sceneId);
+      } else {
+        newSet.add(sceneId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    const allIds = scenesWithImages.map(s => s.id);
+    setSelectedScenes(new Set(allIds));
+  }, [scenesWithImages]);
+
+  const selectAllWithVideos = useCallback(() => {
+    const ids = scenesWithVideos.map(s => s.id);
+    setSelectedScenes(new Set(ids));
+  }, [scenesWithVideos]);
+
+  const selectAllWithoutVideos = useCallback(() => {
+    const ids = scenesWithImages.filter(s => !s.videoUrl).map(s => s.id);
+    setSelectedScenes(new Set(ids));
+  }, [scenesWithImages]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedScenes(new Set());
+  }, []);
+
+  // Generate selected videos
+  const handleGenerateSelected = useCallback(async () => {
+    if (selectedScenes.size === 0) return;
+    if (isGeneratingAll) return;
+
+    setIsGeneratingAll(true);
+    stopGenerationRef.current = false;
+
+    const RATE_LIMIT_DELAY_MS = 1500;
+    const scenesToGenerate = scenesWithImages.filter(s => selectedScenes.has(s.id));
+
+    for (const scene of scenesToGenerate) {
+      if (stopGenerationRef.current) break;
+
+      await generateSceneVideo(scene);
+      // Remove from selection after generation
+      setSelectedScenes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(scene.id);
+        return newSet;
+      });
+      await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
+    }
+
+    setIsGeneratingAll(false);
+    stopGenerationRef.current = false;
+  }, [selectedScenes, scenesWithImages, isGeneratingAll, generateSceneVideo]);
+
   return {
     // Project data
     project,
@@ -309,5 +370,14 @@ export function useVideoGenerator(initialProject: Project) {
     handleGenerateVideo,
     handleGenerateAll,
     handleStopGeneration,
+
+    // Selection
+    selectedScenes,
+    toggleSceneSelection,
+    selectAll,
+    selectAllWithVideos,
+    selectAllWithoutVideos,
+    clearSelection,
+    handleGenerateSelected,
   };
 }

@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CopyButton } from '@/components/shared/CopyButton';
 import type { Scene } from '@/types/project';
 import type { VideoStatus } from '../types';
@@ -35,6 +36,8 @@ interface SceneVideoCardProps {
   progress: number;
   isPlaying: boolean;
   cachedVideoUrl?: string;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
   onPlay: () => void;
   onPause: () => void;
   onGenerateVideo: () => void;
@@ -81,6 +84,8 @@ export function SceneVideoCard({
   progress,
   isPlaying,
   cachedVideoUrl,
+  isSelected,
+  onToggleSelect,
   onPlay,
   onPause,
   onGenerateVideo,
@@ -157,7 +162,16 @@ export function SceneVideoCard({
           </div>
 
           {/* Status Badge */}
-          <div className="absolute top-2 right-2">
+          <div className="absolute top-2 right-2 flex items-center gap-2">
+            {onToggleSelect && scene.imageUrl && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={onToggleSelect}
+                  className="h-5 w-5 border-2 border-white/50 bg-black/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                />
+              </div>
+            )}
             <Badge variant="outline" className={`${getStatusColor(status)} bg-black/60`}>
               {getStatusIcon(status)}
               <span className="ml-1 capitalize">{status}</span>

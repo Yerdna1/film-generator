@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ExternalLink, Zap, Square } from 'lucide-react';
+import { ExternalLink, Zap, Square, CheckSquare, XSquare, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -18,25 +18,109 @@ interface VideoQuickActionsProps {
   videoMode: VideoMode;
   onVideoModeChange: (mode: VideoMode) => void;
   scenesWithImages: number;
+  scenesWithVideos: number;
   scenesNeedingGeneration: number;
   isGeneratingAll: boolean;
   onGenerateAll: () => void;
   onStopGeneration: () => void;
+  // Selection props
+  selectedCount?: number;
+  onSelectAll?: () => void;
+  onSelectAllWithVideos?: () => void;
+  onSelectAllWithoutVideos?: () => void;
+  onClearSelection?: () => void;
+  onGenerateSelected?: () => void;
 }
 
 export function VideoQuickActions({
   videoMode,
   onVideoModeChange,
   scenesWithImages,
+  scenesWithVideos,
   scenesNeedingGeneration,
   isGeneratingAll,
   onGenerateAll,
   onStopGeneration,
+  selectedCount = 0,
+  onSelectAll,
+  onSelectAllWithVideos,
+  onSelectAllWithoutVideos,
+  onClearSelection,
+  onGenerateSelected,
 }: VideoQuickActionsProps) {
   const t = useTranslations();
 
   return (
-    <div className="flex flex-wrap gap-4 justify-center items-center">
+    <div className="space-y-4">
+      {/* Selection Controls */}
+      {scenesWithImages > 0 && onSelectAll && onClearSelection && (
+        <div className="flex flex-wrap gap-3 justify-center items-center glass rounded-xl p-3">
+          <span className="text-sm text-muted-foreground">Selection:</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+            onClick={onSelectAll}
+            disabled={isGeneratingAll}
+          >
+            <CheckSquare className="w-4 h-4 mr-2" />
+            Select All ({scenesWithImages})
+          </Button>
+          {scenesWithVideos > 0 && onSelectAllWithVideos && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              onClick={onSelectAllWithVideos}
+              disabled={isGeneratingAll}
+            >
+              <CheckSquare className="w-4 h-4 mr-2" />
+              With Videos ({scenesWithVideos})
+            </Button>
+          )}
+          {scenesNeedingGeneration > 0 && onSelectAllWithoutVideos && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+              onClick={onSelectAllWithoutVideos}
+              disabled={isGeneratingAll}
+            >
+              <CheckSquare className="w-4 h-4 mr-2" />
+              Without Videos ({scenesNeedingGeneration})
+            </Button>
+          )}
+          {selectedCount > 0 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/10 hover:bg-white/5"
+                onClick={onClearSelection}
+                disabled={isGeneratingAll}
+              >
+                <XSquare className="w-4 h-4 mr-2" />
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
+                onClick={onGenerateSelected}
+                disabled={isGeneratingAll}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Generate Selected ({selectedCount})
+                <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                  ~{formatCostCompact(ACTION_COSTS.video.grok * selectedCount)}
+                </Badge>
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Main Actions */}
+      <div className="flex flex-wrap gap-4 justify-center items-center">
       {/* Mode Selector */}
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">{t('steps.videos.mode')}:</span>
@@ -83,6 +167,7 @@ export function VideoQuickActions({
           </Badge>
         </Button>
       )}
+      </div>
     </div>
   );
 }
