@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys } from '@/lib/cache';
+import { getProjectWithPermissions, verifyPermission, getUserProjectRole } from '@/lib/permissions';
 
 // GET - Fetch single project with all data
 export async function GET(
@@ -19,25 +20,17 @@ export async function GET(
       );
     }
 
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-      include: {
-        characters: true,
-        scenes: {
-          orderBy: { number: 'asc' },
-        },
-      },
-    });
+    // Use permission system to check access
+    const result = await getProjectWithPermissions(session.user.id, id);
 
-    if (!project) {
+    if (!result) {
       return NextResponse.json(
-        { error: 'Project not found' },
+        { error: 'Project not found or access denied' },
         { status: 404 }
       );
     }
+
+    const { project, role, permissions } = result;
 
     const transformedProject = {
       id: project.id,
@@ -77,6 +70,10 @@ export async function GET(
         duration: s.duration,
         dialogue: s.dialogue as object[],
       })),
+      // Include collaboration info
+      role,
+      permissions,
+      isOwner: project.userId === session.user.id,
     };
 
     return NextResponse.json(transformedProject);
@@ -105,12 +102,18 @@ export async function PUT(
       );
     }
 
-    // Verify ownership
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
+    // Check edit permission
+    const permissionCheck = await verifyPermission(session.user.id, id, 'canEdit');
+    if (!permissionCheck.allowed) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      );
+    }
+
+    // Get existing project
+    const existingProject = await prisma.project.findUnique({
+      where: { id },
     });
 
     if (!existingProject) {
@@ -238,12 +241,31 @@ export async function DELETE(
       );
     }
 
-    // Verify ownership
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
+    // Check delete permission
+    const permissionCheck = await verifyPermission(session.user.id, id, 'canDelete');
+    if (!permissionCheck.allowed) {
+      // Check if they can request deletion instead
+      const canRequest = await verifyPermission(session.user.id, id, 'canRequestDeletion');
+      if (canRequest.allowed) {
+        return NextResponse.json(
+          {
+            error: 'Deletion requires admin approval. Please submit a deletion request.',
+            requiresApproval: true,
+            canRequestDeletion: true,
+          },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      );
+    }
+
+    // Get existing project for cache invalidation
+    const existingProject = await prisma.project.findUnique({
+      where: { id },
+      select: { userId: true },
     });
 
     if (!existingProject) {
@@ -258,7 +280,8 @@ export async function DELETE(
       where: { id },
     });
 
-    // Invalidate projects cache for this user
+    // Invalidate projects cache for project owner and current user
+    cache.invalidate(cacheKeys.userProjects(existingProject.userId));
     cache.invalidate(cacheKeys.userProjects(session.user.id));
     cache.invalidate(cacheKeys.project(id));
     console.log(`[Cache INVALIDATED] Projects cache after delete`);

@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { CreditsDisplay } from './CreditsDisplay';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export function Header() {
   const t = useTranslations();
@@ -131,6 +132,9 @@ export function Header() {
                 <HelpCircle className="w-5 h-5" />
               </Link>
             </Button>
+
+            {/* Notifications (for logged-in users) */}
+            {user && <NotificationBell />}
 
             {/* User Menu or Login Button */}
             {status === 'loading' ? (

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
+import { getUserAccessibleProjects } from '@/lib/permissions';
 
-// GET - Fetch all projects for user (with 2-hour cache)
+// GET - Fetch all projects for user (owned + shared, with 2-hour cache)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -32,17 +33,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-
-    const projects = await prisma.project.findMany({
-      where: { userId },
-      include: {
-        characters: true,
-        scenes: {
-          orderBy: { number: 'asc' },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+    // Get all accessible projects (owned + shared)
+    const projects = await getUserAccessibleProjects(userId);
 
     // Transform to match frontend Project type
     const transformedProjects = projects.map((project) => ({
@@ -83,6 +75,10 @@ export async function GET(request: NextRequest) {
         duration: s.duration,
         dialogue: s.dialogue as object[],
       })),
+      // Include collaboration info
+      role: project.role,
+      isOwner: project.isOwner,
+      owner: 'owner' in project ? project.owner : undefined,
     }));
 
     // Cache for 2 hours

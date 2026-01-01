@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // NextAuth.js Models
@@ -57,6 +56,13 @@ model User {
   projects     Project[]
   credits      Credits?
   subscription Subscription?
+
+  // Collaboration relations
+  projectMemberships ProjectMember[]
+  invitationsSent    ProjectInvitation[] @relation("InvitationsSent")
+  deletionRequests   DeletionRequest[]   @relation("DeletionRequests")
+  deletionReviews    DeletionRequest[]   @relation("DeletionReviews")
+  notifications      Notification[]
 }
 
 // User subscription for payment plans
@@ -174,6 +180,11 @@ model Project {
   characters Character[]
   scenes     Scene[]
 
+  // Collaboration relations
+  members          ProjectMember[]
+  invitations      ProjectInvitation[]
+  deletionRequests DeletionRequest[]
+
   @@index([userId])
 }
 
@@ -277,4 +288,90 @@ model SceneGenerationJob {
   @@index([projectId])
   @@index([userId])
   @@index([status])
+}
+
+// ============================================
+// COLLABORATION MODELS
+// ============================================
+
+// Project membership for collaboration
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("reader") // "admin" | "collaborator" | "reader"
+  joinedAt  DateTime @default(now())
+  invitedBy String?  // userId of who invited them
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+// Invitations (supports pending invites for non-registered users)
+model ProjectInvitation {
+  id         String    @id @default(cuid())
+  projectId  String
+  email      String    // Email of invitee
+  role       String    @default("reader") // Role to assign on acceptance
+  token      String    @unique @default(cuid()) // Unique token for invite link
+  invitedBy  String    // userId of inviter
+  expiresAt  DateTime  // 30 days from creation
+  acceptedAt DateTime? // When invitation was accepted
+  status     String    @default("pending") // "pending" | "accepted" | "expired" | "revoked"
+  createdAt  DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inviter User    @relation("InvitationsSent", fields: [invitedBy], references: [id])
+
+  @@index([projectId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+}
+
+// Deletion requests requiring admin approval
+model DeletionRequest {
+  id          String    @id @default(cuid())
+  projectId   String
+  requesterId String    // User requesting deletion
+  targetType  String    // "project" | "scene" | "character" | "video"
+  targetId    String    // ID of item to delete
+  targetName  String?   // Human-readable name for notification
+  reason      String?   // Optional reason
+  status      String    @default("pending") // "pending" | "approved" | "rejected"
+  reviewedBy  String?   // Admin who reviewed
+  reviewedAt  DateTime?
+  reviewNote  String?   // Admin's note on decision
+  createdAt   DateTime  @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester User    @relation("DeletionRequests", fields: [requesterId], references: [id])
+  reviewer  User?   @relation("DeletionReviews", fields: [reviewedBy], references: [id])
+
+  @@index([projectId])
+  @@index([requesterId])
+  @@index([status])
+}
+
+// In-app notifications
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   // Recipient
+  type      String   // "deletion_request" | "invitation" | "role_change" | "request_approved" | "request_rejected"
+  title     String
+  message   String
+  metadata  Json?    // Additional data (projectId, requestId, etc.)
+  read      Boolean  @default(false)
+  actionUrl String?  // Optional link to relevant page
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
 }

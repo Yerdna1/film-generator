@@ -765,5 +765,68 @@
     "modelPricing": "Cena",
     "currency": "Mena",
     "currencyDescription": "Vyberte preferovanú menu pre zobrazenie nákladov"
+  },
+  "collaboration": {
+    "title": "Spolupráca",
+    "team": "Tím",
+    "yourRole": "Vaša rola",
+    "members": "Členovia",
+    "inviteMember": "Pozvať člena",
+    "inviteButton": "Pozvať",
+    "inviteTitle": "Pozvať do projektu",
+    "inviteDescription": "Pošlite pozvánku emailom na spoluprácu na tomto projekte",
+    "emailPlaceholder": "Emailová adresa",
+    "roleLabel": "Rola",
+    "sendInvite": "Odoslať pozvánku",
+    "pendingInvites": "Čakajúce pozvánky",
+    "revokeInvite": "Zrušiť",
+    "shareLink": "Zdieľať odkaz",
+    "copyLink": "Kopírovať odkaz na pozvánku",
+    "linkCopied": "Odkaz skopírovaný!",
+    "expiresIn": "Vyprší za {days} dní",
+    "roles": {
+      "admin": "Administrátor",
+      "collaborator": "Spolupracovník",
+      "reader": "Čitateľ"
+    },
+    "roleDescriptions": {
+      "admin": "Plná kontrola nad projektom",
+      "collaborator": "Môže upravovať a regenerovať, odstránenie vyžaduje schválenie",
+      "reader": "Len na čítanie"
+    },
+    "sharedWithYou": "Zdieľané s vami",
+    "owner": "Vlastník",
+    "you": "Vy",
+    "removeMember": "Odstrániť",
+    "changeRole": "Zmeniť rolu",
+    "leaveProject": "Opustiť projekt"
+  },
+  "notifications": {
+    "title": "Notifikácie",
+    "markAllRead": "Označiť všetky ako prečítané",
+    "noNotifications": "Žiadne notifikácie",
+    "deletionRequest": {
+      "title": "Žiadosť o odstránenie",
+      "message": "{user} požiadal o odstránenie {target}",
+      "approve": "Schváliť",
+      "reject": "Zamietnuť"
+    },
+    "invitation": {
+      "title": "Pozvánka do projektu",
+      "message": "Boli ste pozvaní do {project}"
+    }
+  },
+  "approvals": {
+    "title": "Čakajúce schválenia",
+    "noRequests": "Žiadne čakajúce žiadosti o odstránenie",
+    "requestDeletion": "Požiadať o odstránenie",
+    "requestDeletionTitle": "Požiadať o odstránenie",
+    "requestDeletionDescription": "Odoslať žiadosť na schválenie administrátorom",
+    "reasonPlaceholder": "Prečo chcete toto odstrániť?",
+    "submitRequest": "Odoslať žiadosť",
+    "pendingApproval": "Čaká na schválenie",
+    "approved": "Schválené",
+    "rejected": "Zamietnuté",
+    "reviewNote": "Poznámka admina"
   }
 }
