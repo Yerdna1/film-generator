@@ -6,15 +6,18 @@ import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
   Upload,
-  FileJson,
   Image as ImageIcon,
   Video,
   FolderOpen,
   Check,
   AlertCircle,
   Loader2,
+  Users,
+  FileJson,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +57,7 @@ interface ParsedProject {
     sceneImages: Map<number, File>;
     sceneVideos: Map<number, File>;
   };
+  autoDetected: boolean;
 }
 
 export function ImportProjectDialog({ open, onOpenChange }: ImportProjectDialogProps) {
@@ -70,70 +74,133 @@ export function ImportProjectDialog({ open, onOpenChange }: ImportProjectDialogP
     setError(null);
     const fileArray = Array.from(files);
 
-    // Find metadata.json
+    // Parse files first to detect structure
+    const characterImages = new Map<string, File>();
+    const sceneImages = new Map<number, File>();
+    const sceneVideos = new Map<number, File>();
+    const otherImages: File[] = [];
+
+    for (const file of fileArray) {
+      const name = file.name.toLowerCase();
+
+      // Skip metadata.json and hidden files
+      if (name === 'metadata.json' || name.startsWith('.')) continue;
+
+      // Scene images: scene1.jpg, scene2.jpg, etc.
+      const sceneImageMatch = name.match(/^scene(\d+)\.(jpg|jpeg|png)$/);
+      if (sceneImageMatch) {
+        sceneImages.set(parseInt(sceneImageMatch[1]), file);
+        continue;
+      }
+
+      // Scene videos: video1.mp4, video2.mp4, etc.
+      const sceneVideoMatch = name.match(/^video(\d+)\.(mp4|webm|mov)$/);
+      if (sceneVideoMatch) {
+        sceneVideos.set(parseInt(sceneVideoMatch[1]), file);
+        continue;
+      }
+
+      // Other images are potential character images
+      if (/\.(jpg|jpeg|png)$/.test(name)) {
+        otherImages.push(file);
+      }
+    }
+
+    // Find metadata.json (optional now)
     const metadataFile = fileArray.find(
       (f) => f.name === 'metadata.json' || f.name.endsWith('/metadata.json')
     );
 
-    if (!metadataFile) {
-      setError('Missing metadata.json file. Please include a metadata.json with project info.');
-      return;
-    }
+    let metadata: ParsedProject['metadata'];
+    let autoDetected = false;
 
-    try {
-      const metadataText = await metadataFile.text();
-      const metadata = JSON.parse(metadataText);
+    if (metadataFile) {
+      // Use provided metadata
+      try {
+        const metadataText = await metadataFile.text();
+        metadata = JSON.parse(metadataText);
 
-      if (!metadata.name) {
-        setError('metadata.json must include a "name" field');
-        return;
-      }
-
-      // Parse files
-      const characterImages = new Map<string, File>();
-      const sceneImages = new Map<number, File>();
-      const sceneVideos = new Map<number, File>();
-
-      for (const file of fileArray) {
-        const name = file.name.toLowerCase();
-
-        // Character images: character_name.jpg or name.jpg matching character names
+        // Match character images from metadata
         if (metadata.characters) {
           for (const char of metadata.characters) {
             const charName = char.name.toLowerCase().replace(/\s+/g, '_');
-            if (
-              name === `${charName}.jpg` ||
-              name === `${charName}.jpeg` ||
-              name === `${charName}.png` ||
-              name === `character_${charName}.jpg` ||
-              name === `character_${charName}.jpeg` ||
-              name === `character_${charName}.png`
-            ) {
-              characterImages.set(char.name.toLowerCase(), file);
+            const matchingFile = otherImages.find(f => {
+              const fname = f.name.toLowerCase().replace(/\.(jpg|jpeg|png)$/, '');
+              return fname === charName || fname === `character_${charName}`;
+            });
+            if (matchingFile) {
+              characterImages.set(char.name.toLowerCase(), matchingFile);
             }
           }
         }
+      } catch (e) {
+        setError('Failed to parse metadata.json: ' + (e instanceof Error ? e.message : 'Invalid JSON'));
+        return;
+      }
+    } else {
+      // Auto-detect from files
+      autoDetected = true;
 
-        // Scene images: scene1.jpg, scene2.jpg, etc.
-        const sceneImageMatch = name.match(/^scene(\d+)\.(jpg|jpeg|png)$/);
-        if (sceneImageMatch) {
-          sceneImages.set(parseInt(sceneImageMatch[1]), file);
-        }
-
-        // Scene videos: video1.mp4, video2.mp4, etc.
-        const sceneVideoMatch = name.match(/^video(\d+)\.(mp4|webm|mov)$/);
-        if (sceneVideoMatch) {
-          sceneVideos.set(parseInt(sceneVideoMatch[1]), file);
+      // Get folder name from first file path or use default
+      let folderName = 'Imported Project';
+      if (fileArray.length > 0 && fileArray[0].webkitRelativePath) {
+        const pathParts = fileArray[0].webkitRelativePath.split('/');
+        if (pathParts.length > 1) {
+          folderName = pathParts[0];
         }
       }
 
-      setParsedProject({
-        metadata,
-        files: { characterImages, sceneImages, sceneVideos },
-      });
-    } catch (e) {
-      setError('Failed to parse metadata.json: ' + (e instanceof Error ? e.message : 'Invalid JSON'));
+      // Detect characters from non-scene images
+      const characters: Array<{ name: string; description: string; visualDescription: string }> = [];
+      for (const file of otherImages) {
+        const name = file.name.replace(/\.(jpg|jpeg|png)$/i, '').replace(/[_-]/g, ' ');
+        // Capitalize first letter of each word
+        const displayName = name.replace(/\b\w/g, c => c.toUpperCase());
+        characters.push({
+          name: displayName,
+          description: `Character: ${displayName}`,
+          visualDescription: `${displayName} character`,
+        });
+        characterImages.set(displayName.toLowerCase(), file);
+      }
+
+      // Create scenes from detected images/videos
+      const sceneCount = Math.max(sceneImages.size, sceneVideos.size);
+      const scenes: Array<{ number: number; title: string; description: string; dialogue: Array<{ character: string; text: string }> }> = [];
+
+      for (let i = 1; i <= sceneCount; i++) {
+        scenes.push({
+          number: i,
+          title: `Scene ${i}`,
+          description: '',
+          dialogue: [],
+        });
+      }
+
+      metadata = {
+        name: folderName,
+        style: 'custom',
+        story: '',
+        characters,
+        scenes,
+      };
     }
+
+    if (!metadata.name) {
+      metadata.name = 'Imported Project';
+    }
+
+    // Check if we have anything to import
+    if (sceneImages.size === 0 && sceneVideos.size === 0 && characterImages.size === 0) {
+      setError('No valid files found. Expected: scene1.jpeg, video1.mp4, or character images.');
+      return;
+    }
+
+    setParsedProject({
+      metadata,
+      files: { characterImages, sceneImages, sceneVideos },
+      autoDetected,
+    });
   }, []);
 
   const handleDrop = useCallback(
@@ -284,11 +351,12 @@ export function ImportProjectDialog({ open, onOpenChange }: ImportProjectDialogP
                 <div className="flex items-center gap-2">
                   <FileJson className="w-4 h-4 text-yellow-400" />
                   <span>metadata.json</span>
-                  <span className="text-xs text-muted-foreground/60">(required)</span>
+                  <span className="text-xs text-muted-foreground/60">(optional)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-purple-400" />
                   <span>character_name.jpeg</span>
+                  <span className="text-xs text-muted-foreground/60">(auto-detected as characters)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -310,34 +378,73 @@ export function ImportProjectDialog({ open, onOpenChange }: ImportProjectDialogP
           </div>
         ) : (
           <div className="py-6 space-y-4">
-            {/* Preview */}
-            <div className="p-4 bg-white/5 rounded-lg space-y-3">
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-400" />
-                <span className="font-medium">{parsedProject.metadata.name}</span>
+            {/* Auto-detected notice */}
+            {parsedProject.autoDetected && (
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center gap-2 text-blue-400">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <p className="text-sm">{t('project.autoDetectedNotice')}</p>
               </div>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">{t('project.characters')}</p>
-                  <p className="font-medium">
-                    {parsedProject.metadata.characters?.length || 0}
-                    <span className="text-muted-foreground text-xs ml-1">
-                      ({parsedProject.files.characterImages.size} images)
-                    </span>
-                  </p>
+            )}
+
+            {/* Preview */}
+            <div className="p-4 bg-white/5 rounded-lg space-y-4">
+              {/* Editable project name */}
+              <div className="space-y-2">
+                <Label htmlFor="projectName" className="text-sm text-muted-foreground">
+                  {t('project.projectName')}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  <Input
+                    id="projectName"
+                    value={parsedProject.metadata.name}
+                    onChange={(e) => {
+                      setParsedProject({
+                        ...parsedProject,
+                        metadata: {
+                          ...parsedProject.metadata,
+                          name: e.target.value,
+                        },
+                      });
+                    }}
+                    className="bg-white/5 border-white/10"
+                    placeholder={t('project.enterProjectName')}
+                  />
                 </div>
-                <div>
-                  <p className="text-muted-foreground">{t('project.scenes')}</p>
-                  <p className="font-medium">
-                    {parsedProject.metadata.scenes?.length || 0}
-                    <span className="text-muted-foreground text-xs ml-1">
-                      ({parsedProject.files.sceneImages.size} images)
-                    </span>
-                  </p>
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-3 gap-4 text-sm pt-2 border-t border-white/5">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-400" />
+                  <div>
+                    <p className="text-muted-foreground">{t('project.characters')}</p>
+                    <p className="font-medium">
+                      {parsedProject.metadata.characters?.length || 0}
+                      <span className="text-muted-foreground text-xs ml-1">
+                        ({parsedProject.files.characterImages.size} images)
+                      </span>
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">{t('project.videos')}</p>
-                  <p className="font-medium">{parsedProject.files.sceneVideos.size}</p>
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-blue-400" />
+                  <div>
+                    <p className="text-muted-foreground">{t('project.scenes')}</p>
+                    <p className="font-medium">
+                      {parsedProject.metadata.scenes?.length || 0}
+                      <span className="text-muted-foreground text-xs ml-1">
+                        ({parsedProject.files.sceneImages.size} images)
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Video className="w-4 h-4 text-orange-400" />
+                  <div>
+                    <p className="text-muted-foreground">{t('project.videos')}</p>
+                    <p className="font-medium">{parsedProject.files.sceneVideos.size}</p>
+                  </div>
                 </div>
               </div>
             </div>

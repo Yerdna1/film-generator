@@ -85,7 +85,7 @@
     "duplicate": "Duplikovať",
     "open": "Otvoriť projekt",
     "importProject": "Importovať projekt",
-    "importDescription": "Importujte projekt z priečinka s metadata.json a mediálnymi súbormi",
+    "importDescription": "Importujte projekt z priečinka s obrázkami a videami",
     "dropFolderHere": "Presuňte priečinok sem",
     "orSelectFiles": "alebo kliknite pre výber súborov",
     "selectFolder": "Vybrať priečinok",
@@ -99,7 +99,10 @@
     "exportWithAssets": "So všetkými súbormi",
     "downloadingAssets": "Sťahujem súbory",
     "files": "súborov",
-    "videos": "videí"
+    "videos": "videí",
+    "autoDetectedNotice": "Štruktúra projektu bola automaticky detegovaná zo súborov. Môžete upraviť názov projektu nižšie.",
+    "projectName": "Názov projektu",
+    "enterProjectName": "Zadajte názov projektu"
   },
   "workflow": {
     "step": "Krok",

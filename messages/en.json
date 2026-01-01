@@ -85,7 +85,7 @@
     "duplicate": "Duplicate",
     "open": "Open Project",
     "importProject": "Import Project",
-    "importDescription": "Import a project from a folder with metadata.json and media files",
+    "importDescription": "Import a project from a folder with images and videos",
     "dropFolderHere": "Drop folder here",
     "orSelectFiles": "or click to select files",
     "selectFolder": "Select Folder",
@@ -99,7 +99,10 @@
     "exportWithAssets": "With all assets",
     "downloadingAssets": "Downloading assets",
     "files": "files",
-    "videos": "videos"
+    "videos": "videos",
+    "autoDetectedNotice": "Project structure auto-detected from files. You can edit the project name below.",
+    "projectName": "Project Name",
+    "enterProjectName": "Enter project name"
   },
   "workflow": {
     "step": "Step",
