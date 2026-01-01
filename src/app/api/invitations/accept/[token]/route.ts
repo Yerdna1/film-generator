@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { cache, cacheKeys } from '@/lib/cache';
 import { getProjectAdmins } from '@/lib/permissions';
 
 export async function POST(
@@ -104,6 +105,9 @@ export async function POST(
         data: { status: 'accepted', acceptedAt: new Date() },
       }),
     ]);
+
+    // Invalidate cache for the user who accepted (so they see the new project)
+    cache.invalidate(cacheKeys.userProjects(session.user.id));
 
     // Notify project admins
     const adminIds = await getProjectAdmins(invitation.projectId);

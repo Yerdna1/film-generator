@@ -12,6 +12,7 @@ export interface ProjectSlice {
   duplicateProject: (id: string) => Project | null;
   setCurrentProject: (id: string | null) => void;
   getProject: (id: string) => Project | undefined;
+  addSharedProject: (project: Project) => void;
   clearProjects: () => void;
   updateStory: (projectId: string, story: Partial<StoryConfig>) => void;
   setMasterPrompt: (projectId: string, prompt: string) => void;
@@ -179,6 +180,16 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set, get) => ({
 
   getProject: (id) => {
     return get().projects.find((p) => p.id === id);
+  },
+
+  addSharedProject: (project) => {
+    // Add a shared project to the store (if not already present)
+    const existing = get().projects.find((p) => p.id === project.id);
+    if (!existing) {
+      set((state) => ({
+        projects: [...state.projects, project],
+      }));
+    }
   },
 
   clearProjects: () => {

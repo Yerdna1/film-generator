@@ -29,6 +29,7 @@ export interface ProjectActions {
   duplicateProject: (id: string) => Project | null;
   setCurrentProject: (id: string | null) => void;
   getProject: (id: string) => Project | undefined;
+  addSharedProject: (project: Project) => void;
   clearProjects: () => void;
 
   // Story actions

@@ -64,7 +64,7 @@ export default function ProjectWorkspacePage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations();
-  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading } = useProjectStore();
+  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject } = useProjectStore();
 
   // Track hydration state to prevent SSR mismatch
   const [hasMounted, setHasMounted] = useState(false);
@@ -125,6 +125,37 @@ export default function ProjectWorkspacePage() {
     }
   };
 
+  // Fetch project from API (for shared projects not in local store)
+  const fetchProjectFromAPI = useCallback(async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API response to match Project type
+        return {
+          id: data.id,
+          name: data.name,
+          userId: data.userId,
+          style: data.style,
+          masterPrompt: data.masterPrompt,
+          currentStep: data.currentStep,
+          isComplete: data.isComplete,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          settings: data.settings || {},
+          story: data.story || {},
+          voiceSettings: data.voiceSettings || {},
+          characters: data.characters || [],
+          scenes: data.scenes || [],
+        };
+      }
+      return null;
+    } catch (e) {
+      console.error('Failed to fetch project from API:', e);
+      return null;
+    }
+  }, []);
+
   // Set mounted state after hydration
   useEffect(() => {
     setHasMounted(true);
@@ -135,16 +166,31 @@ export default function ProjectWorkspacePage() {
     // Wait for store to finish loading before checking project
     if (isLoading) return;
 
-    const p = getProject(params.id as string);
-    if (!p) {
-      router.push('/');
-      return;
+    const projectId = params.id as string;
+    const p = getProject(projectId);
+
+    if (p) {
+      // Project found in store
+      setProject(p);
+      setCurrentProject(projectId);
+      fetchPermissions(projectId);
+      fetchVisibility(projectId);
+    } else {
+      // Project not in store - try fetching from API (for shared projects)
+      fetchProjectFromAPI(projectId).then((fetchedProject) => {
+        if (fetchedProject) {
+          // Add to store so updates work correctly
+          addSharedProject(fetchedProject);
+          setProject(fetchedProject);
+          fetchPermissions(projectId);
+          fetchVisibility(projectId);
+        } else {
+          // Project not found in store or API - redirect to home
+          router.push('/');
+        }
+      });
     }
-    setProject(p);
-    setCurrentProject(params.id as string);
-    fetchPermissions(params.id as string);
-    fetchVisibility(params.id as string);
-  }, [params.id, getProject, setCurrentProject, router, hasMounted, isLoading, fetchPermissions, fetchVisibility]);
+  }, [params.id, getProject, setCurrentProject, router, hasMounted, isLoading, fetchPermissions, fetchVisibility, fetchProjectFromAPI, addSharedProject]);
 
   // Track previous project state to avoid unnecessary re-renders
   const prevProjectRef = useRef<ReturnType<typeof getProject>>(undefined);
