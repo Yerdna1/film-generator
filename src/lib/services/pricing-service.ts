@@ -50,6 +50,7 @@ const DEFAULT_COSTS: Record<string, Record<string, number>> = {
   scene: {
     gemini: 0.001,         // Gemini scene gen - $0.001 per scene
     claude: 0.01,          // Claude - $0.01 per scene
+    'claude-sdk': 0.01,    // Claude SDK (same as Claude API) - $0.01 per scene
     grok: 0.003,           // Grok - $0.003 per scene
     modal: 0.002,          // Modal LLM - $0.002 per scene
     openrouter: 0.01,      // OpenRouter - $0.01 per scene
@@ -57,10 +58,12 @@ const DEFAULT_COSTS: Record<string, Record<string, number>> = {
   character: {
     gemini: 0.0005,        // Gemini character - $0.0005 per char
     claude: 0.008,         // Claude - $0.008 per char
+    'claude-sdk': 0.008,   // Claude SDK (same as Claude API)
   },
   prompt: {
     gemini: 0.001,         // Gemini prompt - $0.001 per prompt
     claude: 0.012,         // Claude - $0.012 per prompt
+    'claude-sdk': 0.012,   // Claude SDK (same as Claude API)
   },
   music: {
     suno: 0.05,            // Suno - $0.05 per track
@@ -269,6 +272,7 @@ export async function seedPricingData(): Promise<void> {
     // Scene generation
     { actionType: 'scene', provider: 'gemini', cost: 0.001, description: 'Gemini Scene Generation' },
     { actionType: 'scene', provider: 'claude', cost: 0.01, description: 'Claude Scene Generation' },
+    { actionType: 'scene', provider: 'claude-sdk', cost: 0.01, description: 'Claude SDK Scene Generation (same as Claude API)' },
     { actionType: 'scene', provider: 'grok', cost: 0.003, description: 'Grok Scene Generation' },
     { actionType: 'scene', provider: 'modal', cost: 0.002, description: 'Modal LLM Scene Generation' },
     { actionType: 'scene', provider: 'openrouter', cost: 0.01, description: 'OpenRouter LLM Scene Generation' },
@@ -276,10 +280,12 @@ export async function seedPricingData(): Promise<void> {
     // Character generation
     { actionType: 'character', provider: 'gemini', cost: 0.0005, description: 'Gemini Character Description' },
     { actionType: 'character', provider: 'claude', cost: 0.008, description: 'Claude Character Description' },
+    { actionType: 'character', provider: 'claude-sdk', cost: 0.008, description: 'Claude SDK Character Description (same as Claude API)' },
 
     // Prompt generation
     { actionType: 'prompt', provider: 'gemini', cost: 0.001, description: 'Gemini Master Prompt' },
     { actionType: 'prompt', provider: 'claude', cost: 0.012, description: 'Claude Master Prompt' },
+    { actionType: 'prompt', provider: 'claude-sdk', cost: 0.012, description: 'Claude SDK Master Prompt (same as Claude API)' },
 
     // Music generation
     { actionType: 'music', provider: 'suno', cost: 0.05, description: 'Suno AI Music Track' },

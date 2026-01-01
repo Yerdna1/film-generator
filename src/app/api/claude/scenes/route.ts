@@ -278,8 +278,13 @@ Return ONLY the JSON array, no other text.`;
       }) || [],
     }));
 
-    // Track cost for scene generation - Modal is free (self-hosted)
-    const realCost = llmProvider === 'modal' ? 0 : ACTION_COSTS.scene.claude * sceneCount;
+    // Track cost for scene generation - use actual costs for all providers
+    let realCost: number;
+    if (llmProvider === 'modal') {
+      realCost = ACTION_COSTS.scene.modal * sceneCount; // ~$0.002 per scene
+    } else {
+      realCost = ACTION_COSTS.scene.claude * sceneCount; // ~$0.01 per scene
+    }
     const providerName = llmProvider === 'modal' ? 'modal' : (llmProvider === 'openrouter' ? 'openrouter' : 'claude');
     await spendCredits(
       session.user.id,

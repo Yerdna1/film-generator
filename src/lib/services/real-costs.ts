@@ -167,23 +167,26 @@ export const ACTION_COSTS = {
   // Total ~$0.615 for 60 scenes = $0.01 per scene
   scene: {
     gemini: 0.001,
-    claude: 0.01,    // Updated: ~$0.60 for 60 scenes
+    claude: 0.01,       // Updated: ~$0.60 for 60 scenes
+    'claude-sdk': 0.01, // Same as Claude API (track equivalent cost)
     grok: 0.003,
-    modal: 0.002,    // Modal self-hosted LLM: minimal cost
+    modal: 0.002,       // Modal self-hosted LLM: ~$0.002 per scene on H100
   },
 
   // Character description generation - per character
   // Claude: ~500 input + ~400 output tokens = $0.0015 + $0.006 = $0.0075
   character: {
     gemini: 0.0005,
-    claude: 0.008,   // Updated: realistic cost per character
+    claude: 0.008,      // Updated: realistic cost per character
+    'claude-sdk': 0.008, // Same as Claude API
   },
 
   // Master prompt generation - per prompt
   // Claude: ~500 input + ~600 output tokens = $0.0015 + $0.009 = $0.0105
   prompt: {
     gemini: 0.001,
-    claude: 0.012,   // Updated: realistic cost per prompt
+    claude: 0.012,      // Updated: realistic cost per prompt
+    'claude-sdk': 0.012, // Same as Claude API
   },
 
   // Music generation - per track

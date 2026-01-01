@@ -353,8 +353,15 @@ Return ONLY the JSON array.`;
     // Spend credits
     await step.run('spend-credits', async () => {
       const provider = llmProvider === 'modal' ? 'modal' : llmProvider === 'claude-sdk' ? 'claude-sdk' : 'openrouter';
-      // Claude SDK uses OAuth which is free with Claude Code subscription
-      const realCost = (llmProvider === 'modal' || llmProvider === 'claude-sdk') ? 0 : ACTION_COSTS.scene.claude * finalSceneCount;
+      // Calculate real cost based on provider (track all costs for accurate statistics)
+      let realCost: number;
+      if (llmProvider === 'modal') {
+        realCost = ACTION_COSTS.scene.modal * finalSceneCount; // ~$0.002 per scene
+      } else if (llmProvider === 'claude-sdk') {
+        realCost = ACTION_COSTS.scene.claude * finalSceneCount; // Same as Claude API (~$0.01 per scene)
+      } else {
+        realCost = ACTION_COSTS.scene.claude * finalSceneCount;
+      }
       await spendCredits(
         userId,
         COSTS.SCENE_GENERATION * finalSceneCount,

@@ -245,7 +245,7 @@ async function generateWithModal(
     throw new Error('Modal endpoint did not return video');
   }
 
-  const realCost = 0; // Self-hosted = no API cost
+  const realCost = 0.15; // Modal GPU cost per video (~$0.15 on H100)
 
   if (userId) {
     const actionType = isRegeneration ? 'regeneration' : 'generation';

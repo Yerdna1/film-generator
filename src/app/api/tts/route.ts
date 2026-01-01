@@ -219,7 +219,7 @@ async function generateWithModal(
     throw new Error('Modal endpoint did not return audio');
   }
 
-  const realCost = 0; // Self-hosted = no API cost
+  const realCost = 0.01; // Modal GPU cost per TTS line (~$0.01)
 
   if (userId) {
     await spendCredits(userId, COSTS.VOICEOVER_LINE, 'voiceover', `Modal TTS (${text.length} chars)`, projectId, 'modal', { characterCount: text.length }, realCost);

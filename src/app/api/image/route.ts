@@ -182,8 +182,8 @@ async function generateWithModal(
     throw new Error('Modal endpoint did not return an image');
   }
 
-  // Modal is self-hosted, so we track minimal cost (just credits for tracking)
-  const realCost = 0; // Self-hosted = no API cost
+  // Modal self-hosted - track GPU costs (~$0.09 per image on H100)
+  const realCost = 0.09; // Modal GPU cost per image
   const creditCost = getImageCreditCost(resolution);
 
   if (userId) {
@@ -287,8 +287,8 @@ async function generateWithModalEdit(
     throw new Error('Modal-Edit endpoint did not return an image');
   }
 
-  // Modal is self-hosted, so we track minimal cost (just credits for tracking)
-  const realCost = 0; // Self-hosted = no API cost
+  // Modal self-hosted - track GPU costs (~$0.09 per image on H100)
+  const realCost = 0.09; // Modal GPU cost per image
   const creditCost = getImageCreditCost(resolution);
 
   if (userId) {

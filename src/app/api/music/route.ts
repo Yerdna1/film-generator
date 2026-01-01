@@ -66,7 +66,7 @@ async function generateWithModal(
     throw new Error('Modal endpoint did not return audio');
   }
 
-  const realCost = 0; // Self-hosted = no API cost
+  const realCost = 0.03; // Modal GPU cost per music track (~$0.03 on A100)
 
   if (userId) {
     await spendCredits(userId, COSTS.MUSIC_GENERATION || 10, 'music', `Modal music generation`, projectId, 'modal', undefined, realCost);

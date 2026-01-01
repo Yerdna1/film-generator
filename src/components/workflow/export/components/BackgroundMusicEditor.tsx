@@ -71,7 +71,7 @@ const modelOptions: { value: SunoModel; label: string; description: string }[] =
 const providerOptions: { value: MusicProvider; label: string; description: string }[] = [
   { value: 'piapi', label: 'PiAPI', description: 'Recommended - works everywhere' },
   { value: 'suno', label: 'Suno Direct', description: 'Via sunoapi.org' },
-  { value: 'modal', label: 'Modal (ACE-Step)', description: 'Self-hosted - free' },
+  { value: 'modal', label: 'Modal (ACE-Step)', description: 'Self-hosted (~$0.03/track)' },
 ];
 
 export function BackgroundMusicEditor({
