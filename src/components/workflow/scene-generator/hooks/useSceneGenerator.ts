@@ -133,7 +133,7 @@ export function useSceneGenerator(initialProject: Project) {
     }
   }, [project.id]);
 
-  // Check for existing background job on mount and refresh data
+  // Check for existing background job on mount (only if job was running)
   useEffect(() => {
     const checkExistingJob = async () => {
       try {
@@ -152,8 +152,7 @@ export function useSceneGenerator(initialProject: Project) {
       }
     };
 
-    // Always refresh project data on mount to get latest images from DB
-    refreshProjectData();
+    // Only check for existing jobs - project data is already loaded server-side
     checkExistingJob();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
