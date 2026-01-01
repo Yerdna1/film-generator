@@ -9,7 +9,6 @@ import {
   LoadingSkeleton,
   DashboardHero,
   StatsGrid,
-  CreditsUsageCard,
   ProjectsSection,
   useDashboardData,
 } from './_components';
@@ -45,12 +44,13 @@ export default function DashboardPage() {
       {/* Hero Section */}
       <DashboardHero onNewProject={() => setNewProjectOpen(true)} />
 
-      {/* Stats Grid */}
-      {projects.length > 0 && <StatsGrid stats={stats} />}
-
-      {/* Credits Usage Card */}
-      {creditsData && (
-        <CreditsUsageCard creditsData={creditsData} breakdown={creditsBreakdown} />
+      {/* Combined Stats Row */}
+      {projects.length > 0 && (
+        <StatsGrid
+          stats={stats}
+          creditsData={creditsData}
+          breakdown={creditsBreakdown}
+        />
       )}
 
       {/* Projects Content */}

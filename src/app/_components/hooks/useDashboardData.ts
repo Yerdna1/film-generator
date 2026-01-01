@@ -4,6 +4,13 @@ import type { CreditsData, ProjectCostsData, CreditsBreakdown } from '../types';
 export function useDashboardData(isAuthenticated: boolean) {
   const [creditsData, setCreditsData] = useState<CreditsData | null>(null);
   const [projectCosts, setProjectCosts] = useState<ProjectCostsData | null>(null);
+  const [creditsBreakdown, setCreditsBreakdown] = useState<CreditsBreakdown>({
+    images: 0,
+    videos: 0,
+    voiceovers: 0,
+    scenes: 0,
+    other: 0,
+  });
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -20,6 +27,26 @@ export function useDashboardData(isAuthenticated: boolean) {
       }
     };
 
+    const fetchStatistics = async () => {
+      try {
+        const res = await fetch('/api/statistics');
+        if (res.ok) {
+          const data = await res.json();
+          // Extract breakdown counts from statistics byType
+          const byType = data.stats?.byType || {};
+          setCreditsBreakdown({
+            images: byType.image?.count || 0,
+            videos: byType.video?.count || 0,
+            voiceovers: byType.voiceover?.count || 0,
+            scenes: byType.scene?.count || 0,
+            other: (byType.character?.count || 0) + (byType.prompt?.count || 0),
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch statistics:', error);
+      }
+    };
+
     const fetchProjectCosts = async () => {
       try {
         const res = await fetch('/api/projects/costs');
@@ -33,34 +60,9 @@ export function useDashboardData(isAuthenticated: boolean) {
     };
 
     fetchCredits();
+    fetchStatistics();
     fetchProjectCosts();
   }, [isAuthenticated]);
-
-  const creditsBreakdown: CreditsBreakdown = creditsData?.transactions?.reduce(
-    (acc, tx) => {
-      if (tx.amount < 0) {
-        const absAmount = Math.abs(tx.amount);
-        switch (tx.type) {
-          case 'video':
-            acc.videos += absAmount;
-            break;
-          case 'image':
-            acc.images += absAmount;
-            break;
-          case 'voiceover':
-            acc.voiceovers += absAmount;
-            break;
-          case 'scene':
-            acc.scenes += absAmount;
-            break;
-          default:
-            acc.other += absAmount;
-        }
-      }
-      return acc;
-    },
-    { images: 0, videos: 0, voiceovers: 0, scenes: 0, other: 0 }
-  ) || { images: 0, videos: 0, voiceovers: 0, scenes: 0, other: 0 };
 
   return {
     creditsData,

@@ -1,57 +1,128 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Film, Clock, Sparkles, Layers } from 'lucide-react';
-import type { ProjectStats } from './types';
+import { Film, Clock, Sparkles, Layers, Coins, Video, Image as ImageIcon, Mic, FileText } from 'lucide-react';
+import type { ProjectStats, CreditsData, CreditsBreakdown } from './types';
 
 interface StatsGridProps {
   stats: ProjectStats;
+  creditsData?: CreditsData | null;
+  breakdown?: CreditsBreakdown;
 }
 
-const statItems = [
-  { key: 'total', label: 'Total Projects', icon: Film, color: 'purple' },
-  { key: 'inProgress', label: 'In Progress', icon: Clock, color: 'cyan' },
-  { key: 'completed', label: 'Completed', icon: Sparkles, color: 'green' },
-  { key: 'totalScenes', label: 'Total Scenes', icon: Layers, color: 'pink' },
-] as const;
+export function StatsGrid({ stats, creditsData, breakdown }: StatsGridProps) {
+  const t = useTranslations();
 
-const getColorClasses = (color: string) => {
-  const colorMap: Record<string, string> = {
-    purple: 'bg-purple-500/20 text-purple-400',
-    cyan: 'bg-cyan-500/20 text-cyan-400',
-    green: 'bg-green-500/20 text-green-400',
-    pink: 'bg-pink-500/20 text-pink-400',
-  };
-  return colorMap[color] || colorMap.purple;
-};
-
-export function StatsGrid({ stats }: StatsGridProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
+      className="glass rounded-xl p-4 mb-8"
     >
-      {statItems.map((stat, index) => (
-        <motion.div
-          key={stat.key}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 + index * 0.1 }}
-          className="glass rounded-xl p-4 card-hover"
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getColorClasses(stat.color)}`}>
-              <stat.icon className="w-5 h-5" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Project Stats */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+              <Film className="w-4 h-4 text-purple-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats[stat.key]}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-xl font-bold">{stats.total}</p>
+              <p className="text-[10px] text-muted-foreground">Projects</p>
             </div>
           </div>
-        </motion.div>
-      ))}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-xl font-bold">{stats.inProgress}</p>
+              <p className="text-[10px] text-muted-foreground">In Progress</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-green-400" />
+            </div>
+            <div>
+              <p className="text-xl font-bold">{stats.completed}</p>
+              <p className="text-[10px] text-muted-foreground">Completed</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center">
+              <Layers className="w-4 h-4 text-pink-400" />
+            </div>
+            <div>
+              <p className="text-xl font-bold">{stats.totalScenes}</p>
+              <p className="text-[10px] text-muted-foreground">Scenes</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        {creditsData && <div className="hidden lg:block w-px h-12 bg-white/10" />}
+
+        {/* Credits Balance */}
+        {creditsData && (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+              <Coins className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-amber-400">{creditsData.credits.balance.toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground">{t('credits.points')}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        {breakdown && <div className="hidden lg:block w-px h-12 bg-white/10" />}
+
+        {/* Usage Breakdown */}
+        {breakdown && (
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <ImageIcon className="w-4 h-4 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xl font-bold">{breakdown.images}</p>
+                <p className="text-[10px] text-muted-foreground">{t('credits.image')}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                <Video className="w-4 h-4 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-xl font-bold">{breakdown.videos}</p>
+                <p className="text-[10px] text-muted-foreground">{t('credits.video')}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                <Mic className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-xl font-bold">{breakdown.voiceovers}</p>
+                <p className="text-[10px] text-muted-foreground">{t('credits.voiceover')}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                <FileText className="w-4 h-4 text-green-400" />
+              </div>
+              <div>
+                <p className="text-xl font-bold">{breakdown.scenes}</p>
+                <p className="text-[10px] text-muted-foreground">{t('credits.scene')}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
