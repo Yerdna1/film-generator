@@ -201,19 +201,19 @@ export default function BillingPage() {
                 <div className="p-4 rounded-lg bg-primary/10">
                   <div className="text-sm text-muted-foreground">Available</div>
                   <div className="text-2xl font-bold text-primary">
-                    {credits.balance.toLocaleString()}
+                    {(credits.balance ?? 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="text-sm text-muted-foreground">Total Spent</div>
                   <div className="text-2xl font-bold">
-                    {credits.totalSpent.toLocaleString()}
+                    {(credits.totalSpent ?? 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="text-sm text-muted-foreground">Total Earned</div>
                   <div className="text-2xl font-bold">
-                    {credits.totalEarned.toLocaleString()}
+                    {(credits.totalEarned ?? 0).toLocaleString()}
                   </div>
                 </div>
               </div>
