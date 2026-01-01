@@ -81,30 +81,22 @@ export default function ProjectWorkspacePage() {
 
   // Fetch project data including visibility and permissions
   const fetchProjectData = useCallback(async (projectId: string) => {
-    console.log('[fetchProjectData] Starting for project:', projectId);
     setIsLoadingPermissions(true);
     try {
       const response = await fetch(`/api/projects/${projectId}`);
-      console.log('[fetchProjectData] Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('[fetchProjectData] Data received:', { role: data.role, permissions: data.permissions, visibility: data.visibility });
         setVisibility(data.visibility || 'private');
         if (data.role) {
-          console.log('[fetchProjectData] Setting role:', data.role);
           setUserRole(data.role);
         }
         if (data.permissions) {
-          console.log('[fetchProjectData] Setting permissions:', data.permissions);
           setPermissions(data.permissions);
         }
-      } else {
-        console.error('[fetchProjectData] Response not OK:', response.status);
       }
     } catch (e) {
-      console.error('[fetchProjectData] Error:', e);
+      console.error('Failed to fetch project data:', e);
     } finally {
-      console.log('[fetchProjectData] Done, setting isLoadingPermissions to false');
       setIsLoadingPermissions(false);
     }
   }, []);
@@ -180,21 +172,18 @@ export default function ProjectWorkspacePage() {
   }, []);
 
   useEffect(() => {
-    console.log('[useEffect] hasMounted:', hasMounted, 'isLoading:', isLoading);
     if (!hasMounted) return;
     // Wait for store to finish loading before checking project
     if (isLoading) return;
 
     const projectId = params.id as string;
     const p = getProject(projectId);
-    console.log('[useEffect] Project found in store:', !!p);
 
     if (p) {
       // Project found in store
       setProject(p);
       setCurrentProject(projectId);
       // Fetch permissions and visibility from API
-      console.log('[useEffect] Calling fetchProjectData');
       fetchProjectData(projectId);
     } else {
       // Project not in store - try fetching from API (for shared projects)

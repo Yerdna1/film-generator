@@ -67,6 +67,19 @@ class MemoryCache {
   }
 
   /**
+   * Invalidate all cache entries matching a pattern (prefix)
+   */
+  invalidatePattern(pattern: string): void {
+    const keysToDelete: string[] = [];
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(pattern)) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach(key => this.cache.delete(key));
+  }
+
+  /**
    * Clear all cache entries
    */
   clear(): void {

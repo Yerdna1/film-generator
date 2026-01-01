@@ -213,6 +213,12 @@ export async function PUT(
     // Invalidate projects cache for this user
     cache.invalidate(cacheKeys.userProjects(session.user.id));
     cache.invalidate(cacheKeys.project(id));
+
+    // If visibility changed, invalidate public projects cache
+    if (visibility !== undefined) {
+      cache.invalidatePattern('public-projects');
+      console.log(`[Cache INVALIDATED] Public projects cache after visibility change`);
+    }
     console.log(`[Cache INVALIDATED] Projects cache after update`);
 
     return NextResponse.json(transformedProject);
