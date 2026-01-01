@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
 import {
   Trash2,
   Sparkles,
@@ -34,6 +35,7 @@ export function CharacterCard({
 }: CharacterCardProps) {
   const t = useTranslations();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,22 +115,29 @@ export function CharacterCard({
   };
 
   return (
-    <Card className="glass border-white/10 overflow-hidden card-hover">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-lg">{character.name}</CardTitle>
-            <p className="text-xs text-muted-foreground">{character.personality || 'No personality set'}</p>
+    <>
+      <ConfirmDeleteDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={() => onDelete(character.id)}
+        itemName={character.name}
+      />
+      <Card className="glass border-white/10 overflow-hidden card-hover">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">{character.name}</CardTitle>
+              <p className="text-xs text-muted-foreground">{character.personality || 'No personality set'}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-muted-foreground hover:text-red-400"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete(character.id)}
-            className="text-muted-foreground hover:text-red-400"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
         {/* Hidden file input for upload */}
         <input
           ref={fileInputRef}
@@ -222,5 +231,6 @@ export function CharacterCard({
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }

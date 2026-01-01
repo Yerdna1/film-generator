@@ -1,9 +1,10 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
 import {
   Image as ImageIcon,
   Trash2,
@@ -67,8 +68,16 @@ function SceneCardComponent({
   onPreviewImage,
 }: SceneCardProps) {
   const t = useTranslations();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   return (
+    <>
+      <ConfirmDeleteDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={onDelete}
+        itemName={scene.title}
+      />
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -164,7 +173,7 @@ function SceneCardComponent({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onDelete}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="text-muted-foreground hover:text-red-400 h-8 w-8"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -296,6 +305,7 @@ function SceneCardComponent({
         </Collapsible>
       </Card>
     </motion.div>
+    </>
   );
 }
 

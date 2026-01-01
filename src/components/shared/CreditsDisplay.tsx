@@ -55,10 +55,6 @@ export function CreditsDisplay({ className }: CreditsDisplayProps) {
 
   useEffect(() => {
     fetchCredits();
-
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchCredits, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Listen for credit updates

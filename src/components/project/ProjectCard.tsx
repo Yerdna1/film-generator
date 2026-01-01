@@ -4,7 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
 import {
   Film,
   Users,
@@ -52,6 +53,7 @@ const styleColors: Record<StylePreset, { bg: string; text: string; label: string
 export function ProjectCard({ project, variant = 'default', cost }: ProjectCardProps) {
   const t = useTranslations();
   const { deleteProject, duplicateProject } = useProjectStore();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const styleConfig = styleColors[project.style];
   const progress = Math.round((project.currentStep / 6) * 100);
@@ -91,8 +93,19 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
     return date.toLocaleDateString();
   };
 
+  const deleteDialog = (
+    <ConfirmDeleteDialog
+      open={showDeleteConfirm}
+      onOpenChange={setShowDeleteConfirm}
+      onConfirm={() => deleteProject(project.id)}
+      itemName={project.name}
+    />
+  );
+
   if (variant === 'compact') {
     return (
+      <>
+        {deleteDialog}
       <Link href={`/project/${project.id}`}>
         <motion.div
           whileHover={{ scale: 1.02 }}
@@ -140,11 +153,14 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
           </div>
         </motion.div>
       </Link>
+      </>
     );
   }
 
   return (
-    <motion.div
+    <>
+      {deleteDialog}
+      <motion.div
       whileHover={{ y: -4 }}
       className="glass rounded-xl overflow-hidden card-hover group"
     >
@@ -240,7 +256,7 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem
-                onClick={() => deleteProject(project.id)}
+                onClick={() => setShowDeleteConfirm(true)}
                 className="cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-400"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -302,5 +318,6 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
         </div>
       </div>
     </motion.div>
+    </>
   );
 }

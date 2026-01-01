@@ -466,6 +466,11 @@ export function useSceneGenerator(initialProject: Project) {
 
   // Generate image for a single scene with retry logic
   const handleGenerateSceneImage = useCallback(async (scene: Scene) => {
+    if (!scene.textToImagePrompt?.trim()) {
+      alert('This scene has no prompt. Please regenerate the prompt first or edit the scene.');
+      return;
+    }
+
     setGeneratingImageForScene(scene.id);
 
     try {
