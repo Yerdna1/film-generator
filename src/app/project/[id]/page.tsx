@@ -15,6 +15,7 @@ import {
   Eye,
   Globe,
   Lock,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -76,31 +77,35 @@ export default function ProjectWorkspacePage() {
   const [permissions, setPermissions] = useState<ProjectPermissions | null>(null);
   const [visibility, setVisibility] = useState<'private' | 'public'>('private');
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
 
-  // Fetch user permissions for this project
-  const fetchPermissions = useCallback(async (projectId: string) => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}/members/me`);
-      if (response.ok) {
-        const data = await response.json();
-        setUserRole(data.role);
-        setPermissions(data.permissions);
-      }
-    } catch (e) {
-      console.error('Failed to fetch permissions:', e);
-    }
-  }, []);
-
-  // Fetch project visibility
-  const fetchVisibility = useCallback(async (projectId: string) => {
+  // Fetch project data including visibility and permissions
+  const fetchProjectData = useCallback(async (projectId: string) => {
+    console.log('[fetchProjectData] Starting for project:', projectId);
+    setIsLoadingPermissions(true);
     try {
       const response = await fetch(`/api/projects/${projectId}`);
+      console.log('[fetchProjectData] Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('[fetchProjectData] Data received:', { role: data.role, permissions: data.permissions, visibility: data.visibility });
         setVisibility(data.visibility || 'private');
+        if (data.role) {
+          console.log('[fetchProjectData] Setting role:', data.role);
+          setUserRole(data.role);
+        }
+        if (data.permissions) {
+          console.log('[fetchProjectData] Setting permissions:', data.permissions);
+          setPermissions(data.permissions);
+        }
+      } else {
+        console.error('[fetchProjectData] Response not OK:', response.status);
       }
     } catch (e) {
-      console.error('Failed to fetch visibility:', e);
+      console.error('[fetchProjectData] Error:', e);
+    } finally {
+      console.log('[fetchProjectData] Done, setting isLoadingPermissions to false');
+      setIsLoadingPermissions(false);
     }
   }, []);
 
@@ -131,6 +136,19 @@ export default function ProjectWorkspacePage() {
       const response = await fetch(`/api/projects/${projectId}`);
       if (response.ok) {
         const data = await response.json();
+
+        // Set role and permissions from the API response
+        if (data.role) {
+          setUserRole(data.role);
+        }
+        if (data.permissions) {
+          setPermissions(data.permissions);
+        }
+        if (data.visibility) {
+          setVisibility(data.visibility);
+        }
+        setIsLoadingPermissions(false);
+
         // Transform API response to match Project type
         return {
           id: data.id,
@@ -162,35 +180,37 @@ export default function ProjectWorkspacePage() {
   }, []);
 
   useEffect(() => {
+    console.log('[useEffect] hasMounted:', hasMounted, 'isLoading:', isLoading);
     if (!hasMounted) return;
     // Wait for store to finish loading before checking project
     if (isLoading) return;
 
     const projectId = params.id as string;
     const p = getProject(projectId);
+    console.log('[useEffect] Project found in store:', !!p);
 
     if (p) {
       // Project found in store
       setProject(p);
       setCurrentProject(projectId);
-      fetchPermissions(projectId);
-      fetchVisibility(projectId);
+      // Fetch permissions and visibility from API
+      console.log('[useEffect] Calling fetchProjectData');
+      fetchProjectData(projectId);
     } else {
       // Project not in store - try fetching from API (for shared projects)
+      // fetchProjectFromAPI already sets permissions/visibility
       fetchProjectFromAPI(projectId).then((fetchedProject) => {
         if (fetchedProject) {
           // Add to store so updates work correctly
           addSharedProject(fetchedProject);
           setProject(fetchedProject);
-          fetchPermissions(projectId);
-          fetchVisibility(projectId);
         } else {
           // Project not found in store or API - redirect to home
           router.push('/');
         }
       });
     }
-  }, [params.id, getProject, setCurrentProject, router, hasMounted, isLoading, fetchPermissions, fetchVisibility, fetchProjectFromAPI, addSharedProject]);
+  }, [params.id, getProject, setCurrentProject, router, hasMounted, isLoading, fetchProjectData, fetchProjectFromAPI, addSharedProject]);
 
   // Track previous project state to avoid unnecessary re-renders
   const prevProjectRef = useRef<ReturnType<typeof getProject>>(undefined);
@@ -438,8 +458,31 @@ export default function ProjectWorkspacePage() {
 
               {/* Panel Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                {/* Loading State */}
+                {isLoadingPermissions && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-muted-foreground">Loading team info...</span>
+                  </div>
+                )}
+
+                {/* Error State - no role loaded */}
+                {!isLoadingPermissions && !userRole && (
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center">
+                    <p className="text-red-400">Failed to load permissions</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => fetchProjectData(project.id)}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
+
                 {/* User's Role Badge */}
-                {userRole && (
+                {!isLoadingPermissions && userRole && (
                   <div className="p-3 bg-white/5 rounded-lg flex items-center gap-3">
                     {(() => {
                       const RoleIcon = roleIcons[userRole];
@@ -467,7 +510,7 @@ export default function ProjectWorkspacePage() {
                 )}
 
                 {/* Project Visibility Toggle (for admins) */}
-                {userRole === 'admin' && (
+                {!isLoadingPermissions && userRole === 'admin' && (
                   <div className="p-4 bg-white/5 rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -501,7 +544,7 @@ export default function ProjectWorkspacePage() {
                 )}
 
                 {/* Approval Panel (for admins) */}
-                {permissions?.canApproveRequests && (
+                {!isLoadingPermissions && permissions?.canApproveRequests && (
                   <div className="border-b border-white/10 pb-6">
                     <ApprovalPanel
                       projectId={project.id}
@@ -511,7 +554,7 @@ export default function ProjectWorkspacePage() {
                 )}
 
                 {/* Members Panel */}
-                {userRole && permissions && (
+                {!isLoadingPermissions && userRole && permissions && (
                   <MembersPanel
                     projectId={project.id}
                     projectName={project.name}
