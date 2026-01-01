@@ -89,7 +89,7 @@ function SceneCardComponent({
                     unoptimized={scene.imageUrl.startsWith('data:') || scene.imageUrl.includes('blob:')}
                   />
                   <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-black/60 flex items-center justify-center font-bold text-emerald-400 text-sm">
-                    {scene.number || index + 1}
+                    {index + 1}
                   </div>
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Expand className="w-6 h-6 text-white" />
@@ -98,7 +98,7 @@ function SceneCardComponent({
               ) : (
                 <div className="relative w-48 h-32 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
                   <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-emerald-500/20 flex items-center justify-center font-bold text-emerald-400 text-sm">
-                    {scene.number || index + 1}
+                    {index + 1}
                   </div>
                   <ImageIcon className="w-8 h-8 text-muted-foreground" />
                 </div>

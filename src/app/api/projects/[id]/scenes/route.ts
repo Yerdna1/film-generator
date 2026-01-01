@@ -94,7 +94,7 @@ export async function POST(
   }
 }
 
-// PUT - Batch update scenes (for reordering)
+// PUT - Batch update/upsert scenes (safe - does NOT delete existing scenes)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -135,44 +135,75 @@ export async function PUT(
       );
     }
 
-    // Delete existing scenes and recreate
-    await prisma.scene.deleteMany({
-      where: { projectId },
-    });
-
-    // Create all scenes
-    const createdScenes = [];
+    // SAFE: Upsert scenes instead of delete-all-recreate
+    // This prevents accidental data loss from partial syncs
+    const updatedScenes = [];
     for (const scene of scenes) {
-      const created = await prisma.scene.create({
-        data: {
-          projectId,
-          number: scene.number || 1,
-          title: scene.title || 'Scene',
-          description: scene.description || '',
-          textToImagePrompt: scene.textToImagePrompt || '',
-          imageToVideoPrompt: scene.imageToVideoPrompt || '',
-          cameraShot: scene.cameraShot || 'medium',
-          imageUrl: scene.imageUrl,
-          videoUrl: scene.videoUrl,
-          audioUrl: scene.audioUrl,
-          duration: scene.duration || 6,
-          dialogue: scene.dialogue || [],
-        },
-      });
-      createdScenes.push({
-        id: created.id,
-        number: created.number,
-        title: created.title,
-        description: created.description,
-        textToImagePrompt: created.textToImagePrompt,
-        imageToVideoPrompt: created.imageToVideoPrompt,
-        cameraShot: created.cameraShot,
-        imageUrl: created.imageUrl,
-        videoUrl: created.videoUrl,
-        audioUrl: created.audioUrl,
-        duration: created.duration,
-        dialogue: created.dialogue as object[],
-      });
+      if (scene.id) {
+        // Update existing scene
+        const updated = await prisma.scene.update({
+          where: { id: scene.id },
+          data: {
+            number: scene.number || 1,
+            title: scene.title || 'Scene',
+            description: scene.description || '',
+            textToImagePrompt: scene.textToImagePrompt || '',
+            imageToVideoPrompt: scene.imageToVideoPrompt || '',
+            cameraShot: scene.cameraShot || 'medium',
+            imageUrl: scene.imageUrl,
+            videoUrl: scene.videoUrl,
+            audioUrl: scene.audioUrl,
+            duration: scene.duration || 6,
+            dialogue: scene.dialogue || [],
+          },
+        });
+        updatedScenes.push({
+          id: updated.id,
+          number: updated.number,
+          title: updated.title,
+          description: updated.description,
+          textToImagePrompt: updated.textToImagePrompt,
+          imageToVideoPrompt: updated.imageToVideoPrompt,
+          cameraShot: updated.cameraShot,
+          imageUrl: updated.imageUrl,
+          videoUrl: updated.videoUrl,
+          audioUrl: updated.audioUrl,
+          duration: updated.duration,
+          dialogue: updated.dialogue as object[],
+        });
+      } else {
+        // Create new scene (no id provided)
+        const created = await prisma.scene.create({
+          data: {
+            projectId,
+            number: scene.number || 1,
+            title: scene.title || 'Scene',
+            description: scene.description || '',
+            textToImagePrompt: scene.textToImagePrompt || '',
+            imageToVideoPrompt: scene.imageToVideoPrompt || '',
+            cameraShot: scene.cameraShot || 'medium',
+            imageUrl: scene.imageUrl,
+            videoUrl: scene.videoUrl,
+            audioUrl: scene.audioUrl,
+            duration: scene.duration || 6,
+            dialogue: scene.dialogue || [],
+          },
+        });
+        updatedScenes.push({
+          id: created.id,
+          number: created.number,
+          title: created.title,
+          description: created.description,
+          textToImagePrompt: created.textToImagePrompt,
+          imageToVideoPrompt: created.imageToVideoPrompt,
+          cameraShot: created.cameraShot,
+          imageUrl: created.imageUrl,
+          videoUrl: created.videoUrl,
+          audioUrl: created.audioUrl,
+          duration: created.duration,
+          dialogue: created.dialogue as object[],
+        });
+      }
     }
 
     // Update project's updatedAt
@@ -181,7 +212,7 @@ export async function PUT(
       data: { updatedAt: new Date() },
     });
 
-    return NextResponse.json(createdScenes);
+    return NextResponse.json(updatedScenes);
   } catch (error) {
     console.error('Error updating scenes:', error);
     return NextResponse.json(

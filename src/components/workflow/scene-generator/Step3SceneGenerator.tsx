@@ -210,11 +210,11 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
 
       {/* Scenes Grid - 2 columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {paginatedScenes.map((scene) => (
+        {paginatedScenes.map((scene, idx) => (
           <SceneCard
             key={scene.id}
             scene={scene}
-            index={scene.number - 1}
+            index={(currentPage - 1) * SCENES_PER_PAGE + idx}
             isExpanded={expandedScenes.includes(scene.id)}
             isGeneratingImage={generatingImageForScene === scene.id}
             isGeneratingAllImages={isGeneratingAllImages}
