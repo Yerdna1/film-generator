@@ -223,18 +223,21 @@ model Scene {
 // Action costs - stored in database for admin control
 // These define the real USD cost per action and provider
 model ActionCost {
-  id          String   @id @default(cuid())
-  actionType  String   // 'image', 'video', 'voiceover', 'scene', 'character', 'prompt'
-  provider    String   // 'gemini', 'elevenlabs', 'grok', 'kie', 'nanoBanana', 'claude'
-  cost        Float    // Cost in USD
-  description String?  // Human-readable description
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          String    @id @default(cuid())
+  actionType  String    // 'image', 'video', 'voiceover', 'scene', 'character', 'prompt', 'music'
+  provider    String    // 'gemini', 'modal', 'modal-edit', 'elevenlabs', 'grok', 'kie', 'claude', etc.
+  cost        Float     // Cost in USD
+  description String?   // Human-readable description
+  isActive    Boolean   @default(true)
+  validFrom   DateTime  @default(now())  // When this pricing becomes effective
+  validTo     DateTime? // When this pricing expires (null = no expiry)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([actionType, provider])
   @@index([actionType])
   @@index([provider])
+  @@index([validFrom])
 }
 
 // Image generation job for background processing via Inngest

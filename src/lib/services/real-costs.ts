@@ -1,13 +1,20 @@
 /**
  * Real API Costs Configuration
  *
- * These are the actual costs charged by API providers.
- * All costs are in USD.
+ * IMPORTANT: Pricing is now loaded from the database (ActionCost table)
+ * The values below are FALLBACK defaults used when DB is unavailable.
+ *
+ * To update pricing:
+ * 1. Use the admin API or run: node scripts/seed-pricing.js
+ * 2. Prices in DB take precedence over these hardcoded values
  *
  * Sources:
  * - Gemini API Pricing: https://ai.google.dev/gemini-api/docs/pricing
  * - Vertex AI Pricing: https://cloud.google.com/vertex-ai/generative-ai/pricing
+ * - Modal.com GPU Pricing: H100 ~$4.50/hr
  */
+
+import { getActionCostSync } from './pricing-service';
 
 // Image resolution options
 export type ImageResolution = '1k' | '2k' | '4k';
@@ -27,7 +34,8 @@ export const ASPECT_RATIOS: Record<AspectRatio, { label: string; description: st
   '3:4': { label: 'Portrait Classic (3:4)', description: 'Portrait traditional' },
 };
 
-// Provider pricing (based on official documentation as of Dec 2024)
+// Provider pricing - FALLBACK values (DB values take precedence)
+// Updated: Jan 2025
 export const PROVIDER_COSTS = {
   // Google Gemini 3 Pro Image Preview (Nano Banana Pro)
   // Source: https://ai.google.dev/gemini-api/docs/pricing
@@ -35,9 +43,9 @@ export const PROVIDER_COSTS = {
     // Text generation (per 1K tokens)
     textInputPer1K: 0.002,    // $2.00 per 1M tokens
     textOutputPer1K: 0.120,   // $120.00 per 1M tokens for images
-    // Image generation by resolution
-    image1k2k: 0.134,         // 1K/2K (1024-2048px): $0.134 per image (1120 tokens)
-    image4k: 0.24,            // 4K (up to 4096px): $0.24 per image (2000 tokens)
+    // Image generation - $0.24 per image (Gemini 3 Pro)
+    image1k2k: 0.24,          // All resolutions: $0.24 per image
+    image4k: 0.24,            // 4K: $0.24 per image
     // TTS (per 1K characters)
     ttsPer1K: 0.016,
   },
@@ -82,6 +90,22 @@ export const PROVIDER_COSTS = {
   suno: {
     musicGeneration: 0.05, // Estimated per music track
   },
+
+  // Modal.com - Self-hosted GPU endpoints
+  // Pricing based on H100 GPU costs: ~$4.50/hr
+  // Qwen-Image-Edit-2511: 5 concurrent workers, ~24min for 100 images
+  // Calculation: $8.47 / 100 images ≈ $0.09/image (rounded up)
+  modal: {
+    // Image generation (Qwen-VL-2.5 based)
+    imageGeneration: 0.09,    // ~$0.09 per image (H100, 5 concurrent)
+    imageEdit: 0.09,          // ~$0.09 per image (Qwen-Image-Edit-2511)
+    // TTS (Chatterbox)
+    ttsPerSecond: 0.001,      // ~$0.001 per second of audio
+    // Video (Hallo3)
+    videoGeneration: 0.15,    // ~$0.15 per video clip
+    // LLM (self-hosted)
+    llmPer1K: 0.001,          // Minimal cost for self-hosted LLM
+  },
 } as const;
 
 // Get image cost based on resolution
@@ -108,28 +132,33 @@ export function getDefaultImageResolution(): ImageResolution {
   return defaultImageResolution;
 }
 
-// Simplified cost per action (using current default resolution)
+// Simplified cost per action - FALLBACK values (DB values take precedence)
+// Use getActionCost() which checks DB first
 export const ACTION_COSTS = {
-  // Image generation - uses resolution-based pricing
+  // Image generation - $0.24 for Gemini 3 Pro, $0.09 for Modal
   image: {
-    gemini: PROVIDER_COSTS.gemini.image1k2k,      // Default 2K: $0.134
-    gemini1k: PROVIDER_COSTS.gemini.image1k2k,    // 1K/2K: $0.134
-    gemini2k: PROVIDER_COSTS.gemini.image1k2k,    // 1K/2K: $0.134
-    gemini4k: PROVIDER_COSTS.gemini.image4k,      // 4K: $0.24
+    gemini: 0.24,                                 // Gemini 3 Pro: $0.24
+    gemini1k: 0.24,                               // Gemini 3 Pro: $0.24
+    gemini2k: 0.24,                               // Gemini 3 Pro: $0.24
+    gemini4k: 0.24,                               // Gemini 3 Pro: $0.24
     geminiFlash: PROVIDER_COSTS.geminiFlash.image1k, // Flash: $0.039
-    nanoBanana: PROVIDER_COSTS.gemini.image1k2k,  // Same as Gemini 3 Pro
+    nanoBanana: 0.24,                             // Same as Gemini 3 Pro
+    modal: PROVIDER_COSTS.modal.imageGeneration,  // Modal Qwen: $0.09
+    'modal-edit': PROVIDER_COSTS.modal.imageEdit, // Modal Edit: $0.09
   },
 
   // Video generation (6s clip)
   video: {
     grok: 0.10,
     kie: 0.10,
+    modal: PROVIDER_COSTS.modal.videoGeneration,  // Modal Hallo3: $0.15
   },
 
   // Voice generation (average per line ~100 chars)
   voiceover: {
     elevenlabs: 0.03,
     geminiTts: 0.002,
+    modal: 0.01,              // Modal Chatterbox TTS: ~$0.01 per line
   },
 
   // Scene generation (text) - per scene
@@ -140,6 +169,7 @@ export const ACTION_COSTS = {
     gemini: 0.001,
     claude: 0.01,    // Updated: ~$0.60 for 60 scenes
     grok: 0.003,
+    modal: 0.002,    // Modal self-hosted LLM: minimal cost
   },
 
   // Character description generation - per character
@@ -217,8 +247,16 @@ export interface UserCostStats {
 
 /**
  * Get the cost for a specific action and provider
+ * First checks the database cache, falls back to hardcoded values
  */
 export function getActionCost(action: ActionType, provider: Provider): number {
+  // Try to get from DB cache first
+  const dbCost = getActionCostSync(action as Parameters<typeof getActionCostSync>[0], provider as Parameters<typeof getActionCostSync>[1]);
+  if (dbCost > 0) {
+    return dbCost;
+  }
+
+  // Fallback to hardcoded values
   const actionCosts = ACTION_COSTS[action];
   if (!actionCosts) return 0;
 
