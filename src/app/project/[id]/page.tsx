@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,6 +16,7 @@ import {
   Globe,
   Lock,
   Loader2,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -64,8 +65,12 @@ const roleLabels: Record<ProjectRole, string> = {
 export default function ProjectWorkspacePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations();
   const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject } = useProjectStore();
+
+  // Check if we're in approvals-only mode (from notification link)
+  const isApprovalsMode = searchParams.get('tab') === 'approvals';
 
   // Track hydration state to prevent SSR mismatch
   const [hasMounted, setHasMounted] = useState(false);
@@ -361,29 +366,80 @@ export default function ProjectWorkspacePage() {
         </div>
       </div>
 
-      {/* Desktop Step Indicator */}
-      <div className="hidden md:block border-b border-white/5 bg-black/20">
-        <div className="container mx-auto px-4 py-4">
-          <StepIndicator currentStep={project.currentStep} onStepClick={handleStepClick} />
+      {/* Desktop Step Indicator - hide in approvals mode */}
+      {!isApprovalsMode && (
+        <div className="hidden md:block border-b border-white/5 bg-black/20">
+          <div className="container mx-auto px-4 py-4">
+            <StepIndicator currentStep={project.currentStep} onStepClick={handleStepClick} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <AnimatePresence mode="wait">
+        {isApprovalsMode ? (
+          /* Approvals-only view - shown when ?tab=approvals */
           <motion.div
-            key={project.currentStep}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            className="max-w-3xl mx-auto"
           >
-            {renderStep()}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-500/20">
+                    <Shield className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold">Pending Approvals</h1>
+                    <p className="text-sm text-muted-foreground">
+                      Review and approve regeneration requests from your team
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/project/${project.id}`)}
+                  className="border-white/10 hover:bg-white/5"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Back to Project
+                </Button>
+              </div>
+            </div>
+
+            <div className="glass rounded-xl p-6 border border-white/10">
+              {!isLoadingPermissions && permissions?.canApproveRequests ? (
+                <ApprovalPanel
+                  projectId={project.id}
+                  canApprove={permissions.canApproveRequests}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                  <p>You don't have permission to view approvals</p>
+                </div>
+              )}
+            </div>
           </motion.div>
-        </AnimatePresence>
+        ) : (
+          /* Normal step content */
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={project.currentStep}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderStep()}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - hide in approvals mode */}
+      {!isApprovalsMode && (
       <div className="fixed bottom-0 left-0 right-0 glass-strong border-t border-white/5 py-4">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
@@ -422,9 +478,10 @@ export default function ProjectWorkspacePage() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Spacer for fixed bottom nav */}
-      <div className="h-24" />
+      {/* Spacer for fixed bottom nav - hide in approvals mode */}
+      {!isApprovalsMode && <div className="h-24" />}
 
       {/* Collaboration Slide-out Panel */}
       <AnimatePresence>

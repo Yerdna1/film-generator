@@ -502,7 +502,15 @@ export function useSceneGenerator(initialProject: Project) {
         MAX_RETRIES
       );
 
-      const isInsufficientCredits = await handleApiResponse(response);
+      // Pass regeneration context so user can request admin approval if insufficient credits
+      const isInsufficientCredits = await handleApiResponse(response, {
+        projectId: project.id,
+        sceneId: scene.id,
+        sceneName: scene.title,
+        sceneNumber: scene.number,
+        targetType: 'image',
+        imageUrl: scene.imageUrl,
+      });
       if (isInsufficientCredits) {
         return;
       }

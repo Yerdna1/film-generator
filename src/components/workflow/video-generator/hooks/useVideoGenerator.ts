@@ -188,7 +188,15 @@ export function useVideoGenerator(initialProject: Project) {
         }),
       });
 
-      const isInsufficientCredits = await handleApiResponse(response);
+      // Pass regeneration context so user can request admin approval if insufficient credits
+      const isInsufficientCredits = await handleApiResponse(response, {
+        projectId: project.id,
+        sceneId: scene.id,
+        sceneName: scene.title,
+        sceneNumber: scene.number,
+        targetType: 'video',
+        imageUrl: scene.imageUrl,
+      });
       if (isInsufficientCredits) {
         setVideoStates((prev) => ({
           ...prev,

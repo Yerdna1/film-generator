@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Sparkles, ArrowRight, X, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { AlertCircle, Sparkles, ArrowRight, Loader2, RefreshCw, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,12 +12,25 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import type { RegenerationTargetType } from '@/types/collaboration';
+
+export interface RegenerationContext {
+  projectId: string;
+  sceneId: string;
+  sceneName: string;
+  sceneNumber: number;
+  targetType: RegenerationTargetType;
+  imageUrl?: string | null;
+}
 
 interface InsufficientCreditsModalProps {
   isOpen: boolean;
   onClose: () => void;
   required: number;
   balance: number;
+  // Optional: For showing "Request Admin Approval" option
+  regenerationContext?: RegenerationContext | null;
+  onRequestApproval?: () => void;
 }
 
 interface Plan {
@@ -38,9 +51,53 @@ export function InsufficientCreditsModal({
   onClose,
   required,
   balance,
+  regenerationContext,
+  onRequestApproval,
 }: InsufficientCreditsModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const [requestingApproval, setRequestingApproval] = useState(false);
+  const [approvalSuccess, setApprovalSuccess] = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+
+  const handleRequestApproval = async () => {
+    if (!regenerationContext) return;
+
+    setRequestingApproval(true);
+    setApprovalError(null);
+
+    try {
+      const response = await fetch(`/api/projects/${regenerationContext.projectId}/regeneration-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetType: regenerationContext.targetType,
+          sceneIds: [regenerationContext.sceneId],
+          reason: 'Insufficient credits - requesting admin to regenerate',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setApprovalError(data.error || 'Failed to submit request');
+        return;
+      }
+
+      setApprovalSuccess(true);
+      onRequestApproval?.();
+
+      // Auto-close after success
+      setTimeout(() => {
+        onClose();
+        setApprovalSuccess(false);
+      }, 2000);
+    } catch {
+      setApprovalError('Failed to submit request');
+    } finally {
+      setRequestingApproval(false);
+    }
+  };
 
   const handleUpgrade = async (plan: string) => {
     setLoading(plan);
@@ -142,6 +199,77 @@ export function InsufficientCreditsModal({
           >
             View All Plans
           </Button>
+
+          {/* Request Admin Approval - Only shown when regeneration context is available */}
+          {regenerationContext && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-muted" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+
+              {approvalSuccess ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-center"
+                >
+                  <UserCheck className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-cyan-400">Request Submitted!</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The admin will be notified to approve your regeneration request.
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <RefreshCw className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-cyan-400">
+                          Request Admin Approval
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Ask the project admin to regenerate this {regenerationContext.targetType} using their credits.
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Scene {regenerationContext.sceneNumber}: {regenerationContext.sceneName}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {approvalError && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+                      {approvalError}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleRequestApproval}
+                    disabled={requestingApproval}
+                    className="w-full bg-cyan-600 hover:bg-cyan-500"
+                  >
+                    {requestingApproval ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Submitting Request...
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Request Admin Approval
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
