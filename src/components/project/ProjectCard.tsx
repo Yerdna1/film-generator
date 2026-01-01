@@ -18,6 +18,7 @@ import {
   Play,
   DollarSign,
   Coins,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,7 +56,7 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
   const { deleteProject, duplicateProject } = useProjectStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const styleConfig = styleColors[project.style];
+  const styleConfig = styleColors[project.style] || styleColors.custom;
   const progress = Math.round((project.currentStep / 6) * 100);
 
   // Format real cost using configured currency
@@ -253,6 +254,30 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
               >
                 <Copy className="w-4 h-4 mr-2" />
                 {t('project.duplicate')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/projects/${project.id}/export`);
+                    if (!response.ok) throw new Error('Failed to export');
+                    const data = await response.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${project.name.replace(/[^a-z0-9]/gi, '_')}_metadata.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  } catch (e) {
+                    console.error('Export failed:', e);
+                  }
+                }}
+                className="cursor-pointer hover:bg-white/5"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {t('project.export')}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem

@@ -197,6 +197,37 @@ export async function uploadAudioToS3(
 }
 
 /**
+ * Upload a buffer to S3 with a specific key
+ * @param buffer - File buffer
+ * @param key - S3 key (path in bucket)
+ * @param contentType - MIME type
+ * @returns Public URL of the uploaded file
+ */
+export async function uploadBufferToS3(
+  buffer: Buffer,
+  key: string,
+  contentType: string
+): Promise<string> {
+  const bucket = process.env.AWS_S3_BUCKET;
+  const region = process.env.AWS_REGION || 'eu-central-1';
+
+  if (!bucket) {
+    throw new Error('AWS_S3_BUCKET not configured');
+  }
+
+  const s3Client = getS3Client();
+
+  await s3Client.send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+  }));
+
+  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+}
+
+/**
  * Check if S3 is configured
  */
 export function isS3Configured(): boolean {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { NewProjectDialog } from '@/components/project/NewProjectDialog';
+import { ImportProjectDialog } from '@/components/project/ImportProjectDialog';
 import {
   LandingPage,
   LoadingSkeleton,
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const { status } = useSession();
   const { projects } = useProjectStore();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [importProjectOpen, setImportProjectOpen] = useState(false);
 
   const { creditsData, projectCosts, creditsBreakdown } = useDashboardData(
     status === 'authenticated'
@@ -42,7 +44,10 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
-      <DashboardHero onNewProject={() => setNewProjectOpen(true)} />
+      <DashboardHero
+        onNewProject={() => setNewProjectOpen(true)}
+        onImportProject={() => setImportProjectOpen(true)}
+      />
 
       {/* Combined Stats Row */}
       {projects.length > 0 && (
@@ -60,8 +65,9 @@ export default function DashboardPage() {
         onCreateProject={() => setNewProjectOpen(true)}
       />
 
-      {/* New Project Dialog */}
+      {/* Dialogs */}
       <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
+      <ImportProjectDialog open={importProjectOpen} onOpenChange={setImportProjectOpen} />
     </div>
   );
 }

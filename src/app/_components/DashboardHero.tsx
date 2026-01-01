@@ -2,14 +2,15 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface DashboardHeroProps {
   onNewProject: () => void;
+  onImportProject: () => void;
 }
 
-export function DashboardHero({ onNewProject }: DashboardHeroProps) {
+export function DashboardHero({ onNewProject, onImportProject }: DashboardHeroProps) {
   const t = useTranslations();
 
   return (
@@ -43,7 +44,17 @@ export function DashboardHero({ onNewProject }: DashboardHeroProps) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
+          className="flex gap-3"
         >
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={onImportProject}
+            className="h-12 px-6"
+          >
+            <Upload className="w-5 h-5 mr-2" />
+            {t('project.import')}
+          </Button>
           <Button
             size="lg"
             onClick={onNewProject}
