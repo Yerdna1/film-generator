@@ -413,14 +413,22 @@ export async function getUserStatistics(userId: string): Promise<{
 }
 
 /**
- * Get project-specific statistics
+ * Get project-specific statistics with generation/regeneration breakdown
  */
 export async function getProjectStatistics(projectId: string): Promise<{
   totalCredits: number;
   totalRealCost: number;
-  byType: Record<string, { count: number; credits: number; realCost: number }>;
+  byType: Record<string, { count: number; credits: number; realCost: number; generations: number; regenerations: number }>;
   byProvider: Record<string, { count: number; credits: number; realCost: number }>;
   transactions: TransactionRecord[];
+  summary: {
+    totalGenerations: number;
+    totalRegenerations: number;
+    imageGenerations: number;
+    imageRegenerations: number;
+    videoGenerations: number;
+    videoRegenerations: number;
+  };
 }> {
   const transactions = await prisma.creditTransaction.findMany({
     where: { projectId },
@@ -429,21 +437,45 @@ export async function getProjectStatistics(projectId: string): Promise<{
 
   let totalCredits = 0;
   let totalRealCost = 0;
-  const byType: Record<string, { count: number; credits: number; realCost: number }> = {};
+  const byType: Record<string, { count: number; credits: number; realCost: number; generations: number; regenerations: number }> = {};
   const byProvider: Record<string, { count: number; credits: number; realCost: number }> = {};
+
+  // Summary counts
+  let totalGenerations = 0;
+  let totalRegenerations = 0;
+  let imageGenerations = 0;
+  let imageRegenerations = 0;
+  let videoGenerations = 0;
+  let videoRegenerations = 0;
 
   for (const tx of transactions) {
     if (tx.amount < 0) {
       totalCredits += Math.abs(tx.amount);
       totalRealCost += tx.realCost;
 
-      // By type
+      // Check metadata for isRegeneration flag
+      const metadata = tx.metadata as { isRegeneration?: boolean } | null;
+      const isRegeneration = metadata?.isRegeneration ?? false;
+
+      // By type with generation/regeneration breakdown
       if (!byType[tx.type]) {
-        byType[tx.type] = { count: 0, credits: 0, realCost: 0 };
+        byType[tx.type] = { count: 0, credits: 0, realCost: 0, generations: 0, regenerations: 0 };
       }
       byType[tx.type].count++;
       byType[tx.type].credits += Math.abs(tx.amount);
       byType[tx.type].realCost += tx.realCost;
+
+      if (isRegeneration) {
+        byType[tx.type].regenerations++;
+        totalRegenerations++;
+        if (tx.type === 'image') imageRegenerations++;
+        if (tx.type === 'video') videoRegenerations++;
+      } else {
+        byType[tx.type].generations++;
+        totalGenerations++;
+        if (tx.type === 'image') imageGenerations++;
+        if (tx.type === 'video') videoGenerations++;
+      }
 
       // By provider
       const provider = tx.provider || 'unknown';
@@ -471,6 +503,14 @@ export async function getProjectStatistics(projectId: string): Promise<{
       projectId: tx.projectId,
       createdAt: tx.createdAt,
     })),
+    summary: {
+      totalGenerations,
+      totalRegenerations,
+      imageGenerations,
+      imageRegenerations,
+      videoGenerations,
+      videoRegenerations,
+    },
   };
 }
 

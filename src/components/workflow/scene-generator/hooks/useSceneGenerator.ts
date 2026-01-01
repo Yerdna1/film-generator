@@ -481,6 +481,9 @@ export function useSceneGenerator(initialProject: Project) {
           imageUrl: c.imageUrl!,
         }));
 
+      // Detect if this is a regeneration (scene already has an image)
+      const isRegeneration = !!scene.imageUrl;
+
       const response = await fetchWithRetry(
         '/api/image',
         {
@@ -492,6 +495,8 @@ export function useSceneGenerator(initialProject: Project) {
             resolution: imageResolution,
             projectId: project.id,
             referenceImages,
+            isRegeneration,
+            sceneId: scene.id,
           }),
         },
         MAX_RETRIES
@@ -565,6 +570,8 @@ export function useSceneGenerator(initialProject: Project) {
                 resolution: imageResolution,
                 projectId: project.id,
                 referenceImages,
+                isRegeneration: false, // These are all new generations (scenes without images)
+                sceneId: scene.id,
               }),
             },
             MAX_RETRIES
@@ -746,6 +753,8 @@ export function useSceneGenerator(initialProject: Project) {
                 resolution: imageResolution,
                 projectId: project.id,
                 referenceImages,
+                isRegeneration: true, // This is always a regeneration
+                sceneId: scene.id,
               }),
             },
             MAX_RETRIES
@@ -771,6 +780,8 @@ export function useSceneGenerator(initialProject: Project) {
               return newSet;
             });
           }
+
+          window.dispatchEvent(new CustomEvent('credits-updated'));
         } catch (error) {
           console.error(`Error regenerating scene ${scene.number}:`, error);
         }

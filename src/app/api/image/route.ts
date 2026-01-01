@@ -22,6 +22,8 @@ interface ImageGenerationRequest {
     name: string;
     imageUrl: string;
   }>;
+  isRegeneration?: boolean; // Track if this is regenerating an existing image
+  sceneId?: string; // Optional scene ID for tracking
 }
 
 // Generate image using Gemini
@@ -32,7 +34,9 @@ async function generateWithGemini(
   projectId: string | undefined,
   referenceImages: Array<{ name: string; imageUrl: string }>,
   apiKey: string,
-  userId: string | undefined
+  userId: string | undefined,
+  isRegeneration: boolean = false,
+  sceneId?: string
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
   const google = createGoogleGenerativeAI({ apiKey });
 
@@ -102,7 +106,17 @@ async function generateWithGemini(
   const creditCost = getImageCreditCost(resolution);
 
   if (userId) {
-    await spendCredits(userId, creditCost, 'image', `Gemini image generation (${resolution.toUpperCase()})`, projectId, 'gemini', undefined, realCost);
+    const actionType = isRegeneration ? 'regeneration' : 'generation';
+    await spendCredits(
+      userId,
+      creditCost,
+      'image',
+      `Gemini image ${actionType} (${resolution.toUpperCase()})`,
+      projectId,
+      'gemini',
+      { isRegeneration, sceneId },
+      realCost
+    );
   }
 
   let imageUrl = base64DataUrl;
@@ -123,7 +137,9 @@ async function generateWithModal(
   resolution: ImageResolution,
   projectId: string | undefined,
   modalEndpoint: string,
-  userId: string | undefined
+  userId: string | undefined,
+  isRegeneration: boolean = false,
+  sceneId?: string
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
   console.log('[Modal] Generating image with endpoint:', modalEndpoint);
 
@@ -171,9 +187,19 @@ async function generateWithModal(
   const creditCost = getImageCreditCost(resolution);
 
   if (userId) {
+    const actionType = isRegeneration ? 'regeneration' : 'generation';
     console.log('[Modal] Spending credits:', creditCost);
     try {
-      await spendCredits(userId, creditCost, 'image', `Modal image generation (${resolution.toUpperCase()})`, projectId, 'modal', undefined, realCost);
+      await spendCredits(
+        userId,
+        creditCost,
+        'image',
+        `Modal image ${actionType} (${resolution.toUpperCase()})`,
+        projectId,
+        'modal',
+        { isRegeneration, sceneId },
+        realCost
+      );
       console.log('[Modal] Credits spent successfully');
     } catch (creditError) {
       console.error('[Modal] Credit spending error:', creditError);
@@ -208,7 +234,9 @@ async function generateWithModalEdit(
   projectId: string | undefined,
   modalEndpoint: string,
   referenceImages: Array<{ name: string; imageUrl: string }>,
-  userId: string | undefined
+  userId: string | undefined,
+  isRegeneration: boolean = false,
+  sceneId?: string
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
   console.log('[Modal-Edit] Generating image with endpoint:', modalEndpoint);
   console.log('[Modal-Edit] Reference images:', referenceImages.length);
@@ -264,9 +292,19 @@ async function generateWithModalEdit(
   const creditCost = getImageCreditCost(resolution);
 
   if (userId) {
+    const actionType = isRegeneration ? 'regeneration' : 'generation';
     console.log('[Modal-Edit] Spending credits:', creditCost);
     try {
-      await spendCredits(userId, creditCost, 'image', `Modal-Edit image generation (${resolution.toUpperCase()})`, projectId, 'modal-edit', undefined, realCost);
+      await spendCredits(
+        userId,
+        creditCost,
+        'image',
+        `Modal-Edit image ${actionType} (${resolution.toUpperCase()})`,
+        projectId,
+        'modal-edit',
+        { isRegeneration, sceneId },
+        realCost
+      );
       console.log('[Modal-Edit] Credits spent successfully');
     } catch (creditError) {
       console.error('[Modal-Edit] Credit spending error:', creditError);
@@ -295,7 +333,7 @@ async function generateWithModalEdit(
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [] }: ImageGenerationRequest = await request.json();
+    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId }: ImageGenerationRequest = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -351,7 +389,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, session?.user?.id);
+        const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, session?.user?.id, isRegeneration, sceneId);
         return NextResponse.json(result);
       }
 
@@ -362,7 +400,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await generateWithModalEdit(prompt, aspectRatio, resolution, projectId, modalImageEditEndpoint, referenceImages, session?.user?.id);
+      const result = await generateWithModalEdit(prompt, aspectRatio, resolution, projectId, modalImageEditEndpoint, referenceImages, session?.user?.id, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -374,7 +412,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await generateWithModal(prompt, aspectRatio, resolution, projectId, modalImageEndpoint, session?.user?.id);
+      const result = await generateWithModal(prompt, aspectRatio, resolution, projectId, modalImageEndpoint, session?.user?.id, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -386,7 +424,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, session?.user?.id);
+    const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, session?.user?.id, isRegeneration, sceneId);
     return NextResponse.json(result);
 
   } catch (error) {

@@ -114,7 +114,11 @@ export function useVideoGenerator(initialProject: Project) {
   }, []);
 
   // Poll for video completion
-  const pollForVideoCompletion = useCallback(async (taskId: string, sceneId: string): Promise<string | null> => {
+  const pollForVideoCompletion = useCallback(async (
+    taskId: string,
+    sceneId: string,
+    isRegeneration: boolean = false
+  ): Promise<string | null> => {
     const maxAttempts = 60;
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -126,7 +130,14 @@ export function useVideoGenerator(initialProject: Project) {
       }));
 
       try {
-        const response = await fetch(`/api/video?taskId=${taskId}&projectId=${project.id}`);
+        // Pass isRegeneration and sceneId for credit tracking
+        const params = new URLSearchParams({
+          taskId,
+          projectId: project.id,
+          isRegeneration: String(isRegeneration),
+          sceneId,
+        });
+        const response = await fetch(`/api/video?${params}`);
         if (response.ok) {
           const data = await response.json();
           if (data.status === 'complete' && data.videoUrl) {
@@ -145,8 +156,11 @@ export function useVideoGenerator(initialProject: Project) {
   }, [project.id]);
 
   // Generate video for a scene
-  const generateSceneVideo = useCallback(async (scene: Scene) => {
+  const generateSceneVideo = useCallback(async (scene: Scene, forceRegeneration: boolean = false) => {
     if (!scene.imageUrl) return;
+
+    // Detect if this is a regeneration (scene already has a video)
+    const isRegeneration = forceRegeneration || !!scene.videoUrl;
 
     setVideoStates((prev) => ({
       ...prev,
@@ -168,6 +182,9 @@ export function useVideoGenerator(initialProject: Project) {
           imageUrl: scene.imageUrl,
           prompt: fullPrompt,
           mode: videoMode,
+          projectId: project.id,
+          isRegeneration,
+          sceneId: scene.id,
         }),
       });
 
@@ -189,7 +206,8 @@ export function useVideoGenerator(initialProject: Project) {
         const data = await response.json();
 
         if (data.taskId && data.status === 'processing') {
-          const videoUrl = await pollForVideoCompletion(data.taskId, scene.id);
+          // Pass isRegeneration from the response (set during POST)
+          const videoUrl = await pollForVideoCompletion(data.taskId, scene.id, data.isRegeneration || isRegeneration);
           if (videoUrl) {
             updateScene(project.id, scene.id, { videoUrl });
             setVideoStates((prev) => ({

@@ -19,6 +19,8 @@ interface VideoGenerationRequest {
   projectId?: string;
   mode?: 'fun' | 'normal' | 'spicy';
   seed?: number;
+  isRegeneration?: boolean; // Track if this is regenerating an existing video
+  sceneId?: string; // Optional scene ID for tracking
 }
 
 // Enhance I2V prompt with motion speed hints
@@ -108,7 +110,9 @@ async function checkKieTaskStatus(
   projectId: string | undefined,
   apiKey: string,
   userId: string | undefined,
-  download: boolean
+  download: boolean,
+  isRegeneration: boolean = false,
+  sceneId?: string
 ): Promise<{ status: string; videoUrl?: string; externalVideoUrl?: string; failMessage?: string; cost?: number; storage?: string }> {
   const response = await fetch(
     `${KIE_API_URL}/api/v1/jobs/recordInfo?taskId=${taskId}`,
@@ -172,7 +176,17 @@ async function checkKieTaskStatus(
 
   const realCost = ACTION_COSTS.video.grok;
   if (status === 'complete' && userId) {
-    await spendCredits(userId, COSTS.VIDEO_GENERATION, 'video', 'Kie.ai video generation', projectId, 'kie', undefined, realCost);
+    const actionType = isRegeneration ? 'regeneration' : 'generation';
+    await spendCredits(
+      userId,
+      COSTS.VIDEO_GENERATION,
+      'video',
+      `Kie.ai video ${actionType}`,
+      projectId,
+      'kie',
+      { isRegeneration, sceneId },
+      realCost
+    );
   }
 
   return {
@@ -191,7 +205,9 @@ async function generateWithModal(
   prompt: string,
   projectId: string | undefined,
   modalEndpoint: string,
-  userId: string | undefined
+  userId: string | undefined,
+  isRegeneration: boolean = false,
+  sceneId?: string
 ): Promise<{ videoUrl: string; cost: number; storage: string; status: string }> {
   console.log('[Modal] Generating video with endpoint:', modalEndpoint);
 
@@ -232,7 +248,17 @@ async function generateWithModal(
   const realCost = 0; // Self-hosted = no API cost
 
   if (userId) {
-    await spendCredits(userId, COSTS.VIDEO_GENERATION, 'video', 'Modal video generation', projectId, 'modal', undefined, realCost);
+    const actionType = isRegeneration ? 'regeneration' : 'generation';
+    await spendCredits(
+      userId,
+      COSTS.VIDEO_GENERATION,
+      'video',
+      `Modal video ${actionType}`,
+      projectId,
+      'modal',
+      { isRegeneration, sceneId },
+      realCost
+    );
   }
 
   if (isS3Configured() && videoUrl.startsWith('data:')) {
@@ -253,7 +279,7 @@ async function generateWithModal(
 // POST - Create video generation task
 export async function POST(request: NextRequest) {
   try {
-    const { imageUrl, prompt, mode = 'normal', seed }: VideoGenerationRequest = await request.json();
+    const { imageUrl, prompt, projectId, mode = 'normal', seed, isRegeneration = false, sceneId }: VideoGenerationRequest = await request.json();
 
     if (!imageUrl || !prompt) {
       return NextResponse.json({ error: 'Image URL and prompt are required' }, { status: 400 });
@@ -286,7 +312,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Video] Using provider: ${videoProvider}`);
+    console.log(`[Video] Using provider: ${videoProvider}, projectId: ${projectId}, isRegeneration: ${isRegeneration}`);
 
     if (videoProvider === 'modal') {
       if (!modalVideoEndpoint) {
@@ -295,7 +321,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const result = await generateWithModal(imageUrl, prompt, undefined, modalVideoEndpoint, session?.user?.id);
+      const result = await generateWithModal(imageUrl, prompt, projectId, modalVideoEndpoint, session?.user?.id, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -312,6 +338,10 @@ export async function POST(request: NextRequest) {
       taskId: result.taskId,
       status: 'processing',
       message: 'Video generation started. Poll for status.',
+      // Return these so client can pass back when polling
+      projectId,
+      isRegeneration,
+      sceneId,
     });
 
   } catch (error) {
@@ -330,6 +360,8 @@ export async function GET(request: NextRequest) {
     const taskId = searchParams.get('taskId');
     const projectId = searchParams.get('projectId');
     const download = searchParams.get('download') !== 'false';
+    const isRegeneration = searchParams.get('isRegeneration') === 'true';
+    const sceneId = searchParams.get('sceneId') || undefined;
 
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
@@ -351,7 +383,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Kie.ai API key not configured' }, { status: 500 });
     }
 
-    const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, session?.user?.id, download);
+    const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, session?.user?.id, download, isRegeneration, sceneId);
     return NextResponse.json({ taskId, ...result });
 
   } catch (error) {

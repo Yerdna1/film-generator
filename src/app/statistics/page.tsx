@@ -18,6 +18,9 @@ import {
   Folder,
   Zap,
   Loader2,
+  RefreshCw,
+  Plus,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -377,17 +380,21 @@ export default function StatisticsPage() {
                     sortedProjects.map(([projectId, data]) => (
                       <Link
                         key={projectId}
-                        href={`/project/${projectId}`}
-                        className="flex items-center justify-between p-3 glass rounded-lg hover:bg-white/5 transition-colors"
+                        href={`/statistics/project/${projectId}`}
+                        className="flex items-center justify-between p-3 glass rounded-lg hover:bg-white/5 transition-colors group"
                       >
                         <div>
                           <p className="font-medium">{data.name}</p>
+                          <p className="text-xs text-muted-foreground">Click to view details</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-400">
-                            {formatCost(data.realCost)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{data.credits} credits</p>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="font-semibold text-green-400">
+                              {formatCost(data.realCost)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{data.credits} credits</p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-white transition-colors" />
                         </div>
                       </Link>
                     ))
@@ -419,6 +426,7 @@ export default function StatisticsPage() {
                     stats.recentTransactions.slice(0, 20).map((tx) => {
                       const Icon = typeIcons[tx.type] || FileText;
                       const colorClass = typeColors[tx.type] || 'text-gray-400 bg-gray-500/20';
+                      const isRegeneration = tx.description?.toLowerCase().includes('regeneration');
 
                       return (
                         <div
@@ -430,9 +438,17 @@ export default function StatisticsPage() {
                               <Icon className={`w-4 h-4 ${colorClass.split(' ')[0]}`} />
                             </div>
                             <div>
-                              <p className="font-medium text-sm">
-                                {tx.description || tx.type}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm">
+                                  {tx.description || tx.type}
+                                </p>
+                                {isRegeneration && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-500/30 text-orange-400">
+                                    <RefreshCw className="w-2.5 h-2.5 mr-1" />
+                                    Regen
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {tx.provider ? providerLabels[tx.provider] || tx.provider : 'Unknown'} •{' '}
                                 {new Date(tx.createdAt).toLocaleDateString()}
