@@ -82,9 +82,11 @@ export function ImportProjectDialog({ open, onOpenChange }: ImportProjectDialogP
 
     for (const file of fileArray) {
       const name = file.name.toLowerCase();
+      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || '';
 
-      // Skip metadata.json and hidden files
+      // Skip metadata.json, hidden files, and files in hidden directories
       if (name === 'metadata.json' || name.startsWith('.')) continue;
+      if (relativePath.split('/').some(part => part.startsWith('.'))) continue;
 
       // Scene images: scene1.jpg, scene2.jpg, etc.
       const sceneImageMatch = name.match(/^scene(\d+)\.(jpg|jpeg|png)$/);
