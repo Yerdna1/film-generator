@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Copy, RefreshCw, Sparkles, Square, ChevronDown } from 'lucide-react';
+import { Copy, RefreshCw, Sparkles, Square, ChevronDown, CheckSquare, XSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -24,6 +23,11 @@ interface QuickActionsProps {
   onGenerateBatch?: (batchSize: number) => void;
   onStopGeneration: () => void;
   backgroundJobProgress?: number;
+  // Selection props
+  selectedCount?: number;
+  onSelectAllWithImages?: () => void;
+  onClearSelection?: () => void;
+  onRegenerateSelected?: () => void;
 }
 
 // Batch size options (number of images to generate)
@@ -40,35 +44,84 @@ export function QuickActions({
   onGenerateBatch,
   onStopGeneration,
   backgroundJobProgress,
+  selectedCount = 0,
+  onSelectAllWithImages,
+  onClearSelection,
+  onRegenerateSelected,
 }: QuickActionsProps) {
   const t = useTranslations();
   const remainingImages = totalScenes - scenesWithImages;
   const costPerImage = getImageCost(imageResolution);
 
   return (
-    <div className="flex flex-wrap gap-4 justify-center">
-      {/* Copy Prompts for Gemini Button */}
-      <Button
-        variant="outline"
-        className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-        disabled={totalScenes === 0}
-        onClick={onCopyPrompts}
-      >
-        <Copy className="w-4 h-4 mr-2" />
-        Copy Prompts for Gemini
-        <Badge variant="outline" className="ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
-          FREE
-        </Badge>
-      </Button>
-      <Button
-        variant="outline"
-        className="border-white/10 hover:bg-white/5"
-        disabled={totalScenes === 0 || isGeneratingAllImages}
-        onClick={onRegenerateAll}
-      >
-        <RefreshCw className="w-4 h-4 mr-2" />
-        {t('steps.scenes.regenerateAll')}
-      </Button>
+    <div className="space-y-4">
+      {/* Selection Controls - Show when scenes have images */}
+      {scenesWithImages > 0 && onSelectAllWithImages && onClearSelection && onRegenerateSelected && (
+        <div className="flex flex-wrap gap-3 justify-center items-center glass rounded-xl p-3">
+          <span className="text-sm text-muted-foreground">Selection:</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+            onClick={onSelectAllWithImages}
+            disabled={isGeneratingAllImages}
+          >
+            <CheckSquare className="w-4 h-4 mr-2" />
+            Select All ({scenesWithImages})
+          </Button>
+          {selectedCount > 0 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/10 hover:bg-white/5"
+                onClick={onClearSelection}
+                disabled={isGeneratingAllImages}
+              >
+                <XSquare className="w-4 h-4 mr-2" />
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
+                onClick={onRegenerateSelected}
+                disabled={isGeneratingAllImages}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Regenerate Selected ({selectedCount})
+                <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+                  ~{formatCostCompact(costPerImage * selectedCount)}
+                </Badge>
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Main Actions */}
+      <div className="flex flex-wrap gap-4 justify-center">
+        {/* Copy Prompts for Gemini Button */}
+        <Button
+          variant="outline"
+          className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+          disabled={totalScenes === 0}
+          onClick={onCopyPrompts}
+        >
+          <Copy className="w-4 h-4 mr-2" />
+          Copy Prompts for Gemini
+          <Badge variant="outline" className="ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
+            FREE
+          </Badge>
+        </Button>
+        <Button
+          variant="outline"
+          className="border-white/10 hover:bg-white/5"
+          disabled={totalScenes === 0 || isGeneratingAllImages}
+          onClick={onRegenerateAll}
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          {t('steps.scenes.regenerateAll')}
+        </Button>
       {isGeneratingAllImages ? (
         <Button
           className="bg-red-600 hover:bg-red-500 text-white border-0"
@@ -140,6 +193,7 @@ export function QuickActions({
           </Button>
         </div>
       )}
+      </div>
     </div>
   );
 }

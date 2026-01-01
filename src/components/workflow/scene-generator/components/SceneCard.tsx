@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Collapsible,
   CollapsibleContent,
@@ -38,6 +39,8 @@ interface SceneCardProps {
   isGeneratingAllImages: boolean;
   imageResolution: ImageResolution;
   characters: Character[];
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
   onToggleExpand: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -54,6 +57,8 @@ function SceneCardComponent({
   isGeneratingAllImages,
   imageResolution,
   characters,
+  isSelected = false,
+  onToggleSelect,
   onToggleExpand,
   onDelete,
   onEdit,
@@ -75,26 +80,41 @@ function SceneCardComponent({
             <div className="flex items-center gap-2">
               {/* Scene Image or Placeholder */}
               {scene.imageUrl ? (
-                <button
-                  onClick={() => onPreviewImage(scene.imageUrl!)}
-                  className="relative w-48 h-32 rounded-lg overflow-hidden group flex-shrink-0"
-                >
-                  <Image
-                    src={scene.imageUrl}
-                    alt={scene.title}
-                    fill
-                    sizes="192px"
-                    className="object-cover"
-                    loading="lazy"
-                    unoptimized={scene.imageUrl.startsWith('data:') || scene.imageUrl.includes('blob:')}
-                  />
-                  <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-black/60 flex items-center justify-center font-bold text-emerald-400 text-sm">
-                    {index + 1}
-                  </div>
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Expand className="w-6 h-6 text-white" />
-                  </div>
-                </button>
+                <div className="relative w-48 h-32 flex-shrink-0">
+                  <button
+                    onClick={() => onPreviewImage(scene.imageUrl!)}
+                    className="relative w-full h-full rounded-lg overflow-hidden group"
+                  >
+                    <Image
+                      src={scene.imageUrl}
+                      alt={scene.title}
+                      fill
+                      sizes="192px"
+                      className="object-cover"
+                      loading="lazy"
+                      unoptimized={scene.imageUrl.startsWith('data:') || scene.imageUrl.includes('blob:')}
+                    />
+                    <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-black/60 flex items-center justify-center font-bold text-emerald-400 text-sm">
+                      {index + 1}
+                    </div>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Expand className="w-6 h-6 text-white" />
+                    </div>
+                  </button>
+                  {/* Selection checkbox for batch regeneration */}
+                  {onToggleSelect && (
+                    <div
+                      className="absolute top-1 right-1 z-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={onToggleSelect}
+                        className="h-5 w-5 border-2 border-white bg-black/50 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                      />
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="relative w-48 h-32 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
                   <div className="absolute top-1 left-1 w-7 h-7 rounded-md bg-emerald-500/20 flex items-center justify-center font-bold text-emerald-400 text-sm">
@@ -121,6 +141,26 @@ function SceneCardComponent({
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Generate Image Button - Always Visible */}
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-emerald-600/80 to-teal-600/80 hover:from-emerald-500 hover:to-teal-500 text-white border-0 h-8 px-3"
+                  onClick={onGenerateImage}
+                  disabled={isGeneratingImage || isGeneratingAllImages}
+                >
+                  {isGeneratingImage ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </motion.div>
+                  ) : scene.imageUrl ? (
+                    <RefreshCw className="w-4 h-4" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -272,6 +312,7 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.isExpanded === nextProps.isExpanded &&
     prevProps.isGeneratingImage === nextProps.isGeneratingImage &&
     prevProps.isGeneratingAllImages === nextProps.isGeneratingAllImages &&
-    prevProps.imageResolution === nextProps.imageResolution
+    prevProps.imageResolution === nextProps.imageResolution &&
+    prevProps.isSelected === nextProps.isSelected
   );
 });

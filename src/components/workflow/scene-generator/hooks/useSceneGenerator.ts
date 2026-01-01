@@ -88,6 +88,9 @@ export function useSceneGenerator(initialProject: Project) {
   const isVisibleRef = useRef(true);
   const [failedScenes, setFailedScenes] = useState<number[]>([]);
 
+  // Selection State for batch regeneration
+  const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set());
+
   // Background job state (Inngest) - for images
   const [backgroundJobId, setBackgroundJobId] = useState<string | null>(null);
   const [backgroundJobProgress, setBackgroundJobProgress] = useState(0);
@@ -676,6 +679,82 @@ export function useSceneGenerator(initialProject: Project) {
     handleStartBackgroundGeneration(batchSize);
   }, [handleStartBackgroundGeneration]);
 
+  // Selection functions for batch regeneration
+  const toggleSceneSelection = useCallback((sceneId: string) => {
+    setSelectedScenes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sceneId)) {
+        newSet.delete(sceneId);
+      } else {
+        newSet.add(sceneId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedScenes(new Set());
+  }, []);
+
+  const selectAllWithImages = useCallback(() => {
+    const scenesWithImgs = project.scenes.filter(s => s.imageUrl).map(s => s.id);
+    setSelectedScenes(new Set(scenesWithImgs));
+  }, [project.scenes]);
+
+  // Regenerate selected scenes
+  const handleRegenerateSelected = useCallback(async () => {
+    if (selectedScenes.size === 0) return;
+
+    const scenesToRegenerate = project.scenes.filter(s => selectedScenes.has(s.id));
+    if (scenesToRegenerate.length === 0) return;
+
+    setIsGeneratingAllImages(true);
+    stopGenerationRef.current = false;
+
+    try {
+      for (const scene of scenesToRegenerate) {
+        if (stopGenerationRef.current) break;
+
+        setGeneratingImageForScene(scene.id);
+
+        try {
+          const response = await fetchWithRetry('/api/gemini/image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: scene.textToImagePrompt,
+              projectId: project.id,
+              sceneId: scene.id,
+              aspectRatio: sceneAspectRatio,
+              resolution: imageResolution,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            handleApiResponse(data);
+            if (data.imageUrl) {
+              await updateScene(project.id, scene.id, { imageUrl: data.imageUrl });
+              // Remove from selection after successful regeneration
+              setSelectedScenes(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(scene.id);
+                return newSet;
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error regenerating scene ${scene.number}:`, error);
+        }
+
+        setGeneratingImageForScene(null);
+      }
+    } finally {
+      setIsGeneratingAllImages(false);
+      setGeneratingImageForScene(null);
+    }
+  }, [selectedScenes, project, sceneAspectRatio, imageResolution, handleApiResponse, updateScene]);
+
   return {
     // Project data
     project,
@@ -699,6 +778,13 @@ export function useSceneGenerator(initialProject: Project) {
     generatingImageForScene,
     isGeneratingAllImages,
     failedScenes,
+
+    // Selection State
+    selectedScenes,
+    toggleSceneSelection,
+    clearSelection,
+    selectAllWithImages,
+    handleRegenerateSelected,
 
     // Background Job State (Inngest) - for images
     backgroundJobId,

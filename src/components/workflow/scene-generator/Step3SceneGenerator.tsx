@@ -80,6 +80,13 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
     generatingImageForScene,
     isGeneratingAllImages,
 
+    // Selection State
+    selectedScenes,
+    toggleSceneSelection,
+    clearSelection,
+    selectAllWithImages,
+    handleRegenerateSelected,
+
     // Edit State
     editSceneData,
     setEditSceneData,
@@ -220,6 +227,8 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             isGeneratingAllImages={isGeneratingAllImages}
             imageResolution={imageResolution}
             characters={project.characters}
+            isSelected={selectedScenes.has(scene.id)}
+            onToggleSelect={scene.imageUrl ? () => toggleSceneSelection(scene.id) : undefined}
             onToggleExpand={() => toggleExpanded(scene.id)}
             onDelete={() => deleteScene(scene.id)}
             onEdit={() => startEditScene(scene)}
@@ -285,6 +294,14 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         onGenerateBatch={useInngest ? handleGenerateBatch : undefined}
         onStopGeneration={handleStopImageGeneration}
         backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
+        selectedCount={selectedScenes.size}
+        onSelectAllWithImages={selectAllWithImages}
+        onClearSelection={clearSelection}
+        onRegenerateSelected={() => {
+          if (confirm(`Regenerate ${selectedScenes.size} selected images? Cost: ~${formatCostCompact(getImageCost(imageResolution) * selectedScenes.size)}`)) {
+            handleRegenerateSelected();
+          }
+        }}
       />
 
       {/* Tip */}
