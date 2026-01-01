@@ -1,4 +1,4 @@
-import { Sparkles, Mic, Zap, Image as ImageIcon, Router, Music } from 'lucide-react';
+import { Sparkles, Mic, Zap, Image as ImageIcon, Router, Music, Mail } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 // OpenRouter model options
@@ -428,5 +428,14 @@ export const apiProviders: ApiProvider[] = [
     bgColor: 'bg-purple-500/20',
     link: 'https://sunoapi.org/api-key',
     isMusicProvider: true,
+  },
+  {
+    key: 'resendApiKey',
+    name: 'Resend',
+    description: 'Email service for collaboration invitations',
+    icon: Mail,
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/20',
+    link: 'https://resend.com/api-keys',
   },
 ];
