@@ -196,7 +196,7 @@ export default function InvitePage({ params }: InvitePageProps) {
 
               <div className="flex flex-col gap-3">
                 <Button
-                  onClick={() => router.push(`/login?callbackUrl=/invite/${token}`)}
+                  onClick={() => router.push(`/auth/login?callbackUrl=/invite/${token}`)}
                   className="w-full bg-gradient-to-r from-purple-600 to-cyan-600"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
@@ -204,7 +204,7 @@ export default function InvitePage({ params }: InvitePageProps) {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/register?callbackUrl=/invite/${token}`)}
+                  onClick={() => router.push(`/auth/register?callbackUrl=/invite/${token}`)}
                   className="w-full"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
