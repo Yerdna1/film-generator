@@ -4,6 +4,9 @@ import { Inngest } from 'inngest';
 export const inngest = new Inngest({
   id: 'film-generator',
   name: 'Film Generator',
+  // Dev mode configuration
+  isDev: process.env.NODE_ENV === 'development',
+  baseUrl: process.env.INNGEST_DEV || undefined,
 });
 
 // Event types for type safety

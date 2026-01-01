@@ -120,7 +120,10 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
 
   // Use Inngest for Modal providers (long-running), direct calls for Gemini (fast)
   const useInngest = imageProvider === 'modal' || imageProvider === 'modal-edit';
-  const handleGenerateImages = useInngest ? handleStartBackgroundGeneration : handleGenerateAllSceneImages;
+  // Wrap to prevent click event from being passed as argument
+  const handleGenerateImages = useInngest
+    ? () => handleStartBackgroundGeneration()
+    : handleGenerateAllSceneImages;
   const isGenerating = useInngest ? isBackgroundJobRunning : isGeneratingAllImages;
 
   // Pagination
