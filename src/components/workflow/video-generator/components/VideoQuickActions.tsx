@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ExternalLink, Zap, Square, CheckSquare, XSquare, RefreshCw } from 'lucide-react';
+import { ExternalLink, Zap, Square, CheckSquare, XSquare, RefreshCw, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,6 +30,7 @@ interface VideoQuickActionsProps {
   onSelectAllWithoutVideos?: () => void;
   onClearSelection?: () => void;
   onGenerateSelected?: () => void;
+  onRequestRegeneration?: () => void; // For collaborators to request regeneration
 }
 
 export function VideoQuickActions({
@@ -47,6 +48,7 @@ export function VideoQuickActions({
   onSelectAllWithoutVideos,
   onClearSelection,
   onGenerateSelected,
+  onRequestRegeneration,
 }: VideoQuickActionsProps) {
   const t = useTranslations();
 
@@ -114,6 +116,18 @@ export function VideoQuickActions({
                   ~{formatCostCompact(ACTION_COSTS.video.grok * selectedCount)}
                 </Badge>
               </Button>
+              {onRequestRegeneration && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                  onClick={onRequestRegeneration}
+                  disabled={isGeneratingAll}
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Request Approval
+                </Button>
+              )}
             </>
           )}
         </div>

@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Project } from '@/types/project';
+import type { RegenerationRequest } from '@/types/collaboration';
 import { useVideoGenerator } from './hooks/useVideoGenerator';
 import {
   VideoHeader,
@@ -13,6 +15,7 @@ import {
   GrokInstructions,
   NoImagesWarning,
 } from './components';
+import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
 
 interface Step4Props {
   project: Project;
@@ -64,6 +67,48 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
     handleGenerateSelected,
   } = useVideoGenerator(initialProject);
 
+  // Regeneration requests state
+  const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequest[]>([]);
+  const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
+
+  // Fetch regeneration requests for this project
+  const fetchRegenerationRequests = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests?status=pending`);
+      if (response.ok) {
+        const data = await response.json();
+        setRegenerationRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch regeneration requests:', error);
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    fetchRegenerationRequests();
+  }, [fetchRegenerationRequests]);
+
+  // Create a set of scene IDs with pending video regeneration requests
+  const pendingVideoRegenSceneIds = useMemo(() => {
+    return new Set(
+      regenerationRequests
+        .filter(r => r.targetType === 'video' && r.status === 'pending')
+        .map(r => r.targetId)
+    );
+  }, [regenerationRequests]);
+
+  // Get selected scenes data for the dialog
+  const selectedScenesData = useMemo(() => {
+    return project.scenes
+      .filter(s => selectedScenes.has(s.id))
+      .map(s => ({
+        id: s.id,
+        title: s.title,
+        number: s.number,
+        imageUrl: s.imageUrl,
+      }));
+  }, [project.scenes, selectedScenes]);
+
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 px-4">
       {/* Header & Progress */}
@@ -96,6 +141,7 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
         onSelectAllWithoutVideos={selectAllWithoutVideos}
         onClearSelection={clearSelection}
         onGenerateSelected={handleGenerateSelected}
+        onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
       />
 
       {/* Warning if no images */}
@@ -132,6 +178,7 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
               isPlaying={playingVideo === scene.id}
               cachedVideoUrl={cachedVideoUrl}
               isSelected={selectedScenes.has(scene.id)}
+              hasPendingRegeneration={pendingVideoRegenSceneIds.has(scene.id)}
               onToggleSelect={() => toggleSceneSelection(scene.id)}
               onPlay={() => setPlayingVideo(scene.id)}
               onPause={() => setPlayingVideo(null)}
@@ -162,6 +209,19 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
           <strong className="text-orange-400">Tip:</strong> {t('steps.videos.tip')}
         </p>
       </div>
+
+      {/* Request Regeneration Dialog */}
+      <RequestRegenerationDialog
+        projectId={project.id}
+        targetType="video"
+        scenes={selectedScenesData}
+        open={showRequestRegenDialog}
+        onOpenChange={setShowRequestRegenDialog}
+        onRequestSent={() => {
+          clearSelection();
+          fetchRegenerationRequests();
+        }}
+      />
     </div>
   );
 }

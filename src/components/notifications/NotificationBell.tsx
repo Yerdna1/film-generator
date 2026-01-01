@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   XCircle,
   UserPlus,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +33,9 @@ const notificationIcons: Record<NotificationType, React.ComponentType<{ classNam
   request_rejected: XCircle,
   member_joined: UserPlus,
   member_removed: Users,
+  regeneration_request: RefreshCw,
+  regeneration_completed: CheckCircle2,
+  regeneration_failed: XCircle,
 };
 
 const notificationColors: Record<NotificationType, string> = {
@@ -43,6 +47,9 @@ const notificationColors: Record<NotificationType, string> = {
   request_rejected: 'text-red-400',
   member_joined: 'text-green-400',
   member_removed: 'text-red-400',
+  regeneration_request: 'text-cyan-400',
+  regeneration_completed: 'text-green-400',
+  regeneration_failed: 'text-red-400',
 };
 
 export function NotificationBell() {

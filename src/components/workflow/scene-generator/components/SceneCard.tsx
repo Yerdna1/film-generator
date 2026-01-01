@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   Expand,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,7 @@ interface SceneCardProps {
   imageResolution: ImageResolution;
   characters: Character[];
   isSelected?: boolean;
+  hasPendingRegeneration?: boolean;
   onToggleSelect?: () => void;
   onToggleExpand: () => void;
   onDelete: () => void;
@@ -59,6 +61,7 @@ function SceneCardComponent({
   imageResolution,
   characters,
   isSelected = false,
+  hasPendingRegeneration = false,
   onToggleSelect,
   onToggleExpand,
   onDelete,
@@ -113,10 +116,16 @@ function SceneCardComponent({
               )}
 
               {/* Scene Number Badge */}
-              <div className="absolute top-1.5 left-1.5">
+              <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
                 <Badge className="bg-black/60 text-emerald-400 border-0 text-xs px-1.5 py-0.5">
                   {index + 1}
                 </Badge>
+                {hasPendingRegeneration && (
+                  <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                    <Clock className="w-2.5 h-2.5" />
+                    Pending
+                  </Badge>
+                )}
               </div>
 
               {/* Selection Checkbox & Status */}
@@ -306,6 +315,7 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.isGeneratingImage === nextProps.isGeneratingImage &&
     prevProps.isGeneratingAllImages === nextProps.isGeneratingAllImages &&
     prevProps.imageResolution === nextProps.imageResolution &&
-    prevProps.isSelected === nextProps.isSelected
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.hasPendingRegeneration === nextProps.hasPendingRegeneration
   );
 });

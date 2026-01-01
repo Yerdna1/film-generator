@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Copy, RefreshCw, Sparkles, Square, ChevronDown, CheckSquare, XSquare } from 'lucide-react';
+import { Copy, RefreshCw, Sparkles, Square, ChevronDown, CheckSquare, XSquare, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -39,6 +39,7 @@ interface QuickActionsProps {
   onSelectAllWithImages?: () => void;
   onClearSelection?: () => void;
   onRegenerateSelected?: () => void;
+  onRequestRegeneration?: () => void; // For collaborators to request regeneration
 }
 
 // Batch size options (number of images to generate)
@@ -59,6 +60,7 @@ export function QuickActions({
   onSelectAllWithImages,
   onClearSelection,
   onRegenerateSelected,
+  onRequestRegeneration,
 }: QuickActionsProps) {
   const t = useTranslations();
   const remainingImages = totalScenes - scenesWithImages;
@@ -136,6 +138,18 @@ export function QuickActions({
                   ~{formatCostCompact(costPerImage * selectedCount)}
                 </Badge>
               </Button>
+              {onRequestRegeneration && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                  onClick={onRequestRegeneration}
+                  disabled={isGeneratingAllImages}
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Request Approval
+                </Button>
+              )}
             </>
           )}
         </div>

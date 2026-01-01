@@ -8,11 +8,12 @@ export type ProjectRole = 'admin' | 'collaborator' | 'reader';
 export interface ProjectPermissions {
   canView: boolean;
   canEdit: boolean;           // Edit prompts, settings
-  canRegenerate: boolean;     // Regenerate images/videos
+  canRegenerate: boolean;     // Regenerate images/videos (if user has credits)
   canDelete: boolean;         // Direct delete (admin only)
   canRequestDeletion: boolean; // Request deletion (collaborator)
+  canRequestRegeneration: boolean; // Request regeneration when no credits (collaborator)
   canManageMembers: boolean;  // Invite/remove members
-  canApproveRequests: boolean; // Approve deletion requests
+  canApproveRequests: boolean; // Approve deletion/regeneration requests
 }
 
 // Role-based permission mapping
@@ -23,15 +24,17 @@ export const ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermissions> = {
     canRegenerate: true,
     canDelete: true,
     canRequestDeletion: false, // Admin doesn't need to request
+    canRequestRegeneration: false, // Admin regenerates directly
     canManageMembers: true,
     canApproveRequests: true,
   },
   collaborator: {
     canView: true,
     canEdit: true,
-    canRegenerate: true,
+    canRegenerate: true, // Can regenerate if they have credits
     canDelete: false,
     canRequestDeletion: true,
+    canRequestRegeneration: true, // Can request if no credits
     canManageMembers: false,
     canApproveRequests: false,
   },
@@ -41,6 +44,7 @@ export const ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermissions> = {
     canRegenerate: false,
     canDelete: false,
     canRequestDeletion: false,
+    canRequestRegeneration: false,
     canManageMembers: false,
     canApproveRequests: false,
   },

@@ -62,9 +62,11 @@ model User {
   // Collaboration relations
   projectMemberships ProjectMember[]
   invitationsSent    ProjectInvitation[] @relation("InvitationsSent")
-  deletionRequests   DeletionRequest[]   @relation("DeletionRequests")
-  deletionReviews    DeletionRequest[]   @relation("DeletionReviews")
-  notifications      Notification[]
+  deletionRequests       DeletionRequest[]       @relation("DeletionRequests")
+  deletionReviews        DeletionRequest[]       @relation("DeletionReviews")
+  regenerationRequests   RegenerationRequest[]   @relation("RegenerationRequests")
+  regenerationReviews    RegenerationRequest[]   @relation("RegenerationReviews")
+  notifications          Notification[]
 }
 
 // User subscription for payment plans
@@ -184,9 +186,10 @@ model Project {
   scenes     Scene[]
 
   // Collaboration relations
-  members          ProjectMember[]
-  invitations      ProjectInvitation[]
-  deletionRequests DeletionRequest[]
+  members              ProjectMember[]
+  invitations          ProjectInvitation[]
+  deletionRequests     DeletionRequest[]
+  regenerationRequests RegenerationRequest[]
 
   @@index([userId])
 }
@@ -360,11 +363,38 @@ model DeletionRequest {
   @@index([status])
 }
 
+// Regeneration requests requiring admin approval
+model RegenerationRequest {
+  id           String    @id @default(cuid())
+  projectId    String
+  requesterId  String    // User requesting regeneration
+  targetType   String    // "image" | "video"
+  targetId     String    // Scene ID (scenes hold both imageUrl and videoUrl)
+  targetName   String?   // Scene title for display
+  reason       String?   // Optional reason for regeneration
+  status       String    @default("pending") // "pending" | "approved" | "rejected" | "completed" | "failed"
+  reviewedBy   String?   // Admin who approved/rejected
+  reviewedAt   DateTime?
+  reviewNote   String?   // Admin's note on decision
+  completedAt  DateTime? // When regeneration was completed
+  errorMessage String?   // Error message if regeneration failed
+  createdAt    DateTime  @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester User    @relation("RegenerationRequests", fields: [requesterId], references: [id])
+  reviewer  User?   @relation("RegenerationReviews", fields: [reviewedBy], references: [id])
+
+  @@index([projectId])
+  @@index([requesterId])
+  @@index([status])
+  @@index([targetId])
+}
+
 // In-app notifications
 model Notification {
   id        String   @id @default(cuid())
   userId    String   // Recipient
-  type      String   // "deletion_request" | "invitation" | "role_change" | "request_approved" | "request_rejected"
+  type      String   // "deletion_request" | "invitation" | "role_change" | "request_approved" | "request_rejected" | "regeneration_request" | "regeneration_completed" | "regeneration_failed"
   title     String
   message   String
   metadata  Json?    // Additional data (projectId, requestId, etc.)

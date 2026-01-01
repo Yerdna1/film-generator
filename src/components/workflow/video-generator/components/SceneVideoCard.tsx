@@ -13,6 +13,7 @@ import {
   Upload,
   Image as ImageIcon,
   MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,6 +38,7 @@ interface SceneVideoCardProps {
   isPlaying: boolean;
   cachedVideoUrl?: string;
   isSelected?: boolean;
+  hasPendingRegeneration?: boolean;
   onToggleSelect?: () => void;
   onPlay: () => void;
   onPause: () => void;
@@ -85,6 +87,7 @@ export function SceneVideoCard({
   isPlaying,
   cachedVideoUrl,
   isSelected,
+  hasPendingRegeneration = false,
   onToggleSelect,
   onPlay,
   onPause,
@@ -156,10 +159,16 @@ export function SceneVideoCard({
           )}
 
           {/* Scene Number Badge */}
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2 flex items-center gap-1">
             <Badge className="bg-black/60 text-white border-0">
               {t('steps.scenes.sceneLabel')} {scene.number || index + 1}
             </Badge>
+            {hasPendingRegeneration && (
+              <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5" />
+                Pending
+              </Badge>
+            )}
           </div>
 
           {/* Status Badge */}

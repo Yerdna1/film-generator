@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
+import type { RegenerationRequest } from '@/types/collaboration';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks/useSceneGenerator';
 import {
@@ -16,6 +17,7 @@ import {
 } from './components';
 import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
 import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
+import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
 
 interface Step3Props {
   project: Project;
@@ -134,6 +136,48 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
     return project.scenes.slice(startIndex, endIndex);
   }, [project.scenes, startIndex, endIndex]);
 
+  // Regeneration requests state
+  const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequest[]>([]);
+  const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
+
+  // Fetch regeneration requests for this project
+  const fetchRegenerationRequests = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests?status=pending`);
+      if (response.ok) {
+        const data = await response.json();
+        setRegenerationRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch regeneration requests:', error);
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    fetchRegenerationRequests();
+  }, [fetchRegenerationRequests]);
+
+  // Create a set of scene IDs with pending image regeneration requests
+  const pendingImageRegenSceneIds = useMemo(() => {
+    return new Set(
+      regenerationRequests
+        .filter(r => r.targetType === 'image' && r.status === 'pending')
+        .map(r => r.targetId)
+    );
+  }, [regenerationRequests]);
+
+  // Get selected scenes data for the dialog
+  const selectedScenesData = useMemo(() => {
+    return project.scenes
+      .filter(s => selectedScenes.has(s.id))
+      .map(s => ({
+        id: s.id,
+        title: s.title,
+        number: s.number,
+        imageUrl: s.imageUrl,
+      }));
+  }, [project.scenes, selectedScenes]);
+
   // Reset to page 1 if current page is out of bounds
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -186,6 +230,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             imageResolution={imageResolution}
             characters={project.characters}
             isSelected={selectedScenes.has(scene.id)}
+            hasPendingRegeneration={pendingImageRegenSceneIds.has(scene.id)}
             onToggleSelect={() => toggleSceneSelection(scene.id)}
             onToggleExpand={() => toggleExpanded(scene.id)}
             onDelete={() => deleteScene(scene.id)}
@@ -234,6 +279,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         onSelectAllWithImages={selectAllWithImages}
         onClearSelection={clearSelection}
         onRegenerateSelected={handleRegenerateSelected}
+        onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
       />
 
       {/* Tip */}
@@ -264,6 +310,19 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         open={showPromptsDialog}
         onOpenChange={setShowPromptsDialog}
         scenes={project.scenes}
+      />
+
+      {/* Request Regeneration Dialog */}
+      <RequestRegenerationDialog
+        projectId={project.id}
+        targetType="image"
+        scenes={selectedScenesData}
+        open={showRequestRegenDialog}
+        onOpenChange={setShowRequestRegenDialog}
+        onRequestSent={() => {
+          clearSelection();
+          fetchRegenerationRequests();
+        }}
       />
     </div>
   );

@@ -8,6 +8,7 @@ export interface ProjectPermissions {
   canRegenerate: boolean;
   canDelete: boolean;
   canRequestDeletion: boolean;
+  canRequestRegeneration: boolean;
   canManageMembers: boolean;
   canApproveRequests: boolean;
 }
@@ -49,6 +50,8 @@ export interface ProjectInvitation {
 
 export type DeletionTargetType = 'project' | 'scene' | 'character' | 'video';
 
+export type RegenerationTargetType = 'image' | 'video';
+
 export interface DeletionRequest {
   id: string;
   projectId: string;
@@ -78,6 +81,44 @@ export interface DeletionRequest {
   };
 }
 
+export interface RegenerationRequest {
+  id: string;
+  projectId: string;
+  requesterId: string;
+  targetType: RegenerationTargetType;
+  targetId: string; // Scene ID
+  targetName?: string;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'failed';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+  completedAt?: string;
+  errorMessage?: string;
+  createdAt: string;
+  requester: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image?: string | null;
+  };
+  reviewer?: {
+    id: string;
+    name: string | null;
+  };
+  scene?: {
+    id: string;
+    title: string;
+    number: number;
+    imageUrl?: string | null;
+    videoUrl?: string | null;
+  };
+  project?: {
+    id: string;
+    name: string;
+  };
+}
+
 export type NotificationType =
   | 'deletion_request'
   | 'invitation'
@@ -86,7 +127,10 @@ export type NotificationType =
   | 'request_approved'
   | 'request_rejected'
   | 'member_joined'
-  | 'member_removed';
+  | 'member_removed'
+  | 'regeneration_request'
+  | 'regeneration_completed'
+  | 'regeneration_failed';
 
 export interface Notification {
   id: string;
@@ -135,12 +179,24 @@ export interface ReviewDeletionRequestRequest {
   note?: string;
 }
 
+export interface CreateRegenerationRequestRequest {
+  targetType: RegenerationTargetType;
+  sceneIds: string[]; // Batch support - array of scene IDs
+  reason?: string;
+}
+
+export interface ReviewRegenerationRequestRequest {
+  approved: boolean;
+  note?: string;
+}
+
 // Store Types
 
 export interface CollaborationState {
   members: ProjectMember[];
   invitations: ProjectInvitation[];
   deletionRequests: DeletionRequest[];
+  regenerationRequests: RegenerationRequest[];
   currentUserRole: ProjectRole | null;
   permissions: ProjectPermissions | null;
   isLoading: boolean;
@@ -168,4 +224,5 @@ export interface ProjectWithCollaboration {
   memberCount?: number;
   pendingInvites?: number;
   pendingDeletionRequests?: number;
+  pendingRegenerationRequests?: number;
 }
