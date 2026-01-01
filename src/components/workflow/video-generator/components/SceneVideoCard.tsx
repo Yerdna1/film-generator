@@ -39,6 +39,7 @@ interface SceneVideoCardProps {
   cachedVideoUrl?: string;
   isSelected?: boolean;
   hasPendingRegeneration?: boolean;
+  isReadOnly?: boolean;
   onToggleSelect?: () => void;
   onPlay: () => void;
   onPause: () => void;
@@ -88,6 +89,7 @@ export function SceneVideoCard({
   cachedVideoUrl,
   isSelected,
   hasPendingRegeneration = false,
+  isReadOnly = false,
   onToggleSelect,
   onPlay,
   onPause,
@@ -220,34 +222,38 @@ export function SceneVideoCard({
           <div className="flex gap-1.5 pt-0.5">
             {scene.imageUrl ? (
               <>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-7 border-white/10 hover:bg-white/5"
-                        onClick={onGenerateVideo}
-                        disabled={status === 'generating'}
-                      >
-                        {status === 'generating' ? (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                          </motion.div>
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('steps.videos.generateVideo')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {/* Generate button - only for editors */}
+                {!isReadOnly && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-7 border-white/10 hover:bg-white/5"
+                          onClick={onGenerateVideo}
+                          disabled={status === 'generating'}
+                        >
+                          {status === 'generating' ? (
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </motion.div>
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('steps.videos.generateVideo')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
 
+                {/* Download button - always visible */}
                 {scene.videoUrl && (
                   <TooltipProvider>
                     <Tooltip>
@@ -255,7 +261,7 @@ export function SceneVideoCard({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 border-white/10 hover:bg-white/5"
+                          className={`h-7 border-white/10 hover:bg-white/5 ${isReadOnly ? 'flex-1' : ''}`}
                         >
                           <Download className="w-3.5 h-3.5" />
                         </Button>
@@ -267,7 +273,7 @@ export function SceneVideoCard({
                   </TooltipProvider>
                 )}
               </>
-            ) : (
+            ) : !isReadOnly ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -277,7 +283,7 @@ export function SceneVideoCard({
                 <Upload className="w-3 h-3 mr-1" />
                 {t('steps.videos.needsImage')}
               </Button>
-            )}
+            ) : null}
           </div>
         </CardContent>
       </Card>

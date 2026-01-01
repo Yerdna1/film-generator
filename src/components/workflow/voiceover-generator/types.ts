@@ -1,8 +1,12 @@
 import type { Project, Character, DialogueLine, VoiceProvider, VoiceLanguage } from '@/types/project';
+import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { ItemGenerationState } from '@/lib/constants/workflow';
 
 export interface Step5Props {
   project: Project;
+  permissions?: ProjectPermissions | null;
+  userRole?: ProjectRole | null;
+  isReadOnly?: boolean;
 }
 
 export type AudioState = Record<string, ItemGenerationState>;
@@ -99,6 +103,7 @@ export interface DialogueLineCardProps {
   progress: number;
   isPlaying: boolean;
   provider: VoiceProvider;
+  isReadOnly?: boolean;
   onTogglePlay: () => void;
   onGenerate: () => void;
   onAudioRef: (el: HTMLAudioElement | null) => void;
@@ -117,6 +122,7 @@ export interface SceneDialogueCardProps {
   audioStates: AudioState;
   playingAudio: string | null;
   provider: VoiceProvider;
+  isReadOnly?: boolean;
   onTogglePlay: (lineId: string) => void;
   onGenerateAudio: (lineId: string, sceneId: string) => void;
   onAudioRef: (lineId: string, el: HTMLAudioElement | null) => void;

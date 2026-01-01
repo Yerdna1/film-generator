@@ -33,9 +33,13 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import { generateMasterPrompt } from '@/lib/prompts/master-prompt';
 import { CopyButton } from '@/components/shared/CopyButton';
 import type { Project } from '@/types/project';
+import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 
 interface Step1Props {
   project: Project;
+  permissions?: ProjectPermissions | null;
+  userRole?: ProjectRole | null;
+  isReadOnly?: boolean;
 }
 
 const genres = [
@@ -48,7 +52,7 @@ const tones = [
   'inspiring', 'dark', 'lighthearted', 'emotional',
 ];
 
-export function Step1PromptGenerator({ project: initialProject }: Step1Props) {
+export function Step1PromptGenerator({ project: initialProject, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
   const { updateStory, setMasterPrompt, projects } = useProjectStore();
 
@@ -174,6 +178,7 @@ Format the output exactly like the base template but with richer, more detailed 
                 placeholder={t('steps.prompt.storyTitlePlaceholder')}
                 value={project.story.title}
                 onChange={(e) => updateStory(project.id, { title: e.target.value })}
+                disabled={isReadOnly}
                 className="h-9 glass border-white/10 focus:border-purple-500/50 text-sm"
               />
             </div>
@@ -186,6 +191,7 @@ Format the output exactly like the base template but with richer, more detailed 
                 placeholder={t('steps.prompt.settingPlaceholder')}
                 value={project.story.setting}
                 onChange={(e) => updateStory(project.id, { setting: e.target.value })}
+                disabled={isReadOnly}
                 className="h-9 glass border-white/10 focus:border-purple-500/50 text-sm"
               />
             </div>
@@ -196,6 +202,7 @@ Format the output exactly like the base template but with richer, more detailed 
               <Select
                 value={project.story.genre}
                 onValueChange={(value) => updateStory(project.id, { genre: value })}
+                disabled={isReadOnly}
               >
                 <SelectTrigger className="h-9 glass border-white/10 text-sm">
                   <SelectValue />
@@ -216,6 +223,7 @@ Format the output exactly like the base template but with richer, more detailed 
               <Select
                 value={project.story.tone}
                 onValueChange={(value) => updateStory(project.id, { tone: value })}
+                disabled={isReadOnly}
               >
                 <SelectTrigger className="h-9 glass border-white/10 text-sm">
                   <SelectValue />
@@ -239,33 +247,36 @@ Format the output exactly like the base template but with richer, more detailed 
               placeholder={t('steps.prompt.conceptPlaceholder')}
               value={project.story.concept}
               onChange={(e) => updateStory(project.id, { concept: e.target.value })}
+              disabled={isReadOnly}
               className="min-h-[100px] glass border-white/10 focus:border-purple-500/50 resize-none text-sm"
             />
           </div>
 
-          {/* Generate Button */}
-          <Button
-            onClick={handleGeneratePrompt}
-            disabled={isGenerating || !project.story.title || !project.story.concept}
-            className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 h-10"
-          >
-            {isGenerating ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                </motion.div>
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                {t('steps.prompt.generatePrompt')}
-              </>
-            )}
-          </Button>
+          {/* Generate Button - only show when not read-only */}
+          {!isReadOnly && (
+            <Button
+              onClick={handleGeneratePrompt}
+              disabled={isGenerating || !project.story.title || !project.story.concept}
+              className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 h-10"
+            >
+              {isGenerating ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  </motion.div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {t('steps.prompt.generatePrompt')}
+                </>
+              )}
+            </Button>
+          )}
 
           {/* Tip */}
           <div className="glass rounded-lg p-3 border-l-4 border-cyan-500">
@@ -284,15 +295,17 @@ Format the output exactly like the base template but with richer, more detailed 
             </h3>
             {project.masterPrompt && (
               <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="h-7 border-white/10 hover:bg-white/5 text-xs"
-                >
-                  <Edit3 className="w-3 h-3 mr-1" />
-                  {isEditing ? 'Cancel' : 'Edit'}
-                </Button>
+                {!isReadOnly && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="h-7 border-white/10 hover:bg-white/5 text-xs"
+                  >
+                    <Edit3 className="w-3 h-3 mr-1" />
+                    {isEditing ? 'Cancel' : 'Edit'}
+                  </Button>
+                )}
                 <CopyButton text={project.masterPrompt} size="icon" className="h-7 w-7" />
               </div>
             )}

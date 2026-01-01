@@ -243,21 +243,32 @@ export default function ProjectWorkspacePage() {
   };
 
   const renderStep = () => {
+    // Calculate isReadOnly based on permissions
+    const isReadOnly = !permissions?.canEdit;
+
+    // Common props for all step components
+    const stepProps = {
+      project,
+      permissions,
+      userRole,
+      isReadOnly,
+    };
+
     switch (project.currentStep) {
       case 1:
-        return <Step1PromptGenerator project={project} />;
+        return <Step1PromptGenerator {...stepProps} />;
       case 2:
-        return <Step2CharacterGenerator project={project} />;
+        return <Step2CharacterGenerator {...stepProps} />;
       case 3:
-        return <Step3SceneGenerator project={project} />;
+        return <Step3SceneGenerator {...stepProps} />;
       case 4:
-        return <Step4VideoGenerator project={project} />;
+        return <Step4VideoGenerator {...stepProps} />;
       case 5:
-        return <Step5VoiceoverGenerator project={project} />;
+        return <Step5VoiceoverGenerator {...stepProps} />;
       case 6:
-        return <Step6Export project={project} />;
+        return <Step6Export {...stepProps} />;
       default:
-        return <Step1PromptGenerator project={project} />;
+        return <Step1PromptGenerator {...stepProps} />;
     }
   };
 
@@ -291,6 +302,14 @@ export default function ProjectWorkspacePage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* View Only Badge for readers */}
+              {!permissions?.canEdit && userRole && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-medium">
+                  <Eye className="w-3 h-3" />
+                  <span>View Only</span>
+                </div>
+              )}
+
               {/* Visibility Toggle (for admins) */}
               {userRole === 'admin' && (
                 <Button

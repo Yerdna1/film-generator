@@ -23,6 +23,7 @@ export function DialogueLineCard({
   progress,
   isPlaying,
   provider,
+  isReadOnly = false,
   onTogglePlay,
   onGenerate,
   onAudioRef,
@@ -112,7 +113,7 @@ export function DialogueLineCard({
             </Button>
             <CheckCircle2 className="w-5 h-5 text-green-400" />
           </>
-        ) : (
+        ) : !isReadOnly ? (
           <Button
             variant="outline"
             size="sm"
@@ -129,6 +130,8 @@ export function DialogueLineCard({
               )}
             </span>
           </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">No audio</span>
         )}
       </div>
     </div>

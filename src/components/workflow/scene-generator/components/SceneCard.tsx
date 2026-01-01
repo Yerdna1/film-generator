@@ -43,6 +43,7 @@ interface SceneCardProps {
   characters: Character[];
   isSelected?: boolean;
   hasPendingRegeneration?: boolean;
+  isReadOnly?: boolean;
   onToggleSelect?: () => void;
   onToggleExpand: () => void;
   onDelete: () => void;
@@ -62,6 +63,7 @@ function SceneCardComponent({
   characters,
   isSelected = false,
   hasPendingRegeneration = false,
+  isReadOnly = false,
   onToggleSelect,
   onToggleExpand,
   onDelete,
@@ -195,41 +197,43 @@ function SceneCardComponent({
                 {scene.textToImagePrompt}
               </p>
 
-              {/* Action Buttons */}
-              <div className="flex gap-1 pt-0.5">
-                <Button
-                  size="sm"
-                  className="flex-1 h-7 bg-gradient-to-r from-emerald-600/80 to-teal-600/80 hover:from-emerald-500 hover:to-teal-500 text-white border-0 text-xs"
-                  onClick={onGenerateImage}
-                  disabled={isGeneratingImage || isGeneratingAllImages}
-                >
-                  {isGeneratingImage ? (
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+              {/* Action Buttons - only for editors */}
+              {!isReadOnly && (
+                <div className="flex gap-1 pt-0.5">
+                  <Button
+                    size="sm"
+                    className="flex-1 h-7 bg-gradient-to-r from-emerald-600/80 to-teal-600/80 hover:from-emerald-500 hover:to-teal-500 text-white border-0 text-xs"
+                    onClick={onGenerateImage}
+                    disabled={isGeneratingImage || isGeneratingAllImages}
+                  >
+                    {isGeneratingImage ? (
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </motion.div>
+                    ) : scene.imageUrl ? (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    ) : (
                       <Sparkles className="w-3.5 h-3.5" />
-                    </motion.div>
-                  ) : scene.imageUrl ? (
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 border-white/10 hover:bg-white/5"
-                  onClick={onEdit}
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="h-7 text-muted-foreground hover:text-red-400"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 border-white/10 hover:bg-white/5"
+                    onClick={onEdit}
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="h-7 text-muted-foreground hover:text-red-400"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
             </CardContent>
 
             {/* Expanded Content */}
@@ -243,9 +247,11 @@ function SceneCardComponent({
                       T2I Prompt
                     </Label>
                     <div className="flex items-center gap-0.5">
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onRegeneratePrompts}>
-                        <RefreshCw className="w-3 h-3" />
-                      </Button>
+                      {!isReadOnly && (
+                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onRegeneratePrompts}>
+                          <RefreshCw className="w-3 h-3" />
+                        </Button>
+                      )}
                       <CopyButton text={scene.textToImagePrompt} size="icon" className="h-5 w-5" />
                     </div>
                   </div>
@@ -316,6 +322,7 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.isGeneratingAllImages === nextProps.isGeneratingAllImages &&
     prevProps.imageResolution === nextProps.imageResolution &&
     prevProps.isSelected === nextProps.isSelected &&
-    prevProps.hasPendingRegeneration === nextProps.hasPendingRegeneration
+    prevProps.hasPendingRegeneration === nextProps.hasPendingRegeneration &&
+    prevProps.isReadOnly === nextProps.isReadOnly
   );
 });

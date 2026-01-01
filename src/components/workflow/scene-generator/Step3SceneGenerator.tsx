@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
-import type { RegenerationRequest } from '@/types/collaboration';
+import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks/useSceneGenerator';
 import {
@@ -21,9 +21,12 @@ import { RequestRegenerationDialog } from '@/components/collaboration/RequestReg
 
 interface Step3Props {
   project: Project;
+  permissions?: ProjectPermissions | null;
+  userRole?: ProjectRole | null;
+  isReadOnly?: boolean;
 }
 
-export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
+export function Step3SceneGenerator({ project: initialProject, isReadOnly = false }: Step3Props) {
   const { apiConfig, setApiConfig } = useProjectStore();
   const imageProvider: ImageProvider = apiConfig.imageProvider || 'gemini';
 
@@ -231,6 +234,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             characters={project.characters}
             isSelected={selectedScenes.has(scene.id)}
             hasPendingRegeneration={pendingImageRegenSceneIds.has(scene.id)}
+            isReadOnly={isReadOnly}
             onToggleSelect={() => toggleSceneSelection(scene.id)}
             onToggleExpand={() => toggleExpanded(scene.id)}
             onDelete={() => deleteScene(scene.id)}
@@ -242,8 +246,8 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         ))}
       </div>
 
-      {/* Add Scene Button */}
-      {project.scenes.length < project.settings.sceneCount && (
+      {/* Add Scene Button - only for editors */}
+      {!isReadOnly && project.scenes.length < project.settings.sceneCount && (
         <AddSceneDialog
           open={isAddingScene}
           onOpenChange={setIsAddingScene}
@@ -263,24 +267,26 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         variant="compact"
       />
 
-      {/* Quick Actions */}
-      <QuickActions
-        totalScenes={project.scenes.length}
-        scenesWithImages={scenesWithImages}
-        imageResolution={imageResolution}
-        isGeneratingAllImages={isGenerating}
-        onCopyPrompts={() => setShowPromptsDialog(true)}
-        onGenerateAllImages={handleGenerateImages}
-        onGenerateBatch={useInngest ? handleGenerateBatch : undefined}
-        onStopGeneration={handleStopImageGeneration}
-        backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
-        selectedCount={selectedScenes.size}
-        onSelectAll={selectAll}
-        onSelectAllWithImages={selectAllWithImages}
-        onClearSelection={clearSelection}
-        onRegenerateSelected={handleRegenerateSelected}
-        onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
-      />
+      {/* Quick Actions - only for editors */}
+      {!isReadOnly && (
+        <QuickActions
+          totalScenes={project.scenes.length}
+          scenesWithImages={scenesWithImages}
+          imageResolution={imageResolution}
+          isGeneratingAllImages={isGenerating}
+          onCopyPrompts={() => setShowPromptsDialog(true)}
+          onGenerateAllImages={handleGenerateImages}
+          onGenerateBatch={useInngest ? handleGenerateBatch : undefined}
+          onStopGeneration={handleStopImageGeneration}
+          backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
+          selectedCount={selectedScenes.size}
+          onSelectAll={selectAll}
+          onSelectAllWithImages={selectAllWithImages}
+          onClearSelection={clearSelection}
+          onRegenerateSelected={handleRegenerateSelected}
+          onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
+        />
+      )}
 
       {/* Tip */}
       <div className="glass rounded-xl p-4 border-l-4 border-emerald-500">

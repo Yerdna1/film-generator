@@ -22,6 +22,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Project } from '@/types/project';
+import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 
 // Hooks
 import {
@@ -46,9 +47,12 @@ import {
 
 interface Step6Props {
   project: Project;
+  permissions?: ProjectPermissions | null;
+  userRole?: ProjectRole | null;
+  isReadOnly?: boolean;
 }
 
-export function Step6Export({ project: initialProject }: Step6Props) {
+export function Step6Export({ project: initialProject, isReadOnly = false }: Step6Props) {
   const t = useTranslations();
   const { projects, deleteScene } = useProjectStore();
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
@@ -216,17 +220,19 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{index + 1}. {scene.title || 'Untitled'}</p>
                                 </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm('Delete this scene?')) {
-                                      deleteScene(project.id, scene.id);
-                                    }
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                {!isReadOnly && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm('Delete this scene?')) {
+                                        deleteScene(project.id, scene.id);
+                                      }
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -243,8 +249,8 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                       {/* CAPTIONS TAB */}
                       <TabsContent value="captions" className="m-0 p-4">
                         <div className="space-y-4">
-                          {/* Auto-generate button */}
-                          {project.scenes.some(s => s.dialogue?.length > 0) && (
+                          {/* Auto-generate button - only for editors */}
+                          {!isReadOnly && project.scenes.some(s => s.dialogue?.length > 0) && (
                             <button
                               onClick={captionEditor.autoGenerateAllCaptions}
                               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 transition-all"
@@ -292,7 +298,9 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium">Scene {captionEditor.selectedSceneIndex + 1}</span>
-                              <button onClick={captionEditor.startNewCaption} className="text-sm text-yellow-600 dark:text-yellow-400 hover:underline">+ Add</button>
+                              {!isReadOnly && (
+                                <button onClick={captionEditor.startNewCaption} className="text-sm text-yellow-600 dark:text-yellow-400 hover:underline">+ Add</button>
+                              )}
                             </div>
 
                             {captionEditor.sceneCaptions.length > 0 ? (
@@ -300,9 +308,11 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                                 {captionEditor.sceneCaptions.map((caption) => (
                                   <div key={caption.id} className="group flex items-start gap-2 p-2 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] hover:border-yellow-500/30 transition-all">
                                     <p className="flex-1 text-sm leading-relaxed">{caption.text}</p>
-                                    <button onClick={() => captionEditor.deleteCaption(caption.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all shrink-0">
-                                      <X className="w-4 h-4" />
-                                    </button>
+                                    {!isReadOnly && (
+                                      <button onClick={() => captionEditor.deleteCaption(caption.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all shrink-0">
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -311,8 +321,8 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                             )}
                           </div>
 
-                          {/* Editing form */}
-                          {captionEditor.isEditing && captionEditor.editingCaption && (
+                          {/* Editing form - only for editors */}
+                          {!isReadOnly && captionEditor.isEditing && captionEditor.editingCaption && (
                             <div className="space-y-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
                               <textarea
                                 value={captionEditor.editingCaption.text}
@@ -348,9 +358,11 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                                     {backgroundMusic.currentMusic.duration ? `${Math.floor(backgroundMusic.currentMusic.duration / 60)}:${String(Math.floor(backgroundMusic.currentMusic.duration % 60)).padStart(2, '0')}` : '—'}
                                   </p>
                                 </div>
-                                <button onClick={backgroundMusic.removeMusic} className="p-2 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                {!isReadOnly && (
+                                  <button onClick={backgroundMusic.removeMusic} className="p-2 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ) : backgroundMusic.generationState.status !== 'idle' ? (
@@ -387,6 +399,11 @@ export function Step6Export({ project: initialProject }: Step6Props) {
                                 <button onClick={backgroundMusic.applyPreviewToProject} className="px-3 py-1.5 rounded text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 transition-all">Apply</button>
                                 <button onClick={backgroundMusic.clearPreview} className="p-1.5 hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
                               </div>
+                            </div>
+                          ) : isReadOnly ? (
+                            <div className="text-center py-6 text-muted-foreground">
+                              <Music className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                              <p className="text-sm">No background music</p>
                             </div>
                           ) : (
                             <div className="space-y-3">

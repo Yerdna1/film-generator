@@ -14,6 +14,7 @@ export function SceneDialogueCard({
   audioStates,
   playingAudio,
   provider,
+  isReadOnly = false,
   onTogglePlay,
   onGenerateAudio,
   onAudioRef,
@@ -63,6 +64,7 @@ export function SceneDialogueCard({
                   progress={progress}
                   isPlaying={playingAudio === line.id}
                   provider={provider}
+                  isReadOnly={isReadOnly}
                   onTogglePlay={() => onTogglePlay(line.id)}
                   onGenerate={() => onGenerateAudio(line.id, scene.id)}
                   onAudioRef={(el) => onAudioRef(line.id, el)}

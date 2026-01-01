@@ -26,7 +26,7 @@ import {
   CharacterProgress,
 } from './character-generator/components';
 
-export function Step2CharacterGenerator({ project: initialProject }: Step2Props) {
+export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
   const t = useTranslations();
   const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects } = useProjectStore();
 
@@ -198,6 +198,7 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
               character={character}
               project={project}
               imageState={imageStates[character.id]}
+              isReadOnly={isReadOnly}
               onEdit={startEditCharacter}
               onDelete={(id) => deleteCharacter(project.id, id)}
               onGenerateImage={generateCharacterImage}
@@ -209,31 +210,35 @@ export function Step2CharacterGenerator({ project: initialProject }: Step2Props)
           </motion.div>
         ))}
 
-        {/* Add Character Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: project.characters.length * 0.1 }}
-        >
-          <AddCharacterDialog
-            open={isAddingCharacter}
-            onOpenChange={setIsAddingCharacter}
-            onAddCharacter={handleAddCharacter}
-            currentCount={project.characters.length}
-            maxCount={MAX_CHARACTERS}
-          />
-        </motion.div>
+        {/* Add Character Card - only for editors */}
+        {!isReadOnly && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: project.characters.length * 0.1 }}
+          >
+            <AddCharacterDialog
+              open={isAddingCharacter}
+              onOpenChange={setIsAddingCharacter}
+              onAddCharacter={handleAddCharacter}
+              currentCount={project.characters.length}
+              maxCount={MAX_CHARACTERS}
+            />
+          </motion.div>
+        )}
       </div>
 
-      {/* Progress & Quick Actions */}
-      <CharacterProgress
-        characters={project.characters}
-        charactersWithImages={charactersWithImages}
-        isGeneratingAll={isGeneratingAll}
-        imageResolution={project.settings?.imageResolution || '2k'}
-        onGenerateAll={handleGenerateAll}
-        onShowPromptsDialog={() => setShowPromptsDialog(true)}
-      />
+      {/* Progress & Quick Actions - only for editors */}
+      {!isReadOnly && (
+        <CharacterProgress
+          characters={project.characters}
+          charactersWithImages={charactersWithImages}
+          isGeneratingAll={isGeneratingAll}
+          imageResolution={project.settings?.imageResolution || '2k'}
+          onGenerateAll={handleGenerateAll}
+          onShowPromptsDialog={() => setShowPromptsDialog(true)}
+        />
+      )}
 
       {/* Tip */}
       <div className="glass rounded-xl p-4 border-l-4 border-purple-500">

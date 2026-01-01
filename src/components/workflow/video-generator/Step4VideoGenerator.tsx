@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Project } from '@/types/project';
-import type { RegenerationRequest } from '@/types/collaboration';
+import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useVideoGenerator } from './hooks/useVideoGenerator';
 import {
   VideoHeader,
@@ -19,9 +19,12 @@ import { RequestRegenerationDialog } from '@/components/collaboration/RequestReg
 
 interface Step4Props {
   project: Project;
+  permissions?: ProjectPermissions | null;
+  userRole?: ProjectRole | null;
+  isReadOnly?: boolean;
 }
 
-export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
+export function Step4VideoGenerator({ project: initialProject, isReadOnly = false }: Step4Props) {
   const t = useTranslations();
 
   const {
@@ -125,24 +128,26 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
         <CostSummary scenesNeedingGeneration={scenesNeedingGeneration.length} />
       )}
 
-      {/* Quick Actions */}
-      <VideoQuickActions
-        videoMode={videoMode}
-        onVideoModeChange={setVideoMode}
-        scenesWithImages={scenesWithImages.length}
-        scenesWithVideos={scenesWithVideos.length}
-        scenesNeedingGeneration={scenesNeedingGeneration.length}
-        isGeneratingAll={isGeneratingAll}
-        onGenerateAll={handleGenerateAll}
-        onStopGeneration={handleStopGeneration}
-        selectedCount={selectedScenes.size}
-        onSelectAll={selectAll}
-        onSelectAllWithVideos={selectAllWithVideos}
-        onSelectAllWithoutVideos={selectAllWithoutVideos}
-        onClearSelection={clearSelection}
-        onGenerateSelected={handleGenerateSelected}
-        onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
-      />
+      {/* Quick Actions - only for editors */}
+      {!isReadOnly && (
+        <VideoQuickActions
+          videoMode={videoMode}
+          onVideoModeChange={setVideoMode}
+          scenesWithImages={scenesWithImages.length}
+          scenesWithVideos={scenesWithVideos.length}
+          scenesNeedingGeneration={scenesNeedingGeneration.length}
+          isGeneratingAll={isGeneratingAll}
+          onGenerateAll={handleGenerateAll}
+          onStopGeneration={handleStopGeneration}
+          selectedCount={selectedScenes.size}
+          onSelectAll={selectAll}
+          onSelectAllWithVideos={selectAllWithVideos}
+          onSelectAllWithoutVideos={selectAllWithoutVideos}
+          onClearSelection={clearSelection}
+          onGenerateSelected={handleGenerateSelected}
+          onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
+        />
+      )}
 
       {/* Warning if no images */}
       {scenesWithImages.length === 0 && <NoImagesWarning />}
@@ -179,6 +184,7 @@ export function Step4VideoGenerator({ project: initialProject }: Step4Props) {
               cachedVideoUrl={cachedVideoUrl}
               isSelected={selectedScenes.has(scene.id)}
               hasPendingRegeneration={pendingVideoRegenSceneIds.has(scene.id)}
+              isReadOnly={isReadOnly}
               onToggleSelect={() => toggleSceneSelection(scene.id)}
               onPlay={() => setPlayingVideo(scene.id)}
               onPause={() => setPlayingVideo(null)}

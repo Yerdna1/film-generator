@@ -1,9 +1,13 @@
 import type { Project, Character } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
+import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { ItemGenerationState } from '@/lib/constants/workflow';
 
 export interface Step2Props {
   project: Project;
+  permissions?: ProjectPermissions | null;
+  userRole?: ProjectRole | null;
+  isReadOnly?: boolean;
 }
 
 export type CharacterImageState = Record<string, ItemGenerationState>;
@@ -25,6 +29,7 @@ export interface CharacterCardProps {
   character: Character;
   project: Project;
   imageState?: ItemGenerationState;
+  isReadOnly?: boolean;
   onEdit: (character: Character) => void;
   onDelete: (characterId: string) => void;
   onGenerateImage: (character: Character) => void;

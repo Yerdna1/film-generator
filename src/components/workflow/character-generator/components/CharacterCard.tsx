@@ -26,6 +26,7 @@ export function CharacterCard({
   character,
   project,
   imageState,
+  isReadOnly = false,
   onEdit,
   onDelete,
   onGenerateImage,
@@ -129,14 +130,16 @@ export function CharacterCard({
               <CardTitle className="text-lg">{character.name}</CardTitle>
               <p className="text-xs text-muted-foreground">{character.personality || 'No personality set'}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-muted-foreground hover:text-red-400"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            {!isReadOnly && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-muted-foreground hover:text-red-400"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         {/* Hidden file input for upload */}
         <input
@@ -163,31 +166,37 @@ export function CharacterCard({
                 <Expand className="w-8 h-8 text-white" />
               </div>
             </button>
-            {/* Upload overlay button */}
-            <Button
-              size="icon"
-              variant="secondary"
-              className="absolute bottom-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 hover:bg-black/90 border-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-              title="Upload custom image"
-            >
-              <Upload className="w-4 h-4 text-white" />
-            </Button>
+            {/* Upload overlay button - only for editors */}
+            {!isReadOnly && (
+              <Button
+                size="icon"
+                variant="secondary"
+                className="absolute bottom-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 hover:bg-black/90 border-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                title="Upload custom image"
+              >
+                <Upload className="w-4 h-4 text-white" />
+              </Button>
+            )}
           </div>
         ) : (
           <div
-            className="w-full aspect-square rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex flex-col items-center justify-center gap-3 mt-3 cursor-pointer hover:from-purple-500/30 hover:to-cyan-500/30 transition-colors group"
-            onClick={() => fileInputRef.current?.click()}
+            className={`w-full aspect-square rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex flex-col items-center justify-center gap-3 mt-3 ${
+              isReadOnly ? '' : 'cursor-pointer hover:from-purple-500/30 hover:to-cyan-500/30 transition-colors group'
+            }`}
+            onClick={isReadOnly ? undefined : () => fileInputRef.current?.click()}
           >
-            <User className="w-16 h-16 text-purple-400/50 group-hover:text-purple-400/70 transition-colors" />
+            <User className={`w-16 h-16 text-purple-400/50 ${!isReadOnly ? 'group-hover:text-purple-400/70' : ''} transition-colors`} />
             <span className="text-xs text-muted-foreground">No image generated</span>
-            <div className="flex items-center gap-1 text-xs text-purple-400">
-              <Upload className="w-3 h-3" />
-              <span>Click to upload</span>
-            </div>
+            {!isReadOnly && (
+              <div className="flex items-center gap-1 text-xs text-purple-400">
+                <Upload className="w-3 h-3" />
+                <span>Click to upload</span>
+              </div>
+            )}
           </div>
         )}
       </CardHeader>
@@ -200,14 +209,16 @@ export function CharacterCard({
           <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground">Master Prompt</Label>
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => onRegeneratePrompt(character)}
-              >
-                <RefreshCw className="w-3 h-3" />
-              </Button>
+              {!isReadOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => onRegeneratePrompt(character)}
+                >
+                  <RefreshCw className="w-3 h-3" />
+                </Button>
+              )}
               <CopyButton text={character.masterPrompt} size="icon" className="h-6 w-6" />
             </div>
           </div>
@@ -218,18 +229,21 @@ export function CharacterCard({
           </div>
         </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 border-white/10 hover:bg-white/5"
-            onClick={() => onEdit(character)}
-          >
-            <Edit3 className="w-4 h-4 mr-2" />
-            {t('common.edit')}
-          </Button>
-          {renderGenerateButton()}
-        </div>
+        {/* Action buttons - only for editors */}
+        {!isReadOnly && (
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 border-white/10 hover:bg-white/5"
+              onClick={() => onEdit(character)}
+            >
+              <Edit3 className="w-4 h-4 mr-2" />
+              {t('common.edit')}
+            </Button>
+            {renderGenerateButton()}
+          </div>
+        )}
       </CardContent>
     </Card>
     </>

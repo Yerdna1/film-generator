@@ -20,7 +20,7 @@ import {
   ProviderInfo,
 } from './voiceover-generator/components';
 
-export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props) {
+export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = false }: Step5Props) {
   const t = useTranslations();
   const { updateVoiceSettings, updateCharacter, projects } = useProjectStore();
 
@@ -92,20 +92,26 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
           <div className="flex items-center gap-2">
             <Mic className="w-5 h-5 text-violet-400" />
             <span className="text-sm text-muted-foreground mr-2">TTS Provider:</span>
-            <ProviderSelector
-              provider={project.voiceSettings.provider}
-              onProviderChange={handleProviderChange}
-            />
+            {!isReadOnly ? (
+              <ProviderSelector
+                provider={project.voiceSettings.provider}
+                onProviderChange={handleProviderChange}
+              />
+            ) : (
+              <span className="text-sm font-medium">{project.voiceSettings.provider}</span>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
-            <VoiceSettingsDialog
-              open={showVoiceSettings}
-              onOpenChange={setShowVoiceSettings}
-              characters={project.characters}
-              voices={voices}
-              onVoiceChange={handleVoiceChange}
-            />
+            {!isReadOnly && (
+              <VoiceSettingsDialog
+                open={showVoiceSettings}
+                onOpenChange={setShowVoiceSettings}
+                characters={project.characters}
+                voices={voices}
+                onVoiceChange={handleVoiceChange}
+              />
+            )}
 
             {/* Volume Control */}
             <div className="flex items-center gap-2">
@@ -125,15 +131,17 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
           </div>
         </div>
 
-        {/* Progress & Actions */}
-        <VoiceoverProgress
-          generatedCount={generatedCount}
-          totalCount={allDialogueLines.length}
-          isGeneratingAll={isGeneratingAll}
-          provider={project.voiceSettings.provider}
-          onGenerateAll={handleGenerateAll}
-          onDownloadAll={handleDownloadAll}
-        />
+        {/* Progress & Actions - only for editors */}
+        {!isReadOnly && (
+          <VoiceoverProgress
+            generatedCount={generatedCount}
+            totalCount={allDialogueLines.length}
+            isGeneratingAll={isGeneratingAll}
+            provider={project.voiceSettings.provider}
+            onGenerateAll={handleGenerateAll}
+            onDownloadAll={handleDownloadAll}
+          />
+        )}
       </div>
 
       {/* No dialogue warning */}
@@ -160,6 +168,7 @@ export function Step5VoiceoverGenerator({ project: initialProject }: Step5Props)
               audioStates={audioStates}
               playingAudio={playingAudio}
               provider={project.voiceSettings.provider}
+              isReadOnly={isReadOnly}
               onTogglePlay={togglePlay}
               onGenerateAudio={generateAudioForLine}
               onAudioRef={setAudioRef}

@@ -210,6 +210,50 @@ export interface NotificationState {
   error: string | null;
 }
 
+// Props for workflow step components with permission context
+export interface WorkflowStepProps {
+  project: {
+    id: string;
+    name: string;
+    style: string;
+    masterPrompt: string | null;
+    currentStep: number;
+    isComplete: boolean;
+    visibility?: string;
+    settings: Record<string, unknown>;
+    story: Record<string, unknown> | null;
+    voiceSettings: Record<string, unknown> | null;
+    characters: Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      visualDescription: string | null;
+      personality: string | null;
+      masterPrompt: string | null;
+      imageUrl: string | null;
+      voiceId: string | null;
+      voiceName: string | null;
+    }>;
+    scenes: Array<{
+      id: string;
+      number: number;
+      title: string;
+      description: string | null;
+      textToImagePrompt: string | null;
+      imageToVideoPrompt: string | null;
+      cameraShot: string | null;
+      imageUrl: string | null;
+      videoUrl: string | null;
+      audioUrl: string | null;
+      duration: number | null;
+      dialogue: Array<Record<string, unknown>>;
+    }>;
+  };
+  permissions: ProjectPermissions | null;
+  userRole: ProjectRole | null;
+  isReadOnly: boolean;
+}
+
 // Extended Project type with collaboration info
 export interface ProjectWithCollaboration {
   id: string;
