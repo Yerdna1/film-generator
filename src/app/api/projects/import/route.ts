@@ -127,6 +127,14 @@ export async function POST(request: NextRequest) {
           videoUrl = await uploadBufferToS3(buffer, s3Key, videoFile.type);
         }
 
+        // Transform dialogue to proper format with IDs
+        const formattedDialogue = (scene.dialogue || []).map((line: { character?: string; characterId?: string; text: string; id?: string }, idx: number) => ({
+          id: line.id || `${sceneId}-line-${idx}`,
+          characterId: line.characterId || characterIds[line.character?.toLowerCase() || ''] || '',
+          characterName: line.character || '',
+          text: line.text,
+        }));
+
         await prisma.scene.create({
           data: {
             id: sceneId,
@@ -138,7 +146,7 @@ export async function POST(request: NextRequest) {
             imageToVideoPrompt: scene.imageToVideoPrompt || '',
             imageUrl,
             videoUrl,
-            dialogue: scene.dialogue || [],
+            dialogue: formattedDialogue,
           },
         });
       }

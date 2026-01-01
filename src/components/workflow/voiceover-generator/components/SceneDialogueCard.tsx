@@ -51,7 +51,7 @@ export function SceneDialogueCard({
 
             return (
               <motion.div
-                key={line.id}
+                key={line.id || `line-${lineIndex}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: lineIndex * 0.05 }}
