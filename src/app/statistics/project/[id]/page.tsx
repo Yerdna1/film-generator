@@ -86,8 +86,8 @@ export default function ProjectStatisticsPage({ params }: { params: Promise<{ id
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 3,
-      maximumFractionDigits: 3,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -102,8 +102,8 @@ export default function ProjectStatisticsPage({ params }: { params: Promise<{ id
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-background/95 p-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-center py-20">
+      <div className="min-h-screen bg-gradient-to-b from-background to-background/95 px-4 py-6">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Loading project statistics...</p>
@@ -115,8 +115,8 @@ export default function ProjectStatisticsPage({ params }: { params: Promise<{ id
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-background/95 p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-b from-background to-background/95 px-4 py-6">
+        <div className="max-w-[1600px] mx-auto">
           <Button
             variant="ghost"
             onClick={() => router.back()}
@@ -140,8 +140,8 @@ export default function ProjectStatisticsPage({ params }: { params: Promise<{ id
   const { summary } = stats;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-background/95 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/95 px-4 py-6">
+      <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button

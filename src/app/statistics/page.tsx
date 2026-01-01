@@ -37,7 +37,9 @@ interface Statistics {
   };
   stats: {
     totalTransactions: number;
-    byType: Record<string, { count: number; credits: number; realCost: number }>;
+    totalGenerations: number;
+    totalRegenerations: number;
+    byType: Record<string, { count: number; credits: number; realCost: number; generations: number; regenerations: number }>;
     byProvider: Record<string, { count: number; credits: number; realCost: number }>;
     byProject: Record<string, { name: string; credits: number; realCost: number }>;
   };
@@ -194,8 +196,8 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="px-4 py-8">
+        <div className="max-w-[1600px] mx-auto space-y-8">
           {/* Overview Cards */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -227,6 +229,16 @@ export default function StatisticsPage() {
                   <div>
                     <p className="text-2xl font-bold">{stats.stats.totalTransactions}</p>
                     <p className="text-xs text-muted-foreground">Total Operations</p>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-400">
+                        <Plus className="w-2.5 h-2.5 mr-1" />
+                        {stats.stats.totalGenerations || 0}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-500/30 text-orange-400">
+                        <RefreshCw className="w-2.5 h-2.5 mr-1" />
+                        {stats.stats.totalRegenerations || 0}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -263,167 +275,148 @@ export default function StatisticsPage() {
             </Card>
           </motion.div>
 
-          {/* Cost by Type */}
+          {/* 3-Column Layout: Type | Provider | Project */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
           >
+            {/* Cost by Type */}
             <Card className="glass border-white/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-400" />
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="w-4 h-4 text-purple-400" />
                   Cost by Type
                 </CardTitle>
-                <CardDescription>Breakdown of API costs by generation type</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {sortedTypes.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No usage data yet</p>
+                  <p className="text-muted-foreground text-center py-4 text-sm">No usage data yet</p>
                 ) : (
                   sortedTypes.map(([type, data]) => {
                     const Icon = typeIcons[type] || FileText;
                     const colorClass = typeColors[type] || 'text-gray-400 bg-gray-500/20';
-                    const percentage = totalRealCost > 0 ? (data.realCost / totalRealCost) * 100 : 0;
 
                     return (
-                      <div key={type} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colorClass.split(' ')[1]}`}>
-                              <Icon className={`w-4 h-4 ${colorClass.split(' ')[0]}`} />
-                            </div>
-                            <div>
-                              <p className="font-medium capitalize">{type}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {data.count} operations
-                              </p>
-                            </div>
+                      <div key={type} className="flex items-center justify-between p-2 glass rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${colorClass.split(' ')[1]}`}>
+                            <Icon className={`w-3.5 h-3.5 ${colorClass.split(' ')[0]}`} />
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-green-400">
-                              {formatCost(data.realCost)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {data.credits} credits
-                            </p>
+                          <div>
+                            <p className="font-medium text-sm capitalize">{type}</p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-muted-foreground">{data.count}</span>
+                              {(data.generations > 0 || data.regenerations > 0) && (
+                                <>
+                                  <span className="text-[10px] text-emerald-400">+{data.generations || 0}</span>
+                                  <span className="text-[10px] text-orange-400">↻{data.regenerations || 0}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <Progress value={percentage} className="h-1.5" />
+                        <div className="text-right">
+                          <p className="font-semibold text-green-400 text-sm">
+                            {formatCost(data.realCost)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">{data.credits} cr</p>
+                        </div>
                       </div>
                     );
                   })
                 )}
               </CardContent>
             </Card>
-          </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Cost by Provider */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card className="glass border-white/10 h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-purple-400" />
-                    Cost by Provider
-                  </CardTitle>
-                  <CardDescription>Which APIs you're using the most</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {sortedProviders.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No provider data yet</p>
-                  ) : (
-                    sortedProviders.map(([provider, data]) => (
-                      <div
-                        key={provider}
-                        className="flex items-center justify-between p-3 glass rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium">{providerLabels[provider] || provider}</p>
-                          <p className="text-xs text-muted-foreground">{data.count} calls</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-400">
-                            {formatCost(data.realCost)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{data.credits} credits</p>
-                        </div>
+            <Card className="glass border-white/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  Cost by Provider
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {sortedProviders.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4 text-sm">No provider data yet</p>
+                ) : (
+                  sortedProviders.map(([provider, data]) => (
+                    <div
+                      key={provider}
+                      className="flex items-center justify-between p-2 glass rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{providerLabels[provider] || provider}</p>
+                        <p className="text-[10px] text-muted-foreground">{data.count} calls</p>
                       </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-400 text-sm">
+                          {formatCost(data.realCost)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">{data.credits} cr</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
 
             {/* Cost by Project */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="glass border-white/10 h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Folder className="w-5 h-5 text-purple-400" />
-                    Cost by Project
-                  </CardTitle>
-                  <CardDescription>How much each project has cost</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {sortedProjects.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No project costs yet</p>
-                  ) : (
-                    sortedProjects.map(([projectId, data]) => (
-                      <Link
-                        key={projectId}
-                        href={`/statistics/project/${projectId}`}
-                        className="flex items-center justify-between p-3 glass rounded-lg hover:bg-white/5 transition-colors group"
-                      >
-                        <div>
-                          <p className="font-medium">{data.name}</p>
-                          <p className="text-xs text-muted-foreground">Click to view details</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="font-semibold text-green-400">
-                              {formatCost(data.realCost)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{data.credits} credits</p>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-white transition-colors" />
-                        </div>
-                      </Link>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+            <Card className="glass border-white/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Folder className="w-4 h-4 text-cyan-400" />
+                  Cost by Project
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {sortedProjects.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4 text-sm">No project costs yet</p>
+                ) : (
+                  sortedProjects.map(([projectId, data]) => (
+                    <Link
+                      key={projectId}
+                      href={`/statistics/project/${projectId}`}
+                      className="flex items-center justify-between p-2 glass rounded-lg hover:bg-white/5 transition-colors group"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{data.name}</p>
+                        <p className="text-[10px] text-muted-foreground">View details →</p>
+                      </div>
+                      <div className="text-right ml-2">
+                        <p className="font-semibold text-green-400 text-sm">
+                          {formatCost(data.realCost)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">{data.credits} cr</p>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Recent Transactions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.2 }}
           >
             <Card className="glass border-white/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-purple-400" />
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingUp className="w-4 h-4 text-purple-400" />
                   Recent Activity
                 </CardTitle>
-                <CardDescription>Your latest API operations</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto">
                   {stats.recentTransactions.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No activity yet</p>
+                    <p className="text-muted-foreground text-center py-4 text-sm col-span-full">No activity yet</p>
                   ) : (
-                    stats.recentTransactions.slice(0, 20).map((tx) => {
+                    stats.recentTransactions.slice(0, 21).map((tx) => {
                       const Icon = typeIcons[tx.type] || FileText;
                       const colorClass = typeColors[tx.type] || 'text-gray-400 bg-gray-500/20';
                       const isRegeneration = tx.description?.toLowerCase().includes('regeneration');
@@ -431,36 +424,32 @@ export default function StatisticsPage() {
                       return (
                         <div
                           key={tx.id}
-                          className="flex items-center justify-between p-3 glass rounded-lg"
+                          className="flex items-center justify-between p-2 glass rounded-lg"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colorClass.split(' ')[1]}`}>
-                              <Icon className={`w-4 h-4 ${colorClass.split(' ')[0]}`} />
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className={`w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center ${colorClass.split(' ')[1]}`}>
+                              <Icon className={`w-3.5 h-3.5 ${colorClass.split(' ')[0]}`} />
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium text-sm">
-                                  {tx.description || tx.type}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1">
+                                <p className="font-medium text-xs truncate">
+                                  {tx.type}
                                 </p>
                                 {isRegeneration && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-500/30 text-orange-400">
-                                    <RefreshCw className="w-2.5 h-2.5 mr-1" />
-                                    Regen
-                                  </Badge>
+                                  <span className="text-[9px] text-orange-400">↻</span>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {tx.provider ? providerLabels[tx.provider] || tx.provider : 'Unknown'} •{' '}
-                                {new Date(tx.createdAt).toLocaleDateString()}
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {tx.provider || 'Unknown'}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-green-400 text-sm">
+                          <div className="text-right flex-shrink-0 ml-2">
+                            <p className="font-semibold text-green-400 text-xs">
                               {formatCostCompact(tx.realCost)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {Math.abs(tx.amount)} credits
+                            <p className="text-[10px] text-muted-foreground">
+                              {Math.abs(tx.amount)} cr
                             </p>
                           </div>
                         </div>

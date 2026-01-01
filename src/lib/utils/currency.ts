@@ -56,12 +56,13 @@ export function getCurrencyConfig(currency?: Currency): CurrencyConfig {
 }
 
 /**
- * Format a number as currency (clean format without trailing zeros)
+ * Format a number as currency (always 2 decimal places)
  *
  * Examples:
  * - 0.04 → "0.04 €" (EUR)
  * - 0.134 → "0.13 €" (EUR)
  * - 1.50 → "1.50 €" (EUR)
+ * - 52.829 → "52.83 €" (EUR)
  * - 0.001 → "< 0.01 €" (EUR)
  */
 export function formatPrice(amount: number, currency?: Currency): string {
@@ -69,8 +70,8 @@ export function formatPrice(amount: number, currency?: Currency): string {
 
   if (amount === 0) {
     return config.position === 'before'
-      ? `${config.symbol}0`
-      : `0 ${config.symbol}`;
+      ? `${config.symbol}0.00`
+      : `0.00 ${config.symbol}`;
   }
 
   if (amount < 0.01) {
@@ -79,26 +80,8 @@ export function formatPrice(amount: number, currency?: Currency): string {
       : `< 0.01 ${config.symbol}`;
   }
 
-  // Format with appropriate decimal places (2-3 based on amount)
-  let formatted: string;
-  if (amount < 0.1) {
-    // For small amounts, show up to 3 decimals but remove trailing zeros
-    formatted = amount.toFixed(3).replace(/\.?0+$/, '');
-    // Ensure at least 2 decimal places
-    if (!formatted.includes('.')) {
-      formatted += '.00';
-    } else if (formatted.split('.')[1]?.length === 1) {
-      formatted += '0';
-    }
-  } else {
-    formatted = amount.toFixed(2);
-  }
-
-  // Remove unnecessary trailing zeros but keep at least 2 decimal places
-  const parts = formatted.split('.');
-  if (parts[1] && parts[1].length > 2) {
-    formatted = parseFloat(formatted).toFixed(2);
-  }
+  // Always format with 2 decimal places
+  const formatted = amount.toFixed(2);
 
   return config.position === 'before'
     ? `${config.symbol}${formatted}`
@@ -112,15 +95,12 @@ export function formatPrice(amount: number, currency?: Currency): string {
  * Examples:
  * - 0.04 → "0.04"
  * - 0.134 → "0.13"
+ * - 52.829 → "52.83"
  * - 0 → "Free"
  */
 export function formatPriceCompact(amount: number): string {
   if (amount === 0) return 'Free';
-  if (amount < 0.001) return '< 0.001';
-
-  // Remove trailing zeros
-  if (amount < 0.01) return amount.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
-  if (amount < 1) return amount.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  if (amount < 0.01) return '< 0.01';
   return amount.toFixed(2);
 }
 

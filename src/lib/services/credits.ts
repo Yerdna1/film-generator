@@ -296,13 +296,15 @@ export function getCost(costType: CostType, quantity: number = 1): number {
 }
 
 /**
- * Get user statistics with real costs
+ * Get user statistics with real costs and generation/regeneration breakdown
  */
 export async function getUserStatistics(userId: string): Promise<{
   credits: CreditsInfo;
   stats: {
     totalTransactions: number;
-    byType: Record<string, { count: number; credits: number; realCost: number }>;
+    totalGenerations: number;
+    totalRegenerations: number;
+    byType: Record<string, { count: number; credits: number; realCost: number; generations: number; regenerations: number }>;
     byProvider: Record<string, { count: number; credits: number; realCost: number }>;
     byProject: Record<string, { name: string; credits: number; realCost: number }>;
   };
@@ -324,6 +326,8 @@ export async function getUserStatistics(userId: string): Promise<{
       credits,
       stats: {
         totalTransactions: 0,
+        totalGenerations: 0,
+        totalRegenerations: 0,
         byType: {},
         byProvider: {},
         byProject: {},
@@ -334,20 +338,39 @@ export async function getUserStatistics(userId: string): Promise<{
 
   const transactions = creditsRecord.transactions;
 
-  // Calculate stats by type
-  const byType: Record<string, { count: number; credits: number; realCost: number }> = {};
+  // Calculate stats by type with generation/regeneration breakdown
+  const byType: Record<string, { count: number; credits: number; realCost: number; generations: number; regenerations: number }> = {};
   const byProvider: Record<string, { count: number; credits: number; realCost: number }> = {};
   const projectIds = new Set<string>();
 
+  let totalGenerations = 0;
+  let totalRegenerations = 0;
+
   for (const tx of transactions) {
     if (tx.amount < 0) {
-      // By type
+      // Check metadata for isRegeneration flag
+      const metadata = tx.metadata as { isRegeneration?: boolean } | null;
+      const isRegeneration = metadata?.isRegeneration ?? false;
+
+      // Update totals
+      if (isRegeneration) {
+        totalRegenerations++;
+      } else {
+        totalGenerations++;
+      }
+
+      // By type with generation/regeneration breakdown
       if (!byType[tx.type]) {
-        byType[tx.type] = { count: 0, credits: 0, realCost: 0 };
+        byType[tx.type] = { count: 0, credits: 0, realCost: 0, generations: 0, regenerations: 0 };
       }
       byType[tx.type].count++;
       byType[tx.type].credits += Math.abs(tx.amount);
       byType[tx.type].realCost += tx.realCost;
+      if (isRegeneration) {
+        byType[tx.type].regenerations++;
+      } else {
+        byType[tx.type].generations++;
+      }
 
       // By provider
       const provider = tx.provider || 'unknown';
@@ -395,6 +418,8 @@ export async function getUserStatistics(userId: string): Promise<{
     credits,
     stats: {
       totalTransactions: transactions.filter((t) => t.amount < 0).length,
+      totalGenerations,
+      totalRegenerations,
       byType,
       byProvider,
       byProject,
