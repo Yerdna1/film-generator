@@ -14,9 +14,6 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset"
   },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@ai-sdk/google": "^3.0.1",
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",
@@ -27,7 +24,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
+    "@neondatabase/serverless": "^1.0.2",
     "@polar-sh/sdk": "^0.42.1",
+    "@prisma/adapter-neon": "^6.19.1",
     "@prisma/client": "^6.19.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -71,6 +70,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "uuid": "^13.0.0",
+    "ws": "^8.18.3",
     "zod": "^4.2.1",
     "zustand": "^5.0.9"
   },
@@ -81,6 +81,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "pg": "^8.16.3",
