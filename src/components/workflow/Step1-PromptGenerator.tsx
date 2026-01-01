@@ -73,12 +73,12 @@ export function Step1PromptGenerator({ project: initialProject }: Step1Props) {
       // Generate the base master prompt template
       const basePrompt = generateMasterPrompt(project.story, project.style, project.settings);
 
-      // Try to enhance with Gemini AI
-      const response = await fetch('/api/gemini', {
+      // Try to enhance with user's configured LLM provider
+      const response = await fetch('/api/llm/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `You are a professional film prompt engineer. Based on the following story concept and settings, enhance and expand this prompt for generating a ${project.settings.sceneCount}-scene animated short film.
+          prompt: `Based on the following story concept and settings, enhance and expand this prompt for generating a ${project.settings.sceneCount}-scene animated short film.
 
 Story Title: ${project.story.title}
 Genre: ${project.story.genre}
@@ -100,7 +100,7 @@ Please enhance this prompt with:
 5. Sample dialogue for each scene
 
 Format the output exactly like the base template but with richer, more detailed content. Keep the same structure with CHARACTER: and SCENE: sections.`,
-          model: 'gemini-2.0-flash',
+          systemPrompt: 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.',
         }),
       });
 
@@ -112,6 +112,7 @@ Format the output exactly like the base template but with richer, more detailed 
           // Dispatch credits update event
           window.dispatchEvent(new CustomEvent('credits-updated'));
           setIsGenerating(false);
+          console.log(`Master prompt enhanced via ${data.provider}, ${data.creditsUsed} credits used`);
           return;
         }
       }
