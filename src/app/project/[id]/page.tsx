@@ -83,6 +83,7 @@ export default function ProjectWorkspacePage() {
   const [visibility, setVisibility] = useState<'private' | 'public'>('private');
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Fetch project data including visibility and permissions
   const fetchProjectData = useCallback(async (projectId: string) => {
@@ -98,6 +99,7 @@ export default function ProjectWorkspacePage() {
         if (data.permissions) {
           setPermissions(data.permissions);
         }
+        setIsAuthenticated(data.isAuthenticated ?? false);
       }
     } catch (e) {
       console.error('Failed to fetch project data:', e);
@@ -144,6 +146,7 @@ export default function ProjectWorkspacePage() {
         if (data.visibility) {
           setVisibility(data.visibility);
         }
+        setIsAuthenticated(data.isAuthenticated ?? false);
         setIsLoadingPermissions(false);
 
         // Transform API response to match Project type
@@ -257,6 +260,7 @@ export default function ProjectWorkspacePage() {
       permissions,
       userRole,
       isReadOnly,
+      isAuthenticated,
     };
 
     switch (project.currentStep) {

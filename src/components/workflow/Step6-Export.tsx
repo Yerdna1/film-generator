@@ -16,6 +16,7 @@ import {
   Pause,
   Play,
   X,
+  Lock,
 } from 'lucide-react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,9 +51,10 @@ interface Step6Props {
   permissions?: ProjectPermissions | null;
   userRole?: ProjectRole | null;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
 }
 
-export function Step6Export({ project: initialProject, isReadOnly = false }: Step6Props) {
+export function Step6Export({ project: initialProject, isReadOnly = false, isAuthenticated = false }: Step6Props) {
   const t = useTranslations();
   const { projects, deleteScene } = useProjectStore();
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
@@ -89,13 +91,40 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
         <ProjectSummaryCard project={project} stats={stats} compact />
       </div>
 
+      {/* Sign-in required banner for unauthenticated users */}
+      {!isAuthenticated && (
+        <a
+          href="/auth/register"
+          className="flex items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+        >
+          <Lock className="w-5 h-5 text-orange-400" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-orange-400">Sign in to unlock full access</p>
+            <p className="text-xs text-muted-foreground">Play movie, modify scenes order, edit captions, download assets</p>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-medium">
+            Sign up free
+          </span>
+        </a>
+      )}
+
       {/* Main Editor Layout */}
       <div className="flex gap-2">
         {/* Preview + Timeline Section */}
         <div className="flex-1 min-w-0 space-y-2">
           {/* Movie Preview - Very Compact */}
           {stats.totalScenes > 0 && (
-            <Card className="glass border-white/10 overflow-hidden">
+            <Card className="glass border-white/10 overflow-hidden relative">
+              {/* Lock overlay for unauthenticated users */}
+              {!isAuthenticated && (
+                <div className="absolute inset-0 z-10 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center">
+                  <Lock className="w-8 h-8 text-white/70 mb-2" />
+                  <p className="text-sm text-white/80">Sign in to play movie</p>
+                  <a href="/auth/register" className="mt-2 px-4 py-1.5 rounded-full bg-orange-500 text-white text-xs font-medium hover:bg-orange-400 transition-colors">
+                    Sign up free
+                  </a>
+                </div>
+              )}
               <CardContent className="p-1.5">
                 <MoviePreview
                   project={project}
@@ -193,15 +222,28 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                             {project.scenes.length} scenes · {Math.round(project.scenes.length * 6 / 60)} min
                           </p>
 
+                          {/* Sign-in required message for unauthenticated users */}
+                          {!isAuthenticated && (
+                            <a
+                              href="/auth/register"
+                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+                            >
+                              <Lock className="w-4 h-4 text-orange-400" />
+                              <span className="text-sm text-orange-400">Sign in to modify scenes</span>
+                            </a>
+                          )}
+
                           <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
                             {project.scenes.map((scene, index) => (
                               <div
                                 key={scene.id}
-                                onClick={() => {
+                                onClick={isAuthenticated ? () => {
                                   timelineEditor.selectScene(scene.id);
                                   previewPlayer.jumpToScene(index);
-                                }}
-                                className={`group flex items-center gap-2.5 p-2 rounded-md border transition-all cursor-pointer ${
+                                } : undefined}
+                                className={`group flex items-center gap-2.5 p-2 rounded-md border transition-all ${
+                                  isAuthenticated ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'
+                                } ${
                                   timelineEditor.selectedSceneId === scene.id
                                     ? 'border-orange-500/50 bg-orange-500/10'
                                     : 'border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] hover:border-orange-500/30 hover:bg-orange-500/5'
@@ -220,7 +262,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{index + 1}. {scene.title || 'Untitled'}</p>
                                 </div>
-                                {!isReadOnly && (
+                                {!isReadOnly && isAuthenticated && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -249,8 +291,19 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                       {/* CAPTIONS TAB */}
                       <TabsContent value="captions" className="m-0 p-4">
                         <div className="space-y-4">
+                          {/* Sign-in required message for unauthenticated users */}
+                          {!isAuthenticated && (
+                            <a
+                              href="/auth/register"
+                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+                            >
+                              <Lock className="w-4 h-4 text-orange-400" />
+                              <span className="text-sm text-orange-400">Sign in to edit captions</span>
+                            </a>
+                          )}
+
                           {/* Auto-generate button - only for editors */}
-                          {!isReadOnly && project.scenes.some(s => s.dialogue?.length > 0) && (
+                          {!isReadOnly && isAuthenticated && project.scenes.some(s => s.dialogue?.length > 0) && (
                             <button
                               onClick={captionEditor.autoGenerateAllCaptions}
                               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 transition-all"
@@ -298,7 +351,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium">Scene {captionEditor.selectedSceneIndex + 1}</span>
-                              {!isReadOnly && (
+                              {!isReadOnly && isAuthenticated && (
                                 <button onClick={captionEditor.startNewCaption} className="text-sm text-yellow-600 dark:text-yellow-400 hover:underline">+ Add</button>
                               )}
                             </div>
@@ -308,7 +361,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                                 {captionEditor.sceneCaptions.map((caption) => (
                                   <div key={caption.id} className="group flex items-start gap-2 p-2 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] hover:border-yellow-500/30 transition-all">
                                     <p className="flex-1 text-sm leading-relaxed">{caption.text}</p>
-                                    {!isReadOnly && (
+                                    {!isReadOnly && isAuthenticated && (
                                       <button onClick={() => captionEditor.deleteCaption(caption.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all shrink-0">
                                         <X className="w-4 h-4" />
                                       </button>
@@ -322,7 +375,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                           </div>
 
                           {/* Editing form - only for editors */}
-                          {!isReadOnly && captionEditor.isEditing && captionEditor.editingCaption && (
+                          {!isReadOnly && isAuthenticated && captionEditor.isEditing && captionEditor.editingCaption && (
                             <div className="space-y-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
                               <textarea
                                 value={captionEditor.editingCaption.text}
@@ -342,15 +395,36 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                       {/* MUSIC TAB */}
                       <TabsContent value="music" className="m-0 p-4">
                         <div className="space-y-4">
-                          {backgroundMusic.previewUrl && (
+                          {/* Sign-in required message for unauthenticated users */}
+                          {!isAuthenticated && (
+                            <a
+                              href="/auth/register"
+                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+                            >
+                              <Lock className="w-4 h-4 text-orange-400" />
+                              <span className="text-sm text-orange-400">Sign in to manage music</span>
+                            </a>
+                          )}
+
+                          {backgroundMusic.previewUrl && isAuthenticated && (
                             <audio ref={backgroundMusic.previewRef} src={backgroundMusic.previewUrl} onEnded={backgroundMusic.clearPreview} />
                           )}
 
                           {backgroundMusic.hasMusic && backgroundMusic.currentMusic ? (
                             <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5">
                               <div className="flex items-center gap-3">
-                                <button onClick={backgroundMusic.togglePreview} className="w-11 h-11 rounded-full bg-purple-500/20 hover:bg-purple-500/30 flex items-center justify-center transition-all">
-                                  {backgroundMusic.isPreviewPlaying ? <Pause className="w-5 h-5 text-purple-600 dark:text-purple-400" /> : <Play className="w-5 h-5 text-purple-600 dark:text-purple-400 ml-0.5" />}
+                                <button
+                                  onClick={isAuthenticated ? backgroundMusic.togglePreview : undefined}
+                                  disabled={!isAuthenticated}
+                                  className="w-11 h-11 rounded-full bg-purple-500/20 hover:bg-purple-500/30 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {!isAuthenticated ? (
+                                    <Lock className="w-5 h-5 text-purple-600/50 dark:text-purple-400/50" />
+                                  ) : backgroundMusic.isPreviewPlaying ? (
+                                    <Pause className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                  ) : (
+                                    <Play className="w-5 h-5 text-purple-600 dark:text-purple-400 ml-0.5" />
+                                  )}
                                 </button>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{backgroundMusic.currentMusic.title || 'Background Music'}</p>
@@ -358,7 +432,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                                     {backgroundMusic.currentMusic.duration ? `${Math.floor(backgroundMusic.currentMusic.duration / 60)}:${String(Math.floor(backgroundMusic.currentMusic.duration % 60)).padStart(2, '0')}` : '—'}
                                   </p>
                                 </div>
-                                {!isReadOnly && (
+                                {!isReadOnly && isAuthenticated && (
                                   <button onClick={backgroundMusic.removeMusic} className="p-2 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all">
                                     <Trash2 className="w-4 h-4" />
                                   </button>
@@ -400,7 +474,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                                 <button onClick={backgroundMusic.clearPreview} className="p-1.5 hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
                               </div>
                             </div>
-                          ) : isReadOnly ? (
+                          ) : (isReadOnly || !isAuthenticated) ? (
                             <div className="text-center py-6 text-muted-foreground">
                               <Music className="w-8 h-8 mx-auto mb-2 opacity-40" />
                               <p className="text-sm">No background music</p>
@@ -450,14 +524,27 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                             {stats.scenesWithVideos} videos · {stats.scenesWithImages} images · {stats.dialogueLinesWithAudio} audio
                           </p>
 
+                          {/* Sign-in required message for unauthenticated users */}
+                          {!isAuthenticated && (
+                            <a
+                              href="/auth/register"
+                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+                            >
+                              <Lock className="w-4 h-4 text-orange-400" />
+                              <span className="text-sm text-orange-400">Sign in to download assets</span>
+                            </a>
+                          )}
+
                           <div className="space-y-2">
                             <button
-                              onClick={downloadHandlers.handleDownloadAll}
-                              disabled={downloadHandlers.downloadingAll}
-                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
+                              onClick={isAuthenticated ? downloadHandlers.handleDownloadAll : undefined}
+                              disabled={!isAuthenticated || downloadHandlers.downloadingAll}
+                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
                               {downloadHandlers.downloadingAll ? (
                                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                              ) : !isAuthenticated ? (
+                                <Lock className="h-4 w-4" />
                               ) : (
                                 <Download className="h-4 w-4" />
                               )}
@@ -465,13 +552,18 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
                             </button>
 
                             <button
-                              onClick={exportHandlers.handleExportCapCut}
-                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] text-sm font-medium hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all"
+                              onClick={isAuthenticated ? exportHandlers.handleExportCapCut : undefined}
+                              disabled={!isAuthenticated}
+                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] text-sm font-medium hover:border-cyan-500/40 hover:bg-cyan-500/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                              <svg className="h-4 w-4 text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                                <circle cx="12" cy="13" r="3" />
-                              </svg>
+                              {!isAuthenticated ? (
+                                <Lock className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <svg className="h-4 w-4 text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                                  <circle cx="12" cy="13" r="3" />
+                                </svg>
+                              )}
                               Export for CapCut
                             </button>
                           </div>
@@ -484,22 +576,23 @@ export function Step6Export({ project: initialProject, isReadOnly = false }: Ste
 
                           <div className="flex gap-2">
                             <button
-                              onClick={downloadHandlers.handleDownloadVideos}
-                              disabled={downloadHandlers.downloadingVideos || stats.scenesWithVideos === 0}
-                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-orange-500/30 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-30"
+                              onClick={isAuthenticated ? downloadHandlers.handleDownloadVideos : undefined}
+                              disabled={!isAuthenticated || downloadHandlers.downloadingVideos || stats.scenesWithVideos === 0}
+                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-orange-500/30 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               Videos
                             </button>
                             <button
-                              onClick={downloadHandlers.handleDownloadAudio}
-                              disabled={downloadHandlers.downloadingAudio || stats.dialogueLinesWithAudio === 0}
-                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-violet-500/30 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-30"
+                              onClick={isAuthenticated ? downloadHandlers.handleDownloadAudio : undefined}
+                              disabled={!isAuthenticated || downloadHandlers.downloadingAudio || stats.dialogueLinesWithAudio === 0}
+                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-violet-500/30 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               Audio
                             </button>
                             <button
-                              onClick={exportHandlers.handleExportJSON}
-                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-blue-500/30 hover:text-blue-600 dark:hover:text-blue-400"
+                              onClick={isAuthenticated ? exportHandlers.handleExportJSON : undefined}
+                              disabled={!isAuthenticated}
+                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-blue-500/30 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               JSON
                             </button>

@@ -59,7 +59,12 @@
     "projects": "Projekty",
     "settings": "Nastavenia",
     "help": "Pomoc",
-    "newProject": "Nový projekt"
+    "newProject": "Nový projekt",
+    "discover": "Objavovať",
+    "profile": "Profil",
+    "statistics": "Štatistiky",
+    "admin": "Admin",
+    "billing": "Fakturácia"
   },
   "dashboard": {
     "title": "Vaše projekty",
@@ -828,5 +833,79 @@
     "approved": "Schválené",
     "rejected": "Zamietnuté",
     "reviewNote": "Poznámka admina"
+  },
+  "footer": {
+    "tagline": "Poháňané AI • Vytvorené pre tvorcov",
+    "privacy": "Súkromie",
+    "terms": "Podmienky"
+  },
+  "discover": {
+    "title": "Objavovať",
+    "subtitle": "Preskúmajte verejné filmové projekty od komunity",
+    "searchPlaceholder": "Hľadať projekty...",
+    "loading": "Načítavam verejné projekty...",
+    "noProjectsFound": "Žiadne projekty nenájdené",
+    "noPublicProjects": "Zatiaľ žiadne verejné projekty",
+    "tryAdjusting": "Skúste upraviť váš vyhľadávací dotaz",
+    "beFirst": "Buďte prvý, kto zdieľa svoj filmový projekt s komunitou!",
+    "publicProjects": "verejný projekt",
+    "publicProjectsPlural": "verejných projektov",
+    "publicBadge": "Verejné",
+    "anonymous": "Anonymný",
+    "today": "Dnes",
+    "yesterday": "Včera",
+    "daysAgo": "pred {days} dňami",
+    "weeksAgo": "pred {weeks} týždňami",
+    "visibilityNote": "Tento projekt sa zobrazuje na verejnej stránke Objavovať"
+  },
+  "provider": {
+    "active": "Aktívne"
+  },
+  "insufficientCredits": {
+    "title": "Nedostatok kreditov",
+    "description": "Pre pokračovanie v tejto operácii potrebujete viac kreditov.",
+    "required": "Potrebné",
+    "yourBalance": "Váš zostatok",
+    "quickUpgrade": "Rýchly upgrade",
+    "creditsMonth": "kreditov/mesiac",
+    "viewAllPlans": "Zobraziť všetky plány",
+    "or": "alebo",
+    "requestSubmitted": "Žiadosť odoslaná!",
+    "adminNotified": "Admin bude upozornený, aby schválil vašu žiadosť o regeneráciu.",
+    "requestAdminApproval": "Požiadať admina o schválenie",
+    "askAdmin": "Požiadajte admina projektu o regeneráciu tohto {type} pomocou jeho kreditov.",
+    "scene": "Scéna",
+    "submittingRequest": "Odosielam žiadosť..."
+  },
+  "statistics": {
+    "title": "Štatistiky využitia",
+    "subtitle": "Sledujte vaše API náklady a využitie",
+    "adminView": "Admin pohľad (Skutočné náklady)",
+    "signInRequired": "Pre zobrazenie štatistík sa prihláste",
+    "retry": "Skúsiť znova",
+    "totalApiCost": "Celkové API náklady",
+    "totalOperations": "Celkový počet operácií",
+    "creditsSpent": "Minuté kredity",
+    "projects": "Projekty",
+    "costByType": "Náklady podľa typu",
+    "costByProvider": "Náklady podľa poskytovateľa",
+    "costByProject": "Náklady podľa projektu",
+    "noUsageData": "Zatiaľ žiadne dáta o využití",
+    "noProviderData": "Zatiaľ žiadne dáta o poskytovateľoch",
+    "noProjectCosts": "Zatiaľ žiadne náklady projektov",
+    "noActivity": "Zatiaľ žiadna aktivita",
+    "recentActivity": "Posledná aktivita",
+    "viewDetails": "Zobraziť detaily →",
+    "calls": "volaní"
+  },
+  "billing": {
+    "title": "Fakturácia",
+    "subtitle": "Spravujte vaše predplatné a kredity",
+    "starter": "Starter",
+    "starterDesc": "Pre hobby tvorcov",
+    "pro": "Pro",
+    "proDesc": "Najpopulárnejšia",
+    "studio": "Štúdio",
+    "studioDesc": "Pre profesionálnych tvorcov"
   }
 }

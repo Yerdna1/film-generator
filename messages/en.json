@@ -59,7 +59,12 @@
     "projects": "Projects",
     "settings": "Settings",
     "help": "Help",
-    "newProject": "New Project"
+    "newProject": "New Project",
+    "discover": "Discover",
+    "profile": "Profile",
+    "statistics": "Statistics",
+    "admin": "Admin",
+    "billing": "Billing"
   },
   "dashboard": {
     "title": "Your Projects",
@@ -828,5 +833,79 @@
     "approved": "Approved",
     "rejected": "Rejected",
     "reviewNote": "Admin note"
+  },
+  "footer": {
+    "tagline": "Powered by AI • Built for creators",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
+  "discover": {
+    "title": "Discover",
+    "subtitle": "Explore public film projects from the community",
+    "searchPlaceholder": "Search projects...",
+    "loading": "Loading public projects...",
+    "noProjectsFound": "No projects found",
+    "noPublicProjects": "No public projects yet",
+    "tryAdjusting": "Try adjusting your search query",
+    "beFirst": "Be the first to share your film project with the community!",
+    "publicProjects": "public project",
+    "publicProjectsPlural": "public projects",
+    "publicBadge": "Public",
+    "anonymous": "Anonymous",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{days} days ago",
+    "weeksAgo": "{weeks} weeks ago",
+    "visibilityNote": "This project appears in the public Discover page"
+  },
+  "provider": {
+    "active": "Active"
+  },
+  "insufficientCredits": {
+    "title": "Insufficient Credits",
+    "description": "You need more credits to continue with this operation.",
+    "required": "Required",
+    "yourBalance": "Your Balance",
+    "quickUpgrade": "Quick Upgrade",
+    "creditsMonth": "credits/month",
+    "viewAllPlans": "View All Plans",
+    "or": "or",
+    "requestSubmitted": "Request Submitted!",
+    "adminNotified": "The admin will be notified to approve your regeneration request.",
+    "requestAdminApproval": "Request Admin Approval",
+    "askAdmin": "Ask the project admin to regenerate this {type} using their credits.",
+    "scene": "Scene",
+    "submittingRequest": "Submitting Request..."
+  },
+  "statistics": {
+    "title": "Usage Statistics",
+    "subtitle": "Track your API costs and usage",
+    "adminView": "Admin View (Real Costs)",
+    "signInRequired": "Please sign in to view statistics",
+    "retry": "Retry",
+    "totalApiCost": "Total API Cost",
+    "totalOperations": "Total Operations",
+    "creditsSpent": "Credits Spent",
+    "projects": "Projects",
+    "costByType": "Cost by Type",
+    "costByProvider": "Cost by Provider",
+    "costByProject": "Cost by Project",
+    "noUsageData": "No usage data yet",
+    "noProviderData": "No provider data yet",
+    "noProjectCosts": "No project costs yet",
+    "noActivity": "No activity yet",
+    "recentActivity": "Recent Activity",
+    "viewDetails": "View details →",
+    "calls": "calls"
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Manage your subscription and credits",
+    "starter": "Starter",
+    "starterDesc": "For hobbyists",
+    "pro": "Pro",
+    "proDesc": "Most popular",
+    "studio": "Studio",
+    "studioDesc": "For creators"
   }
 }

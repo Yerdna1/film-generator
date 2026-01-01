@@ -18,6 +18,7 @@ import {
   ChevronUp,
   Expand,
   Clock,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,8 @@ interface SceneCardProps {
   isSelected?: boolean;
   hasPendingRegeneration?: boolean;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
+  isFirstImage?: boolean;
   onToggleSelect?: () => void;
   onToggleExpand: () => void;
   onDelete: () => void;
@@ -64,6 +67,8 @@ function SceneCardComponent({
   isSelected = false,
   hasPendingRegeneration = false,
   isReadOnly = false,
+  isAuthenticated = true,
+  isFirstImage = false,
   onToggleSelect,
   onToggleExpand,
   onDelete,
@@ -74,6 +79,9 @@ function SceneCardComponent({
 }: SceneCardProps) {
   const t = useTranslations();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Determine if this image is restricted (non-first image for unauthenticated users)
+  const isRestricted = !isAuthenticated && scene.imageUrl && !isFirstImage;
 
   return (
     <>
@@ -89,28 +97,55 @@ function SceneCardComponent({
         transition={{ delay: (index % 12) * 0.03 }}
       >
         <Card className="glass border-white/10 overflow-hidden">
-          <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
+          <Collapsible open={isRestricted ? false : isExpanded} onOpenChange={isRestricted ? undefined : onToggleExpand}>
             {/* Image Preview - Vertical Layout */}
             <div className="relative aspect-video bg-black/30">
               {scene.imageUrl ? (
-                <button
-                  onClick={() => onPreviewImage(scene.imageUrl!)}
-                  className="relative w-full h-full group"
-                >
-                  <Image
-                    key={scene.imageUrl}
-                    src={scene.imageUrl}
-                    alt={scene.title}
-                    fill
-                    sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                    className="object-cover"
-                    loading="lazy"
-                    unoptimized={scene.imageUrl.startsWith('data:') || scene.imageUrl.includes('blob:')}
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Expand className="w-5 h-5 text-white" />
+                isRestricted ? (
+                  /* Restricted image - show blurred with lock overlay */
+                  <div className="relative w-full h-full">
+                    <Image
+                      key={scene.imageUrl}
+                      src={scene.imageUrl}
+                      alt={scene.title}
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      className="object-cover blur-lg scale-110"
+                      loading="lazy"
+                      unoptimized={scene.imageUrl.startsWith('data:') || scene.imageUrl.includes('blob:')}
+                    />
+                    <a
+                      href="/auth/register"
+                      className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center hover:bg-black/60 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-1.5">
+                        <Lock className="w-4 h-4 text-white/70" />
+                      </div>
+                      <p className="text-[10px] text-white/80 text-center px-2">
+                        Sign in to view
+                      </p>
+                    </a>
                   </div>
-                </button>
+                ) : (
+                  <button
+                    onClick={() => onPreviewImage(scene.imageUrl!)}
+                    className="relative w-full h-full group"
+                  >
+                    <Image
+                      key={scene.imageUrl}
+                      src={scene.imageUrl}
+                      alt={scene.title}
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      className="object-cover"
+                      loading="lazy"
+                      unoptimized={scene.imageUrl.startsWith('data:') || scene.imageUrl.includes('blob:')}
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Expand className="w-5 h-5 text-white" />
+                    </div>
+                  </button>
+                )
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <ImageIcon className="w-10 h-10 text-muted-foreground/30" />
@@ -169,12 +204,20 @@ function SceneCardComponent({
               <div className="flex items-center justify-between gap-1">
                 <h3 className="font-medium text-sm truncate flex-1">{scene.title}</h3>
                 <div className="flex items-center gap-0.5 shrink-0">
-                  <CopyButton text={scene.textToImagePrompt} size="icon" className="h-6 w-6" />
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  {!isRestricted && (
+                    <CopyButton text={scene.textToImagePrompt} size="icon" className="h-6 w-6" />
+                  )}
+                  {isRestricted ? (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-30 cursor-not-allowed" disabled>
+                      <Lock className="w-3.5 h-3.5" />
                     </Button>
-                  </CollapsibleTrigger>
+                  ) : (
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  )}
                 </div>
               </div>
 
@@ -192,10 +235,12 @@ function SceneCardComponent({
                 )}
               </div>
 
-              {/* T2I Prompt Preview */}
-              <p className="text-[10px] text-muted-foreground/70 truncate" title={scene.textToImagePrompt}>
-                {scene.textToImagePrompt}
-              </p>
+              {/* T2I Prompt Preview - hidden for restricted */}
+              {!isRestricted && (
+                <p className="text-[10px] text-muted-foreground/70 truncate" title={scene.textToImagePrompt}>
+                  {scene.textToImagePrompt}
+                </p>
+              )}
 
               {/* Action Buttons - only for editors */}
               {!isReadOnly && (
@@ -323,6 +368,8 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.imageResolution === nextProps.imageResolution &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.hasPendingRegeneration === nextProps.hasPendingRegeneration &&
-    prevProps.isReadOnly === nextProps.isReadOnly
+    prevProps.isReadOnly === nextProps.isReadOnly &&
+    prevProps.isAuthenticated === nextProps.isAuthenticated &&
+    prevProps.isFirstImage === nextProps.isFirstImage
   );
 });

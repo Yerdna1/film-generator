@@ -134,9 +134,9 @@ export default function StatisticsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="glass border-white/10 p-8">
-          <p className="text-muted-foreground mb-4">Please sign in to view statistics</p>
+          <p className="text-muted-foreground mb-4">{t('statistics.signInRequired')}</p>
           <Link href="/auth/login">
-            <Button>Sign In</Button>
+            <Button>{t('auth.signIn')}</Button>
           </Link>
         </Card>
       </div>
@@ -149,7 +149,7 @@ export default function StatisticsPage() {
         <Card className="glass border-white/10 p-8">
           <p className="text-red-400">{error}</p>
           <Button onClick={fetchStatistics} className="mt-4">
-            Retry
+            {t('statistics.retry')}
           </Button>
         </Card>
       </div>
@@ -183,13 +183,13 @@ export default function StatisticsPage() {
             <div className="flex-1">
               <h1 className="font-semibold flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-purple-400" />
-                Usage Statistics
+                {t('statistics.title')}
               </h1>
-              <p className="text-xs text-muted-foreground">Track your API costs and usage</p>
+              <p className="text-xs text-muted-foreground">{t('statistics.subtitle')}</p>
             </div>
             {stats.isAdmin && (
               <Badge className="bg-purple-500/20 text-purple-400 border-0">
-                Admin View (Real Costs)
+                {t('statistics.adminView')}
               </Badge>
             )}
           </div>
@@ -214,7 +214,7 @@ export default function StatisticsPage() {
                     <p className="text-2xl font-bold text-green-400">
                       {formatCost(totalRealCost)}
                     </p>
-                    <p className="text-xs text-muted-foreground">Total API Cost</p>
+                    <p className="text-xs text-muted-foreground">{t('statistics.totalApiCost')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -228,7 +228,7 @@ export default function StatisticsPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{stats.stats.totalTransactions}</p>
-                    <p className="text-xs text-muted-foreground">Total Operations</p>
+                    <p className="text-xs text-muted-foreground">{t('statistics.totalOperations')}</p>
                     <div className="flex gap-2 mt-1">
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-400">
                         <Plus className="w-2.5 h-2.5 mr-1" />
@@ -252,7 +252,7 @@ export default function StatisticsPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{stats.credits.totalSpent}</p>
-                    <p className="text-xs text-muted-foreground">Credits Spent</p>
+                    <p className="text-xs text-muted-foreground">{t('statistics.creditsSpent')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -268,7 +268,7 @@ export default function StatisticsPage() {
                     <p className="text-2xl font-bold">
                       {Object.keys(stats.stats.byProject).length}
                     </p>
-                    <p className="text-xs text-muted-foreground">Projects</p>
+                    <p className="text-xs text-muted-foreground">{t('statistics.projects')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -287,12 +287,12 @@ export default function StatisticsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BarChart3 className="w-4 h-4 text-purple-400" />
-                  Cost by Type
+                  {t('statistics.costByType')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {sortedTypes.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4 text-sm">No usage data yet</p>
+                  <p className="text-muted-foreground text-center py-4 text-sm">{t('statistics.noUsageData')}</p>
                 ) : (
                   sortedTypes.map(([type, data]) => {
                     const Icon = typeIcons[type] || FileText;
@@ -335,12 +335,12 @@ export default function StatisticsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Zap className="w-4 h-4 text-amber-400" />
-                  Cost by Provider
+                  {t('statistics.costByProvider')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {sortedProviders.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4 text-sm">No provider data yet</p>
+                  <p className="text-muted-foreground text-center py-4 text-sm">{t('statistics.noProviderData')}</p>
                 ) : (
                   sortedProviders.map(([provider, data]) => (
                     <div
@@ -349,7 +349,7 @@ export default function StatisticsPage() {
                     >
                       <div>
                         <p className="font-medium text-sm">{providerLabels[provider] || provider}</p>
-                        <p className="text-[10px] text-muted-foreground">{data.count} calls</p>
+                        <p className="text-[10px] text-muted-foreground">{data.count} {t('statistics.calls')}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-green-400 text-sm">
@@ -368,12 +368,12 @@ export default function StatisticsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Folder className="w-4 h-4 text-cyan-400" />
-                  Cost by Project
+                  {t('statistics.costByProject')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {sortedProjects.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4 text-sm">No project costs yet</p>
+                  <p className="text-muted-foreground text-center py-4 text-sm">{t('statistics.noProjectCosts')}</p>
                 ) : (
                   sortedProjects.map(([projectId, data]) => (
                     <Link
@@ -383,7 +383,7 @@ export default function StatisticsPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm truncate">{data.name}</p>
-                        <p className="text-[10px] text-muted-foreground">View details →</p>
+                        <p className="text-[10px] text-muted-foreground">{t('statistics.viewDetails')}</p>
                       </div>
                       <div className="text-right ml-2">
                         <p className="font-semibold text-green-400 text-sm">
@@ -408,13 +408,13 @@ export default function StatisticsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <TrendingUp className="w-4 h-4 text-purple-400" />
-                  Recent Activity
+                  {t('statistics.recentActivity')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto">
                   {stats.recentTransactions.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4 text-sm col-span-full">No activity yet</p>
+                    <p className="text-muted-foreground text-center py-4 text-sm col-span-full">{t('statistics.noActivity')}</p>
                   ) : (
                     stats.recentTransactions.slice(0, 21).map((tx) => {
                       const Icon = typeIcons[tx.type] || FileText;

@@ -19,7 +19,7 @@ export function ProviderInfo({ currentProvider }: ProviderInfoProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium">🇬🇧 ElevenLabs</span>
             {currentProvider === 'elevenlabs' && (
-              <Badge className="bg-blue-500/20 text-blue-400 border-0">Active</Badge>
+              <Badge className="bg-blue-500/20 text-blue-400 border-0">{t('provider.active')}</Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
@@ -30,7 +30,7 @@ export function ProviderInfo({ currentProvider }: ProviderInfoProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium">🇸🇰 Gemini TTS</span>
             {currentProvider === 'gemini-tts' && (
-              <Badge className="bg-green-500/20 text-green-400 border-0">Active</Badge>
+              <Badge className="bg-green-500/20 text-green-400 border-0">{t('provider.active')}</Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">

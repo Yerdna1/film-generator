@@ -14,6 +14,7 @@ import {
   Image as ImageIcon,
   MessageSquare,
   Clock,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,6 +41,8 @@ interface SceneVideoCardProps {
   isSelected?: boolean;
   hasPendingRegeneration?: boolean;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
+  isFirstVideo?: boolean;
   onToggleSelect?: () => void;
   onPlay: () => void;
   onPause: () => void;
@@ -90,6 +93,8 @@ export function SceneVideoCard({
   isSelected,
   hasPendingRegeneration = false,
   isReadOnly = false,
+  isAuthenticated = true,
+  isFirstVideo = false,
   onToggleSelect,
   onPlay,
   onPause,
@@ -97,6 +102,9 @@ export function SceneVideoCard({
   buildFullI2VPrompt,
 }: SceneVideoCardProps) {
   const t = useTranslations();
+
+  // Determine if this video is restricted (non-first video for unauthenticated users)
+  const isRestricted = !isAuthenticated && scene.videoUrl && !isFirstVideo;
 
   return (
     <motion.div
@@ -107,7 +115,7 @@ export function SceneVideoCard({
       <Card className="glass border-white/10 overflow-hidden">
         {/* Video/Image Preview */}
         <div className="relative aspect-video bg-black/30">
-          {scene.videoUrl ? (
+          {scene.videoUrl && !isRestricted ? (
             <video
               src={cachedVideoUrl || scene.videoUrl}
               className="w-full h-full object-cover"
@@ -118,6 +126,7 @@ export function SceneVideoCard({
               onPause={onPause}
             />
           ) : scene.imageUrl ? (
+            /* For restricted videos, show only the thumbnail image */
             <img
               key={scene.imageUrl}
               src={scene.imageUrl}
@@ -150,14 +159,32 @@ export function SceneVideoCard({
 
           {/* Play Button Overlay (for completed videos) */}
           {scene.videoUrl && !isPlaying && (
-            <button
-              onClick={onPlay}
-              className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
-            >
-              <div className="w-14 h-14 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors backdrop-blur-sm">
-                <Play className="w-6 h-6 text-white ml-1" />
-              </div>
-            </button>
+            isRestricted ? (
+              /* Sign-in required overlay for restricted videos */
+              <a
+                href="/auth/register"
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer hover:bg-black/70 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2">
+                  <Lock className="w-5 h-5 text-white/70" />
+                </div>
+                <p className="text-xs text-white/80 text-center px-2">
+                  You need to sign in to see more
+                </p>
+                <span className="text-xs text-orange-400 mt-1 underline">
+                  Sign up free
+                </span>
+              </a>
+            ) : (
+              <button
+                onClick={onPlay}
+                className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+              >
+                <div className="w-14 h-14 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors backdrop-blur-sm">
+                  <Play className="w-6 h-6 text-white ml-1" />
+                </div>
+              </button>
+            )
           )}
 
           {/* Scene Number Badge */}
@@ -253,8 +280,8 @@ export function SceneVideoCard({
                   </TooltipProvider>
                 )}
 
-                {/* Download button - always visible */}
-                {scene.videoUrl && (
+                {/* Download button - only visible for authenticated users or first video */}
+                {scene.videoUrl && !isRestricted && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>

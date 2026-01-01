@@ -20,12 +20,17 @@ import {
   ProviderInfo,
 } from './voiceover-generator/components';
 
-export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = false }: Step5Props) {
+export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
   const { updateVoiceSettings, updateCharacter, projects } = useProjectStore();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
+
+  // Find the first dialogue line overall (for unauthenticated user restriction)
+  // Only the first dialogue line is accessible to unauthenticated users
+  const allDialogues = project.scenes.flatMap(s => s.dialogue);
+  const firstDialogueLineId = allDialogues.length > 0 ? allDialogues[0].id : null;
 
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [volume, setVolume] = useState([75]);
@@ -72,7 +77,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = 
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
       {/* Header */}
       <div className="text-center">
         <motion.div
@@ -155,8 +160,8 @@ export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = 
         </div>
       )}
 
-      {/* Dialogue Lines by Scene */}
-      <div className="space-y-6">
+      {/* Dialogue Lines by Scene - 3 column grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {project.scenes
           .filter((scene) => scene.dialogue.length > 0)
           .map((scene, sceneIndex) => (
@@ -169,6 +174,8 @@ export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = 
               playingAudio={playingAudio}
               provider={project.voiceSettings.provider}
               isReadOnly={isReadOnly}
+              isAuthenticated={isAuthenticated}
+              firstDialogueLineId={firstDialogueLineId}
               onTogglePlay={togglePlay}
               onGenerateAudio={generateAudioForLine}
               onAudioRef={setAudioRef}

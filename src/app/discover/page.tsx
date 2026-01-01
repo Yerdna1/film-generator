@@ -84,10 +84,10 @@ export default function DiscoverPage() {
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffDays < 1) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 1) return t('discover.today');
+    if (diffDays === 1) return t('discover.yesterday');
+    if (diffDays < 7) return t('discover.daysAgo', { days: diffDays });
+    if (diffDays < 30) return t('discover.weeksAgo', { weeks: Math.floor(diffDays / 7) });
     return date.toLocaleDateString();
   };
 
@@ -102,9 +102,9 @@ export default function DiscoverPage() {
                 <Globe className="w-8 h-8 text-green-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Discover</h1>
+                <h1 className="text-2xl font-bold">{t('discover.title')}</h1>
                 <p className="text-muted-foreground">
-                  Explore public film projects from the community
+                  {t('discover.subtitle')}
                 </p>
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function DiscoverPage() {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search projects..."
+                placeholder={t('discover.searchPlaceholder')}
                 className="pl-10 bg-white/5 border-white/10"
               />
             </div>
@@ -129,7 +129,7 @@ export default function DiscoverPage() {
           <div className="flex items-center justify-center min-h-[40vh]">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading public projects...</p>
+              <p className="text-muted-foreground">{t('discover.loading')}</p>
             </div>
           </div>
         ) : filteredProjects.length === 0 ? (
@@ -138,18 +138,18 @@ export default function DiscoverPage() {
               <Film className="w-12 h-12 text-muted-foreground/50" />
             </div>
             <h2 className="text-xl font-semibold mb-2">
-              {searchQuery ? 'No projects found' : 'No public projects yet'}
+              {searchQuery ? t('discover.noProjectsFound') : t('discover.noPublicProjects')}
             </h2>
             <p className="text-muted-foreground max-w-md">
               {searchQuery
-                ? 'Try adjusting your search query'
-                : 'Be the first to share your film project with the community!'}
+                ? t('discover.tryAdjusting')
+                : t('discover.beFirst')}
             </p>
           </div>
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-6">
-              {filteredProjects.length} public project{filteredProjects.length !== 1 ? 's' : ''}
+              {filteredProjects.length} {filteredProjects.length !== 1 ? t('discover.publicProjectsPlural') : t('discover.publicProjects')}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -189,7 +189,7 @@ export default function DiscoverPage() {
                         <div className="absolute top-2 right-2">
                           <Badge className="bg-green-500/80 text-white border-0 text-xs">
                             <Globe className="w-3 h-3 mr-1" />
-                            Public
+                            {t('discover.publicBadge')}
                           </Badge>
                         </div>
 
@@ -241,7 +241,7 @@ export default function DiscoverPage() {
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-sm text-muted-foreground truncate max-w-[100px]">
-                              {project.owner.name || 'Anonymous'}
+                              {project.owner.name || t('discover.anonymous')}
                             </span>
                           </div>
                           <span className="text-xs text-muted-foreground">

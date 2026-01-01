@@ -7,6 +7,7 @@ export interface Step5Props {
   permissions?: ProjectPermissions | null;
   userRole?: ProjectRole | null;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
 }
 
 export type AudioState = Record<string, ItemGenerationState>;
@@ -104,6 +105,8 @@ export interface DialogueLineCardProps {
   isPlaying: boolean;
   provider: VoiceProvider;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
+  isFirstDialogue?: boolean;
   onTogglePlay: () => void;
   onGenerate: () => void;
   onAudioRef: (el: HTMLAudioElement | null) => void;
@@ -123,6 +126,8 @@ export interface SceneDialogueCardProps {
   playingAudio: string | null;
   provider: VoiceProvider;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
+  firstDialogueLineId?: string | null;
   onTogglePlay: (lineId: string) => void;
   onGenerateAudio: (lineId: string, sceneId: string) => void;
   onAudioRef: (lineId: string, el: HTMLAudioElement | null) => void;

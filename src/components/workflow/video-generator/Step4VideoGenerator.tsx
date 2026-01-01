@@ -22,9 +22,10 @@ interface Step4Props {
   permissions?: ProjectPermissions | null;
   userRole?: ProjectRole | null;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
 }
 
-export function Step4VideoGenerator({ project: initialProject, isReadOnly = false }: Step4Props) {
+export function Step4VideoGenerator({ project: initialProject, isReadOnly = false, isAuthenticated = false }: Step4Props) {
   const t = useTranslations();
 
   const {
@@ -173,6 +174,13 @@ export function Step4VideoGenerator({ project: initialProject, isReadOnly = fals
             ? videoBlobCache.current.get(scene.videoUrl) || scene.videoUrl
             : undefined;
 
+          // Find the index of this scene among scenes that have videos (for auth restriction)
+          const scenesWithVideosSorted = project.scenes
+            .filter(s => s.videoUrl)
+            .sort((a, b) => (a.number || 0) - (b.number || 0));
+          const videoIndex = scenesWithVideosSorted.findIndex(s => s.id === scene.id);
+          const isFirstVideo = videoIndex === 0;
+
           return (
             <SceneVideoCard
               key={scene.id}
@@ -185,6 +193,8 @@ export function Step4VideoGenerator({ project: initialProject, isReadOnly = fals
               isSelected={selectedScenes.has(scene.id)}
               hasPendingRegeneration={pendingVideoRegenSceneIds.has(scene.id)}
               isReadOnly={isReadOnly}
+              isAuthenticated={isAuthenticated}
+              isFirstVideo={isFirstVideo}
               onToggleSelect={() => toggleSceneSelection(scene.id)}
               onPlay={() => setPlayingVideo(scene.id)}
               onPause={() => setPlayingVideo(null)}

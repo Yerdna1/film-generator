@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { AlertCircle, Sparkles, ArrowRight, Loader2, RefreshCw, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ export function InsufficientCreditsModal({
   regenerationContext,
   onRequestApproval,
 }: InsufficientCreditsModalProps) {
+  const t = useTranslations();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [requestingApproval, setRequestingApproval] = useState(false);
@@ -137,10 +139,10 @@ export function InsufficientCreditsModal({
             <div className="p-2 rounded-full bg-red-500/20">
               <AlertCircle className="w-6 h-6 text-red-400" />
             </div>
-            <DialogTitle className="text-xl">Insufficient Credits</DialogTitle>
+            <DialogTitle className="text-xl">{t('insufficientCredits.title')}</DialogTitle>
           </div>
           <DialogDescription>
-            You need more credits to continue with this operation.
+            {t('insufficientCredits.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -148,19 +150,19 @@ export function InsufficientCreditsModal({
           {/* Credit Status */}
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
             <div>
-              <div className="text-sm text-muted-foreground">Required</div>
-              <div className="text-lg font-semibold text-red-400">{required} credits</div>
+              <div className="text-sm text-muted-foreground">{t('insufficientCredits.required')}</div>
+              <div className="text-lg font-semibold text-red-400">{required} {t('credits.points')}</div>
             </div>
             <div className="text-2xl text-muted-foreground">/</div>
             <div>
-              <div className="text-sm text-muted-foreground">Your Balance</div>
-              <div className="text-lg font-semibold">{balance} credits</div>
+              <div className="text-sm text-muted-foreground">{t('insufficientCredits.yourBalance')}</div>
+              <div className="text-lg font-semibold">{balance} {t('credits.points')}</div>
             </div>
           </div>
 
           {/* Quick Upgrade Options */}
           <div className="space-y-2">
-            <div className="text-sm font-medium mb-2">Quick Upgrade</div>
+            <div className="text-sm font-medium mb-2">{t('insufficientCredits.quickUpgrade')}</div>
             {Object.entries(quickPlans).map(([key, plan]) => (
               <motion.button
                 key={key}
@@ -175,7 +177,7 @@ export function InsufficientCreditsModal({
                   <div>
                     <div className="font-medium">{plan.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {plan.credits.toLocaleString()} credits/month
+                      {plan.credits.toLocaleString()} {t('insufficientCredits.creditsMonth')}
                     </div>
                   </div>
                 </div>
@@ -197,7 +199,7 @@ export function InsufficientCreditsModal({
             variant="outline"
             className="w-full"
           >
-            View All Plans
+            {t('insufficientCredits.viewAllPlans')}
           </Button>
 
           {/* Request Admin Approval - Only shown when regeneration context is available */}
@@ -208,7 +210,7 @@ export function InsufficientCreditsModal({
                   <span className="w-full border-t border-muted" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">or</span>
+                  <span className="bg-background px-2 text-muted-foreground">{t('insufficientCredits.or')}</span>
                 </div>
               </div>
 
@@ -219,9 +221,9 @@ export function InsufficientCreditsModal({
                   className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-center"
                 >
                   <UserCheck className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-cyan-400">Request Submitted!</p>
+                  <p className="text-sm font-medium text-cyan-400">{t('insufficientCredits.requestSubmitted')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The admin will be notified to approve your regeneration request.
+                    {t('insufficientCredits.adminNotified')}
                   </p>
                 </motion.div>
               ) : (
@@ -231,13 +233,13 @@ export function InsufficientCreditsModal({
                       <RefreshCw className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-cyan-400">
-                          Request Admin Approval
+                          {t('insufficientCredits.requestAdminApproval')}
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Ask the project admin to regenerate this {regenerationContext.targetType} using their credits.
+                          {t('insufficientCredits.askAdmin', { type: regenerationContext.targetType })}
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Scene {regenerationContext.sceneNumber}: {regenerationContext.sceneName}
+                          {t('insufficientCredits.scene')} {regenerationContext.sceneNumber}: {regenerationContext.sceneName}
                         </p>
                       </div>
                     </div>
@@ -257,12 +259,12 @@ export function InsufficientCreditsModal({
                     {requestingApproval ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Submitting Request...
+                        {t('insufficientCredits.submittingRequest')}
                       </>
                     ) : (
                       <>
                         <UserCheck className="w-4 h-4 mr-2" />
-                        Request Admin Approval
+                        {t('insufficientCredits.requestAdminApproval')}
                       </>
                     )}
                   </Button>

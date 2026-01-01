@@ -71,6 +71,7 @@ export async function GET(
       permissions,
       isOwner: userId ? project.userId === userId : false,
       isPublic,
+      isAuthenticated: !!userId,
       owner: project.user,
     };
 

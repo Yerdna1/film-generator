@@ -24,9 +24,10 @@ interface Step3Props {
   permissions?: ProjectPermissions | null;
   userRole?: ProjectRole | null;
   isReadOnly?: boolean;
+  isAuthenticated?: boolean;
 }
 
-export function Step3SceneGenerator({ project: initialProject, isReadOnly = false }: Step3Props) {
+export function Step3SceneGenerator({ project: initialProject, isReadOnly = false, isAuthenticated = false }: Step3Props) {
   const { apiConfig, setApiConfig } = useProjectStore();
   const imageProvider: ImageProvider = apiConfig.imageProvider || 'gemini';
 
@@ -222,28 +223,39 @@ export function Step3SceneGenerator({ project: initialProject, isReadOnly = fals
 
       {/* Scenes Grid - 2-3-4-5 columns like Step 4 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-        {paginatedScenes.map((scene, idx) => (
-          <SceneCard
-            key={scene.id}
-            scene={scene}
-            index={(currentPage - 1) * SCENES_PER_PAGE + idx}
-            isExpanded={expandedScenes.includes(scene.id)}
-            isGeneratingImage={generatingImageForScene === scene.id}
-            isGeneratingAllImages={isGeneratingAllImages}
-            imageResolution={imageResolution}
-            characters={project.characters}
-            isSelected={selectedScenes.has(scene.id)}
-            hasPendingRegeneration={pendingImageRegenSceneIds.has(scene.id)}
-            isReadOnly={isReadOnly}
-            onToggleSelect={() => toggleSceneSelection(scene.id)}
-            onToggleExpand={() => toggleExpanded(scene.id)}
-            onDelete={() => deleteScene(scene.id)}
-            onEdit={() => startEditScene(scene)}
-            onGenerateImage={() => handleGenerateSceneImage(scene)}
-            onRegeneratePrompts={() => regeneratePrompts(scene)}
-            onPreviewImage={setPreviewImage}
-          />
-        ))}
+        {paginatedScenes.map((scene, idx) => {
+          // Find the index of this scene among scenes that have images (for auth restriction)
+          const scenesWithImagesSorted = project.scenes
+            .filter(s => s.imageUrl)
+            .sort((a, b) => (a.number || 0) - (b.number || 0));
+          const imageIndex = scenesWithImagesSorted.findIndex(s => s.id === scene.id);
+          const isFirstImage = imageIndex === 0;
+
+          return (
+            <SceneCard
+              key={scene.id}
+              scene={scene}
+              index={(currentPage - 1) * SCENES_PER_PAGE + idx}
+              isExpanded={expandedScenes.includes(scene.id)}
+              isGeneratingImage={generatingImageForScene === scene.id}
+              isGeneratingAllImages={isGeneratingAllImages}
+              imageResolution={imageResolution}
+              characters={project.characters}
+              isSelected={selectedScenes.has(scene.id)}
+              hasPendingRegeneration={pendingImageRegenSceneIds.has(scene.id)}
+              isReadOnly={isReadOnly}
+              isAuthenticated={isAuthenticated}
+              isFirstImage={isFirstImage}
+              onToggleSelect={() => toggleSceneSelection(scene.id)}
+              onToggleExpand={() => toggleExpanded(scene.id)}
+              onDelete={() => deleteScene(scene.id)}
+              onEdit={() => startEditScene(scene)}
+              onGenerateImage={() => handleGenerateSceneImage(scene)}
+              onRegeneratePrompts={() => regeneratePrompts(scene)}
+              onPreviewImage={setPreviewImage}
+            />
+          );
+        })}
       </div>
 
       {/* Add Scene Button - only for editors */}

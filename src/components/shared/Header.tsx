@@ -43,9 +43,8 @@ export function Header() {
   const user = session?.user;
 
   const navItems = [
-    { href: '/', label: t('nav.dashboard'), icon: Film },
-    { href: '/projects', label: t('nav.projects'), icon: Sparkles },
-    { href: '/discover', label: 'Discover', icon: Globe },
+    { href: '/projects', label: t('nav.projects'), icon: Film },
+    { href: '/discover', label: t('nav.discover'), icon: Globe },
   ];
 
   return (
@@ -172,13 +171,13 @@ export function Header() {
                   <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
                     <Link href="/profile">
                       <User className="w-4 h-4 mr-2" />
-                      Profile
+                      {t('nav.profile')}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
                     <Link href="/statistics">
                       <BarChart3 className="w-4 h-4 mr-2" />
-                      Statistics
+                      {t('nav.statistics')}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
@@ -193,7 +192,7 @@ export function Header() {
                       <DropdownMenuItem className="cursor-pointer hover:bg-amber-500/10 text-amber-600 dark:text-amber-400" asChild>
                         <Link href="/admin">
                           <Shield className="w-4 h-4 mr-2" />
-                          Admin
+                          {t('nav.admin')}
                         </Link>
                       </DropdownMenuItem>
                     </>
