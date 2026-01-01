@@ -335,25 +335,27 @@ export default function ProjectWorkspacePage() {
                 </Button>
               )}
 
-              {/* Team/Collaboration button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setCollaborationOpen(true)}
-                className="text-muted-foreground hover:text-foreground gap-2"
-              >
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('collaboration.team')}</span>
-                {userRole && (
-                  <span className={`hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
-                    userRole === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
-                    userRole === 'collaborator' ? 'bg-purple-500/20 text-purple-400' :
-                    'bg-cyan-500/20 text-cyan-400'
-                  }`}>
-                    {roleLabels[userRole]}
-                  </span>
-                )}
-              </Button>
+              {/* Team/Collaboration button - hide for read-only viewers */}
+              {permissions?.canEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCollaborationOpen(true)}
+                  className="text-muted-foreground hover:text-foreground gap-2"
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('collaboration.team')}</span>
+                  {userRole && (
+                    <span className={`hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
+                      userRole === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
+                      userRole === 'collaborator' ? 'bg-purple-500/20 text-purple-400' :
+                      'bg-cyan-500/20 text-cyan-400'
+                    }`}>
+                      {roleLabels[userRole]}
+                    </span>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>

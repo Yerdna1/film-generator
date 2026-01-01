@@ -109,17 +109,19 @@ export function Header() {
             {/* Language Switcher */}
             <LanguageSwitcher />
 
-            {/* Settings */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
-              asChild
-            >
-              <Link href="/settings">
-                <Settings className="w-5 h-5" />
-              </Link>
-            </Button>
+            {/* Settings - only for logged-in users */}
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                asChild
+              >
+                <Link href="/settings">
+                  <Settings className="w-5 h-5" />
+                </Link>
+              </Button>
+            )}
 
             {/* Theme Toggle */}
             <ThemeToggle />
