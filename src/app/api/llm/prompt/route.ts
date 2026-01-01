@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { spendCredits, checkBalance, COSTS } from '@/lib/services/credits';
 import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
+import type { Provider } from '@/lib/services/real-costs';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
 
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
       'prompt',
       `Master prompt enhancement via ${providerName}`,
       undefined,
-      providerName
+      providerName as Provider
     );
 
     if (!spendResult.success) {
