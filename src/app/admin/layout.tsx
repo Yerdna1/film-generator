@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { Shield, Loader2 } from 'lucide-react';
 
-const ADMIN_EMAIL = 'andrejgalad@gmail.com';
+const ADMIN_EMAIL = 'andrej.galad@gmail.com';
 
 export default function AdminLayout({
   children,

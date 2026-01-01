@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { getAppConfig, updateAppConfig } from '@/lib/services/app-config';
 
 // Only admin email can access this endpoint
-const ADMIN_EMAIL = 'andrejgalad@gmail.com';
+const ADMIN_EMAIL = 'andrej.galad@gmail.com';
 
 export async function GET() {
   try {

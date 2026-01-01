@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { sendNotificationEmail } from '@/lib/services/email';
 
-const ADMIN_EMAIL = 'andrejgalad@gmail.com';
+const ADMIN_EMAIL = 'andrej.galad@gmail.com';
 
 interface RouteParams {
   params: Promise<{ userId: string }>;

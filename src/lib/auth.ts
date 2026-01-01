@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db/prisma';
 import type { Provider } from 'next-auth/providers';
 import { sendNotificationEmail } from '@/lib/services/email';
 
-const ADMIN_EMAIL = 'andrejgalad@gmail.com';
+const ADMIN_EMAIL = 'andrej.galad@gmail.com';
 
 // Check if Google OAuth is configured
 const isGoogleConfigured =
@@ -81,12 +81,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
+      if (session.user) {
         session.user.id = token.id as string;
+        session.user.email = token.email as string;
       }
       return session;
     },

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 
-const ADMIN_EMAIL = 'andrejgalad@gmail.com';
+const ADMIN_EMAIL = 'andrej.galad@gmail.com';
 
 // GET - List all users with their credits
 export async function GET() {

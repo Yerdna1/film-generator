@@ -183,7 +183,7 @@ export function Header() {
                       {t('nav.settings')}
                     </Link>
                   </DropdownMenuItem>
-                  {user.email === 'andrejgalad@gmail.com' && (
+                  {user.email === 'andrej.galad@gmail.com' && (
                     <>
                       <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
                       <DropdownMenuItem className="cursor-pointer hover:bg-amber-500/10 text-amber-600 dark:text-amber-400" asChild>
