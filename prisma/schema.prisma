@@ -173,6 +173,7 @@ model Project {
   masterPrompt String? @db.Text
   currentStep Int      @default(1)
   isComplete  Boolean  @default(false)
+  visibility  String   @default("private") // "private" | "public"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -192,6 +193,7 @@ model Project {
   regenerationRequests RegenerationRequest[]
 
   @@index([userId])
+  @@index([visibility])
 }
 
 // Characters

@@ -19,6 +19,7 @@ import {
   LogIn,
   BarChart3,
   Shield,
+  Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +45,7 @@ export function Header() {
   const navItems = [
     { href: '/', label: t('nav.dashboard'), icon: Film },
     { href: '/projects', label: t('nav.projects'), icon: Sparkles },
+    { href: '/discover', label: 'Discover', icon: Globe },
   ];
 
   return (

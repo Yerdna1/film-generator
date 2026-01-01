@@ -53,15 +53,16 @@ export const ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermissions> = {
 /**
  * Get user's role for a specific project
  * Checks both ownership (legacy userId) and ProjectMember table
+ * For public projects, returns 'reader' role if user has no specific access
  */
 export async function getUserProjectRole(
-  userId: string,
+  userId: string | null,
   projectId: string
 ): Promise<ProjectRole | null> {
   // First check if user is the project owner (admin)
   const project = await prisma.project.findFirst({
     where: { id: projectId },
-    select: { userId: true },
+    select: { userId: true, visibility: true },
   });
 
   if (!project) {
@@ -69,23 +70,30 @@ export async function getUserProjectRole(
   }
 
   // Owner is always admin
-  if (project.userId === userId) {
+  if (userId && project.userId === userId) {
     return 'admin';
   }
 
-  // Check ProjectMember table
-  const membership = await prisma.projectMember.findUnique({
-    where: {
-      projectId_userId: {
-        projectId,
-        userId,
+  // Check ProjectMember table for logged-in users
+  if (userId) {
+    const membership = await prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
       },
-    },
-    select: { role: true },
-  });
+      select: { role: true },
+    });
 
-  if (membership) {
-    return membership.role as ProjectRole;
+    if (membership) {
+      return membership.role as ProjectRole;
+    }
+  }
+
+  // Public projects grant reader access to anyone
+  if (project.visibility === 'public') {
+    return 'reader';
   }
 
   return null;
@@ -111,9 +119,10 @@ export async function checkPermission(
 /**
  * Get project with user's role and permissions
  * Returns null if user has no access
+ * userId can be null for public project access
  */
 export async function getProjectWithPermissions(
-  userId: string,
+  userId: string | null,
   projectId: string
 ) {
   const role = await getUserProjectRole(userId, projectId);
@@ -129,6 +138,13 @@ export async function getProjectWithPermissions(
       scenes: {
         orderBy: { number: 'asc' },
       },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
     },
   });
 
@@ -140,6 +156,7 @@ export async function getProjectWithPermissions(
     project,
     role,
     permissions: ROLE_PERMISSIONS[role],
+    isPublic: project.visibility === 'public',
   };
 }
 
@@ -272,4 +289,74 @@ export async function getProjectAdmins(projectId: string): Promise<string[]> {
   }
 
   return adminIds;
+}
+
+/**
+ * Get all public projects for the discover page
+ * Returns projects sorted by most recently updated
+ */
+export async function getPublicProjects(options?: {
+  limit?: number;
+  offset?: number;
+  excludeUserId?: string; // Exclude projects owned by this user (for discover page)
+}) {
+  const { limit = 50, offset = 0, excludeUserId } = options || {};
+
+  const publicProjects = await prisma.project.findMany({
+    where: {
+      visibility: 'public',
+      ...(excludeUserId && { userId: { not: excludeUserId } }),
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+      scenes: {
+        orderBy: { number: 'asc' },
+        take: 1, // Just get first scene for thumbnail
+        select: {
+          imageUrl: true,
+        },
+      },
+      _count: {
+        select: {
+          scenes: true,
+          characters: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: limit,
+    skip: offset,
+  });
+
+  // Get total count for pagination
+  const totalCount = await prisma.project.count({
+    where: {
+      visibility: 'public',
+      ...(excludeUserId && { userId: { not: excludeUserId } }),
+    },
+  });
+
+  return {
+    projects: publicProjects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      style: project.style,
+      story: project.story as { title?: string; concept?: string; genre?: string },
+      visibility: project.visibility,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      owner: project.user,
+      thumbnailUrl: project.scenes[0]?.imageUrl || null,
+      scenesCount: project._count.scenes,
+      charactersCount: project._count.characters,
+    })),
+    totalCount,
+    hasMore: offset + publicProjects.length < totalCount,
+  };
 }

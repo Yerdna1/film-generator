@@ -5,6 +5,7 @@ import { cache, cacheKeys } from '@/lib/cache';
 import { getProjectWithPermissions, verifyPermission, getUserProjectRole } from '@/lib/permissions';
 
 // GET - Fetch single project with all data
+// Supports public projects without authentication
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,16 +13,10 @@ export async function GET(
   try {
     const session = await auth();
     const { id } = await params;
+    const userId = session?.user?.id || null;
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Use permission system to check access
-    const result = await getProjectWithPermissions(session.user.id, id);
+    // Use permission system to check access (supports null userId for public projects)
+    const result = await getProjectWithPermissions(userId, id);
 
     if (!result) {
       return NextResponse.json(
@@ -30,7 +25,7 @@ export async function GET(
       );
     }
 
-    const { project, role, permissions } = result;
+    const { project, role, permissions, isPublic } = result;
 
     const transformedProject = {
       id: project.id,
@@ -40,6 +35,7 @@ export async function GET(
       masterPrompt: project.masterPrompt,
       currentStep: project.currentStep,
       isComplete: project.isComplete,
+      visibility: project.visibility,
       createdAt: project.createdAt.toISOString(),
       updatedAt: project.updatedAt.toISOString(),
       settings: project.settings as object,
@@ -73,7 +69,9 @@ export async function GET(
       // Include collaboration info
       role,
       permissions,
-      isOwner: project.userId === session.user.id,
+      isOwner: userId ? project.userId === userId : false,
+      isPublic,
+      owner: project.user,
     };
 
     return NextResponse.json(transformedProject);
@@ -130,6 +128,7 @@ export async function PUT(
       masterPrompt,
       currentStep,
       isComplete,
+      visibility,
       settings,
       story,
       voiceSettings,
@@ -157,6 +156,7 @@ export async function PUT(
         ...(masterPrompt !== undefined && { masterPrompt }),
         ...(currentStep !== undefined && { currentStep }),
         ...(isComplete !== undefined && { isComplete }),
+        ...(visibility !== undefined && { visibility }),
         ...(settings !== undefined && { settings }),
         ...(story !== undefined && { story }),
         ...(voiceSettings !== undefined && { voiceSettings }),

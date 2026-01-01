@@ -13,9 +13,12 @@ import {
   Crown,
   Edit3,
   Eye,
+  Globe,
+  Lock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { MembersPanel } from '@/components/collaboration/MembersPanel';
 import { ApprovalPanel } from '@/components/collaboration/ApprovalPanel';
@@ -71,6 +74,8 @@ export default function ProjectWorkspacePage() {
   const [collaborationOpen, setCollaborationOpen] = useState(false);
   const [userRole, setUserRole] = useState<ProjectRole | null>(null);
   const [permissions, setPermissions] = useState<ProjectPermissions | null>(null);
+  const [visibility, setVisibility] = useState<'private' | 'public'>('private');
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
 
   // Fetch user permissions for this project
   const fetchPermissions = useCallback(async (projectId: string) => {
@@ -85,6 +90,40 @@ export default function ProjectWorkspacePage() {
       console.error('Failed to fetch permissions:', e);
     }
   }, []);
+
+  // Fetch project visibility
+  const fetchVisibility = useCallback(async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setVisibility(data.visibility || 'private');
+      }
+    } catch (e) {
+      console.error('Failed to fetch visibility:', e);
+    }
+  }, []);
+
+  // Toggle project visibility
+  const handleToggleVisibility = async () => {
+    if (!project) return;
+    setIsUpdatingVisibility(true);
+    const newVisibility = visibility === 'private' ? 'public' : 'private';
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibility: newVisibility }),
+      });
+      if (response.ok) {
+        setVisibility(newVisibility);
+      }
+    } catch (e) {
+      console.error('Failed to update visibility:', e);
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
+  };
 
   // Set mounted state after hydration
   useEffect(() => {
@@ -104,7 +143,8 @@ export default function ProjectWorkspacePage() {
     setProject(p);
     setCurrentProject(params.id as string);
     fetchPermissions(params.id as string);
-  }, [params.id, getProject, setCurrentProject, router, hasMounted, isLoading, fetchPermissions]);
+    fetchVisibility(params.id as string);
+  }, [params.id, getProject, setCurrentProject, router, hasMounted, isLoading, fetchPermissions, fetchVisibility]);
 
   // Track previous project state to avoid unnecessary re-renders
   const prevProjectRef = useRef<ReturnType<typeof getProject>>(undefined);
@@ -352,6 +392,40 @@ export default function ProjectWorkspacePage() {
                         </>
                       );
                     })()}
+                  </div>
+                )}
+
+                {/* Project Visibility Toggle (for admins) */}
+                {userRole === 'admin' && (
+                  <div className="p-4 bg-white/5 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {visibility === 'public' ? (
+                          <Globe className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className="font-medium">Project Visibility</p>
+                          <p className="text-sm text-muted-foreground">
+                            {visibility === 'public'
+                              ? 'Anyone can discover and view this project'
+                              : 'Only team members can access'}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={visibility === 'public'}
+                        onCheckedChange={handleToggleVisibility}
+                        disabled={isUpdatingVisibility}
+                      />
+                    </div>
+                    {visibility === 'public' && (
+                      <div className="text-xs text-green-400/70 flex items-center gap-1">
+                        <Globe className="w-3 h-3" />
+                        This project appears in the public Discover page
+                      </div>
+                    )}
                   </div>
                 )}
 
