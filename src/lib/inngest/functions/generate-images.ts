@@ -2,6 +2,7 @@ import { inngest } from '../client';
 import { prisma } from '@/lib/db/prisma';
 import { spendCredits, getImageCreditCost } from '@/lib/services/credits';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
+import { cache, cacheKeys } from '@/lib/cache';
 import type { ImageResolution, Provider } from '@/lib/services/real-costs';
 
 // Number of images to generate in parallel
@@ -147,6 +148,9 @@ async function generateSingleImage(
       where: { id: scene.sceneId },
       data: { imageUrl },
     });
+
+    // Invalidate cache so next fetch gets fresh data
+    cache.invalidate(cacheKeys.userProjects(userId));
 
     // Spend credits
     const creditCost = getImageCreditCost(resolution as ImageResolution);

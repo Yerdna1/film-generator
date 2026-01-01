@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { cache, cacheKeys } from '@/lib/cache';
 
 // PUT - Update scene
 export async function PUT(
@@ -71,6 +72,9 @@ export async function PUT(
       data: { updatedAt: new Date() },
     });
 
+    // Invalidate projects cache so next fetch gets fresh data
+    cache.invalidate(cacheKeys.userProjects(session.user.id));
+
     return NextResponse.json({
       id: scene.id,
       number: scene.number,
@@ -134,6 +138,9 @@ export async function DELETE(
       where: { id: projectId },
       data: { updatedAt: new Date() },
     });
+
+    // Invalidate projects cache
+    cache.invalidate(cacheKeys.userProjects(session.user.id));
 
     return NextResponse.json({ success: true });
   } catch (error) {
