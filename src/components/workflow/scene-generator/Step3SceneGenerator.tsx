@@ -85,6 +85,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
     toggleSceneSelection,
     clearSelection,
     selectAllWithImages,
+    selectAll,
     handleRegenerateSelected,
 
     // Edit State
@@ -228,7 +229,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
             imageResolution={imageResolution}
             characters={project.characters}
             isSelected={selectedScenes.has(scene.id)}
-            onToggleSelect={scene.imageUrl ? () => toggleSceneSelection(scene.id) : undefined}
+            onToggleSelect={() => toggleSceneSelection(scene.id)}
             onToggleExpand={() => toggleExpanded(scene.id)}
             onDelete={() => deleteScene(scene.id)}
             onEdit={() => startEditScene(scene)}
@@ -295,6 +296,7 @@ export function Step3SceneGenerator({ project: initialProject }: Step3Props) {
         onStopGeneration={handleStopImageGeneration}
         backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
         selectedCount={selectedScenes.size}
+        onSelectAll={selectAll}
         onSelectAllWithImages={selectAllWithImages}
         onClearSelection={clearSelection}
         onRegenerateSelected={() => {

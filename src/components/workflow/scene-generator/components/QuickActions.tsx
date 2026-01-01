@@ -25,6 +25,7 @@ interface QuickActionsProps {
   backgroundJobProgress?: number;
   // Selection props
   selectedCount?: number;
+  onSelectAll?: () => void;
   onSelectAllWithImages?: () => void;
   onClearSelection?: () => void;
   onRegenerateSelected?: () => void;
@@ -45,6 +46,7 @@ export function QuickActions({
   onStopGeneration,
   backgroundJobProgress,
   selectedCount = 0,
+  onSelectAll,
   onSelectAllWithImages,
   onClearSelection,
   onRegenerateSelected,
@@ -55,20 +57,32 @@ export function QuickActions({
 
   return (
     <div className="space-y-4">
-      {/* Selection Controls - Show when scenes have images */}
-      {scenesWithImages > 0 && onSelectAllWithImages && onClearSelection && onRegenerateSelected && (
+      {/* Selection Controls */}
+      {totalScenes > 0 && onSelectAll && onClearSelection && (
         <div className="flex flex-wrap gap-3 justify-center items-center glass rounded-xl p-3">
           <span className="text-sm text-muted-foreground">Selection:</span>
           <Button
             variant="outline"
             size="sm"
             className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-            onClick={onSelectAllWithImages}
+            onClick={onSelectAll}
             disabled={isGeneratingAllImages}
           >
             <CheckSquare className="w-4 h-4 mr-2" />
-            Select All ({scenesWithImages})
+            Select All ({totalScenes})
           </Button>
+          {scenesWithImages > 0 && onSelectAllWithImages && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              onClick={onSelectAllWithImages}
+              disabled={isGeneratingAllImages}
+            >
+              <CheckSquare className="w-4 h-4 mr-2" />
+              With Images ({scenesWithImages})
+            </Button>
+          )}
           {selectedCount > 0 && (
             <>
               <Button

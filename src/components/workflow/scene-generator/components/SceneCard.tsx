@@ -130,6 +130,19 @@ function SceneCardComponent({
                     {index + 1}
                   </div>
                   <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                  {/* Selection checkbox */}
+                  {onToggleSelect && (
+                    <div
+                      className="absolute top-1 right-1 z-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={onToggleSelect}
+                        className="h-5 w-5 border-2 border-white/50 bg-black/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

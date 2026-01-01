@@ -14,7 +14,7 @@ export const useProjectStore = create<ProjectStore>()((set, get) => ({
   projects: [],
   currentProject: null,
   apiConfig: {},
-  isLoading: false,
+  isLoading: true, // Start as true until first DB load completes
   isSyncing: false,
   lastSyncError: null,
 

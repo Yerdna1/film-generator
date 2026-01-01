@@ -42,7 +42,7 @@ export default function ProjectWorkspacePage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations();
-  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep } = useProjectStore();
+  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading } = useProjectStore();
 
   // Track hydration state to prevent SSR mismatch
   const [hasMounted, setHasMounted] = useState(false);
@@ -55,6 +55,8 @@ export default function ProjectWorkspacePage() {
 
   useEffect(() => {
     if (!hasMounted) return;
+    // Wait for store to finish loading before checking project
+    if (isLoading) return;
 
     const p = getProject(params.id as string);
     if (!p) {
@@ -63,7 +65,7 @@ export default function ProjectWorkspacePage() {
     }
     setProject(p);
     setCurrentProject(params.id as string);
-  }, [params.id, getProject, setCurrentProject, router, hasMounted]);
+  }, [params.id, getProject, setCurrentProject, router, hasMounted, isLoading]);
 
   // Track previous project state to avoid unnecessary re-renders
   const prevProjectRef = useRef<ReturnType<typeof getProject>>(undefined);

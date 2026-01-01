@@ -705,6 +705,11 @@ export function useSceneGenerator(initialProject: Project) {
     setSelectedScenes(new Set(scenesWithImgs));
   }, [project.scenes]);
 
+  const selectAll = useCallback(() => {
+    const allIds = project.scenes.map(s => s.id);
+    setSelectedScenes(new Set(allIds));
+  }, [project.scenes]);
+
   // Regenerate selected scenes
   const handleRegenerateSelected = useCallback(async () => {
     if (selectedScenes.size === 0) return;
@@ -788,6 +793,7 @@ export function useSceneGenerator(initialProject: Project) {
     toggleSceneSelection,
     clearSelection,
     selectAllWithImages,
+    selectAll,
     handleRegenerateSelected,
 
     // Background Job State (Inngest) - for images
