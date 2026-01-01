@@ -3,7 +3,4 @@ import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
   schema: path.join(__dirname, 'schema.prisma'),
-  seed: {
-    command: 'npx tsx prisma/seed.ts',
-  },
 })
