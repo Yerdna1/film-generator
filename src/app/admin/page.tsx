@@ -131,6 +131,8 @@ export default function AdminPage() {
         setCreditAmount('');
         setCreditReason('');
         fetchData();
+        // Dispatch event to update credits display in header/dashboard
+        window.dispatchEvent(new CustomEvent('credits-updated'));
       } else {
         toast.error(data.error);
       }
