@@ -46,6 +46,7 @@ export interface ProjectActions {
   updateScene: (projectId: string, sceneId: string, updates: Partial<Scene>) => Promise<void>;
   deleteScene: (projectId: string, sceneId: string) => Promise<void>;
   setScenes: (projectId: string, scenes: Scene[]) => void;
+  refreshScenes: (projectId: string, scenes: Scene[]) => void;
 
   // Settings actions
   updateSettings: (projectId: string, settings: Partial<ProjectSettings>) => void;

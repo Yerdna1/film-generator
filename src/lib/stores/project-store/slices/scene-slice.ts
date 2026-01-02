@@ -9,6 +9,7 @@ export interface SceneSlice {
   updateScene: (projectId: string, sceneId: string, updates: Partial<Scene>) => Promise<void>;
   deleteScene: (projectId: string, sceneId: string) => Promise<void>;
   setScenes: (projectId: string, scenes: Scene[]) => void;
+  refreshScenes: (projectId: string, scenes: Scene[]) => void;
 }
 
 export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
@@ -193,5 +194,18 @@ export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
         toast.error('Network error - changes may not be saved');
       }
     });
+  },
+
+  // Refresh scenes from DB without syncing back (used for collaborator data refresh)
+  refreshScenes: (projectId, scenes) => {
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === projectId ? { ...p, scenes, updatedAt: new Date().toISOString() } : p
+      ),
+      currentProject:
+        state.currentProject?.id === projectId
+          ? { ...state.currentProject, scenes, updatedAt: new Date().toISOString() }
+          : state.currentProject,
+    }));
   },
 });

@@ -67,7 +67,7 @@ export default function ProjectWorkspacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
-  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject } = useProjectStore();
+  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject, refreshScenes } = useProjectStore();
 
   // Check if we're in approvals-only mode (from notification link)
   const isApprovalsMode = searchParams.get('tab') === 'approvals';
@@ -85,8 +85,8 @@ export default function ProjectWorkspacePage() {
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Fetch project data including visibility and permissions
-  const fetchProjectData = useCallback(async (projectId: string) => {
+  // Fetch project data including visibility, permissions, and refresh scenes
+  const fetchProjectData = useCallback(async (projectId: string, shouldRefreshScenes = false) => {
     setIsLoadingPermissions(true);
     try {
       const response = await fetch(`/api/projects/${projectId}`);
@@ -100,13 +100,19 @@ export default function ProjectWorkspacePage() {
           setPermissions(data.permissions);
         }
         setIsAuthenticated(data.isAuthenticated ?? false);
+
+        // For collaborators/readers, refresh scenes from DB to get latest approved images
+        // This ensures regenerated images approved by admin are visible
+        if (shouldRefreshScenes && data.scenes && data.role !== 'admin') {
+          refreshScenes(projectId, data.scenes);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch project data:', e);
     } finally {
       setIsLoadingPermissions(false);
     }
-  }, []);
+  }, [refreshScenes]);
 
   // Toggle project visibility
   const handleToggleVisibility = async () => {
@@ -191,8 +197,9 @@ export default function ProjectWorkspacePage() {
       // Project found in store
       setProject(p);
       setCurrentProject(projectId);
-      // Fetch permissions and visibility from API
-      fetchProjectData(projectId);
+      // Fetch permissions, visibility, and refresh scenes from API
+      // Pass true to refresh scenes for collaborators (ensures regenerated images are visible)
+      fetchProjectData(projectId, true);
     } else {
       // Project not in store - try fetching from API (for shared projects)
       // fetchProjectFromAPI already sets permissions/visibility
