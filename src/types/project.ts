@@ -154,6 +154,9 @@ export interface Project {
   isComplete: boolean;
   backgroundMusic?: BackgroundMusic; // Background music track
   musicVolume?: number; // 0-1, default 0.3
+  // Rendered video export
+  renderedVideoUrl?: string;
+  renderedDraftUrl?: string;
 }
 
 // LLM Provider selection - OpenRouter is default (works everywhere including Vercel)

@@ -170,8 +170,49 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     error: null,
   });
 
-  // Result state
+  // Result state - initialize from project if available
   const [result, setResult] = useState<CompositionResult | null>(null);
+
+  // Load existing rendered video on mount
+  useEffect(() => {
+    // First check project fields
+    if (project.renderedVideoUrl || project.renderedDraftUrl) {
+      setResult({
+        videoUrl: project.renderedVideoUrl || null,
+        videoBase64: null,
+        draftUrl: project.renderedDraftUrl || null,
+        draftBase64: null,
+        srtContent: null,
+        duration: 0,
+        fileSize: 0,
+      });
+      return;
+    }
+
+    // Also check for completed composition job
+    const checkExistingJob = async () => {
+      try {
+        const response = await fetch(`/api/video/compose?projectId=${project.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'complete' && (data.videoUrl || data.draftUrl)) {
+            setResult({
+              videoUrl: data.videoUrl || null,
+              videoBase64: null,
+              draftUrl: data.draftUrl || null,
+              draftBase64: null,
+              srtContent: null,
+              duration: data.duration || 0,
+              fileSize: data.fileSize || 0,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check existing composition job:', error);
+      }
+    };
+    checkExistingJob();
+  }, [project.id, project.renderedVideoUrl, project.renderedDraftUrl]);
 
   // AI Transitions state
   const [suggestedTransitions, setSuggestedTransitions] = useState<Record<string, TransitionType>>({});
@@ -471,17 +512,23 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     });
   }, []);
 
+  // Download state for UI feedback
+  const [isDownloading, setIsDownloading] = useState(false);
+
   // Download result
-  const downloadResult = useCallback((type: 'video' | 'draft' | 'srt') => {
+  const downloadResult = useCallback(async (type: 'video' | 'draft' | 'srt') => {
     if (!result) return;
+    setIsDownloading(true);
 
     let url: string | null = null;
     let filename = `${project.name.replace(/[^a-z0-9]/gi, '_')}`;
+    let mimeType = 'application/octet-stream';
 
     if (type === 'video') {
       if (result.videoUrl) {
         url = result.videoUrl;
         filename += '.mp4';
+        mimeType = 'video/mp4';
       } else if (result.videoBase64) {
         url = `data:video/mp4;base64,${result.videoBase64}`;
         filename += '.mp4';
@@ -490,6 +537,7 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
       if (result.draftUrl) {
         url = result.draftUrl;
         filename += '_capcut_draft.zip';
+        mimeType = 'application/zip';
       } else if (result.draftBase64) {
         url = `data:application/zip;base64,${result.draftBase64}`;
         filename += '_capcut_draft.zip';
@@ -500,18 +548,47 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
       filename += '.srt';
     }
 
-    if (url) {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    if (!url) {
+      setIsDownloading(false);
+      return;
+    }
 
-      // Revoke blob URL if created
-      if (type === 'srt') {
-        URL.revokeObjectURL(url);
+    try {
+      // For external URLs (S3), fetch as blob to force download
+      // The download attribute doesn't work for cross-origin URLs
+      if (url.startsWith('http') && !url.startsWith(window.location.origin)) {
+        try {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+          console.error('Failed to download file:', error);
+          // Fallback: open in new tab
+          window.open(url, '_blank');
+        }
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke blob URL if created
+        if (type === 'srt') {
+          URL.revokeObjectURL(url);
+        }
       }
+    } finally {
+      setIsDownloading(false);
     }
   }, [result, project.name]);
 
@@ -558,6 +635,7 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     startComposition,
     cancelComposition,
     downloadResult,
+    isDownloading,
 
     // Cost estimation
     estimatedCost,

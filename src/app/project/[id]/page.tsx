@@ -41,6 +41,9 @@ function hasProjectChanged(prev: ReturnType<typeof useProjectStore.getState>['pr
   if (prev.name !== next.name) return true;
   if (prev.scenes.length !== next.scenes.length) return true;
   if (prev.characters.length !== next.characters.length) return true;
+  // Check rendered video URLs
+  if (prev.renderedVideoUrl !== next.renderedVideoUrl) return true;
+  if (prev.renderedDraftUrl !== next.renderedDraftUrl) return true;
   // Deep check scene image URLs (important for image generation updates)
   for (let i = 0; i < prev.scenes.length; i++) {
     if (prev.scenes[i]?.imageUrl !== next.scenes[i]?.imageUrl) return true;
@@ -171,6 +174,9 @@ export default function ProjectWorkspacePage() {
           voiceSettings: data.voiceSettings || {},
           characters: data.characters || [],
           scenes: data.scenes || [],
+          // Rendered video URLs
+          renderedVideoUrl: data.renderedVideoUrl,
+          renderedDraftUrl: data.renderedDraftUrl,
         };
       }
       return null;
@@ -481,6 +487,19 @@ export default function ProjectWorkspacePage() {
               </Button>
             ) : (
               <Button
+                onClick={async () => {
+                  // Mark project as complete and redirect to projects page
+                  try {
+                    await fetch(`/api/projects/${project.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ isComplete: true }),
+                    });
+                    router.push('/projects');
+                  } catch (e) {
+                    console.error('Failed to complete project:', e);
+                  }
+                }}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-0"
               >
                 {t('common.finish')}

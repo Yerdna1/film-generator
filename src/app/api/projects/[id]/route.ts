@@ -66,6 +66,9 @@ export async function GET(
         duration: s.duration,
         dialogue: s.dialogue as object[],
       })),
+      // Rendered video export URLs
+      renderedVideoUrl: project.renderedVideoUrl,
+      renderedDraftUrl: project.renderedDraftUrl,
       // Include collaboration info
       role,
       permissions,

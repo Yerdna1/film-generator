@@ -366,6 +366,15 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Also save to project for persistence after page refresh
+      await prisma.project.update({
+        where: { id: projectId },
+        data: {
+          renderedVideoUrl: result.video_url || null,
+          renderedDraftUrl: result.draft_url || null,
+        },
+      });
+
       return NextResponse.json({
         jobId: job.id,
         status: 'complete',

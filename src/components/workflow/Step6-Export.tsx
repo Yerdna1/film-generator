@@ -226,9 +226,10 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                           {(videoComposer.result.videoUrl || videoComposer.result.videoBase64) && (
                             <button
                               onClick={() => videoComposer.downloadResult('video')}
-                              className="flex-1 py-2 rounded-md text-xs font-medium text-white bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 transition-all"
+                              disabled={videoComposer.isDownloading}
+                              className="flex-1 py-2 rounded-md text-xs font-medium text-white bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 transition-all disabled:opacity-50 disabled:cursor-wait"
                             >
-                              Download MP4
+                              {videoComposer.isDownloading ? 'Downloading...' : 'Download MP4'}
                             </button>
                           )}
                           {(videoComposer.result.draftUrl || videoComposer.result.draftBase64) && (
