@@ -144,6 +144,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
   // Regeneration requests state
   const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequest[]>([]);
+  const [approvedRegenerationRequests, setApprovedRegenerationRequests] = useState<RegenerationRequest[]>([]);
   const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
 
   // Deletion requests state
@@ -162,6 +163,20 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     }
   }, [project.id]);
 
+  // Fetch approved/active regeneration requests for collaborators
+  const fetchApprovedRegenerationRequests = useCallback(async () => {
+    try {
+      // Fetch requests in 'approved', 'generating', 'selecting', or 'awaiting_final' status
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests?status=approved,generating,selecting,awaiting_final`);
+      if (response.ok) {
+        const data = await response.json();
+        setApprovedRegenerationRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch approved regeneration requests:', error);
+    }
+  }, [project.id]);
+
   // Fetch deletion requests for this project
   const fetchDeletionRequests = useCallback(async () => {
     try {
@@ -177,8 +192,9 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
   useEffect(() => {
     fetchRegenerationRequests();
+    fetchApprovedRegenerationRequests();
     fetchDeletionRequests();
-  }, [fetchRegenerationRequests, fetchDeletionRequests]);
+  }, [fetchRegenerationRequests, fetchApprovedRegenerationRequests, fetchDeletionRequests]);
 
   // Create a set of scene IDs with pending image regeneration requests
   const pendingImageRegenSceneIds = useMemo(() => {
@@ -197,6 +213,61 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         .map(r => r.targetId)
     );
   }, [deletionRequests]);
+
+  // Create a map of scene ID to approved regeneration request
+  const approvedRegenBySceneId = useMemo(() => {
+    const map = new Map<string, RegenerationRequest>();
+    for (const req of approvedRegenerationRequests) {
+      if (req.targetType === 'image') {
+        map.set(req.targetId, req);
+      }
+    }
+    return map;
+  }, [approvedRegenerationRequests]);
+
+  // Handler for using a regeneration attempt
+  const handleUseRegenerationAttempt = useCallback(async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'regenerate' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to regenerate');
+      }
+
+      // Refresh approved requests to get updated status
+      await fetchApprovedRegenerationRequests();
+    } catch (error) {
+      console.error('Failed to use regeneration attempt:', error);
+      throw error; // Re-throw so modal can show error
+    }
+  }, [project.id, fetchApprovedRegenerationRequests]);
+
+  // Handler for selecting the best regeneration
+  const handleSelectRegeneration = useCallback(async (requestId: string, selectedUrl: string) => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'select', selectedUrl }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to submit selection');
+      }
+
+      // Refresh approved requests
+      await fetchApprovedRegenerationRequests();
+    } catch (error) {
+      console.error('Failed to select regeneration:', error);
+      throw error;
+    }
+  }, [project.id, fetchApprovedRegenerationRequests]);
 
   // Get selected scenes data for the dialog
   const selectedScenesData = useMemo(() => {
@@ -273,6 +344,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
               isSelected={selectedScenes.has(scene.id)}
               hasPendingRegeneration={pendingImageRegenSceneIds.has(scene.id)}
               hasPendingDeletion={pendingDeletionSceneIds.has(scene.id)}
+              approvedRegeneration={approvedRegenBySceneId.get(scene.id) || null}
               canDeleteDirectly={canDeleteDirectly}
               isReadOnly={isReadOnly}
               isAuthenticated={isAuthenticated}
@@ -285,6 +357,8 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
               onRegeneratePrompts={() => regeneratePrompts(scene)}
               onPreviewImage={setPreviewImage}
               onDeletionRequested={fetchDeletionRequests}
+              onUseRegenerationAttempt={handleUseRegenerationAttempt}
+              onSelectRegeneration={handleSelectRegeneration}
             />
           );
         })}

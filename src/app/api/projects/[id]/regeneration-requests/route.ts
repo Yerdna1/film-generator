@@ -34,21 +34,22 @@ export async function GET(
     const canApprove = await verifyPermission(session.user.id, projectId, 'canApproveRequests');
     const isAdmin = canApprove.allowed;
 
-    // Get status filter from query
+    // Get status filter from query (supports comma-separated values)
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get('status');
+    const statusArray = statusFilter ? statusFilter.split(',').map(s => s.trim()) : null;
 
     // Build where clause
     const whereClause: {
       projectId: string;
       requesterId?: string;
-      status?: string;
+      status?: string | { in: string[] };
     } = isAdmin
       ? { projectId }
       : { projectId, requesterId: session.user.id };
 
-    if (statusFilter) {
-      whereClause.status = statusFilter;
+    if (statusArray && statusArray.length > 0) {
+      whereClause.status = statusArray.length === 1 ? statusArray[0] : { in: statusArray };
     }
 
     const requests = await prisma.regenerationRequest.findMany({

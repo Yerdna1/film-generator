@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
 import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
+import { RegenerationSelectionModal } from '@/components/collaboration/RegenerationSelectionModal';
+import type { RegenerationRequest } from '@/types/collaboration';
 import {
   Image as ImageIcon,
   Trash2,
@@ -20,6 +22,8 @@ import {
   Expand,
   Clock,
   Lock,
+  CheckCircle,
+  Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -47,6 +51,7 @@ interface SceneCardProps {
   isSelected?: boolean;
   hasPendingRegeneration?: boolean;
   hasPendingDeletion?: boolean;
+  approvedRegeneration?: RegenerationRequest | null; // Approved request ready to use
   canDeleteDirectly?: boolean; // Admin can delete directly, collaborators must request
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
@@ -59,6 +64,8 @@ interface SceneCardProps {
   onRegeneratePrompts: () => void;
   onPreviewImage: (imageUrl: string) => void;
   onDeletionRequested?: () => void; // Callback when deletion request is sent
+  onUseRegenerationAttempt?: (requestId: string) => Promise<void>; // Use one of the approved regeneration attempts
+  onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>; // Submit selection for final approval
 }
 
 function SceneCardComponent({
@@ -73,6 +80,7 @@ function SceneCardComponent({
   isSelected = false,
   hasPendingRegeneration = false,
   hasPendingDeletion = false,
+  approvedRegeneration = null,
   canDeleteDirectly = true,
   isReadOnly = false,
   isAuthenticated = true,
@@ -85,10 +93,14 @@ function SceneCardComponent({
   onRegeneratePrompts,
   onPreviewImage,
   onDeletionRequested,
+  onUseRegenerationAttempt,
+  onSelectRegeneration,
 }: SceneCardProps) {
   const t = useTranslations();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeletionRequest, setShowDeletionRequest] = useState(false);
+  const [showRegenerationModal, setShowRegenerationModal] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Determine if this image is restricted (non-first image for unauthenticated users)
   const isRestricted = !isAuthenticated && scene.imageUrl && !isFirstImage;
@@ -112,12 +124,47 @@ function SceneCardComponent({
         onOpenChange={setShowDeletionRequest}
         onRequestSent={onDeletionRequested}
       />
+      {/* Regeneration Selection Modal for approved requests */}
+      {approvedRegeneration && onUseRegenerationAttempt && onSelectRegeneration && (
+        <RegenerationSelectionModal
+          open={showRegenerationModal}
+          onOpenChange={setShowRegenerationModal}
+          request={approvedRegeneration}
+          onRegenerate={async () => {
+            setIsRegenerating(true);
+            try {
+              await onUseRegenerationAttempt(approvedRegeneration.id);
+            } finally {
+              setIsRegenerating(false);
+            }
+          }}
+          onSelect={async (selectedUrl) => {
+            await onSelectRegeneration(approvedRegeneration.id, selectedUrl);
+            setShowRegenerationModal(false);
+          }}
+        />
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: (index % 12) * 0.03 }}
       >
-        <Card className={`glass overflow-hidden ${hasPendingDeletion ? 'border-orange-500/50 ring-1 ring-orange-500/30' : 'border-white/10'}`}>
+        <Card className={`overflow-hidden ${
+          // Background colors based on regeneration status - use solid bg instead of glass for status cards
+          approvedRegeneration?.status === 'approved'
+            ? 'bg-emerald-900/60 border-emerald-400 ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20'
+            : approvedRegeneration?.status === 'generating'
+            ? 'bg-blue-900/60 border-blue-400 ring-2 ring-blue-400/50 shadow-lg shadow-blue-500/20'
+            : approvedRegeneration?.status === 'selecting'
+            ? 'bg-amber-900/60 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/20'
+            : approvedRegeneration?.status === 'awaiting_final'
+            ? 'bg-purple-900/60 border-purple-400 ring-2 ring-purple-400/50 shadow-lg shadow-purple-500/20'
+            : hasPendingRegeneration
+            ? 'bg-cyan-900/50 border-cyan-400 ring-2 ring-cyan-400/40 shadow-lg shadow-cyan-500/20'
+            : hasPendingDeletion
+            ? 'bg-orange-900/50 border-orange-400 ring-2 ring-orange-400/40 shadow-lg shadow-orange-500/20'
+            : 'glass border-white/10'
+        }`}>
           <Collapsible open={isRestricted ? false : isExpanded} onOpenChange={isRestricted ? undefined : onToggleExpand}>
             {/* Image Preview - Vertical Layout */}
             <div className="relative aspect-video bg-black/30">
@@ -182,6 +229,55 @@ function SceneCardComponent({
                   <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                     <Clock className="w-2.5 h-2.5" />
                     Pending
+                  </Badge>
+                )}
+                {approvedRegeneration && approvedRegeneration.status === 'approved' && (
+                  <motion.div
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <Badge
+                      className="bg-emerald-500 text-white border-2 border-emerald-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-emerald-400 hover:scale-110 transition-all shadow-lg shadow-emerald-500/50"
+                      title={`Click to regenerate!`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowRegenerationModal(true);
+                      }}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span className="font-bold">CLICK TO REGENERATE</span>
+                      <span className="bg-white/20 px-1 rounded">{approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x</span>
+                    </Badge>
+                  </motion.div>
+                )}
+                {approvedRegeneration && approvedRegeneration.status === 'generating' && (
+                  <Badge className="bg-blue-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                    <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                    Generating...
+                  </Badge>
+                )}
+                {approvedRegeneration && approvedRegeneration.status === 'selecting' && (
+                  <motion.div
+                    animate={{ scale: [1, 1.08, 1] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <Badge
+                      className="bg-amber-500 text-white border-2 border-amber-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-amber-400 hover:scale-110 transition-all shadow-lg shadow-amber-500/50"
+                      title="Click to select your preferred image"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowRegenerationModal(true);
+                      }}
+                    >
+                      <Play className="w-3 h-3" />
+                      <span className="font-bold">CLICK TO SELECT BEST</span>
+                    </Badge>
+                  </motion.div>
+                )}
+                {approvedRegeneration && approvedRegeneration.status === 'awaiting_final' && (
+                  <Badge className="bg-purple-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                    <Clock className="w-2.5 h-2.5" />
+                    Awaiting Approval
                   </Badge>
                 )}
                 {hasPendingDeletion && (
@@ -399,6 +495,10 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.hasPendingRegeneration === nextProps.hasPendingRegeneration &&
     prevProps.hasPendingDeletion === nextProps.hasPendingDeletion &&
+    prevProps.approvedRegeneration?.id === nextProps.approvedRegeneration?.id &&
+    prevProps.approvedRegeneration?.status === nextProps.approvedRegeneration?.status &&
+    prevProps.approvedRegeneration?.attemptsUsed === nextProps.approvedRegeneration?.attemptsUsed &&
+    prevProps.approvedRegeneration?.generatedUrls?.length === nextProps.approvedRegeneration?.generatedUrls?.length &&
     prevProps.canDeleteDirectly === nextProps.canDeleteDirectly &&
     prevProps.isReadOnly === nextProps.isReadOnly &&
     prevProps.isAuthenticated === nextProps.isAuthenticated &&

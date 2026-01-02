@@ -474,6 +474,47 @@
       "languagesAnswer": "The app interface is available in English and Slovak. For voiceovers, ElevenLabs supports English voices, while Gemini TTS supports Slovak voices.",
       "moreCredits": "How do I get more credits?",
       "moreCreditsAnswer": "Credits are currently provided for free during the beta period. In the future, you may be able to purchase additional credits or earn them through referrals."
+    },
+    "collaboration": {
+      "title": "Collaboration Guide",
+      "description": "When working on shared projects, scene cards show different colors to indicate their status. Here's what each color means:",
+      "approved": {
+        "title": "Approved - Ready to Regenerate",
+        "description": "Admin approved your request! Click the animated badge to open the regeneration panel. You have 3 attempts.",
+        "badge": "CLICK TO REGENERATE"
+      },
+      "generating": {
+        "title": "Generating",
+        "description": "Image or video is being generated. Please wait - this may take 30-60 seconds.",
+        "badge": "Generating..."
+      },
+      "selecting": {
+        "title": "Selecting - Pick Best Option",
+        "description": "All regeneration attempts are done. Click the badge to view all options and select the best one.",
+        "badge": "CLICK TO SELECT BEST"
+      },
+      "awaitingFinal": {
+        "title": "Awaiting Final Approval",
+        "description": "You selected the best option. Now waiting for admin to review and approve your selection."
+      },
+      "pendingRegeneration": {
+        "title": "Pending Regeneration Request",
+        "description": "You requested to regenerate this scene. Waiting for admin to approve your request."
+      },
+      "pendingDeletion": {
+        "title": "Pending Deletion Request",
+        "description": "You requested to delete this scene. Waiting for admin to approve the deletion."
+      },
+      "flow": {
+        "title": "Regeneration Flow",
+        "description": "Credits are prepaid by admin when approving your request (3x for 3 attempts).",
+        "request": "Request",
+        "approved": "Approved",
+        "generating": "Generating",
+        "selecting": "Selecting",
+        "awaiting": "Awaiting",
+        "done": "Done"
+      }
     }
   },
   "terms": {
@@ -832,7 +873,38 @@
     "pendingApproval": "Pending Approval",
     "approved": "Approved",
     "rejected": "Rejected",
-    "reviewNote": "Admin note"
+    "reviewNote": "Admin note",
+    "pageTitle": "Approvals",
+    "pendingRequests": "pending requests across all projects",
+    "allClear": "All Clear!",
+    "noRequestsToReview": "No pending requests to review.",
+    "allProjects": "All Projects",
+    "allUsers": "All Users",
+    "regenerations": "Regenerations",
+    "promptEdits": "Prompt Edits",
+    "deletions": "Deletions",
+    "approve": "Approve",
+    "reject": "Reject",
+    "delete": "Delete",
+    "revert": "Revert",
+    "accept": "Accept",
+    "show": "Show",
+    "hide": "Hide",
+    "before": "Before",
+    "after": "After",
+    "empty": "(empty)",
+    "scene": "Scene",
+    "noPendingRegenerations": "No pending regenerations",
+    "noPendingEdits": "No pending edits",
+    "noPendingDeletions": "No pending deletions",
+    "finalReview": "Final Review",
+    "selectionReady": "Selection Ready",
+    "selected": "Selected",
+    "rejectAll": "Reject All",
+    "applySelection": "Apply Selection",
+    "justNow": "Just now",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago"
   },
   "footer": {
     "tagline": "Powered by AI • Built for creators",

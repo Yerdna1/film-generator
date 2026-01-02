@@ -19,6 +19,13 @@ import {
   Lightbulb,
   ChevronRight,
   ExternalLink,
+  Users,
+  RefreshCw,
+  Trash2,
+  Clock,
+  CheckCircle,
+  Play,
+  MousePointerClick,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +35,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 
 export default function HelpPage() {
   const t = useTranslations('help');
@@ -184,6 +192,179 @@ export default function HelpPage() {
                 </motion.div>
               ))}
             </div>
+          </motion.section>
+
+          {/* Collaboration Guide - Status Colors */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              <Users className="w-5 h-5 text-emerald-400" />
+              {t('collaboration.title')}
+            </h3>
+            <Card className="glass border-white/10">
+              <CardContent className="p-6 space-y-6">
+                <p className="text-muted-foreground">
+                  {t('collaboration.description')}
+                </p>
+
+                {/* Status Colors Grid */}
+                <div className="grid gap-4">
+                  {/* Approved - Ready to Regenerate */}
+                  <div className="bg-emerald-900/60 border border-emerald-400 ring-2 ring-emerald-400/50 rounded-xl p-4 flex items-center gap-4">
+                    <div className="shrink-0">
+                      <motion.div
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <Badge className="bg-emerald-500 text-white border-2 border-emerald-300 text-xs px-3 py-1.5 flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/50">
+                          <Sparkles className="w-4 h-4" />
+                          <span className="font-bold">{t('collaboration.approved.badge')}</span>
+                          <span className="bg-white/20 px-1.5 rounded">3x</span>
+                        </Badge>
+                      </motion.div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-emerald-300 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        {t('collaboration.approved.title')}
+                      </h4>
+                      <p className="text-sm text-emerald-200/70 mt-1">
+                        <MousePointerClick className="w-4 h-4 inline mr-1" />
+                        {t('collaboration.approved.description')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Generating */}
+                  <div className="bg-blue-900/60 border border-blue-400 ring-2 ring-blue-400/50 rounded-xl p-4 flex items-center gap-4">
+                    <div className="shrink-0">
+                      <Badge className="bg-blue-500/90 text-white border-0 text-xs px-3 py-1.5 flex items-center gap-1.5">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        {t('collaboration.generating.badge')}
+                      </Badge>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-blue-300 flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        {t('collaboration.generating.title')}
+                      </h4>
+                      <p className="text-sm text-blue-200/70 mt-1">
+                        {t('collaboration.generating.description')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Selecting - Pick Best */}
+                  <div className="bg-amber-900/60 border border-amber-400 ring-2 ring-amber-400/50 rounded-xl p-4 flex items-center gap-4">
+                    <div className="shrink-0">
+                      <motion.div
+                        animate={{ scale: [1, 1.08, 1] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <Badge className="bg-amber-500 text-white border-2 border-amber-300 text-xs px-3 py-1.5 flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/50">
+                          <Play className="w-4 h-4" />
+                          <span className="font-bold">{t('collaboration.selecting.badge')}</span>
+                        </Badge>
+                      </motion.div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-amber-300 flex items-center gap-2">
+                        <Play className="w-4 h-4" />
+                        {t('collaboration.selecting.title')}
+                      </h4>
+                      <p className="text-sm text-amber-200/70 mt-1">
+                        <MousePointerClick className="w-4 h-4 inline mr-1" />
+                        {t('collaboration.selecting.description')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Awaiting Final Approval */}
+                  <div className="bg-purple-900/60 border border-purple-400 ring-2 ring-purple-400/50 rounded-xl p-4 flex items-center gap-4">
+                    <div className="shrink-0">
+                      <Badge className="bg-purple-500/90 text-white border-0 text-xs px-3 py-1.5 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4" />
+                        {t('collaboration.flow.awaiting')}
+                      </Badge>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-purple-300 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        {t('collaboration.awaitingFinal.title')}
+                      </h4>
+                      <p className="text-sm text-purple-200/70 mt-1">
+                        {t('collaboration.awaitingFinal.description')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Pending Regeneration Request */}
+                  <div className="bg-cyan-900/50 border border-cyan-400 ring-2 ring-cyan-400/40 rounded-xl p-4 flex items-center gap-4">
+                    <div className="shrink-0">
+                      <Badge className="bg-cyan-500/80 text-white border-0 text-xs px-3 py-1.5 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4" />
+                        {t('collaboration.flow.request')}
+                      </Badge>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-cyan-300 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        {t('collaboration.pendingRegeneration.title')}
+                      </h4>
+                      <p className="text-sm text-cyan-200/70 mt-1">
+                        {t('collaboration.pendingRegeneration.description')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Pending Deletion Request */}
+                  <div className="bg-orange-900/50 border border-orange-400 ring-2 ring-orange-400/40 rounded-xl p-4 flex items-center gap-4">
+                    <div className="shrink-0">
+                      <Badge className="bg-orange-500/90 text-white border-0 text-xs px-3 py-1.5 flex items-center gap-1.5">
+                        <Trash2 className="w-4 h-4" />
+                        {t('collaboration.flow.request')}
+                      </Badge>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-orange-300 flex items-center gap-2">
+                        <Trash2 className="w-4 h-4" />
+                        {t('collaboration.pendingDeletion.title')}
+                      </h4>
+                      <p className="text-sm text-orange-200/70 mt-1">
+                        {t('collaboration.pendingDeletion.description')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Flow Diagram */}
+                <div className="glass rounded-xl p-4 border-l-4 border-l-emerald-500">
+                  <h4 className="font-semibold text-emerald-300 mb-3 flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    {t('collaboration.flow.title')}
+                  </h4>
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <Badge className="bg-cyan-500/80">{t('collaboration.flow.request')}</Badge>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <Badge className="bg-emerald-500">{t('collaboration.flow.approved')}</Badge>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <Badge className="bg-blue-500">{t('collaboration.flow.generating')}</Badge>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <Badge className="bg-amber-500">{t('collaboration.flow.selecting')}</Badge>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <Badge className="bg-purple-500">{t('collaboration.flow.awaiting')}</Badge>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <Badge className="bg-green-600">✓ {t('collaboration.flow.done')}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    {t('collaboration.flow.description')}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.section>
 
           {/* API Keys Info */}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import NextImage from 'next/image';
 import {
@@ -50,6 +51,7 @@ interface ProjectInfo {
 export default function ApprovalsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useTranslations('approvals');
 
   const [deletionRequests, setDeletionRequests] = useState<(DeletionRequest & { project?: ProjectInfo })[]>([]);
   const [regenerationRequests, setRegenerationRequests] = useState<(RegenerationRequest & { project?: ProjectInfo })[]>([]);
@@ -256,9 +258,9 @@ export default function ApprovalsPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffHours < 1) return t('justNow');
+    if (diffHours < 24) return t('hoursAgo', { hours: diffHours });
+    if (diffDays < 7) return t('daysAgo', { days: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -327,9 +329,9 @@ export default function ApprovalsPage() {
                 <Shield className="w-6 h-6 text-amber-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-amber-500">Approvals</h1>
+                <h1 className="text-2xl font-bold text-amber-500">{t('pageTitle')}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {totalPending} pending requests across all projects
+                  {totalPending} {t('pendingRequests')}
                 </p>
               </div>
             </div>
@@ -339,10 +341,10 @@ export default function ApprovalsPage() {
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={filterProject} onValueChange={setFilterProject}>
                 <SelectTrigger className="w-40 bg-white/5 border-white/10">
-                  <SelectValue placeholder="All Projects" />
+                  <SelectValue placeholder={t('allProjects')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
+                  <SelectItem value="all">{t('allProjects')}</SelectItem>
                   {projects.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
@@ -350,10 +352,10 @@ export default function ApprovalsPage() {
               </Select>
               <Select value={filterUser} onValueChange={setFilterUser}>
                 <SelectTrigger className="w-40 bg-white/5 border-white/10">
-                  <SelectValue placeholder="All Users" />
+                  <SelectValue placeholder={t('allUsers')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Users</SelectItem>
+                  <SelectItem value="all">{t('allUsers')}</SelectItem>
                   {users.map(u => (
                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                   ))}
@@ -369,8 +371,8 @@ export default function ApprovalsPage() {
         {totalPending === 0 ? (
           <div className="text-center py-20">
             <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-            <h2 className="text-xl font-semibold mb-2">All Clear!</h2>
-            <p className="text-muted-foreground">No pending requests to review.</p>
+            <h2 className="text-xl font-semibold mb-2">{t('allClear')}</h2>
+            <p className="text-muted-foreground">{t('noRequestsToReview')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -379,7 +381,7 @@ export default function ApprovalsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-cyan-400">
                   <RefreshCw className="w-5 h-5" />
-                  Regenerations
+                  {t('regenerations')}
                   <Badge className="bg-cyan-500/20 text-cyan-400 border-0">
                     {filteredRegenerations.length}
                   </Badge>
@@ -455,7 +457,7 @@ export default function ApprovalsPage() {
                           disabled={processingIds.has(request.id)}
                         >
                           <X className="w-3 h-3 mr-1" />
-                          Reject
+                          {t('reject')}
                         </Button>
                         <Button
                           size="sm"
@@ -468,7 +470,7 @@ export default function ApprovalsPage() {
                           ) : (
                             <>
                               <Check className="w-3 h-3 mr-1" />
-                              Approve
+                              {t('approve')}
                             </>
                           )}
                         </Button>
@@ -477,7 +479,7 @@ export default function ApprovalsPage() {
                   ))}
                 </AnimatePresence>
                 {filteredRegenerations.length === 0 && awaitingFinalApproval.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-4">No pending regenerations</p>
+                  <p className="text-center text-sm text-muted-foreground py-4">{t('noPendingRegenerations')}</p>
                 )}
 
                 {/* Final Approval Section */}
@@ -485,7 +487,7 @@ export default function ApprovalsPage() {
                   <div className="mt-4 pt-4 border-t border-green-500/20">
                     <div className="flex items-center gap-2 mb-3">
                       <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">
-                        Final Review: {awaitingFinalApproval.length}
+                        {t('finalReview')}: {awaitingFinalApproval.length}
                       </Badge>
                     </div>
                     <AnimatePresence mode="popLayout">
@@ -503,7 +505,7 @@ export default function ApprovalsPage() {
                             <div className="flex items-start gap-2">
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium text-green-400">
-                                  {request.targetName} - Selection Ready
+                                  {request.targetName} - {t('selectionReady')}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
                                   {request.project?.name}
@@ -532,7 +534,7 @@ export default function ApprovalsPage() {
                                   {url === request.selectedUrl && (
                                     <div className="absolute top-1 left-1">
                                       <Badge className="bg-green-500 text-white border-0 text-[8px] px-1">
-                                        Selected
+                                        {t('selected')}
                                       </Badge>
                                     </div>
                                   )}
@@ -559,7 +561,7 @@ export default function ApprovalsPage() {
                                 disabled={processingIds.has(request.id)}
                               >
                                 <X className="w-3 h-3 mr-1" />
-                                Reject All
+                                {t('rejectAll')}
                               </Button>
                               <Button
                                 size="sm"
@@ -572,7 +574,7 @@ export default function ApprovalsPage() {
                                 ) : (
                                   <>
                                     <Check className="w-3 h-3 mr-1" />
-                                    Apply Selection
+                                    {t('applySelection')}
                                   </>
                                 )}
                               </Button>
@@ -591,7 +593,7 @@ export default function ApprovalsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-purple-400">
                   <FileText className="w-5 h-5" />
-                  Prompt Edits
+                  {t('promptEdits')}
                   <Badge className="bg-purple-500/20 text-purple-400 border-0">
                     {filteredPromptEdits.length}
                   </Badge>
@@ -637,22 +639,22 @@ export default function ApprovalsPage() {
                           className="h-6 px-2 text-xs text-purple-400"
                           onClick={() => toggleDiff(request.id)}
                         >
-                          {expandedDiffs.has(request.id) ? 'Hide' : 'Show'}
+                          {expandedDiffs.has(request.id) ? t('hide') : t('show')}
                         </Button>
                       </div>
 
                       {expandedDiffs.has(request.id) && (
                         <div className="space-y-2 text-xs">
                           <div className="p-2 bg-red-500/10 border border-red-500/20 rounded">
-                            <p className="text-red-400 font-medium mb-1">Before:</p>
+                            <p className="text-red-400 font-medium mb-1">{t('before')}:</p>
                             <pre className="text-red-200 whitespace-pre-wrap break-words max-h-20 overflow-y-auto">
-                              {request.oldValue || '(empty)'}
+                              {request.oldValue || t('empty')}
                             </pre>
                           </div>
                           <div className="p-2 bg-green-500/10 border border-green-500/20 rounded">
-                            <p className="text-green-400 font-medium mb-1">After:</p>
+                            <p className="text-green-400 font-medium mb-1">{t('after')}:</p>
                             <pre className="text-green-200 whitespace-pre-wrap break-words max-h-20 overflow-y-auto">
-                              {request.newValue || '(empty)'}
+                              {request.newValue || t('empty')}
                             </pre>
                           </div>
                         </div>
@@ -679,7 +681,7 @@ export default function ApprovalsPage() {
                           disabled={processingIds.has(request.id)}
                         >
                           <Undo2 className="w-3 h-3 mr-1" />
-                          Revert
+                          {t('revert')}
                         </Button>
                         <Button
                           size="sm"
@@ -692,7 +694,7 @@ export default function ApprovalsPage() {
                           ) : (
                             <>
                               <Check className="w-3 h-3 mr-1" />
-                              Accept
+                              {t('accept')}
                             </>
                           )}
                         </Button>
@@ -701,7 +703,7 @@ export default function ApprovalsPage() {
                   ))}
                 </AnimatePresence>
                 {filteredPromptEdits.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-4">No pending edits</p>
+                  <p className="text-center text-sm text-muted-foreground py-4">{t('noPendingEdits')}</p>
                 )}
               </CardContent>
             </Card>
@@ -711,7 +713,7 @@ export default function ApprovalsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-orange-400">
                   <Trash2 className="w-5 h-5" />
-                  Deletions
+                  {t('deletions')}
                   <Badge className="bg-orange-500/20 text-orange-400 border-0">
                     {filteredDeletions.length}
                   </Badge>
@@ -786,7 +788,7 @@ export default function ApprovalsPage() {
                           disabled={processingIds.has(request.id)}
                         >
                           <X className="w-3 h-3 mr-1" />
-                          Reject
+                          {t('reject')}
                         </Button>
                         <Button
                           size="sm"
@@ -799,7 +801,7 @@ export default function ApprovalsPage() {
                           ) : (
                             <>
                               <Check className="w-3 h-3 mr-1" />
-                              Delete
+                              {t('delete')}
                             </>
                           )}
                         </Button>
@@ -808,7 +810,7 @@ export default function ApprovalsPage() {
                   ))}
                 </AnimatePresence>
                 {filteredDeletions.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-4">No pending deletions</p>
+                  <p className="text-center text-sm text-muted-foreground py-4">{t('noPendingDeletions')}</p>
                 )}
               </CardContent>
             </Card>

@@ -474,6 +474,47 @@
       "languagesAnswer": "Rozhranie aplikácie je dostupné v angličtine a slovenčine. Pre hlasový komentár ElevenLabs podporuje anglické hlasy, zatiaľ čo Gemini TTS podporuje slovenské hlasy.",
       "moreCredits": "Ako získam viac kreditov?",
       "moreCreditsAnswer": "Kredity sú momentálne poskytované zadarmo počas beta obdobia. V budúcnosti budete môcť zakúpiť ďalšie kredity alebo ich získať cez odporúčania."
+    },
+    "collaboration": {
+      "title": "Príručka spolupráce",
+      "description": "Pri práci na zdieľaných projektoch karty scén zobrazujú rôzne farby podľa ich stavu. Tu je význam jednotlivých farieb:",
+      "approved": {
+        "title": "Schválené - Pripravené na regeneráciu",
+        "description": "Admin schválil vašu žiadosť! Kliknite na animovaný odznak pre otvorenie panela regenerácie. Máte 3 pokusy.",
+        "badge": "KLIKNI NA REGENERÁCIU"
+      },
+      "generating": {
+        "title": "Generuje sa",
+        "description": "Obrázok alebo video sa generuje. Prosím čakajte - môže to trvať 30-60 sekúnd.",
+        "badge": "Generuje sa..."
+      },
+      "selecting": {
+        "title": "Výber - Vyberte najlepšiu možnosť",
+        "description": "Všetky pokusy regenerácie sú dokončené. Kliknite na odznak pre zobrazenie všetkých možností a vyberte najlepšiu.",
+        "badge": "KLIKNI PRE VÝBER"
+      },
+      "awaitingFinal": {
+        "title": "Čaká na finálne schválenie",
+        "description": "Vybrali ste najlepšiu možnosť. Teraz čakáte na schválenie od admina."
+      },
+      "pendingRegeneration": {
+        "title": "Čakajúca žiadosť o regeneráciu",
+        "description": "Požiadali ste o regeneráciu tejto scény. Čakáte na schválenie od admina."
+      },
+      "pendingDeletion": {
+        "title": "Čakajúca žiadosť o odstránenie",
+        "description": "Požiadali ste o odstránenie tejto scény. Čakáte na schválenie od admina."
+      },
+      "flow": {
+        "title": "Priebeh regenerácie",
+        "description": "Kredity sú preplatené adminom pri schválení vašej žiadosti (3x za 3 pokusy).",
+        "request": "Žiadosť",
+        "approved": "Schválené",
+        "generating": "Generuje sa",
+        "selecting": "Výber",
+        "awaiting": "Čaká",
+        "done": "Hotovo"
+      }
     }
   },
   "terms": {
@@ -832,7 +873,38 @@
     "pendingApproval": "Čaká na schválenie",
     "approved": "Schválené",
     "rejected": "Zamietnuté",
-    "reviewNote": "Poznámka admina"
+    "reviewNote": "Poznámka admina",
+    "pageTitle": "Schválenia",
+    "pendingRequests": "čakajúcich žiadostí zo všetkých projektov",
+    "allClear": "Všetko v poriadku!",
+    "noRequestsToReview": "Žiadne čakajúce žiadosti na schválenie.",
+    "allProjects": "Všetky projekty",
+    "allUsers": "Všetci používatelia",
+    "regenerations": "Regenerácie",
+    "promptEdits": "Úpravy promptov",
+    "deletions": "Odstránenia",
+    "approve": "Schváliť",
+    "reject": "Zamietnuť",
+    "delete": "Odstrániť",
+    "revert": "Vrátiť späť",
+    "accept": "Prijať",
+    "show": "Zobraziť",
+    "hide": "Skryť",
+    "before": "Pred",
+    "after": "Po",
+    "empty": "(prázdne)",
+    "scene": "Scéna",
+    "noPendingRegenerations": "Žiadne čakajúce regenerácie",
+    "noPendingEdits": "Žiadne čakajúce úpravy",
+    "noPendingDeletions": "Žiadne čakajúce odstránenia",
+    "finalReview": "Finálne schválenie",
+    "selectionReady": "Výber pripravený",
+    "selected": "Vybraté",
+    "rejectAll": "Zamietnuť všetko",
+    "applySelection": "Použiť výber",
+    "justNow": "Práve teraz",
+    "hoursAgo": "pred {hours} hod",
+    "daysAgo": "pred {days} dňami"
   },
   "footer": {
     "tagline": "Poháňané AI • Vytvorené pre tvorcov",

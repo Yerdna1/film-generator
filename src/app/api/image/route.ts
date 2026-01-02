@@ -24,6 +24,7 @@ interface ImageGenerationRequest {
   }>;
   isRegeneration?: boolean; // Track if this is regenerating an existing image
   sceneId?: string; // Optional scene ID for tracking
+  skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
 }
 
 // Generate image using Gemini
@@ -333,7 +334,7 @@ async function generateWithModalEdit(
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId }: ImageGenerationRequest = await request.json();
+    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false }: ImageGenerationRequest = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -362,20 +363,26 @@ export async function POST(request: NextRequest) {
         modalImageEditEndpoint = userApiKeys.modalImageEditEndpoint;
       }
 
-      // Pre-check credit balance
-      const creditCost = getImageCreditCost(resolution);
-      const balanceCheck = await checkBalance(session.user.id, creditCost);
-      if (!balanceCheck.hasEnough) {
-        return NextResponse.json({
-          error: 'Insufficient credits',
-          required: balanceCheck.required,
-          balance: balanceCheck.balance,
-          needsPurchase: true,
-        }, { status: 402 });
+      // Pre-check credit balance (skip if credits were prepaid by admin for collaborator regeneration)
+      if (!skipCreditCheck) {
+        const creditCost = getImageCreditCost(resolution);
+        const balanceCheck = await checkBalance(session.user.id, creditCost);
+        if (!balanceCheck.hasEnough) {
+          return NextResponse.json({
+            error: 'Insufficient credits',
+            required: balanceCheck.required,
+            balance: balanceCheck.balance,
+            needsPurchase: true,
+          }, { status: 402 });
+        }
       }
     }
 
-    console.log(`[Image] Using provider: ${imageProvider}, reference images: ${referenceImages.length}`);
+    console.log(`[Image] Using provider: ${imageProvider}, reference images: ${referenceImages.length}, skipCreditCheck: ${skipCreditCheck}`);
+
+    // When skipCreditCheck is true, pass undefined as userId to skip credit deduction
+    // (credits were already prepaid by admin for collaborator regeneration)
+    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id;
 
     // Route to appropriate provider
     if (imageProvider === 'modal-edit') {
@@ -389,7 +396,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, session?.user?.id, isRegeneration, sceneId);
+        const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, effectiveUserId, isRegeneration, sceneId);
         return NextResponse.json(result);
       }
 
@@ -400,7 +407,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await generateWithModalEdit(prompt, aspectRatio, resolution, projectId, modalImageEditEndpoint, referenceImages, session?.user?.id, isRegeneration, sceneId);
+      const result = await generateWithModalEdit(prompt, aspectRatio, resolution, projectId, modalImageEditEndpoint, referenceImages, effectiveUserId, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -412,7 +419,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await generateWithModal(prompt, aspectRatio, resolution, projectId, modalImageEndpoint, session?.user?.id, isRegeneration, sceneId);
+      const result = await generateWithModal(prompt, aspectRatio, resolution, projectId, modalImageEndpoint, effectiveUserId, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -424,7 +431,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, session?.user?.id, isRegeneration, sceneId);
+    const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, effectiveUserId, isRegeneration, sceneId);
     return NextResponse.json(result);
 
   } catch (error) {
