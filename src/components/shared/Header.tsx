@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,6 +20,8 @@ import {
   BarChart3,
   Shield,
   Globe,
+  CreditCard,
+  Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { CreditsDisplay } from './CreditsDisplay';
@@ -39,16 +42,49 @@ export function Header() {
   const t = useTranslations();
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
 
   const user = session?.user;
 
   const isAdmin = user?.email === 'andrej.galad@gmail.com';
 
+  // Fetch subscription plan
+  useEffect(() => {
+    if (user) {
+      fetch('/api/polar')
+        .then((res) => res.json())
+        .then((data) => {
+          setSubscriptionPlan(data.subscription?.plan || 'free');
+        })
+        .catch(() => {
+          setSubscriptionPlan('free');
+        });
+    }
+  }, [user]);
+
   const navItems = [
     { href: '/projects', label: t('nav.projects'), icon: Film },
     { href: '/discover', label: t('nav.discover'), icon: Globe },
+    { href: '/billing', label: 'Pricing', icon: CreditCard },
     ...(isAdmin ? [{ href: '/approvals', label: 'Approvals', icon: Shield, isAdmin: true }] : []),
   ];
+
+  // Plan badge colors and labels
+  const getPlanBadge = () => {
+    if (!subscriptionPlan || subscriptionPlan === 'free') {
+      return { label: 'Free', className: 'bg-amber-500/20 text-amber-500 border-amber-500/30' };
+    }
+    if (subscriptionPlan === 'starter') {
+      return { label: 'Starter', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+    }
+    if (subscriptionPlan === 'pro') {
+      return { label: 'Pro', className: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+    }
+    if (subscriptionPlan === 'studio') {
+      return { label: 'Studio', className: 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-400 border-cyan-500/30' };
+    }
+    return { label: subscriptionPlan, className: 'bg-muted text-muted-foreground' };
+  };
 
   return (
     <motion.header
@@ -105,6 +141,18 @@ export function Header() {
                 </Button>
               </Link>
             ))}
+            {/* Subscription Plan Badge */}
+            {user && subscriptionPlan && (
+              <Link href="/billing">
+                <Badge
+                  variant="outline"
+                  className={`ml-2 cursor-pointer hover:opacity-80 transition-opacity ${getPlanBadge().className}`}
+                >
+                  <Crown className="w-3 h-3 mr-1" />
+                  {getPlanBadge().label}
+                </Badge>
+              </Link>
+            )}
           </nav>
 
           {/* Right side actions */}
@@ -171,7 +219,17 @@ export function Header() {
                   className="w-56 glass-strong border-black/10 dark:border-white/10"
                 >
                   <div className="px-3 py-2">
-                    <p className="text-sm font-medium">{user.name || 'User'}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{user.name || 'User'}</p>
+                      {subscriptionPlan && (
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-1.5 py-0 ${getPlanBadge().className}`}
+                        >
+                          {getPlanBadge().label}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
@@ -191,6 +249,12 @@ export function Header() {
                     <Link href="/settings">
                       <Settings className="w-4 h-4 mr-2" />
                       {t('nav.settings')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                    <Link href="/billing">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Billing & Plans
                     </Link>
                   </DropdownMenuItem>
                   {user.email === 'andrej.galad@gmail.com' && (
