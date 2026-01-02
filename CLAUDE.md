@@ -1,94 +1,104 @@
-# Film Generator - Project Memory
+# CLAUDE.md
 
-## Important: Using Claude CLI for LLM Calls (FREE with subscription)
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-When `llmProvider` is set to `claude-sdk`, the app uses the **Claude CLI** with `--print` mode instead of the Anthropic API. This uses the user's **OAuth subscription** (Claude Pro/Max), NOT API credits!
+## Common Commands
 
-### Critical: OAuth vs API Key Authentication
+```bash
+# Development
+npm run dev                    # Start Next.js dev server (port 3000)
+npx inngest-cli@latest dev     # Start Inngest background job server (port 8288) - required for scene/image generation
 
-The Claude CLI can authenticate via:
-1. **OAuth session** (FREE with Claude Pro/Max subscription)
-2. **ANTHROPIC_API_KEY** (billed to API credits)
+# Database
+npm run db:push                # Push schema changes to Neon PostgreSQL
+npm run db:generate            # Regenerate Prisma client
+npm run db:studio              # Open Prisma Studio
 
-**IMPORTANT:** If `ANTHROPIC_API_KEY` is present in the environment, the CLI will use it instead of OAuth. To force OAuth authentication, you MUST remove the ANTHROPIC_API_KEY from the environment passed to the CLI.
+# Modal Endpoints (Python)
+modal deploy modal/image_edit_generator.py    # Deploy image edit endpoint
+modal app logs <app-name>                     # View Modal app logs
 
-### How it works:
+# Build & Lint
+npm run build                  # Build for production (includes prisma generate)
+npm run lint                   # Run ESLint
+```
+
+## Architecture Overview
+
+### Tech Stack
+- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS 4, Zustand (state)
+- **Backend**: Next.js API routes, Prisma ORM, Neon PostgreSQL
+- **Auth**: NextAuth v5 (credentials + OAuth)
+- **Background Jobs**: Inngest (scene generation, image generation batching)
+- **Payments**: Polar.sh (subscriptions, credits)
+- **AI Providers**: Modal (self-hosted), OpenRouter, Gemini, ElevenLabs
+
+### Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages and API routes
+│   ├── api/               # REST API endpoints
+│   │   ├── image/         # Image generation (Gemini, Modal, Modal-Edit)
+│   │   ├── video/         # Video generation (Kie, Modal)
+│   │   ├── tts/           # Text-to-speech (Gemini TTS, ElevenLabs, Modal)
+│   │   ├── music/         # Music generation (PiAPI/Suno, Modal)
+│   │   └── projects/[id]/ # Project CRUD, scenes, members, regeneration
+│   ├── project/[id]/      # Main project editor page
+│   └── settings/          # User settings (API keys, providers)
+├── components/
+│   ├── workflow/          # Main workflow steps (scene generator, video generator, export)
+│   └── collaboration/     # Team features (regeneration modals, deletion requests)
+├── lib/
+│   ├── inngest/           # Background job definitions
+│   │   └── functions/     # generate-scenes.ts, generate-images.ts
+│   ├── services/          # Business logic (credits.ts, real-costs.ts, s3-upload.ts)
+│   └── stores/            # Zustand stores (project-store with slices)
+└── types/                 # TypeScript definitions (project.ts, collaboration.ts)
+
+modal/                     # Python Modal endpoints for self-hosted AI
+prisma/schema.prisma       # Database schema
+```
+
+### Key Concepts
+
+**Multi-Provider Architecture**: Each AI capability (LLM, Image, Video, TTS, Music) supports multiple providers configured per-user in the `ApiKeys` table.
+
+**Credits System**: Users have credits that are spent on AI operations. Real costs (USD) are tracked separately from credit costs. See `src/lib/services/credits.ts` for cost constants and `real-costs.ts` for provider-specific pricing.
+
+**Collaboration Flow**: Projects can have collaborators who can request regenerations. Requests go through approval workflow (request → admin approval → collaborator generates → final selection → admin final approval).
+
+**Background Jobs with Inngest**: Scene and image generation use Inngest for reliable background processing with retries. Jobs are batched (30 scenes per batch, 5 images in parallel).
+
+### Claude CLI Integration (Free LLM Calls)
+
+When `llmProvider: 'claude-sdk'`, the app uses Claude CLI with OAuth (free with Claude Pro/Max subscription) instead of API credits:
 
 ```typescript
-import { spawnSync } from 'child_process';
-
-// Full path to claude CLI (nvm installation)
-const claudePath = '/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude';
-
 // CRITICAL: Remove ANTHROPIC_API_KEY to force OAuth authentication
 const cleanEnv = { ...process.env };
 delete cleanEnv.ANTHROPIC_API_KEY;
 
-const result = spawnSync(claudePath, ['-p', '--output-format', 'text'], {
-  input: fullPrompt,
-  encoding: 'utf-8',
-  maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large responses
-  timeout: 300000, // 5 minute timeout
-  env: {
-    ...cleanEnv,
-    PATH: process.env.PATH + ':/Users/andrejpt/.nvm/versions/node/v22.21.1/bin',
-    HOME: '/Users/andrejpt',
-    USER: 'andrejpt',
-  },
-  cwd: '/Volumes/DATA/Python/film-generator',
-});
-
-if (result.error) throw result.error;
-if (result.status !== 0) {
-  throw new Error(`Claude CLI failed: ${result.stderr}`);
-}
-
-const response = result.stdout;
+const result = spawnSync('/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude',
+  ['-p', '--output-format', 'text'], {
+    input: prompt,
+    encoding: 'utf-8',
+    env: cleanEnv,
+  });
 ```
 
-### Key points:
-- `claude -p` = print mode (non-interactive, outputs to stdout)
-- `--output-format text` = plain text output (no JSON wrapper)
-- Input is passed via `input` option to spawnSync (stdin)
-- **Must remove ANTHROPIC_API_KEY from env to use OAuth subscription**
-- Uses spawnSync for synchronous execution with better error handling
+### Modal Endpoints
 
-### Why spawnSync instead of execSync:
-- Better error handling (separate stdout, stderr, exit code)
-- Handles large outputs without shell escaping issues
-- Can pass input via stdin cleanly
-- Provides signal information for debugging
+Self-hosted AI on Modal.com (GPU serverless):
+- **Image Edit**: `https://andrej-galad--film-generator-image-edit-qwenimageeditgen-94d79a.modal.run`
+- **Image**: `https://andrej-galad--film-generator-image-qwenimagegenerator-api.modal.run`
+- **TTS**: `https://andrej-galad--chatterbox-tts-generator.modal.run`
+- **Video**: `https://andrej-galad--hallo3-portrait-avatar.modal.run`
+- **Music**: `https://andrej-galad--music-generator.modal.run`
 
-### Provider settings in DB (ApiKeys table):
-- `llmProvider: 'claude-sdk'` = Use Claude CLI (free with subscription)
-- `llmProvider: 'openrouter'` = Use OpenRouter API (paid)
-- `llmProvider: 'modal'` = Use Modal LLM endpoint (self-hosted)
+### Database Connection
 
-## Project Architecture
-
-### Inngest Background Jobs
-- Scene generation: `src/lib/inngest/functions/generate-scenes.ts`
-- Image generation: `src/lib/inngest/functions/generate-images.ts`
-- Inngest dev server: `npx inngest-cli@latest dev` (port 8288)
-
-### Scene Generation Batching
-- 30 scenes per batch to avoid LLM token limits
-- For 360 scenes = 12 batches
-- Progress tracked in `SceneGenerationJob` table
-
-### Image Generation
-- 5 images in parallel for Modal providers
-- Uses Modal endpoints for image generation (Qwen)
-- Uploads to S3 after generation
-
-### Database
-- Neon PostgreSQL (connection string in .env.local)
-- Prisma ORM
-- Key tables: Project, Scene, Character, ApiKeys, Credits
-
-## Modal Endpoints
-- Image: `https://andrej-galad--film-generator-image-qwenimagegenerator-api.modal.run`
-- Image Edit: `https://andrej-galad--film-generator-image-edit-qwenimageeditgen-94d79a.modal.run`
-- TTS: `https://andrej-galad--chatterbox-tts-generator.modal.run`
-- Video: `https://andrej-galad--hallo3-portrait-avatar.modal.run`
-- Music: `https://andrej-galad--music-generator.modal.run`
+Uses Neon PostgreSQL. Connection string in `.env.local`. For direct queries:
+```bash
+DATABASE_URL="postgresql://..." npx prisma db push
+```
