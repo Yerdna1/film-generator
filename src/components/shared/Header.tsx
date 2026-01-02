@@ -163,8 +163,8 @@ export function Header() {
             {/* Language Switcher */}
             <LanguageSwitcher />
 
-            {/* Settings - only for logged-in users */}
-            {user && (
+            {/* Settings - only for paid subscribers or admin */}
+            {user && (isAdmin || (subscriptionPlan && subscriptionPlan !== 'free')) && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -245,12 +245,14 @@ export function Header() {
                       {t('nav.statistics')}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
-                    <Link href="/settings">
-                      <Settings className="w-4 h-4 mr-2" />
-                      {t('nav.settings')}
-                    </Link>
-                  </DropdownMenuItem>
+                  {(isAdmin || (subscriptionPlan && subscriptionPlan !== 'free')) && (
+                    <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                      <Link href="/settings">
+                        <Settings className="w-4 h-4 mr-2" />
+                        {t('nav.settings')}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
                     <Link href="/billing">
                       <CreditCard className="w-4 h-4 mr-2" />

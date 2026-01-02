@@ -1,7 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { Key, Settings, User, DollarSign } from 'lucide-react';
+import { Key, Settings, User, DollarSign, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettings } from './hooks/useSettings';
 import {
@@ -15,6 +18,54 @@ import {
 export default function SettingsPage() {
   const t = useTranslations('settings');
   const tPage = useTranslations('settingsPage');
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const isAdmin = session?.user?.email === 'andrej.galad@gmail.com';
+
+  // Check subscription and redirect FREE users
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    if (!session?.user) {
+      router.push('/auth/signin');
+      return;
+    }
+
+    // Fetch subscription plan
+    fetch('/api/polar')
+      .then((res) => res.json())
+      .then((data) => {
+        const plan = data.subscription?.plan || 'free';
+        setSubscriptionPlan(plan);
+
+        // Redirect FREE users (unless admin) to billing page
+        if (plan === 'free' && !isAdmin) {
+          router.push('/billing');
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // On error, assume free and redirect
+        if (!isAdmin) {
+          router.push('/billing');
+        } else {
+          setLoading(false);
+        }
+      });
+  }, [session, status, router, isAdmin]);
+
+  // Show loading while checking subscription
+  if (loading || status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const {
     // State
