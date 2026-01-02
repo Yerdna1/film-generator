@@ -42,9 +42,12 @@ export function Header() {
 
   const user = session?.user;
 
+  const isAdmin = user?.email === 'andrej.galad@gmail.com';
+
   const navItems = [
     { href: '/projects', label: t('nav.projects'), icon: Film },
     { href: '/discover', label: t('nav.discover'), icon: Globe },
+    ...(isAdmin ? [{ href: '/approvals', label: 'Approvals', icon: Shield, isAdmin: true }] : []),
   ];
 
   return (
@@ -91,7 +94,11 @@ export function Header() {
               <Link key={item.href} href={item.href}>
                 <Button
                   variant="ghost"
-                  className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
+                  className={
+                    'isAdmin' in item && item.isAdmin
+                      ? "text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all duration-200"
+                      : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
+                  }
                 >
                   <item.icon className="w-4 h-4 mr-2" />
                   {item.label}

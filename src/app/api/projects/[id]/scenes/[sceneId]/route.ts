@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys } from '@/lib/cache';
-import { verifyPermission } from '@/lib/permissions';
+import { verifyPermission, getProjectAdmins } from '@/lib/permissions';
 
 // PUT - Update scene
 export async function PUT(
@@ -29,10 +29,14 @@ export async function PUT(
       );
     }
 
+    // Check if user is admin (can approve requests = is admin)
+    const isAdminCheck = await verifyPermission(session.user.id, projectId, 'canApproveRequests');
+    const isAdmin = isAdminCheck.allowed;
+
     // Get the project for cache invalidation (owner's cache)
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { userId: true },
+      select: { userId: true, name: true },
     });
 
     if (!project) {
@@ -41,6 +45,17 @@ export async function PUT(
         { status: 404 }
       );
     }
+
+    // Get current scene values before update (for tracking changes)
+    const currentScene = await prisma.scene.findUnique({
+      where: { id: sceneId },
+      select: {
+        title: true,
+        description: true,
+        textToImagePrompt: true,
+        imageToVideoPrompt: true,
+      },
+    });
 
     const body = await request.json();
     const {
@@ -73,6 +88,68 @@ export async function PUT(
         ...(dialogue !== undefined && { dialogue }),
       },
     });
+
+    // Track prompt changes for collaborators (non-admins)
+    if (!isAdmin && currentScene) {
+      const trackedFields = [
+        { field: 'textToImagePrompt', oldVal: currentScene.textToImagePrompt, newVal: textToImagePrompt },
+        { field: 'imageToVideoPrompt', oldVal: currentScene.imageToVideoPrompt, newVal: imageToVideoPrompt },
+        { field: 'description', oldVal: currentScene.description, newVal: description },
+      ];
+
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true, email: true },
+      });
+
+      for (const { field, oldVal, newVal } of trackedFields) {
+        // Only track if the field was updated and the value actually changed
+        if (newVal !== undefined && oldVal !== newVal) {
+          // Create prompt edit record
+          const editRequest = await prisma.promptEditRequest.create({
+            data: {
+              projectId,
+              requesterId: session.user.id,
+              sceneId,
+              sceneName: scene.title,
+              fieldName: field,
+              oldValue: oldVal || '',
+              newValue: newVal || '',
+            },
+          });
+
+          // Format field name for notification
+          const fieldLabels: Record<string, string> = {
+            textToImagePrompt: 'Text-to-Image Prompt',
+            imageToVideoPrompt: 'Image-to-Video Prompt',
+            description: 'Description',
+          };
+
+          // Notify project admins
+          const adminIds = await getProjectAdmins(projectId);
+          for (const adminId of adminIds) {
+            await prisma.notification.create({
+              data: {
+                userId: adminId,
+                type: 'prompt_edit',
+                title: 'Prompt Edit',
+                message: `${user?.name || user?.email || 'A collaborator'} edited ${fieldLabels[field]} for scene "${scene.title}"`,
+                metadata: {
+                  projectId,
+                  projectName: project.name,
+                  requestId: editRequest.id,
+                  sceneId,
+                  sceneName: scene.title,
+                  fieldName: field,
+                  requesterName: user?.name,
+                },
+                actionUrl: `/project/${projectId}?tab=approvals`,
+              },
+            });
+          }
+        }
+      }
+    }
 
     // Update project's updatedAt
     await prisma.project.update({

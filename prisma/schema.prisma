@@ -66,6 +66,9 @@ model User {
   deletionReviews        DeletionRequest[]       @relation("DeletionReviews")
   regenerationRequests   RegenerationRequest[]   @relation("RegenerationRequests")
   regenerationReviews    RegenerationRequest[]   @relation("RegenerationReviews")
+  regenerationFinalReviews RegenerationRequest[] @relation("RegenerationFinalReviews")
+  promptEditRequests     PromptEditRequest[]     @relation("PromptEditRequests")
+  promptEditReviews      PromptEditRequest[]     @relation("PromptEditReviews")
   notifications          Notification[]
 }
 
@@ -191,6 +194,7 @@ model Project {
   invitations          ProjectInvitation[]
   deletionRequests     DeletionRequest[]
   regenerationRequests RegenerationRequest[]
+  promptEditRequests   PromptEditRequest[]
 
   @@index([userId])
   @@index([visibility])
@@ -366,30 +370,67 @@ model DeletionRequest {
 }
 
 // Regeneration requests requiring admin approval
+// Flow: pending → approved → generating → selecting → awaiting_final → completed/rejected
 model RegenerationRequest {
-  id           String    @id @default(cuid())
-  projectId    String
-  requesterId  String    // User requesting regeneration
-  targetType   String    // "image" | "video"
-  targetId     String    // Scene ID (scenes hold both imageUrl and videoUrl)
-  targetName   String?   // Scene title for display
-  reason       String?   // Optional reason for regeneration
-  status       String    @default("pending") // "pending" | "approved" | "rejected" | "completed" | "failed"
-  reviewedBy   String?   // Admin who approved/rejected
-  reviewedAt   DateTime?
-  reviewNote   String?   // Admin's note on decision
-  completedAt  DateTime? // When regeneration was completed
-  errorMessage String?   // Error message if regeneration failed
-  createdAt    DateTime  @default(now())
+  id             String    @id @default(cuid())
+  projectId      String
+  requesterId    String    // User requesting regeneration
+  targetType     String    // "image" | "video"
+  targetId       String    // Scene ID (scenes hold both imageUrl and videoUrl)
+  targetName     String?   // Scene title for display
+  reason         String?   // Optional reason for regeneration
+  // Status flow: pending → approved → generating → selecting → awaiting_final → completed/rejected/failed
+  status         String    @default("pending")
+  maxAttempts    Int       @default(3)  // Maximum regeneration attempts allowed per approval
+  attemptsUsed   Int       @default(0)  // How many regeneration attempts have been used
+  creditsPaid    Int       @default(0)  // Credits prepaid by admin on approval (3x cost)
+  generatedUrls  Json?     // Array of generated image/video URLs from all attempts
+  selectedUrl    String?   // URL selected by collaborator as the best option
+  reviewedBy     String?   // Admin who approved/rejected (initial approval)
+  reviewedAt     DateTime?
+  reviewNote     String?   // Admin's note on decision
+  finalReviewBy  String?   // Admin who did final approval after selection
+  finalReviewAt  DateTime?
+  finalReviewNote String?  // Admin's note on final approval
+  completedAt    DateTime? // When regeneration was completed (final approval given)
+  errorMessage   String?   // Error message if regeneration failed
+  createdAt      DateTime  @default(now())
 
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  requester User    @relation("RegenerationRequests", fields: [requesterId], references: [id])
-  reviewer  User?   @relation("RegenerationReviews", fields: [reviewedBy], references: [id])
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester     User    @relation("RegenerationRequests", fields: [requesterId], references: [id])
+  reviewer      User?   @relation("RegenerationReviews", fields: [reviewedBy], references: [id])
+  finalReviewer User?   @relation("RegenerationFinalReviews", fields: [finalReviewBy], references: [id])
 
   @@index([projectId])
   @@index([requesterId])
   @@index([status])
   @@index([targetId])
+}
+
+// Prompt edit tracking for collaborator changes
+model PromptEditRequest {
+  id           String    @id @default(cuid())
+  projectId    String
+  requesterId  String    // Collaborator who made the edit
+  sceneId      String    // Scene being edited
+  sceneName    String?   // Scene title for display
+  fieldName    String    // "textToImagePrompt" | "imageToVideoPrompt" | "description"
+  oldValue     String    @db.Text // Original prompt value
+  newValue     String    @db.Text // New prompt value
+  status       String    @default("pending") // "pending" | "approved" | "rejected" | "reverted"
+  reviewedBy   String?   // Admin who reviewed
+  reviewedAt   DateTime?
+  reviewNote   String?   // Admin's note on decision
+  createdAt    DateTime  @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester User    @relation("PromptEditRequests", fields: [requesterId], references: [id])
+  reviewer  User?   @relation("PromptEditReviews", fields: [reviewedBy], references: [id])
+
+  @@index([projectId])
+  @@index([requesterId])
+  @@index([sceneId])
+  @@index([status])
 }
 
 // In-app notifications

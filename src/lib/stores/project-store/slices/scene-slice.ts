@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'sonner';
 import type { Scene } from '@/types/project';
 import type { StateCreator } from '../types';
 import { debounceSync } from '../utils';
@@ -61,9 +62,13 @@ export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
                 }
               : state.currentProject,
         }));
+      } else {
+        const data = await response.json().catch(() => ({ error: 'Failed to create scene' }));
+        toast.error(data.error || 'Failed to create scene');
       }
     } catch (error) {
       console.error('Error syncing new scene to DB:', error);
+      toast.error('Network error - scene may not be saved');
     }
   },
 
@@ -106,10 +111,14 @@ export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
           body: JSON.stringify(updates),
         });
         if (!response.ok) {
-          console.error('Failed to sync scene to DB:', await response.text());
+          const data = await response.json().catch(() => ({ error: 'Failed to save changes' }));
+          const errorMessage = data.error || 'Failed to save changes';
+          console.error('Failed to sync scene to DB:', errorMessage);
+          toast.error(errorMessage);
         }
       } catch (error) {
         console.error('Error syncing scene update to DB:', error);
+        toast.error('Network error - changes may not be saved');
       }
     };
 
@@ -144,11 +153,16 @@ export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
     }));
 
     try {
-      await fetch(`/api/projects/${projectId}/scenes/${sceneId}`, {
+      const response = await fetch(`/api/projects/${projectId}/scenes/${sceneId}`, {
         method: 'DELETE',
       });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: 'Failed to delete scene' }));
+        toast.error(data.error || 'Failed to delete scene');
+      }
     } catch (error) {
       console.error('Error deleting scene from DB:', error);
+      toast.error('Network error - scene may not be deleted');
     }
   },
 
@@ -165,13 +179,18 @@ export const createSceneSlice: StateCreator<SceneSlice> = (set, get) => ({
 
     debounceSync(async () => {
       try {
-        await fetch(`/api/projects/${projectId}/scenes`, {
+        const response = await fetch(`/api/projects/${projectId}/scenes`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scenes }),
         });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({ error: 'Failed to save scenes' }));
+          toast.error(data.error || 'Failed to save scenes');
+        }
       } catch (error) {
         console.error('Error syncing scenes to DB:', error);
+        toast.error('Network error - changes may not be saved');
       }
     });
   },

@@ -81,6 +81,17 @@ export interface DeletionRequest {
   };
 }
 
+// Status flow: pending → approved → generating → selecting → awaiting_final → completed/rejected/failed
+export type RegenerationStatus =
+  | 'pending'      // Waiting for admin initial approval
+  | 'approved'     // Admin approved, collaborator can start regenerating
+  | 'generating'   // Regeneration in progress
+  | 'selecting'    // All attempts used, collaborator selecting best option
+  | 'awaiting_final' // Collaborator selected, waiting for admin final approval
+  | 'completed'    // Final approval given, selected image applied
+  | 'rejected'     // Admin rejected (initial or final)
+  | 'failed';      // Regeneration failed
+
 export interface RegenerationRequest {
   id: string;
   projectId: string;
@@ -89,10 +100,18 @@ export interface RegenerationRequest {
   targetId: string; // Scene ID
   targetName?: string;
   reason?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'failed';
-  reviewedBy?: string;
+  status: RegenerationStatus;
+  maxAttempts: number; // Maximum regeneration attempts (default 3)
+  attemptsUsed: number; // How many attempts have been used
+  creditsPaid: number; // Credits prepaid by admin on approval (3x cost)
+  generatedUrls?: string[]; // Array of all generated image/video URLs
+  selectedUrl?: string; // URL selected by collaborator as the best
+  reviewedBy?: string; // Admin who did initial approval
   reviewedAt?: string;
   reviewNote?: string;
+  finalReviewBy?: string; // Admin who did final approval
+  finalReviewAt?: string;
+  finalReviewNote?: string;
   completedAt?: string;
   errorMessage?: string;
   createdAt: string;
@@ -116,6 +135,34 @@ export interface RegenerationRequest {
   project?: {
     id: string;
     name: string;
+  };
+}
+
+export type PromptEditFieldType = 'textToImagePrompt' | 'imageToVideoPrompt' | 'description';
+
+export interface PromptEditRequest {
+  id: string;
+  projectId: string;
+  requesterId: string;
+  sceneId: string;
+  sceneName?: string;
+  fieldName: PromptEditFieldType;
+  oldValue: string;
+  newValue: string;
+  status: 'pending' | 'approved' | 'rejected' | 'reverted';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+  createdAt: string;
+  requester: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image?: string | null;
+  };
+  reviewer?: {
+    id: string;
+    name: string | null;
   };
 }
 

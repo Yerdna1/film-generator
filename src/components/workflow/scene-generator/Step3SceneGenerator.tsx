@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
-import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
+import type { RegenerationRequest, DeletionRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks/useSceneGenerator';
 import {
@@ -27,7 +27,9 @@ interface Step3Props {
   isAuthenticated?: boolean;
 }
 
-export function Step3SceneGenerator({ project: initialProject, isReadOnly = false, isAuthenticated = false }: Step3Props) {
+export function Step3SceneGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step3Props) {
+  // Determine if user can delete directly (admin) or must request (collaborator)
+  const canDeleteDirectly = permissions?.canDelete ?? true;
   const { apiConfig, setApiConfig } = useProjectStore();
   const imageProvider: ImageProvider = apiConfig.imageProvider || 'gemini';
 
@@ -144,6 +146,9 @@ export function Step3SceneGenerator({ project: initialProject, isReadOnly = fals
   const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequest[]>([]);
   const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
 
+  // Deletion requests state
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
+
   // Fetch regeneration requests for this project
   const fetchRegenerationRequests = useCallback(async () => {
     try {
@@ -157,9 +162,23 @@ export function Step3SceneGenerator({ project: initialProject, isReadOnly = fals
     }
   }, [project.id]);
 
+  // Fetch deletion requests for this project
+  const fetchDeletionRequests = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/deletion-requests?status=pending`);
+      if (response.ok) {
+        const data = await response.json();
+        setDeletionRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch deletion requests:', error);
+    }
+  }, [project.id]);
+
   useEffect(() => {
     fetchRegenerationRequests();
-  }, [fetchRegenerationRequests]);
+    fetchDeletionRequests();
+  }, [fetchRegenerationRequests, fetchDeletionRequests]);
 
   // Create a set of scene IDs with pending image regeneration requests
   const pendingImageRegenSceneIds = useMemo(() => {
@@ -169,6 +188,15 @@ export function Step3SceneGenerator({ project: initialProject, isReadOnly = fals
         .map(r => r.targetId)
     );
   }, [regenerationRequests]);
+
+  // Create a set of scene IDs with pending deletion requests
+  const pendingDeletionSceneIds = useMemo(() => {
+    return new Set(
+      deletionRequests
+        .filter(r => r.targetType === 'scene' && r.status === 'pending')
+        .map(r => r.targetId)
+    );
+  }, [deletionRequests]);
 
   // Get selected scenes data for the dialog
   const selectedScenesData = useMemo(() => {
@@ -236,6 +264,7 @@ export function Step3SceneGenerator({ project: initialProject, isReadOnly = fals
               key={scene.id}
               scene={scene}
               index={(currentPage - 1) * SCENES_PER_PAGE + idx}
+              projectId={project.id}
               isExpanded={expandedScenes.includes(scene.id)}
               isGeneratingImage={generatingImageForScene === scene.id}
               isGeneratingAllImages={isGeneratingAllImages}
@@ -243,6 +272,8 @@ export function Step3SceneGenerator({ project: initialProject, isReadOnly = fals
               characters={project.characters}
               isSelected={selectedScenes.has(scene.id)}
               hasPendingRegeneration={pendingImageRegenSceneIds.has(scene.id)}
+              hasPendingDeletion={pendingDeletionSceneIds.has(scene.id)}
+              canDeleteDirectly={canDeleteDirectly}
               isReadOnly={isReadOnly}
               isAuthenticated={isAuthenticated}
               isFirstImage={isFirstImage}
@@ -253,6 +284,7 @@ export function Step3SceneGenerator({ project: initialProject, isReadOnly = fals
               onGenerateImage={() => handleGenerateSceneImage(scene)}
               onRegeneratePrompts={() => regeneratePrompts(scene)}
               onPreviewImage={setPreviewImage}
+              onDeletionRequested={fetchDeletionRequests}
             />
           );
         })}

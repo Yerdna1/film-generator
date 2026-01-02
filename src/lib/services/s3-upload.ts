@@ -1,7 +1,7 @@
 // S3 Media Upload Service
 // Uploads images, videos, and audio to AWS S3 for public access
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 export type MediaType = 'image' | 'video' | 'audio';
@@ -236,4 +236,56 @@ export function isS3Configured(): boolean {
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_S3_BUCKET
   );
+}
+
+/**
+ * Delete a file from S3 by its URL
+ * @param url - The full S3 URL of the file to delete
+ * @returns Success status
+ */
+export async function deleteFromS3(url: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const bucket = process.env.AWS_S3_BUCKET;
+    const region = process.env.AWS_REGION || 'eu-central-1';
+
+    if (!bucket) {
+      return {
+        success: false,
+        error: 'AWS_S3_BUCKET not configured',
+      };
+    }
+
+    // Extract key from URL
+    // URL format: https://bucket.s3.region.amazonaws.com/key
+    const urlPattern = new RegExp(`https://${bucket}\\.s3\\.${region}\\.amazonaws\\.com/(.+)`);
+    const match = url.match(urlPattern);
+
+    if (!match) {
+      console.warn('[S3] URL does not match expected pattern, skipping delete:', url);
+      return {
+        success: false,
+        error: 'URL does not match S3 bucket pattern',
+      };
+    }
+
+    const key = decodeURIComponent(match[1]);
+
+    const s3Client = getS3Client();
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
+
+    console.log(`[S3] Deleted:`, key);
+
+    return { success: true };
+  } catch (error) {
+    console.error('S3 delete error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete from S3',
+    };
+  }
 }

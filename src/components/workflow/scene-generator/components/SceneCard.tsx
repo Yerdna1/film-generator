@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
+import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
 import {
   Image as ImageIcon,
   Trash2,
@@ -37,6 +38,7 @@ import type { Scene, Character } from '@/types/project';
 interface SceneCardProps {
   scene: Scene;
   index: number;
+  projectId: string;
   isExpanded: boolean;
   isGeneratingImage: boolean;
   isGeneratingAllImages: boolean;
@@ -44,6 +46,8 @@ interface SceneCardProps {
   characters: Character[];
   isSelected?: boolean;
   hasPendingRegeneration?: boolean;
+  hasPendingDeletion?: boolean;
+  canDeleteDirectly?: boolean; // Admin can delete directly, collaborators must request
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
   isFirstImage?: boolean;
@@ -54,11 +58,13 @@ interface SceneCardProps {
   onGenerateImage: () => void;
   onRegeneratePrompts: () => void;
   onPreviewImage: (imageUrl: string) => void;
+  onDeletionRequested?: () => void; // Callback when deletion request is sent
 }
 
 function SceneCardComponent({
   scene,
   index,
+  projectId,
   isExpanded,
   isGeneratingImage,
   isGeneratingAllImages,
@@ -66,6 +72,8 @@ function SceneCardComponent({
   characters,
   isSelected = false,
   hasPendingRegeneration = false,
+  hasPendingDeletion = false,
+  canDeleteDirectly = true,
   isReadOnly = false,
   isAuthenticated = true,
   isFirstImage = false,
@@ -76,27 +84,40 @@ function SceneCardComponent({
   onGenerateImage,
   onRegeneratePrompts,
   onPreviewImage,
+  onDeletionRequested,
 }: SceneCardProps) {
   const t = useTranslations();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeletionRequest, setShowDeletionRequest] = useState(false);
 
   // Determine if this image is restricted (non-first image for unauthenticated users)
   const isRestricted = !isAuthenticated && scene.imageUrl && !isFirstImage;
 
   return (
     <>
+      {/* Admin: Direct delete confirmation */}
       <ConfirmDeleteDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         onConfirm={onDelete}
         itemName={scene.title}
       />
+      {/* Collaborator: Request deletion dialog */}
+      <DeletionRequestDialog
+        projectId={projectId}
+        targetType="scene"
+        targetId={scene.id}
+        targetName={scene.title}
+        open={showDeletionRequest}
+        onOpenChange={setShowDeletionRequest}
+        onRequestSent={onDeletionRequested}
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: (index % 12) * 0.03 }}
       >
-        <Card className="glass border-white/10 overflow-hidden">
+        <Card className={`glass overflow-hidden ${hasPendingDeletion ? 'border-orange-500/50 ring-1 ring-orange-500/30' : 'border-white/10'}`}>
           <Collapsible open={isRestricted ? false : isExpanded} onOpenChange={isRestricted ? undefined : onToggleExpand}>
             {/* Image Preview - Vertical Layout */}
             <div className="relative aspect-video bg-black/30">
@@ -161,6 +182,12 @@ function SceneCardComponent({
                   <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                     <Clock className="w-2.5 h-2.5" />
                     Pending
+                  </Badge>
+                )}
+                {hasPendingDeletion && (
+                  <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title="Deletion request pending admin approval">
+                    <Trash2 className="w-2.5 h-2.5" />
+                    Delete Pending
                   </Badge>
                 )}
               </div>
@@ -272,8 +299,10 @@ function SceneCardComponent({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="h-7 text-muted-foreground hover:text-red-400"
+                    onClick={() => canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true)}
+                    className={`h-7 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
+                    disabled={hasPendingDeletion}
+                    title={hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete scene' : 'Request deletion'}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -362,12 +391,15 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.scene.textToImagePrompt === nextProps.scene.textToImagePrompt &&
     prevProps.scene.imageToVideoPrompt === nextProps.scene.imageToVideoPrompt &&
     prevProps.scene.dialogue.length === nextProps.scene.dialogue.length &&
+    prevProps.projectId === nextProps.projectId &&
     prevProps.isExpanded === nextProps.isExpanded &&
     prevProps.isGeneratingImage === nextProps.isGeneratingImage &&
     prevProps.isGeneratingAllImages === nextProps.isGeneratingAllImages &&
     prevProps.imageResolution === nextProps.imageResolution &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.hasPendingRegeneration === nextProps.hasPendingRegeneration &&
+    prevProps.hasPendingDeletion === nextProps.hasPendingDeletion &&
+    prevProps.canDeleteDirectly === nextProps.canDeleteDirectly &&
     prevProps.isReadOnly === nextProps.isReadOnly &&
     prevProps.isAuthenticated === nextProps.isAuthenticated &&
     prevProps.isFirstImage === nextProps.isFirstImage
