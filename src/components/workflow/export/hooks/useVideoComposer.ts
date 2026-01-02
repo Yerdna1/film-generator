@@ -103,6 +103,7 @@ export interface UseVideoComposerReturn {
   startComposition: () => Promise<void>;
   cancelComposition: () => void;
   downloadResult: (type: 'video' | 'draft' | 'srt') => void;
+  isDownloading: boolean;
 
   // Cost estimation
   estimatedCost: CostEstimate;
