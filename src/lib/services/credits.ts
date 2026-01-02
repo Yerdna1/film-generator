@@ -196,11 +196,12 @@ export async function trackRealCostOnly(
   metadata?: Record<string, unknown>
 ): Promise<{ success: boolean; realCost: number }> {
   try {
-    const credits = await getOrCreateCredits(userId);
+    // Ensure credits record exists
+    await getOrCreateCredits(userId);
 
     await prisma.$transaction(async (tx) => {
-      // Only update totalRealCost, not balance
-      await tx.credits.update({
+      // Update totalRealCost and get the credits record
+      const updatedCredits = await tx.credits.update({
         where: { userId },
         data: {
           totalRealCost: { increment: realCost },
@@ -211,7 +212,7 @@ export async function trackRealCostOnly(
       // Create transaction record with 0 credit amount
       await tx.creditTransaction.create({
         data: {
-          creditsId: credits.id,
+          creditsId: updatedCredits.id,
           amount: 0, // No credit deduction
           realCost,
           type,
