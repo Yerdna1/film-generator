@@ -162,10 +162,10 @@ export default function BillingPage() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <CreditCard className="w-6 h-6" />
-              Billing & Subscription
+              {t('billing.title')}
             </h1>
             <p className="text-muted-foreground">
-              Manage your subscription and credits
+              {t('billing.subtitle')}
             </p>
           </div>
         </div>
@@ -179,9 +179,9 @@ export default function BillingPage() {
           >
             <CheckCircle className="w-5 h-5 text-green-500" />
             <div>
-              <div className="font-medium text-green-400">Subscription Activated!</div>
+              <div className="font-medium text-green-400">{t('billing.subscriptionActivated')}</div>
               <div className="text-sm text-muted-foreground">
-                Your credits have been added to your account.
+                {t('billing.creditsAdded')}
               </div>
             </div>
           </motion.div>
@@ -193,25 +193,25 @@ export default function BillingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
-                Credit Balance
+                {t('billing.creditBalance')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-lg bg-primary/10">
-                  <div className="text-sm text-muted-foreground">Available</div>
+                  <div className="text-sm text-muted-foreground">{t('billing.available')}</div>
                   <div className="text-2xl font-bold text-primary">
                     {(credits.balance ?? 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="text-sm text-muted-foreground">Total Spent</div>
+                  <div className="text-sm text-muted-foreground">{t('billing.totalSpent')}</div>
                   <div className="text-2xl font-bold">
                     {(credits.totalSpent ?? 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="text-sm text-muted-foreground">Total Earned</div>
+                  <div className="text-sm text-muted-foreground">{t('billing.totalEarned')}</div>
                   <div className="text-2xl font-bold">
                     {(credits.totalEarned ?? 0).toLocaleString()}
                   </div>
@@ -241,7 +241,7 @@ export default function BillingPage() {
         {/* Available Plans */}
         {subscriptionData && (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Available Plans</h2>
+            <h2 className="text-xl font-semibold">{t('billing.availablePlans')}</h2>
             <SubscriptionPlans
               plans={subscriptionData.plans}
               currentPlan={subscriptionData.subscription.plan}
@@ -253,31 +253,31 @@ export default function BillingPage() {
         {/* FAQ */}
         <Card>
           <CardHeader>
-            <CardTitle>Frequently Asked Questions</CardTitle>
+            <CardTitle>{t('billing.faq')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-medium">How do credits work?</h3>
+              <h3 className="font-medium">{t('billing.howCreditsWork')}</h3>
               <p className="text-sm text-muted-foreground">
-                Credits are used for AI generation: images, videos, voiceovers, and more. Each operation costs a certain amount of credits based on complexity.
+                {t('billing.howCreditsWorkAnswer')}
               </p>
             </div>
             <div>
-              <h3 className="font-medium">Do unused credits roll over?</h3>
+              <h3 className="font-medium">{t('billing.creditsRollOver')}</h3>
               <p className="text-sm text-muted-foreground">
-                Yes! Your credits never expire. Any unused credits from your monthly allocation remain in your account.
+                {t('billing.creditsRollOverAnswer')}
               </p>
             </div>
             <div>
-              <h3 className="font-medium">Can I cancel anytime?</h3>
+              <h3 className="font-medium">{t('billing.canCancelAnytime')}</h3>
               <p className="text-sm text-muted-foreground">
-                Yes, you can cancel your subscription at any time. You&apos;ll keep access until the end of your billing period.
+                {t('billing.canCancelAnytimeAnswer')}
               </p>
             </div>
             <div>
-              <h3 className="font-medium">What payment methods are accepted?</h3>
+              <h3 className="font-medium">{t('billing.paymentMethods')}</h3>
               <p className="text-sm text-muted-foreground">
-                We accept all major credit cards, debit cards, and various local payment methods through our payment provider Polar.
+                {t('billing.paymentMethodsAnswer')}
               </p>
             </div>
           </CardContent>

@@ -65,12 +65,12 @@ export function CurrentPlan({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5" />
-                Current Plan
+                {t('billing.currentPlan')}
               </CardTitle>
-              <CardDescription>Manage your subscription</CardDescription>
+              <CardDescription>{t('billing.manageSubscription')}</CardDescription>
             </div>
             <Badge className={statusColors[status] || statusColors.free}>
-              {status === 'active' ? 'Active' : status === 'canceled' ? 'Canceling' : status === 'past_due' ? 'Past Due' : 'Free'}
+              {status === 'active' ? t('billing.active') : status === 'canceled' ? t('billing.canceled') : status === 'past_due' ? 'Past Due' : t('billing.free')}
             </Badge>
           </div>
         </CardHeader>
@@ -80,7 +80,7 @@ export function CurrentPlan({
             <div>
               <div className="font-semibold text-lg">{planName}</div>
               <div className="text-sm text-muted-foreground">
-                {credits.toLocaleString()} credits/month
+                {credits.toLocaleString()} {t('billing.credits')}{t('billing.perMonth')}
               </div>
             </div>
           </div>
@@ -89,9 +89,9 @@ export function CurrentPlan({
             <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
               <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
               <div>
-                <div className="font-medium text-yellow-500">Subscription Ending</div>
+                <div className="font-medium text-yellow-500">{t('billing.subscriptionEnding')}</div>
                 <div className="text-sm text-muted-foreground">
-                  Your subscription will end on {formatDate(currentPeriodEnd)}. You will be downgraded to the Free plan.
+                  {t('billing.subscriptionEndingDesc', { date: formatDate(currentPeriodEnd) })}
                 </div>
               </div>
             </div>
@@ -100,7 +100,7 @@ export function CurrentPlan({
           {status === 'active' && currentPeriodEnd && !cancelAtPeriodEnd && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
-              Next billing date: {formatDate(currentPeriodEnd)}
+              {t('billing.renewsOn')}: {formatDate(currentPeriodEnd)}
             </div>
           )}
 
@@ -116,7 +116,7 @@ export function CurrentPlan({
               ) : (
                 <ExternalLink className="w-4 h-4 mr-2" />
               )}
-              Manage Subscription
+              {t('billing.manageSubscription')}
             </Button>
           )}
         </CardContent>

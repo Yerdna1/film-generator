@@ -78,7 +78,7 @@ export function SubscriptionPlans({ plans, currentPlan, onSelectPlan }: Subscrip
             >
               {isPopular && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-500">
-                  Most Popular
+                  {t('billing.proDesc')}
                 </Badge>
               )}
 
@@ -90,7 +90,7 @@ export function SubscriptionPlans({ plans, currentPlan, onSelectPlan }: Subscrip
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-bold">${plan.price}</span>
                   {plan.price > 0 && (
-                    <span className="text-muted-foreground">/month</span>
+                    <span className="text-muted-foreground">{t('billing.perMonth')}</span>
                   )}
                 </div>
                 <CardDescription>{plan.description}</CardDescription>
@@ -99,7 +99,7 @@ export function SubscriptionPlans({ plans, currentPlan, onSelectPlan }: Subscrip
               <CardContent className="flex-1 flex flex-col">
                 <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm mb-4 ${planBadgeColors[key]}`}>
                   <Sparkles className="w-3 h-3" />
-                  {plan.credits.toLocaleString()} credits/month
+                  {plan.credits.toLocaleString()} {t('billing.credits')}{t('billing.perMonth')}
                 </div>
 
                 <ul className="space-y-2 flex-1 mb-4">
@@ -120,11 +120,11 @@ export function SubscriptionPlans({ plans, currentPlan, onSelectPlan }: Subscrip
                   {loading === key ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : isCurrentPlan ? (
-                    'Current Plan'
+                    t('billing.currentPlan')
                   ) : key === 'free' ? (
-                    'Free Plan'
+                    t('billing.freePlan')
                   ) : (
-                    'Upgrade'
+                    t('billing.upgrade')
                   )}
                 </Button>
               </CardContent>
