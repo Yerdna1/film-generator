@@ -64,7 +64,9 @@
     "profile": "Profile",
     "statistics": "Statistics",
     "admin": "Admin",
-    "billing": "Billing"
+    "billing": "Billing",
+    "pricing": "Pricing",
+    "approvals": "Approvals"
   },
   "dashboard": {
     "title": "Your Projects",
@@ -860,6 +862,18 @@
     "invitation": {
       "title": "Project Invitation",
       "message": "You were invited to {project}"
+    },
+    "regenerationRequest": {
+      "title": "Regeneration Request",
+      "message": "{user} requested to regenerate {target}",
+      "approved": "Regeneration Request Approved",
+      "approvedMessage": "Your request to regenerate {target} has been approved. You can now regenerate.",
+      "rejected": "Regeneration Request Rejected",
+      "rejectedMessage": "Your request to regenerate {target} was rejected.",
+      "completed": "Regeneration Completed",
+      "completedMessage": "The regeneration for {target} has been completed and applied.",
+      "failed": "Regeneration Failed",
+      "failedMessage": "The regeneration for {target} failed. Please try again."
     }
   },
   "approvals": {
@@ -976,6 +990,12 @@
   "billing": {
     "title": "Billing & Subscription",
     "subtitle": "Manage your subscription and credits",
+    "plans": {
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "studio": "Studio"
+    },
     "subscriptionActivated": "Subscription Activated!",
     "creditsAdded": "Your credits have been added to your account.",
     "creditBalance": "Credit Balance",

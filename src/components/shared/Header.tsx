@@ -72,16 +72,16 @@ export function Header() {
   // Plan badge colors and labels
   const getPlanBadge = () => {
     if (!subscriptionPlan || subscriptionPlan === 'free') {
-      return { label: 'Free', className: 'bg-amber-500/20 text-amber-500 border-amber-500/30' };
+      return { label: t('billing.plans.free'), className: 'bg-amber-500/20 text-amber-500 border-amber-500/30' };
     }
     if (subscriptionPlan === 'starter') {
-      return { label: 'Starter', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+      return { label: t('billing.plans.starter'), className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
     }
     if (subscriptionPlan === 'pro') {
-      return { label: 'Pro', className: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+      return { label: t('billing.plans.pro'), className: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
     }
     if (subscriptionPlan === 'studio') {
-      return { label: 'Studio', className: 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-400 border-cyan-500/30' };
+      return { label: t('billing.plans.studio'), className: 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-400 border-cyan-500/30' };
     }
     return { label: subscriptionPlan, className: 'bg-muted text-muted-foreground' };
   };
