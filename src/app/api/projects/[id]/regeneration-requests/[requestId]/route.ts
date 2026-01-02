@@ -481,7 +481,8 @@ export async function PATCH(
               regenerationResult = { success: false, error: 'Scene has no image. Generate image first.' };
             } else {
               // Use project owner's settings and track costs to owner
-              const videoResponse = await fetch(new URL('/api/video', request.url).origin + '/api/video', {
+              const baseUrl = new URL('/api/video', request.url).origin;
+              const videoResponse = await fetch(`${baseUrl}/api/video`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -500,6 +501,7 @@ export async function PATCH(
 
               const videoData = await videoResponse.json();
 
+              // Check if Modal returned video directly
               if (videoResponse.ok && videoData.videoUrl) {
                 regenerationResult = {
                   success: true,
@@ -507,6 +509,50 @@ export async function PATCH(
                   cost: videoData.cost,
                   provider: videoData.storage === 's3' ? 'modal' : 'kie',
                 };
+              } else if (videoResponse.ok && videoData.taskId) {
+                // Kie.ai returns taskId - need to poll for completion
+                console.log(`[Regeneration] Kie.ai video task started: ${videoData.taskId}, polling...`);
+
+                const maxPolls = 120; // 10 minutes max (5s intervals)
+                const pollInterval = 5000; // 5 seconds
+                let pollCount = 0;
+                let videoUrl: string | undefined;
+                let videoCost: number | undefined;
+                let pollError: string | undefined;
+
+                while (pollCount < maxPolls) {
+                  await new Promise(resolve => setTimeout(resolve, pollInterval));
+                  pollCount++;
+
+                  const statusUrl = `${baseUrl}/api/video?taskId=${videoData.taskId}&projectId=${projectId}&download=true&isRegeneration=true&sceneId=${scene.id}&ownerId=${regenerationRequest.project?.userId}&skipCreditCheck=true`;
+                  const statusResponse = await fetch(statusUrl, {
+                    headers: { 'Cookie': request.headers.get('cookie') || '' },
+                  });
+
+                  const statusData = await statusResponse.json();
+
+                  if (statusData.status === 'complete' && statusData.videoUrl) {
+                    videoUrl = statusData.videoUrl;
+                    videoCost = statusData.cost;
+                    break;
+                  } else if (statusData.status === 'error') {
+                    pollError = statusData.failMessage || 'Video generation failed';
+                    break;
+                  }
+                  // Still processing, continue polling
+                  console.log(`[Regeneration] Kie.ai poll ${pollCount}/${maxPolls}: ${statusData.status}`);
+                }
+
+                if (videoUrl) {
+                  regenerationResult = {
+                    success: true,
+                    url: videoUrl,
+                    cost: videoCost,
+                    provider: 'kie',
+                  };
+                } else {
+                  regenerationResult = { success: false, error: pollError || 'Video generation timed out' };
+                }
               } else {
                 regenerationResult = { success: false, error: videoData.error || 'Video generation failed' };
               }

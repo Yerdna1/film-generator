@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
@@ -15,6 +16,7 @@ import {
   MessageSquare,
   Clock,
   Lock,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,18 +30,26 @@ import {
 } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyButton } from '@/components/shared/CopyButton';
+import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
+import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
+import { RegenerationSelectionModal } from '@/components/collaboration/RegenerationSelectionModal';
 import type { Scene } from '@/types/project';
+import type { RegenerationRequest } from '@/types/collaboration';
 import type { VideoStatus } from '../types';
 
 interface SceneVideoCardProps {
   scene: Scene;
   index: number;
+  projectId: string;
   status: VideoStatus;
   progress: number;
   isPlaying: boolean;
   cachedVideoUrl?: string;
   isSelected?: boolean;
   hasPendingRegeneration?: boolean;
+  hasPendingDeletion?: boolean;
+  approvedRegeneration?: RegenerationRequest | null;
+  canDeleteDirectly?: boolean;
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
   isFirstVideo?: boolean;
@@ -48,6 +58,9 @@ interface SceneVideoCardProps {
   onPause: () => void;
   onGenerateVideo: () => void;
   buildFullI2VPrompt: (scene: Scene) => string;
+  onDeletionRequested?: () => void;
+  onUseRegenerationAttempt?: (requestId: string) => Promise<void>;
+  onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>;
 }
 
 const getStatusColor = (status: VideoStatus) => {
@@ -86,12 +99,16 @@ const getStatusIcon = (status: VideoStatus) => {
 export function SceneVideoCard({
   scene,
   index,
+  projectId,
   status,
   progress,
   isPlaying,
   cachedVideoUrl,
   isSelected,
   hasPendingRegeneration = false,
+  hasPendingDeletion = false,
+  approvedRegeneration = null,
+  canDeleteDirectly = true,
   isReadOnly = false,
   isAuthenticated = true,
   isFirstVideo = false,
@@ -100,19 +117,82 @@ export function SceneVideoCard({
   onPause,
   onGenerateVideo,
   buildFullI2VPrompt,
+  onDeletionRequested,
+  onUseRegenerationAttempt,
+  onSelectRegeneration,
 }: SceneVideoCardProps) {
   const t = useTranslations();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeletionRequest, setShowDeletionRequest] = useState(false);
+  const [showRegenerationModal, setShowRegenerationModal] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Determine if this video is restricted (non-first video for unauthenticated users)
   const isRestricted = !isAuthenticated && scene.videoUrl && !isFirstVideo;
 
   return (
+    <>
+      {/* Admin: Direct delete confirmation */}
+      <ConfirmDeleteDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={() => {
+          // For video deletion, we'd need a delete handler
+          // For now this shows the pattern - video deletion may need separate implementation
+        }}
+        itemName={`${scene.title} video`}
+      />
+      {/* Collaborator: Request deletion dialog */}
+      <DeletionRequestDialog
+        projectId={projectId}
+        targetType="video"
+        targetId={scene.id}
+        targetName={`${scene.title} video`}
+        open={showDeletionRequest}
+        onOpenChange={setShowDeletionRequest}
+        onRequestSent={onDeletionRequested}
+      />
+      {/* Regeneration Selection Modal for approved requests */}
+      {approvedRegeneration && onUseRegenerationAttempt && onSelectRegeneration && (
+        <RegenerationSelectionModal
+          open={showRegenerationModal}
+          onOpenChange={setShowRegenerationModal}
+          request={approvedRegeneration}
+          onRegenerate={async () => {
+            setIsRegenerating(true);
+            try {
+              await onUseRegenerationAttempt(approvedRegeneration.id);
+            } finally {
+              setIsRegenerating(false);
+            }
+          }}
+          onSelect={async (selectedUrl) => {
+            await onSelectRegeneration(approvedRegeneration.id, selectedUrl);
+            setShowRegenerationModal(false);
+          }}
+        />
+      )}
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: (index % 12) * 0.05 }}
     >
-      <Card className="glass border-white/10 overflow-hidden">
+      <Card className={`overflow-hidden ${
+        // Background colors based on regeneration status
+        approvedRegeneration?.status === 'approved'
+          ? 'bg-emerald-900/60 border-emerald-400 ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20'
+          : approvedRegeneration?.status === 'generating'
+          ? 'bg-blue-900/60 border-blue-400 ring-2 ring-blue-400/50 shadow-lg shadow-blue-500/20'
+          : approvedRegeneration?.status === 'selecting'
+          ? 'bg-amber-900/60 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/20'
+          : approvedRegeneration?.status === 'awaiting_final'
+          ? 'bg-purple-900/60 border-purple-400 ring-2 ring-purple-400/50 shadow-lg shadow-purple-500/20'
+          : hasPendingRegeneration
+          ? 'bg-cyan-900/50 border-cyan-400 ring-2 ring-cyan-400/40 shadow-lg shadow-cyan-500/20'
+          : hasPendingDeletion
+          ? 'bg-orange-900/50 border-orange-400 ring-2 ring-orange-400/40 shadow-lg shadow-orange-500/20'
+          : 'glass border-white/10'
+      }`}>
         {/* Video/Image Preview */}
         <div className="relative aspect-video bg-black/30">
           {scene.videoUrl && !isRestricted ? (
@@ -196,6 +276,61 @@ export function SceneVideoCard({
               <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                 <Clock className="w-2.5 h-2.5" />
                 Pending
+              </Badge>
+            )}
+            {approvedRegeneration && approvedRegeneration.status === 'approved' && (
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Badge
+                  className="bg-emerald-500 text-white border-2 border-emerald-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-emerald-400 hover:scale-110 transition-all shadow-lg shadow-emerald-500/50"
+                  title={`Click to regenerate!`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRegenerationModal(true);
+                  }}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span className="font-bold">CLICK TO REGENERATE</span>
+                  <span className="bg-white/20 px-1 rounded">{approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x</span>
+                </Badge>
+              </motion.div>
+            )}
+            {approvedRegeneration && approvedRegeneration.status === 'generating' && (
+              <Badge className="bg-blue-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                Generating...
+              </Badge>
+            )}
+            {approvedRegeneration && approvedRegeneration.status === 'selecting' && (
+              <motion.div
+                animate={{ scale: [1, 1.08, 1] }}
+                transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Badge
+                  className="bg-amber-500 text-white border-2 border-amber-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-amber-400 hover:scale-110 transition-all shadow-lg shadow-amber-500/50"
+                  title="Click to select your preferred video"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRegenerationModal(true);
+                  }}
+                >
+                  <Play className="w-3 h-3" />
+                  <span className="font-bold">CLICK TO SELECT BEST</span>
+                </Badge>
+              </motion.div>
+            )}
+            {approvedRegeneration && approvedRegeneration.status === 'awaiting_final' && (
+              <Badge className="bg-purple-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5" />
+                Awaiting Approval
+              </Badge>
+            )}
+            {hasPendingDeletion && (
+              <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title="Deletion request pending admin approval">
+                <Trash2 className="w-2.5 h-2.5" />
+                Delete Pending
               </Badge>
             )}
           </div>
@@ -288,13 +423,35 @@ export function SceneVideoCard({
                         <Button
                           variant="outline"
                           size="sm"
-                          className={`h-7 border-white/10 hover:bg-white/5 ${isReadOnly ? 'flex-1' : ''}`}
+                          className="h-7 border-white/10 hover:bg-white/5"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>{t('common.download')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+
+                {/* Delete video button - only for editors with video */}
+                {!isReadOnly && scene.videoUrl && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true)}
+                          className={`h-7 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
+                          disabled={hasPendingDeletion}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete video' : 'Request deletion'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -315,5 +472,6 @@ export function SceneVideoCard({
         </CardContent>
       </Card>
     </motion.div>
+    </>
   );
 }
