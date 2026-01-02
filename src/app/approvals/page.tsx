@@ -36,12 +36,7 @@ import {
 } from '@/components/ui/select';
 import type { DeletionRequest, RegenerationRequest, PromptEditRequest } from '@/types/collaboration';
 
-// Field labels for display
-const fieldLabels: Record<string, string> = {
-  textToImagePrompt: 'T2I Prompt',
-  imageToVideoPrompt: 'I2V Prompt',
-  description: 'Description',
-};
+// Field labels moved inside component to use translations
 
 interface ProjectInfo {
   id: string;
@@ -52,6 +47,13 @@ export default function ApprovalsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const t = useTranslations('approvals');
+
+  // Field labels for display (translated)
+  const fieldLabels: Record<string, string> = {
+    textToImagePrompt: t('t2iPrompt'),
+    imageToVideoPrompt: t('i2vPrompt'),
+    description: t('description'),
+  };
 
   const [deletionRequests, setDeletionRequests] = useState<(DeletionRequest & { project?: ProjectInfo })[]>([]);
   const [regenerationRequests, setRegenerationRequests] = useState<(RegenerationRequest & { project?: ProjectInfo })[]>([]);
@@ -630,7 +632,7 @@ export default function ApprovalsPage() {
                         <div className="min-w-0">
                           <p className="text-sm font-medium">{fieldLabels[request.fieldName]}</p>
                           <p className="text-xs text-muted-foreground truncate">
-                            Scene: {request.sceneName} · {request.project?.name}
+                            {t('scene')}: {request.sceneName} · {request.project?.name}
                           </p>
                         </div>
                         <Button
@@ -755,7 +757,7 @@ export default function ApprovalsPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                            Delete {request.targetType}: {request.targetName}
+                            {t('delete')} {request.targetType}: {request.targetName}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
                             {request.project?.name}

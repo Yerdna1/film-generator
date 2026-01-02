@@ -904,7 +904,10 @@
     "applySelection": "Apply Selection",
     "justNow": "Just now",
     "hoursAgo": "{hours}h ago",
-    "daysAgo": "{days}d ago"
+    "daysAgo": "{days}d ago",
+    "t2iPrompt": "T2I Prompt",
+    "i2vPrompt": "I2V Prompt",
+    "description": "Description"
   },
   "footer": {
     "tagline": "Powered by AI • Built for creators",

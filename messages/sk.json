@@ -904,7 +904,10 @@
     "applySelection": "Použiť výber",
     "justNow": "Práve teraz",
     "hoursAgo": "pred {hours} hod",
-    "daysAgo": "pred {days} dňami"
+    "daysAgo": "pred {days} dňami",
+    "t2iPrompt": "T2I Prompt",
+    "i2vPrompt": "I2V Prompt",
+    "description": "Popis"
   },
   "footer": {
     "tagline": "Poháňané AI • Vytvorené pre tvorcov",
