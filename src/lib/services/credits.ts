@@ -62,41 +62,40 @@ export interface TransactionRecord {
 
 /**
  * Get or create credits for a user
+ * Uses upsert for atomic operation - prevents race conditions on creation
  */
 export async function getOrCreateCredits(userId: string): Promise<CreditsInfo> {
-  let credits = await prisma.credits.findUnique({
-    where: { userId },
+  // First check if user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
   });
 
-  if (!credits) {
-    // Check if user exists first
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      // Return default credits if user doesn't exist in database
-      return {
-        balance: 0,
-        totalSpent: 0,
-        totalEarned: 0,
-        totalRealCost: 0,
-        lastUpdated: new Date(),
-      };
-    }
-
-    // Get starting credits from admin config (default 0)
-    const startingCredits = await getStartingCredits();
-
-    credits = await prisma.credits.create({
-      data: {
-        userId,
-        balance: startingCredits,
-        totalEarned: startingCredits,
-        totalRealCost: 0,
-      },
-    });
+  if (!user) {
+    // Return default credits if user doesn't exist in database
+    return {
+      balance: 0,
+      totalSpent: 0,
+      totalEarned: 0,
+      totalRealCost: 0,
+      lastUpdated: new Date(),
+    };
   }
+
+  // Get starting credits from admin config (default 0)
+  const startingCredits = await getStartingCredits();
+
+  // Use upsert for atomic get-or-create
+  const credits = await prisma.credits.upsert({
+    where: { userId },
+    create: {
+      userId,
+      balance: startingCredits,
+      totalEarned: startingCredits,
+      totalRealCost: 0,
+    },
+    update: {}, // No update needed, just return existing
+  });
 
   return {
     balance: credits.balance,
@@ -109,6 +108,7 @@ export async function getOrCreateCredits(userId: string): Promise<CreditsInfo> {
 
 /**
  * Spend credits for an operation with real cost tracking
+ * Uses atomic check-and-deduct to prevent race conditions and negative balances
  */
 export async function spendCredits(
   userId: string,
@@ -121,27 +121,44 @@ export async function spendCredits(
   realCostOverride?: number  // Optional: pass exact real cost (e.g., for resolution-based pricing)
 ): Promise<{ success: boolean; balance: number; realCost: number; error?: string }> {
   try {
-    const credits = await getOrCreateCredits(userId);
-
-    if (credits.balance < amount) {
-      return {
-        success: false,
-        balance: credits.balance,
-        realCost: 0,
-        error: `Insufficient credits. Need ${amount}, have ${credits.balance}`,
-      };
-    }
-
     // Calculate real cost - use override if provided, otherwise calculate from action type
     const actionType = TYPE_TO_ACTION[type];
     const realCost = realCostOverride !== undefined
       ? realCostOverride
       : (actionType && provider ? getActionCost(actionType, provider) : 0);
 
-    // Update credits and create transaction in a transaction
-    const updated = await prisma.$transaction(async (tx) => {
-      const updatedCredits = await tx.credits.update({
+    // All operations inside a single transaction for atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Get or create credits record inside transaction
+      const startingCredits = await getStartingCredits();
+      const credits = await tx.credits.upsert({
         where: { userId },
+        create: {
+          userId,
+          balance: startingCredits,
+          totalEarned: startingCredits,
+          totalRealCost: 0,
+        },
+        update: {}, // Just get existing if it exists
+      });
+
+      // Check balance INSIDE transaction to prevent race conditions
+      if (credits.balance < amount) {
+        return {
+          success: false,
+          balance: credits.balance,
+          realCost: 0,
+          error: `Insufficient credits. Need ${amount}, have ${credits.balance}`,
+        };
+      }
+
+      // Atomic update with balance check in WHERE clause for extra safety
+      // This ensures the update only succeeds if balance is still sufficient
+      const updateResult = await tx.credits.updateMany({
+        where: {
+          userId,
+          balance: { gte: amount }, // Only update if balance is still sufficient
+        },
         data: {
           balance: { decrement: amount },
           totalSpent: { increment: amount },
@@ -150,6 +167,24 @@ export async function spendCredits(
         },
       });
 
+      // If no rows updated, balance became insufficient (race condition caught)
+      if (updateResult.count === 0) {
+        const currentCredits = await tx.credits.findUnique({ where: { userId } });
+        return {
+          success: false,
+          balance: currentCredits?.balance ?? 0,
+          realCost: 0,
+          error: `Insufficient credits. Need ${amount}, have ${currentCredits?.balance ?? 0}`,
+        };
+      }
+
+      // Get updated credits for transaction record
+      const updatedCredits = await tx.credits.findUnique({ where: { userId } });
+      if (!updatedCredits) {
+        throw new Error('Credits record not found after update');
+      }
+
+      // Create transaction record
       await tx.creditTransaction.create({
         data: {
           creditsId: updatedCredits.id,
@@ -163,14 +198,14 @@ export async function spendCredits(
         },
       });
 
-      return updatedCredits;
+      return {
+        success: true,
+        balance: updatedCredits.balance,
+        realCost,
+      };
     });
 
-    return {
-      success: true,
-      balance: updated.balance,
-      realCost,
-    };
+    return result;
   } catch (error) {
     console.error('Error spending credits:', error);
     return {
@@ -196,14 +231,19 @@ export async function trackRealCostOnly(
   metadata?: Record<string, unknown>
 ): Promise<{ success: boolean; realCost: number }> {
   try {
-    // Ensure credits record exists
-    await getOrCreateCredits(userId);
-
+    // All operations in a single transaction - no separate getOrCreateCredits call
     await prisma.$transaction(async (tx) => {
-      // Update totalRealCost and get the credits record
-      const updatedCredits = await tx.credits.update({
+      // Get or create credits record inside transaction using upsert
+      const startingCredits = await getStartingCredits();
+      const credits = await tx.credits.upsert({
         where: { userId },
-        data: {
+        create: {
+          userId,
+          balance: startingCredits,
+          totalEarned: startingCredits,
+          totalRealCost: realCost,
+        },
+        update: {
           totalRealCost: { increment: realCost },
           lastUpdated: new Date(),
         },
@@ -212,7 +252,7 @@ export async function trackRealCostOnly(
       // Create transaction record with 0 credit amount
       await tx.creditTransaction.create({
         data: {
-          creditsId: updatedCredits.id,
+          creditsId: credits.id,
           amount: 0, // No credit deduction
           realCost,
           type,
@@ -233,6 +273,7 @@ export async function trackRealCostOnly(
 
 /**
  * Add credits to user (for purchases or bonuses)
+ * Uses upsert to eliminate redundant DB calls
  */
 export async function addCredits(
   userId: string,
@@ -241,21 +282,20 @@ export async function addCredits(
   description?: string
 ): Promise<{ success: boolean; balance: number }> {
   try {
-    // Ensure credits record exists
-    await getOrCreateCredits(userId);
-
+    // All operations in a single transaction with upsert
     const updated = await prisma.$transaction(async (tx) => {
-      const userCredits = await tx.credits.findUnique({
-        where: { userId },
-      });
+      const startingCredits = await getStartingCredits();
 
-      if (!userCredits) {
-        throw new Error('Credits not found');
-      }
-
-      const updatedCredits = await tx.credits.update({
+      // Upsert handles both create and update in one operation
+      const updatedCredits = await tx.credits.upsert({
         where: { userId },
-        data: {
+        create: {
+          userId,
+          balance: startingCredits + amount,
+          totalEarned: startingCredits + amount,
+          totalRealCost: 0,
+        },
+        update: {
           balance: { increment: amount },
           totalEarned: { increment: amount },
           lastUpdated: new Date(),
@@ -350,6 +390,7 @@ export function getCost(costType: CostType, quantity: number = 1): number {
 
 /**
  * Get user statistics with real costs and generation/regeneration breakdown
+ * Optimized: Single query for credits+transactions, batched project query
  */
 export async function getUserStatistics(userId: string): Promise<{
   credits: CreditsInfo;
@@ -363,8 +404,7 @@ export async function getUserStatistics(userId: string): Promise<{
   };
   recentTransactions: TransactionRecord[];
 }> {
-  const credits = await getOrCreateCredits(userId);
-
+  // Single query for credits and all transactions
   const creditsRecord = await prisma.credits.findUnique({
     where: { userId },
     include: {
@@ -374,7 +414,9 @@ export async function getUserStatistics(userId: string): Promise<{
     },
   });
 
+  // If no credits record, create one and return empty stats
   if (!creditsRecord) {
+    const credits = await getOrCreateCredits(userId);
     return {
       credits,
       stats: {
@@ -389,30 +431,37 @@ export async function getUserStatistics(userId: string): Promise<{
     };
   }
 
+  const credits: CreditsInfo = {
+    balance: creditsRecord.balance,
+    totalSpent: creditsRecord.totalSpent,
+    totalEarned: creditsRecord.totalEarned,
+    totalRealCost: creditsRecord.totalRealCost,
+    lastUpdated: creditsRecord.lastUpdated,
+  };
+
   const transactions = creditsRecord.transactions;
 
-  // Calculate stats by type with generation/regeneration breakdown
+  // First pass: calculate stats and collect project IDs
   const byType: Record<string, { count: number; credits: number; realCost: number; generations: number; regenerations: number }> = {};
   const byProvider: Record<string, { count: number; credits: number; realCost: number }> = {};
   const projectIds = new Set<string>();
+  const projectCredits: Record<string, { credits: number; realCost: number }> = {};
 
   let totalGenerations = 0;
   let totalRegenerations = 0;
 
   for (const tx of transactions) {
     if (tx.amount < 0) {
-      // Check metadata for isRegeneration flag
       const metadata = tx.metadata as { isRegeneration?: boolean } | null;
       const isRegeneration = metadata?.isRegeneration ?? false;
 
-      // Update totals
       if (isRegeneration) {
         totalRegenerations++;
       } else {
         totalGenerations++;
       }
 
-      // By type with generation/regeneration breakdown
+      // By type
       if (!byType[tx.type]) {
         byType[tx.type] = { count: 0, credits: 0, realCost: 0, generations: 0, regenerations: 0 };
       }
@@ -434,36 +483,32 @@ export async function getUserStatistics(userId: string): Promise<{
       byProvider[provider].credits += Math.abs(tx.amount);
       byProvider[provider].realCost += tx.realCost;
 
-      // Collect project IDs
+      // Collect project costs (will add names after batch query)
       if (tx.projectId) {
         projectIds.add(tx.projectId);
+        if (!projectCredits[tx.projectId]) {
+          projectCredits[tx.projectId] = { credits: 0, realCost: 0 };
+        }
+        projectCredits[tx.projectId].credits += Math.abs(tx.amount);
+        projectCredits[tx.projectId].realCost += tx.realCost;
       }
     }
   }
 
-  // Get project names and calculate per-project costs
+  // Single batched query for all project names (avoids N+1)
   const byProject: Record<string, { name: string; credits: number; realCost: number }> = {};
-
   if (projectIds.size > 0) {
     const projects = await prisma.project.findMany({
       where: { id: { in: Array.from(projectIds) } },
       select: { id: true, name: true },
     });
-
     const projectMap = new Map(projects.map((p) => [p.id, p.name]));
 
-    for (const tx of transactions) {
-      if (tx.amount < 0 && tx.projectId) {
-        if (!byProject[tx.projectId]) {
-          byProject[tx.projectId] = {
-            name: projectMap.get(tx.projectId) || 'Unknown Project',
-            credits: 0,
-            realCost: 0,
-          };
-        }
-        byProject[tx.projectId].credits += Math.abs(tx.amount);
-        byProject[tx.projectId].realCost += tx.realCost;
-      }
+    for (const [projectId, costs] of Object.entries(projectCredits)) {
+      byProject[projectId] = {
+        name: projectMap.get(projectId) || 'Unknown Project',
+        ...costs,
+      };
     }
   }
 
