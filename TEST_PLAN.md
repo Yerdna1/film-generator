@@ -1250,6 +1250,208 @@ npm run test:watch
 
 ---
 
+## Phase 13: Security Attack Simulation Tests (55 tests)
+
+### 13.1 Rate Limiting & DDoS Prevention Tests (10 tests)
+
+**File:** `src/app/api/__tests__/security-attacks.test.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 606 | `should reject requests after rate limit exceeded` | 100+ requests blocked |
+| 607 | `should track requests per IP address` | IP-based tracking |
+| 608 | `should have stricter limits on auth endpoints` | 10 req/min for auth |
+| 609 | `should have stricter limits on generation endpoints` | 20 req/min for generation |
+| 610 | `should include rate limit headers in response` | X-RateLimit-* headers |
+| 611 | `should return 429 status on rate limit exceeded` | HTTP 429 response |
+| 612 | `should use sliding window for rate limiting` | Sliding window algorithm |
+| 613 | `should separate rate limits per user` | Per-user counters |
+| 614 | `should handle distributed attack from multiple IPs` | Multi-IP detection |
+| 615 | `should reset rate limit after window expires` | Window expiry handling |
+
+---
+
+### 13.2 Authentication Attack Tests (10 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 616 | `should reject requests without authentication token` | No auth blocked |
+| 617 | `should reject invalid JWT tokens` | Invalid tokens rejected |
+| 618 | `should reject expired JWT tokens` | Expired tokens rejected |
+| 619 | `should prevent brute force password attacks` | Account lockout |
+| 620 | `should not reveal if email exists during login` | Generic error messages |
+| 621 | `should hash passwords with bcrypt` | Bcrypt verification |
+| 622 | `should prevent session fixation attacks` | Session regeneration |
+| 623 | `should validate OAuth callback state parameter` | State validation |
+| 624 | `should prevent OAuth account linking attacks` | No dangerous linking |
+| 625 | `should invalidate sessions on password change` | Session invalidation |
+
+---
+
+### 13.3 Authorization Bypass Tests (10 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 626 | `should prevent IDOR (Insecure Direct Object Reference)` | IDOR prevention |
+| 627 | `should prevent horizontal privilege escalation` | Cross-user access |
+| 628 | `should prevent vertical privilege escalation` | Role elevation |
+| 629 | `should require admin role for admin endpoints` | Admin verification |
+| 630 | `should verify project ownership for modifications` | Ownership check |
+| 631 | `should prevent access to other users API keys` | API key isolation |
+| 632 | `should prevent manipulation of userId in requests` | User ID spoofing |
+| 633 | `should validate project membership for scene access` | Membership check |
+| 634 | `should prevent collaborator from approving own requests` | Self-approval block |
+| 635 | `should check role in database, not just session` | DB role verification |
+
+---
+
+### 13.4 Input Validation & Injection Tests (10 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 636 | `should prevent SQL injection in project names` | SQL injection test |
+| 637 | `should prevent SQL injection in search queries` | Search injection test |
+| 638 | `should prevent XSS in project names` | XSS prevention |
+| 639 | `should prevent XSS in scene descriptions` | XSS in text fields |
+| 640 | `should prevent NoSQL injection attempts` | NoSQL injection |
+| 641 | `should validate email format` | Email validation |
+| 642 | `should reject oversized payloads` | Payload size limits |
+| 643 | `should sanitize file paths` | Path traversal prevention |
+| 644 | `should prevent command injection in prompts` | Command injection |
+| 645 | `should validate numeric inputs` | Numeric validation |
+
+---
+
+### 13.5 File Upload Security Tests (5 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 646 | `should validate MIME types` | MIME type whitelist |
+| 647 | `should check magic bytes for file type verification` | Magic byte check |
+| 648 | `should enforce maximum file size` | Size limits |
+| 649 | `should prevent path traversal in filenames` | Filename sanitization |
+| 650 | `should generate unique filenames with UUID` | UUID filenames |
+
+---
+
+### 13.6 Session & API Security Tests (10 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 651 | `should use HTTP-only cookies for sessions` | Cookie security |
+| 652 | `should use secure cookies in production` | HTTPS cookies |
+| 653 | `should have reasonable session expiry` | Session timeout |
+| 654 | `should regenerate session on privilege change` | Session refresh |
+| 655 | `should invalidate session on logout` | Logout handling |
+| 656 | `should prevent enumeration of user IDs` | ID enumeration |
+| 657 | `should not expose internal error details` | Error sanitization |
+| 658 | `should validate Content-Type headers` | Header validation |
+| 659 | `should prevent credit fraud through race conditions` | Race condition |
+| 660 | `should track unusual activity patterns` | Anomaly detection |
+
+---
+
+## Phase 14: Database & S3 Load Monitoring Tests (40 tests)
+
+### 14.1 Database Query Performance Tests (10 tests)
+
+**File:** `src/app/api/__tests__/load-monitoring.test.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 661 | `should complete user lookup in under 100ms` | User query timing |
+| 662 | `should complete project list query in under 200ms` | Project list timing |
+| 663 | `should complete scene fetch with relations in under 300ms` | Relational query |
+| 664 | `should complete credit balance check in under 50ms` | Credit lookup |
+| 665 | `should complete transaction history query in under 200ms` | Transaction query |
+| 666 | `should use select to reduce data transfer` | Select optimization |
+| 667 | `should use take/skip for pagination` | Pagination test |
+| 668 | `should use groupBy for aggregations` | GroupBy performance |
+| 669 | `should handle concurrent queries` | Connection pool |
+| 670 | `should not leak connections` | Connection cleanup |
+
+---
+
+### 14.2 N+1 Query Detection Tests (5 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 671 | `should use include instead of separate queries` | Include optimization |
+| 672 | `should batch queries with Promise.all` | Parallel queries |
+| 673 | `should use transaction for batch updates` | Batch transactions |
+| 674 | `should detect N+1 patterns` | N+1 detection |
+| 675 | `should verify query count in operations` | Query counting |
+
+---
+
+### 14.3 S3 Upload Performance Tests (5 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 676 | `should measure base64 encoding performance` | Encoding speed |
+| 677 | `should measure buffer allocation performance` | Buffer allocation |
+| 678 | `should validate file size before upload` | Pre-upload validation |
+| 679 | `should upload images under 2 seconds` | Upload timing |
+| 680 | `should handle large file uploads` | Large file handling |
+
+---
+
+### 14.4 S3 Download & Caching Tests (10 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 681 | `should cache project data` | Project caching |
+| 682 | `should invalidate cache on update` | Cache invalidation |
+| 683 | `should expire cache after TTL` | TTL expiry |
+| 684 | `should provide cache statistics` | Cache stats |
+| 685 | `should invalidate user-specific cache` | User cache clear |
+| 686 | `should use correct TTL for different data types` | TTL configuration |
+| 687 | `should return cached data on second fetch` | Cache hit |
+| 688 | `should have faster response on cache hit` | Cache performance |
+| 689 | `should handle cache miss gracefully` | Cache miss handling |
+| 690 | `should clear all cache on demand` | Full cache clear |
+
+---
+
+### 14.5 Concurrent Load Tests (10 tests)
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 691 | `should handle 10 concurrent users` | Multi-user load |
+| 692 | `should handle 50 concurrent project creations` | Concurrent writes |
+| 693 | `should handle mixed read/write operations` | Mixed operations |
+| 694 | `should measure throughput` | Queries per second |
+| 695 | `should handle burst traffic` | Burst handling |
+| 696 | `should maintain response times under load` | Load stability |
+| 697 | `should generate performance report` | Report generation |
+| 698 | `should track memory usage` | Memory monitoring |
+| 699 | `should detect slow queries` | Slow query detection |
+| 700 | `should handle database failover` | Failover handling |
+
+---
+
+## Summary
+
+| Phase | Tests | Description |
+|-------|-------|-------------|
+| 1 | 45 | Core Unit Tests (Credits, Costs, Permissions) |
+| 2 | 55 | Role & Permission Integration Tests |
+| 3 | 60 | Collaboration Workflow Tests |
+| 4 | 70 | Generation & Cost Tracking Tests |
+| 5 | 25 | Statistics & Reporting Tests |
+| 6 | 25 | Edge Cases & Security Tests |
+| 7 | 90 | Complete API Route Tests |
+| 8 | 70 | Workflow Step Tests |
+| 9 | 30 | Admin Panel Tests |
+| 10 | 40 | Complete Cost Deduction Tests |
+| 11 | 30 | End-to-End Integration Tests |
+| 12 | 50 | Service Function Unit Tests |
+| 13 | 55 | Security Attack Simulation Tests |
+| 14 | 40 | Database & S3 Load Monitoring Tests |
+| **Total** | **685** | **Comprehensive Coverage** |
+
+---
+
 ## Notes
 
 1. **Mock External APIs**: All Modal, Gemini, ElevenLabs calls should be mocked
@@ -1259,3 +1461,6 @@ npm run test:watch
 5. **CI Integration**: Add to GitHub Actions for PR validation
 6. **Cost Verification**: Every generation API must have corresponding cost deduction test
 7. **Role Matrix**: Every action tested for all 4 roles (admin, collaborator, reader, public)
+8. **Security Tests**: Run security attack simulations regularly
+9. **Load Tests**: Monitor DB and S3 performance metrics
+10. **Cache Verification**: Ensure proper cache invalidation on all data mutations
