@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, afterEach, vi } from 'vitest'
+import { beforeAll, afterAll, afterEach, vi, expect } from 'vitest'
 import { PrismaClient } from '@prisma/client'
 
 // Test database URL

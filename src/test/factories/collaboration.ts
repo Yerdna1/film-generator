@@ -60,7 +60,7 @@ interface CreateDeletionRequestOptions {
   targetType?: 'project' | 'scene' | 'character' | 'video'
   targetId?: string
   status?: 'pending' | 'approved' | 'rejected'
-  reviewedById?: string
+  reviewedBy?: string
   reviewNote?: string
 }
 
@@ -76,7 +76,7 @@ export async function createDeletionRequest(
       targetType: options.targetType || 'scene',
       targetId: options.targetId || 'target-id-placeholder',
       status: options.status || 'pending',
-      reviewedById: options.reviewedById,
+      reviewedBy: options.reviewedBy,
       reviewNote: options.reviewNote
     }
   })
@@ -89,7 +89,7 @@ interface CreatePromptEditOptions {
   oldValue?: string
   newValue?: string
   status?: 'pending' | 'approved' | 'rejected' | 'reverted'
-  reviewedById?: string
+  reviewedBy?: string
 }
 
 export async function createPromptEditRequest(
@@ -106,7 +106,7 @@ export async function createPromptEditRequest(
       oldValue: options.oldValue || 'Old prompt value',
       newValue: options.newValue || 'New prompt value',
       status: options.status || 'pending',
-      reviewedById: options.reviewedById
+      reviewedBy: options.reviewedBy
     }
   })
 }
@@ -117,7 +117,7 @@ interface CreateNotificationOptions {
   title?: string
   message?: string
   read?: boolean
-  link?: string
+  actionUrl?: string
 }
 
 export async function createNotification(
@@ -131,7 +131,7 @@ export async function createNotification(
       title: options.title || 'Test Notification',
       message: options.message || 'This is a test notification',
       read: options.read ?? false,
-      link: options.link
+      actionUrl: options.actionUrl
     }
   })
 }
