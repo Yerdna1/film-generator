@@ -351,6 +351,13 @@ export const modalEndpoints: ModalEndpointConfig[] = [
     placeholder: 'https://your-app--image-edit.modal.run',
     docsUrl: 'https://huggingface.co/Qwen/Qwen-Image-Edit-2511',
   },
+  {
+    id: 'modalVectcutEndpoint',
+    name: 'Video Composition (VectCut)',
+    description: 'VectCutAPI for video rendering with transitions, captions, and CapCut draft export',
+    placeholder: 'https://your-app--vectcut.modal.run',
+    docsUrl: 'https://github.com/sun-guannan/VectCutAPI',
+  },
 ];
 
 export const apiProviders: ApiProvider[] = [

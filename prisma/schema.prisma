@@ -165,6 +165,7 @@ model ApiKeys {
   modalImageEditEndpoint String?  // e.g., https://your-app--image-edit.modal.run (Qwen-Image-Edit)
   modalVideoEndpoint     String?  // e.g., https://your-app--video.modal.run
   modalMusicEndpoint     String?  // e.g., https://your-app--ace-step.modal.run (ACE-Step)
+  modalVectcutEndpoint   String?  // e.g., https://your-app--vectcut.modal.run (Video composition)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -300,6 +301,35 @@ model SceneGenerationJob {
   completedScenes Int       @default(0)
   progress        Int       @default(0) // 0-100
   errorDetails    String?   @db.Text
+  createdAt       DateTime  @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
+// Video composition job for rendering final videos with VectCutAPI
+model VideoCompositionJob {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  status          String    @default("pending") // pending, processing, complete, error
+  progress        Int       @default(0)         // 0-100
+  phase           String?                       // downloading, composing, rendering, uploading
+  outputFormat    String    @default("both")    // mp4, draft, both
+  resolution      String    @default("hd")      // hd, 4k
+  includeMusic    Boolean   @default(false)
+  includeCaptions Boolean   @default(false)
+  videoUrl        String?   @db.Text            // S3 URL of rendered MP4
+  draftUrl        String?   @db.Text            // S3 URL of zipped CapCut draft
+  srtUrl          String?   @db.Text            // S3 URL of SRT subtitle file
+  errorMessage    String?   @db.Text
+  creditsCost     Int       @default(0)
+  realCost        Float     @default(0)
+  duration        Float     @default(0)         // Final video duration in seconds
+  fileSize        Int       @default(0)         // Final video file size in bytes
   createdAt       DateTime  @default(now())
   startedAt       DateTime?
   completedAt     DateTime?

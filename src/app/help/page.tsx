@@ -12,13 +12,11 @@ import {
   Video,
   Mic,
   Download,
-  Key,
   Zap,
   MessageCircle,
   BookOpen,
   Lightbulb,
   ChevronRight,
-  ExternalLink,
   Users,
   RefreshCw,
   Trash2,
@@ -93,7 +91,6 @@ export default function HelpPage() {
   ];
 
   const faqKeys = [
-    'apiKeys',
     'credits',
     'slowMotion',
     'noDialogue',
@@ -367,83 +364,6 @@ export default function HelpPage() {
             </Card>
           </motion.section>
 
-          {/* API Keys Info */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-              <Key className="w-5 h-5 text-amber-400" />
-              {t('apiKeysSetup')}
-            </h3>
-            <Card className="glass border-white/10">
-              <CardContent className="p-6 space-y-4">
-                <p className="text-muted-foreground">
-                  {t('apiKeysDescription')}
-                </p>
-                <div className="grid gap-3">
-                  <div className="flex items-center gap-3 glass rounded-lg p-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      <Sparkles className="w-4 h-4 text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">Google Gemini</p>
-                      <p className="text-xs text-muted-foreground">Text, images, Slovak TTS</p>
-                    </div>
-                    <a
-                      href="https://makersuite.google.com/app/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                    >
-                      {t('getKey')} <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-3 glass rounded-lg p-3">
-                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                      <Video className="w-4 h-4 text-orange-400" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">Kie.ai (Grok Imagine)</p>
-                      <p className="text-xs text-muted-foreground">Image-to-video</p>
-                    </div>
-                    <a
-                      href="https://kie.ai"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
-                    >
-                      {t('getKey')} <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-3 glass rounded-lg p-3">
-                    <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                      <Mic className="w-4 h-4 text-violet-400" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">ElevenLabs</p>
-                      <p className="text-xs text-muted-foreground">English voiceover</p>
-                    </div>
-                    <a
-                      href="https://elevenlabs.io"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
-                    >
-                      {t('getKey')} <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
-                <div className="glass rounded-lg p-3 border-l-4 border-l-cyan-500">
-                  <p className="text-sm text-muted-foreground">
-                    <strong className="text-cyan-400">{t('tip')}:</strong> {t('faqs.apiKeysAnswer').split('.')[0]}.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.section>
-
           {/* Tips */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
@@ -507,18 +427,10 @@ export default function HelpPage() {
                 <p className="text-muted-foreground mb-6">
                   {t('contactDescription')}
                 </p>
-                <div className="flex justify-center gap-4">
-                  <Button variant="outline" className="border-white/10">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    {t('contactSupport')}
-                  </Button>
-                  <Link href="/settings">
-                    <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0">
-                      <Key className="w-4 h-4 mr-2" />
-                      {t('configureApiKeys')}
-                    </Button>
-                  </Link>
-                </div>
+                <Button variant="outline" className="border-white/10">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  {t('contactSupport')}
+                </Button>
               </CardContent>
             </Card>
           </motion.section>

@@ -1,0 +1,474 @@
+'use client';
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+import type { Project, TransitionType } from '@/types/project';
+
+export type OutputFormat = 'mp4' | 'draft' | 'both';
+export type Resolution = 'hd' | '4k';
+
+export interface CompositionState {
+  isComposing: boolean;
+  jobId: string | null;
+  status: 'idle' | 'processing' | 'complete' | 'error';
+  progress: number;
+  phase: string | null;
+  error: string | null;
+}
+
+export interface CompositionResult {
+  videoUrl: string | null;
+  videoBase64: string | null;
+  draftUrl: string | null;
+  draftBase64: string | null;
+  srtContent: string | null;
+  duration: number;
+  fileSize: number;
+}
+
+export interface CompositionOptions {
+  outputFormat: OutputFormat;
+  resolution: Resolution;
+  includeCaptions: boolean;
+  includeMusic: boolean;
+  aiTransitions: boolean;
+}
+
+export interface CostEstimate {
+  credits: number;
+  realCost: number;
+  breakdown: {
+    scenes: number;
+    music: number;
+    captions: number;
+    resolution: number;
+  };
+}
+
+export interface UseVideoComposerReturn {
+  // Composition state
+  compositionState: CompositionState;
+  result: CompositionResult | null;
+
+  // Options
+  options: CompositionOptions;
+  setOutputFormat: (format: OutputFormat) => void;
+  setResolution: (resolution: Resolution) => void;
+  setIncludeCaptions: (include: boolean) => void;
+  setIncludeMusic: (include: boolean) => void;
+  setAiTransitions: (enable: boolean) => void;
+
+  // AI Transitions
+  suggestedTransitions: Record<string, TransitionType>;
+  isLoadingTransitions: boolean;
+  suggestTransitions: () => Promise<void>;
+  applyTransitions: (transitions: Record<string, TransitionType>) => void;
+
+  // Actions
+  startComposition: () => Promise<void>;
+  cancelComposition: () => void;
+  downloadResult: (type: 'video' | 'draft' | 'srt') => void;
+
+  // Cost estimation
+  estimatedCost: CostEstimate;
+
+  // Capabilities
+  canCompose: boolean;
+  hasEndpoint: boolean;
+}
+
+const POLL_INTERVAL = 3000; // 3 seconds
+
+export function useVideoComposer(project: Project): UseVideoComposerReturn {
+  // Options state
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('both');
+  const [resolution, setResolution] = useState<Resolution>('hd');
+  const [includeCaptions, setIncludeCaptions] = useState(true);
+  const [includeMusic, setIncludeMusic] = useState(true);
+  const [aiTransitions, setAiTransitions] = useState(false);
+
+  // Composition state
+  const [compositionState, setCompositionState] = useState<CompositionState>({
+    isComposing: false,
+    jobId: null,
+    status: 'idle',
+    progress: 0,
+    phase: null,
+    error: null,
+  });
+
+  // Result state
+  const [result, setResult] = useState<CompositionResult | null>(null);
+
+  // AI Transitions state
+  const [suggestedTransitions, setSuggestedTransitions] = useState<Record<string, TransitionType>>({});
+  const [isLoadingTransitions, setIsLoadingTransitions] = useState(false);
+
+  // Endpoint availability
+  const [hasEndpoint, setHasEndpoint] = useState(false);
+
+  // Refs
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Check if endpoint is configured
+  useEffect(() => {
+    const checkEndpoint = async () => {
+      try {
+        const response = await fetch('/api/user/api-keys');
+        if (response.ok) {
+          const data = await response.json();
+          setHasEndpoint(!!data.modalVectcutEndpoint);
+        }
+      } catch {
+        setHasEndpoint(false);
+      }
+    };
+    checkEndpoint();
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Calculate cost estimate
+  const estimatedCost: CostEstimate = {
+    credits: 0,
+    realCost: 0,
+    breakdown: {
+      scenes: 0,
+      music: 0,
+      captions: 0,
+      resolution: 1,
+    },
+  };
+
+  const sceneCount = project.scenes.length;
+  const captionCount = project.scenes.reduce((sum, s) => sum + (s.captions?.length || 0), 0);
+  const hasMusic = !!project.backgroundMusic;
+
+  // Base cost per scene
+  estimatedCost.breakdown.scenes = sceneCount * 5;
+  estimatedCost.credits = estimatedCost.breakdown.scenes;
+  estimatedCost.realCost = sceneCount * 0.03;
+
+  // Music overlay
+  if (includeMusic && hasMusic) {
+    estimatedCost.breakdown.music = 2;
+    estimatedCost.credits += 2;
+    estimatedCost.realCost += 0.02;
+  }
+
+  // Caption burn-in
+  if (includeCaptions && captionCount > 0) {
+    estimatedCost.breakdown.captions = Math.ceil(captionCount / 10);
+    estimatedCost.credits += estimatedCost.breakdown.captions;
+    estimatedCost.realCost += captionCount * 0.001;
+  }
+
+  // 4K resolution multiplier
+  if (resolution === '4k') {
+    estimatedCost.breakdown.resolution = 2;
+    estimatedCost.credits *= 2;
+    estimatedCost.realCost *= 1.5;
+  }
+
+  // Check if composition is possible
+  const canCompose = sceneCount > 0 &&
+    project.scenes.some(s => s.videoUrl || s.imageUrl) &&
+    hasEndpoint;
+
+  // Suggest AI transitions
+  const suggestTransitions = useCallback(async () => {
+    if (sceneCount < 2) return;
+
+    setIsLoadingTransitions(true);
+    try {
+      const response = await fetch('/api/video/compose/suggest-transitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          scenes: project.scenes.map(s => ({
+            id: s.id,
+            title: s.title,
+            description: s.description,
+            cameraShot: s.cameraShot,
+          })),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const transitions: Record<string, TransitionType> = {};
+        for (const suggestion of data.transitions || []) {
+          transitions[suggestion.fromSceneId] = suggestion.type as TransitionType;
+        }
+        setSuggestedTransitions(transitions);
+      }
+    } catch (error) {
+      console.error('Failed to suggest transitions:', error);
+    } finally {
+      setIsLoadingTransitions(false);
+    }
+  }, [project.id, project.scenes, sceneCount]);
+
+  // Apply transitions to scenes
+  const applyTransitions = useCallback((transitions: Record<string, TransitionType>) => {
+    setSuggestedTransitions(transitions);
+  }, []);
+
+  // Poll for job status
+  const pollJobStatus = useCallback(async (jobId: string) => {
+    try {
+      const response = await fetch(`/api/video/compose?jobId=${jobId}`, {
+        signal: abortControllerRef.current?.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check job status');
+      }
+
+      const data = await response.json();
+
+      setCompositionState(prev => ({
+        ...prev,
+        status: data.status,
+        progress: data.progress || 0,
+        phase: data.phase,
+        error: data.error,
+      }));
+
+      if (data.status === 'complete') {
+        setResult({
+          videoUrl: data.videoUrl,
+          videoBase64: null,
+          draftUrl: data.draftUrl,
+          draftBase64: null,
+          srtContent: data.srtContent,
+          duration: data.duration || 0,
+          fileSize: data.fileSize || 0,
+        });
+
+        setCompositionState(prev => ({
+          ...prev,
+          isComposing: false,
+        }));
+
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+      } else if (data.status === 'error') {
+        setCompositionState(prev => ({
+          ...prev,
+          isComposing: false,
+          error: data.error || 'Composition failed',
+        }));
+
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Poll error:', error);
+      }
+    }
+  }, []);
+
+  // Start composition
+  const startComposition = useCallback(async () => {
+    if (!canCompose) return;
+
+    setCompositionState({
+      isComposing: true,
+      jobId: null,
+      status: 'processing',
+      progress: 0,
+      phase: 'Starting...',
+      error: null,
+    });
+    setResult(null);
+
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch('/api/video/compose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          outputFormat,
+          resolution,
+          includeCaptions,
+          includeMusic: includeMusic && hasMusic,
+          aiTransitions,
+          transitions: aiTransitions ? suggestedTransitions : undefined,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start composition');
+      }
+
+      if (data.status === 'complete') {
+        // Immediate completion (synchronous processing)
+        setResult({
+          videoUrl: data.videoUrl,
+          videoBase64: data.videoBase64,
+          draftUrl: data.draftUrl,
+          draftBase64: data.draftBase64,
+          srtContent: data.srtContent,
+          duration: data.duration || 0,
+          fileSize: data.fileSize || 0,
+        });
+        setCompositionState({
+          isComposing: false,
+          jobId: data.jobId,
+          status: 'complete',
+          progress: 100,
+          phase: 'Complete',
+          error: null,
+        });
+      } else if (data.status === 'error') {
+        throw new Error(data.error || 'Composition failed');
+      } else {
+        // Async processing - start polling
+        setCompositionState(prev => ({
+          ...prev,
+          jobId: data.jobId,
+          phase: 'Processing...',
+        }));
+
+        pollIntervalRef.current = setInterval(() => {
+          pollJobStatus(data.jobId);
+        }, POLL_INTERVAL);
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        setCompositionState(prev => ({
+          ...prev,
+          isComposing: false,
+          status: 'error',
+          error: (error as Error).message,
+        }));
+      }
+    }
+  }, [
+    canCompose, project.id, outputFormat, resolution, includeCaptions,
+    includeMusic, hasMusic, aiTransitions, suggestedTransitions, pollJobStatus
+  ]);
+
+  // Cancel composition
+  const cancelComposition = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setCompositionState({
+      isComposing: false,
+      jobId: null,
+      status: 'idle',
+      progress: 0,
+      phase: null,
+      error: null,
+    });
+  }, []);
+
+  // Download result
+  const downloadResult = useCallback((type: 'video' | 'draft' | 'srt') => {
+    if (!result) return;
+
+    let url: string | null = null;
+    let filename = `${project.name.replace(/[^a-z0-9]/gi, '_')}`;
+
+    if (type === 'video') {
+      if (result.videoUrl) {
+        url = result.videoUrl;
+        filename += '.mp4';
+      } else if (result.videoBase64) {
+        url = `data:video/mp4;base64,${result.videoBase64}`;
+        filename += '.mp4';
+      }
+    } else if (type === 'draft') {
+      if (result.draftUrl) {
+        url = result.draftUrl;
+        filename += '_capcut_draft.zip';
+      } else if (result.draftBase64) {
+        url = `data:application/zip;base64,${result.draftBase64}`;
+        filename += '_capcut_draft.zip';
+      }
+    } else if (type === 'srt' && result.srtContent) {
+      const blob = new Blob([result.srtContent], { type: 'text/plain' });
+      url = URL.createObjectURL(blob);
+      filename += '.srt';
+    }
+
+    if (url) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Revoke blob URL if created
+      if (type === 'srt') {
+        URL.revokeObjectURL(url);
+      }
+    }
+  }, [result, project.name]);
+
+  return {
+    // Composition state
+    compositionState,
+    result,
+
+    // Options
+    options: {
+      outputFormat,
+      resolution,
+      includeCaptions,
+      includeMusic,
+      aiTransitions,
+    },
+    setOutputFormat,
+    setResolution,
+    setIncludeCaptions,
+    setIncludeMusic,
+    setAiTransitions,
+
+    // AI Transitions
+    suggestedTransitions,
+    isLoadingTransitions,
+    suggestTransitions,
+    applyTransitions,
+
+    // Actions
+    startComposition,
+    cancelComposition,
+    downloadResult,
+
+    // Cost estimation
+    estimatedCost,
+
+    // Capabilities
+    canCompose,
+    hasEndpoint,
+  };
+}

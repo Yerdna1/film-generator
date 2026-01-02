@@ -18,7 +18,6 @@ import {
   ProviderSelector,
   VoiceoverProgress,
   SceneDialogueCard,
-  ProviderInfo,
 } from './voiceover-generator/components';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
@@ -315,16 +314,6 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
               onSelectRegeneration={handleSelectRegeneration}
             />
           ))}
-      </div>
-
-      {/* Provider Info */}
-      <ProviderInfo currentProvider={project.voiceSettings.provider} />
-
-      {/* Tip */}
-      <div className="glass rounded-xl p-4 border-l-4 border-violet-500">
-        <p className="text-sm text-muted-foreground">
-          <strong className="text-violet-400">Tip:</strong> {t('steps.voiceover.tip')}
-        </p>
       </div>
     </div>
   );

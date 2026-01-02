@@ -17,6 +17,10 @@ import {
   Play,
   X,
   Lock,
+  Clapperboard,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +38,7 @@ import {
   useCaptionEditor,
   useBackgroundMusic,
   useTimelineEditor,
+  useVideoComposer,
 } from './export/hooks';
 
 // Components
@@ -58,7 +63,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
   const t = useTranslations();
   const { projects, deleteScene } = useProjectStore();
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'scenes' | 'captions' | 'music' | 'export'>('scenes');
+  const [activeTab, setActiveTab] = useState<'scenes' | 'captions' | 'music' | 'render' | 'export'>('scenes');
 
   // Get live project data from store
   const project = projects.find((p) => p.id === initialProject.id) || initialProject;
@@ -71,6 +76,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
   const captionEditor = useCaptionEditor(project);
   const backgroundMusic = useBackgroundMusic(project);
   const timelineEditor = useTimelineEditor(project);
+  const videoComposer = useVideoComposer(project);
 
   // Handle seek from timeline
   const handleTimelineSeek = (time: number) => {
@@ -183,7 +189,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
               <Card className="glass border-black/10 dark:border-white/10 h-full">
                 <CardContent className="p-0">
                   <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-                    <TabsList className="w-full grid grid-cols-4 rounded-none bg-black/[0.02] dark:bg-white/[0.02] h-11">
+                    <TabsList className="w-full grid grid-cols-5 rounded-none bg-black/[0.02] dark:bg-white/[0.02] h-11">
                       <TabsTrigger
                         value="scenes"
                         className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400 data-[state=active]:shadow-none"
@@ -204,6 +210,13 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                       >
                         <Music className="w-4 h-4" />
                         Music
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="render"
+                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-cyan-500/15 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-400 data-[state=active]:shadow-none"
+                      >
+                        <Clapperboard className="w-4 h-4" />
+                        Render
                       </TabsTrigger>
                       <TabsTrigger
                         value="export"
@@ -512,6 +525,211 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                                   Upload
                                 </button>
                               </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* RENDER TAB */}
+                      <TabsContent value="render" className="m-0 p-4">
+                        <div className="space-y-4">
+                          {/* Sign-in required message for unauthenticated users */}
+                          {!isAuthenticated && (
+                            <a
+                              href="/auth/register"
+                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+                            >
+                              <Lock className="w-4 h-4 text-orange-400" />
+                              <span className="text-sm text-orange-400">Sign in to render videos</span>
+                            </a>
+                          )}
+
+                          {/* Endpoint not configured warning */}
+                          {isAuthenticated && !videoComposer.hasEndpoint && (
+                            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                              <p className="text-sm text-amber-600 dark:text-amber-400">
+                                VectCut endpoint not configured. Add your Modal endpoint URL in Settings.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Composition Status */}
+                          {videoComposer.compositionState.isComposing && (
+                            <div className="p-3 rounded-lg border border-cyan-500/30 bg-cyan-500/5">
+                              <div className="flex items-center gap-3">
+                                <Loader2 className="w-5 h-5 text-cyan-500 animate-spin" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{videoComposer.compositionState.phase || 'Rendering...'}</p>
+                                  <div className="mt-2 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                                    <div
+                                      className="h-full bg-gradient-to-r from-cyan-500 to-teal-500 transition-all"
+                                      style={{ width: `${videoComposer.compositionState.progress}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={videoComposer.cancelComposition}
+                                  className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground transition-all"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Composition Error */}
+                          {videoComposer.compositionState.status === 'error' && (
+                            <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                <p className="text-sm text-red-600 dark:text-red-400">{videoComposer.compositionState.error}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Composition Result */}
+                          {videoComposer.result && (
+                            <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                              <div className="flex items-center gap-2 mb-3">
+                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                                  Render complete! {Math.round(videoComposer.result.duration)}s
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                {(videoComposer.result.videoUrl || videoComposer.result.videoBase64) && (
+                                  <button
+                                    onClick={() => videoComposer.downloadResult('video')}
+                                    className="flex-1 py-2 rounded-md text-xs font-medium text-white bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 transition-all"
+                                  >
+                                    Download MP4
+                                  </button>
+                                )}
+                                {(videoComposer.result.draftUrl || videoComposer.result.draftBase64) && (
+                                  <button
+                                    onClick={() => videoComposer.downloadResult('draft')}
+                                    className="flex-1 py-2 rounded-md text-xs font-medium border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                                  >
+                                    CapCut Draft
+                                  </button>
+                                )}
+                                {videoComposer.result.srtContent && (
+                                  <button
+                                    onClick={() => videoComposer.downloadResult('srt')}
+                                    className="py-2 px-3 rounded-md text-xs font-medium border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                                  >
+                                    SRT
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Options (only show when not composing and no result) */}
+                          {!videoComposer.compositionState.isComposing && !videoComposer.result && isAuthenticated && videoComposer.hasEndpoint && (
+                            <>
+                              {/* Output Format */}
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">Output Format</p>
+                                <div className="flex gap-2">
+                                  {(['mp4', 'draft', 'both'] as const).map((format) => (
+                                    <button
+                                      key={format}
+                                      onClick={() => videoComposer.setOutputFormat(format)}
+                                      className={`flex-1 py-2 rounded-md text-xs font-medium border transition-all ${
+                                        videoComposer.options.outputFormat === format
+                                          ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+                                          : 'border-black/10 dark:border-white/10 hover:border-cyan-500/30'
+                                      }`}
+                                    >
+                                      {format === 'mp4' ? 'MP4 Only' : format === 'draft' ? 'CapCut Draft' : 'Both'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Resolution */}
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">Resolution</p>
+                                <div className="flex gap-2">
+                                  {(['hd', '4k'] as const).map((res) => (
+                                    <button
+                                      key={res}
+                                      onClick={() => videoComposer.setResolution(res)}
+                                      className={`flex-1 py-2 rounded-md text-xs font-medium border transition-all ${
+                                        videoComposer.options.resolution === res
+                                          ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+                                          : 'border-black/10 dark:border-white/10 hover:border-cyan-500/30'
+                                      }`}
+                                    >
+                                      {res === 'hd' ? 'HD (1080p)' : '4K (2160p)'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Options */}
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">Include</p>
+                                <div className="space-y-2">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={videoComposer.options.includeCaptions}
+                                      onChange={(e) => videoComposer.setIncludeCaptions(e.target.checked)}
+                                      className="w-4 h-4 rounded border-black/20 dark:border-white/20 text-cyan-500 focus:ring-cyan-500"
+                                    />
+                                    <span className="text-sm">Burn in captions</span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={videoComposer.options.includeMusic}
+                                      onChange={(e) => videoComposer.setIncludeMusic(e.target.checked)}
+                                      disabled={!project.backgroundMusic}
+                                      className="w-4 h-4 rounded border-black/20 dark:border-white/20 text-cyan-500 focus:ring-cyan-500 disabled:opacity-50"
+                                    />
+                                    <span className={`text-sm ${!project.backgroundMusic ? 'text-muted-foreground' : ''}`}>
+                                      Include music {!project.backgroundMusic && '(none added)'}
+                                    </span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={videoComposer.options.aiTransitions}
+                                      onChange={(e) => videoComposer.setAiTransitions(e.target.checked)}
+                                      className="w-4 h-4 rounded border-black/20 dark:border-white/20 text-cyan-500 focus:ring-cyan-500"
+                                    />
+                                    <span className="text-sm">AI-suggest transitions</span>
+                                  </label>
+                                </div>
+                              </div>
+
+                              {/* Cost Estimate */}
+                              <div className="p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">Estimated cost</span>
+                                  <span className="text-sm font-medium">{videoComposer.estimatedCost.credits} credits</span>
+                                </div>
+                              </div>
+
+                              {/* Render Button */}
+                              <button
+                                onClick={videoComposer.startComposition}
+                                disabled={!videoComposer.canCompose}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                              >
+                                <Clapperboard className="w-4 h-4" />
+                                Render Video
+                              </button>
+                            </>
+                          )}
+
+                          {/* No scenes message */}
+                          {project.scenes.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Clapperboard className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                              <p className="text-sm">No scenes to render</p>
                             </div>
                           )}
                         </div>

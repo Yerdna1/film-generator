@@ -521,26 +521,26 @@
   },
   "terms": {
     "title": "Podmienky používania",
-    "subtitle": "Posledná aktualizácia: December 2024",
+    "subtitle": "Posledná aktualizácia: Január 2026",
     "acceptance": "Súhlas s podmienkami",
     "acceptanceText": "Prístupom a používaním Generátora filmov (\"Služba\") prijímate a súhlasíte s týmito Podmienkami používania. Ak nesúhlasíte s týmito podmienkami, nepoužívajte túto Službu.",
     "description": "Popis služby",
     "descriptionText": "Generátor filmov je AI-poháňaná aplikácia, ktorá pomáha používateľom vytvárať krátke filmy prostredníctvom viacstupňového postupu vrátane generovania príbehu, tvorby postáv, generovania obrázkov scén, tvorby videí a generovania hlasového komentára.",
     "userResponsibilities": "Povinnosti používateľa",
     "userResponsibilitiesItems": [
-      "Ste zodpovedný za zachovanie dôvernosti vašich API kľúčov",
+      "Ste zodpovedný za bezpečnosť vašich prihlasovacích údajov",
       "Súhlasíte, že nebudete používať Službu na generovanie škodlivého, nelegálneho alebo nevhodného obsahu",
       "Ste zodpovedný za akýkoľvek obsah, ktorý vytvoríte pomocou Služby",
       "Súhlasíte, že budete dodržiavať všetky platné zákony a predpisy"
     ],
     "thirdParty": "Služby tretích strán",
-    "thirdPartyText": "Služba integruje AI služby tretích strán vrátane Google Gemini, Kie.ai (Grok Imagine), ElevenLabs a ďalších. Vaše používanie týchto služieb podlieha ich príslušným podmienkam. Nie sme zodpovední za dostupnosť, kvalitu alebo politiky služieb tretích strán.",
+    "thirdPartyText": "Služba využíva rôznych AI poskytovateľov na generovanie obsahu. To zahŕňa naše vlastné AI modely a služby tretích strán. Nie sme zodpovední za dostupnosť alebo kvalitu AI-generovaného obsahu.",
     "intellectualProperty": "Duševné vlastníctvo",
     "intellectualPropertyText": "Obsah, ktorý vytvoríte pomocou Služby, patrí vám, s výhradou podmienok použitých AI služieb. Aplikácia Generátor filmov, jej dizajn a originálny obsah sú chránené autorským právom a inými zákonmi o duševnom vlastníctve.",
-    "creditsSystem": "Systém kreditov",
-    "creditsSystemText": "Služba používa systém kreditov na sledovanie využitia. Kredity sú poskytované zadarmo počas beta obdobia. Vyhradzujeme si právo kedykoľvek upraviť systém kreditov vrátane cien a prideľovania.",
+    "creditsSystem": "Systém kreditov a predplatného",
+    "creditsSystemText": "Služba používa systém založený na kreditoch. Bezplatné účty dostávajú úvodné kredity. Platené predplatné poskytuje mesačné kredity a ďalšie funkcie. Kredity sú nevratné a exspirujú podľa podmienok vášho predplatného. Vyhradzujeme si právo kedykoľvek upraviť ceny a prideľovanie kreditov.",
     "dataStorage": "Ukladanie dát",
-    "dataStorageText": "Štandardne sú vaše dáta uložené lokálne vo vašom prehliadači. API kľúče sa nikdy neodosielajú na naše servery. Ak sa rozhodnete povoliť cloudovú synchronizáciu, vaše projektové dáta môžu byť uložené na našich serveroch v súlade s našou Politikou ochrany súkromia.",
+    "dataStorageText": "Vaše projektové dáta sú bezpečne uložené v našej cloudovej databáze po vytvorení účtu. Vygenerované mediálne súbory sú uložené v zabezpečenom cloudovom úložisku. Svoje dáta môžete kedykoľvek vymazať v nastaveniach účtu.",
     "disclaimer": "Vylúčenie záruk",
     "disclaimerText": "SLUŽBA SA POSKYTUJE \"TAK AKO JE\" BEZ AKEJKOĽVEK ZÁRUKY. NEGARANTUJEME, ŽE SLUŽBA BUDE NEPRERUŠOVANÁ, BEZ CHÝB, ALEBO ŽE AI-GENEROVANÝ OBSAH SPLNÍ VAŠE OČAKÁVANIA.",
     "liability": "Obmedzenie zodpovednosti",
@@ -555,69 +555,69 @@
   },
   "privacy": {
     "title": "Politika ochrany súkromia",
-    "subtitle": "Posledná aktualizácia: December 2024",
+    "subtitle": "Posledná aktualizácia: Január 2026",
     "highlights": {
-      "localFirst": "Lokálne úložisko",
-      "localFirstDesc": "Dáta uložené vo vašom prehliadači štandardne",
+      "localFirst": "Bezpečný cloud",
+      "localFirstDesc": "Dáta bezpečne uložené v našej databáze",
       "noTracking": "Bez sledovania",
       "noTrackingDesc": "Nesledujeme vašu aktivitu prehliadania",
       "yourData": "Vaše dáta",
       "yourDataDesc": "Kontrolujete a vlastníte svoj obsah",
       "easyDeletion": "Jednoduché vymazanie",
-      "easyDeletionDesc": "Vymažte všetky dáta jedným kliknutím"
+      "easyDeletionDesc": "Vymažte svoj účet a dáta kedykoľvek"
     },
     "introduction": "Úvod",
     "introductionText": "Generátor filmov (\"my\", \"naša\" alebo \"Služba\") sa zaväzuje chrániť vaše súkromie. Táto Politika ochrany súkromia vysvetľuje, ako zhromažďujeme, používame a chránime vaše informácie pri používaní našej aplikácie.",
     "infoCollected": "Informácie, ktoré zhromažďujeme",
-    "localStorageTitle": "Informácie uložené lokálne",
-    "localStorageText": "Štandardne sú nasledujúce informácie uložené iba v localStorage vášho prehliadača:",
+    "localStorageTitle": "Informácie o účte",
+    "localStorageText": "Pri vytvorení účtu zhromažďujeme a ukladáme:",
     "localStorageItems": [
+      "E-mailovú adresu a meno (na autentifikáciu)",
       "Projektové dáta (príbehy, postavy, scény, prompty)",
-      "Generované obrázky a referencie na videá",
-      "API kľúče, ktoré poskytnete pre služby tretích strán",
+      "Vygenerované mediálne súbory (obrázky, videá, audio)",
       "Používateľské preferencie (jazyk, téma, nastavenia)"
     ],
-    "thirdPartyTitle": "Informácie spracované tretími stranami",
-    "thirdPartyText": "Keď používate funkcie AI generovania, vaše prompty a obsah sa odosielajú priamo službám tretích strán (Google Gemini, Kie.ai, ElevenLabs) pomocou vašich vlastných API kľúčov. Tieto dáta nezachytávame ani neukladáme.",
+    "thirdPartyTitle": "Informácie spracované AI službami",
+    "thirdPartyText": "Keď používate funkcie AI generovania, vaše prompty a obsah sú spracované našou AI infraštruktúrou, ktorá zahŕňa vlastné modely a vybrané služby tretích strán. Vaše osobné údaje s týmito službami nezdieľame.",
     "howWeUse": "Ako používame vaše informácie",
     "howWeUseItems": [
       "Na poskytovanie a zlepšovanie Služby",
-      "Na ukladanie vašich preferencií a stavu projektu",
-      "Na uľahčenie generovania AI obsahu cez API tretích strán",
-      "Na sledovanie využitia kreditov (uložené lokálne alebo v našej databáze ak ste prihlásený)"
+      "Na ukladanie vašich projektov a preferencií",
+      "Na uľahčenie generovania AI obsahu",
+      "Na sledovanie využitia kreditov a fakturáciu"
     ],
     "dataSecurity": "Ukladanie dát a bezpečnosť",
-    "localStorageSecurityTitle": "Lokálne úložisko",
-    "localStorageSecurityText": "Vaše dáta sú štandardne uložené lokálne vo vašom prehliadači. To znamená:",
+    "localStorageSecurityTitle": "Cloudové úložisko",
+    "localStorageSecurityText": "Vaše dáta sú bezpečne uložené v našej cloudovej infraštruktúre:",
     "localStorageSecurityItems": [
-      "Dáta nikdy neopúšťajú vaše zariadenie, pokiaľ nepoužijete cloudovú synchronizáciu",
-      "Vymazanie dát prehliadača vymaže vaše projekty",
-      "Odporúčame pravidelne exportovať projekty ako zálohu"
+      "Projektové dáta sú uložené v šifrovaných databázach",
+      "Mediálne súbory sú uložené v zabezpečenom cloudovom úložisku (AWS S3)",
+      "Svoje projekty môžete kedykoľvek exportovať ako zálohu"
     ],
-    "apiKeySecurityTitle": "Bezpečnosť API kľúčov",
-    "apiKeySecurityText": "API kľúče sú uložené iba v localStorage vášho prehliadača a odosielajú sa priamo službám tretích strán pri API volaniach. Vaše API kľúče nikdy neukladáme, nezaznamenávame ani neposielame na naše servery.",
+    "apiKeySecurityTitle": "Bezpečnosť účtu",
+    "apiKeySecurityText": "Váš účet je chránený štandardnou autentifikáciou. Používame bezpečné relácie a nikdy neukladáme heslá v čistom texte. Platení predplatitelia si môžu nakonfigurovať vlastné API kľúče, ktoré sú šifrované.",
     "thirdPartyServices": "Služby tretích strán",
-    "thirdPartyServicesText": "Služba integruje nasledujúce AI služby tretích strán:",
+    "thirdPartyServicesText": "Služba využíva rôznych AI poskytovateľov na generovanie obsahu:",
     "thirdPartyServicesList": [
-      "Google Gemini - Pre generovanie textu, obrázkov a slovenský TTS",
-      "Kie.ai (Grok Imagine) - Pre generovanie image-to-video",
-      "ElevenLabs - Pre generovanie anglického hlasového komentára"
+      "Vlastné AI modely - Na generovanie obrázkov, videí, TTS a hudby",
+      "Google Gemini - Na generovanie textu a obrázkov",
+      "Spracovanie platieb - Polar.sh pre predplatné"
     ],
-    "thirdPartyServicesNote": "Každá služba má vlastnú politiku ochrany súkromia. Keď tieto služby používate cez Generátor filmov, vaše dáta podliehajú ich príslušným politikám ochrany súkromia.",
+    "thirdPartyServicesNote": "Každá služba má vlastnú politiku ochrany súkromia. Vaše prompty sa používajú iba na generovanie obsahu a nie sú používané na trénovanie AI modelov.",
     "cookies": "Cookies a sledovanie",
     "cookiesText": "Používame iba nevyhnutné cookies pre:",
     "cookiesItems": [
       "Jazykové preferencie (NEXT_LOCALE cookie)",
-      "Autentifikačnú reláciu (ak ste prihlásený)"
+      "Autentifikačnú reláciu"
     ],
     "cookiesNote": "Nepoužívame analytické sledovanie, reklamné cookies ani sledovacie skripty tretích strán.",
     "yourRights": "Vaše práva",
     "yourRightsText": "Máte právo na:",
     "yourRightsItems": [
-      "Prístup - Zobraziť všetky dáta uložené lokálne vo vašom prehliadači",
-      "Export - Stiahnuť všetky projekty ako JSON súbory",
-      "Vymazanie - Odstrániť všetky dáta tlačidlom \"Vymazať všetky dáta\" v Nastaveniach",
-      "Prenosnosť - Exportovať a importovať projekty medzi zariadeniami"
+      "Prístup - Zobraziť všetky uložené dáta vo vašom účte",
+      "Export - Stiahnuť vaše projekty a mediálne súbory",
+      "Vymazanie - Vymazať váš účet a všetky súvisiace dáta",
+      "Prenosnosť - Exportovať vaše projekty v štandardných formátoch"
     ],
     "children": "Súkromie detí",
     "childrenText": "Služba nie je určená pre deti mladšie ako 13 rokov. Vedome nezhromažďujeme osobné údaje od detí mladších ako 13 rokov.",
@@ -626,7 +626,7 @@
     "contact": "Kontaktujte nás",
     "contactText": "Ak máte akékoľvek otázky týkajúce sa tejto Politiky ochrany súkromia, kontaktujte nás cez sekciu Pomoc v aplikácii.",
     "privacyByDesign": "Súkromie v dizajne",
-    "privacyByDesignText": "Vaše dáta štandardne zostávajú na vašom zariadení. Veríme, že súkromie by malo byť predvolené nastavenie, nie možnosť."
+    "privacyByDesignText": "Vaše dáta sú bezpečne uložené a máte plnú kontrolu. Veríme, že súkromie by malo byť predvolené nastavenie, nie možnosť."
   },
   "profile": {
     "title": "Profil",

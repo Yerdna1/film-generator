@@ -7,12 +7,9 @@ import type { RegenerationRequest, DeletionRequest, ProjectPermissions, ProjectR
 import { useVideoGenerator } from './hooks/useVideoGenerator';
 import {
   VideoHeader,
-  VideoSpecsInfo,
-  CostSummary,
   VideoQuickActions,
   SceneVideoCard,
   Pagination,
-  GrokInstructions,
   NoImagesWarning,
 } from './components';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
@@ -221,14 +218,6 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         scenesWithVideos={scenesWithVideos.length}
       />
 
-      {/* Video Specifications Info */}
-      <VideoSpecsInfo videoMode={videoMode} />
-
-      {/* Cost Summary */}
-      {scenesWithImages.length > 0 && (
-        <CostSummary scenesNeedingGeneration={scenesNeedingGeneration.length} />
-      )}
-
       {/* Quick Actions - only for editors */}
       {!isReadOnly && (
         <VideoQuickActions
@@ -322,16 +311,6 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         onPageChange={setCurrentPage}
         variant="compact"
       />
-
-      {/* Grok Instructions */}
-      <GrokInstructions />
-
-      {/* Tip */}
-      <div className="glass rounded-xl p-4 border-l-4 border-orange-500">
-        <p className="text-sm text-muted-foreground">
-          <strong className="text-orange-400">Tip:</strong> {t('steps.videos.tip')}
-        </p>
-      </div>
 
       {/* Request Regeneration Dialog */}
       <RequestRegenerationDialog

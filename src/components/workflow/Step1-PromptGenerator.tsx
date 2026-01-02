@@ -278,12 +278,6 @@ Format the output exactly like the base template but with richer, more detailed 
             </Button>
           )}
 
-          {/* Tip */}
-          <div className="glass rounded-lg p-3 border-l-4 border-cyan-500">
-            <p className="text-xs text-muted-foreground">
-              <strong className="text-cyan-400">Tip:</strong> Copy the generated prompt and paste it into ChatGPT or Gemini for detailed breakdowns.
-            </p>
-          </div>
         </div>
 
         {/* Right Column - Generated Prompt */}

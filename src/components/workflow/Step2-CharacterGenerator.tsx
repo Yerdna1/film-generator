@@ -240,13 +240,6 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
         />
       )}
 
-      {/* Tip */}
-      <div className="glass rounded-xl p-4 border-l-4 border-purple-500">
-        <p className="text-sm text-muted-foreground">
-          <strong className="text-purple-400">Tip:</strong> For consistent character appearance across scenes, copy each character's Master Prompt and use it when generating images in Nano Banana or Gemini AI Studio.
-        </p>
-      </div>
-
       {/* Edit Character Dialog */}
       <EditCharacterDialog
         open={editingCharacter !== null}

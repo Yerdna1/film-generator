@@ -194,11 +194,18 @@ export const ACTION_COSTS = {
     suno: 0.05,      // ~$0.05 per music track
     piapi: 0.05,     // ~$0.05 per music track via PiAPI
   },
+
+  // Video composition (VectCutAPI on Modal)
+  videoComposition: {
+    modal: 0.03,         // ~$0.03 per scene for composition
+    perMinuteRender: 0.05, // ~$0.05 per minute of final video
+    s3Storage: 0.001,    // ~$0.001 per MB stored
+  },
 } as const;
 
 // Type definitions
-export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'claude' | 'claude-sdk' | 'suno' | 'piapi' | 'modal' | 'modal-edit' | 'openrouter';
-export type ActionType = 'image' | 'video' | 'voiceover' | 'scene' | 'character' | 'prompt' | 'music';
+export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'claude' | 'claude-sdk' | 'suno' | 'piapi' | 'modal' | 'modal-edit' | 'modal-vectcut' | 'openrouter';
+export type ActionType = 'image' | 'video' | 'voiceover' | 'scene' | 'character' | 'prompt' | 'music' | 'videoComposition';
 
 export interface CostEstimate {
   action: ActionType;

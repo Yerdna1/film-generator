@@ -406,13 +406,6 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         />
       )}
 
-      {/* Tip */}
-      <div className="glass rounded-xl p-4 border-l-4 border-emerald-500">
-        <p className="text-sm text-muted-foreground">
-          <strong className="text-emerald-400">Tip:</strong> Copy the Text-to-Image prompt for each scene and use it in Nano Banana or Gemini AI Studio to generate high-quality images. Then use the Image-to-Video prompt with Grok AI.
-        </p>
-      </div>
-
       {/* Edit Scene Dialog */}
       <EditSceneDialog
         open={editingScene !== null}

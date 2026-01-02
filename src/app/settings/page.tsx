@@ -30,7 +30,7 @@ export default function SettingsPage() {
     if (status === 'loading') return;
 
     if (!session?.user) {
-      router.push('/auth/signin');
+      router.push('/auth/login');
       return;
     }
 

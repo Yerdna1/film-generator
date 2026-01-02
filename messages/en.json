@@ -521,26 +521,26 @@
   },
   "terms": {
     "title": "Terms of Service",
-    "subtitle": "Last updated: December 2024",
+    "subtitle": "Last updated: January 2026",
     "acceptance": "Acceptance of Terms",
     "acceptanceText": "By accessing and using Film Generator (\"the Service\"), you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.",
     "description": "Description of Service",
     "descriptionText": "Film Generator is an AI-powered application that helps users create short films through a multi-step workflow including story generation, character creation, scene image generation, video creation, and voiceover generation.",
     "userResponsibilities": "User Responsibilities",
     "userResponsibilitiesItems": [
-      "You are responsible for maintaining the confidentiality of your API keys",
+      "You are responsible for maintaining the security of your account credentials",
       "You agree not to use the Service to generate harmful, illegal, or inappropriate content",
       "You are responsible for any content you create using the Service",
       "You agree to comply with all applicable laws and regulations"
     ],
     "thirdParty": "Third-Party Services",
-    "thirdPartyText": "The Service integrates with third-party AI services including Google Gemini, Kie.ai (Grok Imagine), ElevenLabs, and others. Your use of these services is subject to their respective terms and conditions. We are not responsible for the availability, quality, or policies of third-party services.",
+    "thirdPartyText": "The Service uses various AI providers to generate content. This includes our self-hosted AI models and third-party services. We are not responsible for the availability or quality of AI-generated content.",
     "intellectualProperty": "Intellectual Property",
     "intellectualPropertyText": "Content you create using the Service belongs to you, subject to the terms of the underlying AI services used. The Film Generator application, its design, and original content are protected by copyright and other intellectual property laws.",
-    "creditsSystem": "Credits System",
-    "creditsSystemText": "The Service uses a credits system for tracking usage. Credits are provided for free during the beta period. We reserve the right to modify the credits system, including pricing and allocation, at any time.",
+    "creditsSystem": "Credits & Subscription System",
+    "creditsSystemText": "The Service uses a credits-based system. Free accounts receive starter credits. Paid subscriptions provide monthly credits and additional features. Credits are non-refundable and expire according to your subscription terms. We reserve the right to modify pricing and credit allocation at any time.",
     "dataStorage": "Data Storage",
-    "dataStorageText": "By default, your data is stored locally in your browser. API keys are never transmitted to our servers. If you choose to enable cloud sync, your project data may be stored on our servers subject to our Privacy Policy.",
+    "dataStorageText": "Your project data is stored securely in our cloud database when you create an account. Generated media files are stored in secure cloud storage. You can delete your data at any time from your account settings.",
     "disclaimer": "Disclaimer of Warranties",
     "disclaimerText": "THE SERVICE IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF ANY KIND. WE DO NOT GUARANTEE THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR THAT AI-GENERATED CONTENT WILL MEET YOUR EXPECTATIONS.",
     "liability": "Limitation of Liability",
@@ -555,69 +555,69 @@
   },
   "privacy": {
     "title": "Privacy Policy",
-    "subtitle": "Last updated: December 2024",
+    "subtitle": "Last updated: January 2026",
     "highlights": {
-      "localFirst": "Local First",
-      "localFirstDesc": "Data stored in your browser by default",
+      "localFirst": "Secure Cloud",
+      "localFirstDesc": "Data stored securely in our database",
       "noTracking": "No Tracking",
       "noTrackingDesc": "We don't track your browsing activity",
       "yourData": "Your Data",
       "yourDataDesc": "You control and own your content",
       "easyDeletion": "Easy Deletion",
-      "easyDeletionDesc": "Delete all data with one click"
+      "easyDeletionDesc": "Delete your account and data anytime"
     },
     "introduction": "Introduction",
     "introductionText": "Film Generator (\"we\", \"our\", or \"the Service\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our application.",
     "infoCollected": "Information We Collect",
-    "localStorageTitle": "Information Stored Locally",
-    "localStorageText": "By default, the following information is stored only in your browser's localStorage:",
+    "localStorageTitle": "Account Information",
+    "localStorageText": "When you create an account, we collect and store:",
     "localStorageItems": [
+      "Email address and name (for authentication)",
       "Project data (stories, characters, scenes, prompts)",
-      "Generated images and video references",
-      "API keys you provide for third-party services",
+      "Generated media files (images, videos, audio)",
       "User preferences (language, theme, settings)"
     ],
-    "thirdPartyTitle": "Information Processed by Third Parties",
-    "thirdPartyText": "When you use AI generation features, your prompts and content are sent directly to third-party services (Google Gemini, Kie.ai, ElevenLabs) using your own API keys. We do not intercept or store this data.",
+    "thirdPartyTitle": "Information Processed by AI Services",
+    "thirdPartyText": "When you use AI generation features, your prompts and content are processed by our AI infrastructure, which includes self-hosted models and selected third-party AI services. We do not share your personal data with these services.",
     "howWeUse": "How We Use Your Information",
     "howWeUseItems": [
       "To provide and improve the Service",
-      "To save your preferences and project state",
-      "To facilitate AI content generation through third-party APIs",
-      "To track credits usage (stored locally or in our database if signed in)"
+      "To save your projects and preferences",
+      "To facilitate AI content generation",
+      "To track credits usage and billing"
     ],
     "dataSecurity": "Data Storage & Security",
-    "localStorageSecurityTitle": "Local Storage",
-    "localStorageSecurityText": "Your data is stored locally in your browser by default. This means:",
+    "localStorageSecurityTitle": "Cloud Storage",
+    "localStorageSecurityText": "Your data is stored securely in our cloud infrastructure:",
     "localStorageSecurityItems": [
-      "Data never leaves your device unless you use cloud sync",
-      "Clearing browser data will delete your projects",
-      "We recommend exporting projects regularly as backup"
+      "Project data is stored in encrypted databases",
+      "Media files are stored in secure cloud storage (AWS S3)",
+      "You can export your projects as backup at any time"
     ],
-    "apiKeySecurityTitle": "API Key Security",
-    "apiKeySecurityText": "API keys are stored only in your browser's localStorage and are sent directly to third-party services when making API calls. We never store, log, or transmit your API keys to our servers.",
+    "apiKeySecurityTitle": "Account Security",
+    "apiKeySecurityText": "Your account is protected with industry-standard authentication. We use secure sessions and never store passwords in plain text. Paid subscribers can configure their own API keys, which are encrypted at rest.",
     "thirdPartyServices": "Third-Party Services",
-    "thirdPartyServicesText": "The Service integrates with the following third-party AI services:",
+    "thirdPartyServicesText": "The Service uses various AI providers for content generation:",
     "thirdPartyServicesList": [
-      "Google Gemini - For text generation, image generation, and Slovak TTS",
-      "Kie.ai (Grok Imagine) - For image-to-video generation",
-      "ElevenLabs - For English voiceover generation"
+      "Self-hosted AI models - For image, video, TTS, and music generation",
+      "Google Gemini - For text generation and image generation",
+      "Payment processing - Polar.sh for subscriptions"
     ],
-    "thirdPartyServicesNote": "Each service has its own privacy policy. When you use these services through Film Generator, your data is subject to their respective privacy policies.",
+    "thirdPartyServicesNote": "Each service has its own privacy policy. Your prompts are used only for content generation and are not used to train AI models.",
     "cookies": "Cookies & Tracking",
     "cookiesText": "We use only essential cookies for:",
     "cookiesItems": [
       "Language preference (NEXT_LOCALE cookie)",
-      "Authentication session (if signed in)"
+      "Authentication session"
     ],
     "cookiesNote": "We do not use analytics tracking, advertising cookies, or third-party tracking scripts.",
     "yourRights": "Your Rights",
     "yourRightsText": "You have the right to:",
     "yourRightsItems": [
-      "Access - View all data stored locally in your browser",
-      "Export - Download all your projects as JSON files",
-      "Delete - Remove all data with the \"Delete All Data\" button in Settings",
-      "Portability - Export and import projects between devices"
+      "Access - View all your stored data in your account",
+      "Export - Download your projects and media files",
+      "Delete - Delete your account and all associated data",
+      "Portability - Export your projects in standard formats"
     ],
     "children": "Children's Privacy",
     "childrenText": "The Service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.",
@@ -626,7 +626,7 @@
     "contact": "Contact Us",
     "contactText": "If you have any questions about this Privacy Policy, please contact us through the Help section of the application.",
     "privacyByDesign": "Privacy by Design",
-    "privacyByDesignText": "Your data stays on your device by default. We believe privacy should be the default, not an option."
+    "privacyByDesignText": "Your data is stored securely and you maintain full control. We believe privacy should be the default, not an option."
   },
   "profile": {
     "title": "Profile",

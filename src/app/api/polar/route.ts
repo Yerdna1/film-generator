@@ -9,16 +9,17 @@ import {
   type PlanType,
 } from '@/lib/services/polar';
 
-// GET - Get current subscription status
+// GET - Get current subscription status (or just plans for non-authenticated users)
 export async function GET() {
   try {
     const session = await auth();
 
+    // If not authenticated, just return plans (for pricing page visibility)
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({
+        subscription: null,
+        plans: SUBSCRIPTION_PLANS,
+      });
     }
 
     const subscription = await getSubscription(session.user.id);

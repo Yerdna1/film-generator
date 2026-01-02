@@ -51,6 +51,7 @@ export async function GET() {
         modalImageEditEndpoint: '',
         modalVideoEndpoint: '',
         modalMusicEndpoint: '',
+        modalVectcutEndpoint: '',
       });
     }
 
@@ -91,6 +92,7 @@ export async function GET() {
       modalImageEditEndpoint: apiKeys.modalImageEditEndpoint || '',
       modalVideoEndpoint: apiKeys.modalVideoEndpoint || '',
       modalMusicEndpoint: apiKeys.modalMusicEndpoint || '',
+      modalVectcutEndpoint: apiKeys.modalVectcutEndpoint || '',
     });
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -136,6 +138,7 @@ export async function POST(request: NextRequest) {
       modalImageEditEndpoint,
       modalVideoEndpoint,
       modalMusicEndpoint,
+      modalVectcutEndpoint,
     } = body;
 
     const apiKeys = await prisma.apiKeys.upsert({
@@ -162,6 +165,7 @@ export async function POST(request: NextRequest) {
         ...(modalImageEditEndpoint !== undefined && { modalImageEditEndpoint }),
         ...(modalVideoEndpoint !== undefined && { modalVideoEndpoint }),
         ...(modalMusicEndpoint !== undefined && { modalMusicEndpoint }),
+        ...(modalVectcutEndpoint !== undefined && { modalVectcutEndpoint }),
       },
       create: {
         userId: session.user.id,
@@ -186,6 +190,7 @@ export async function POST(request: NextRequest) {
         modalImageEditEndpoint: modalImageEditEndpoint || null,
         modalVideoEndpoint: modalVideoEndpoint || null,
         modalMusicEndpoint: modalMusicEndpoint || null,
+        modalVectcutEndpoint: modalVectcutEndpoint || null,
       },
     });
 

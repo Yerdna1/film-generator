@@ -17,27 +17,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { SubscriptionPlans, CurrentPlan } from '@/components/billing';
 
-interface SubscriptionData {
-  subscription: {
-    status: string;
-    plan: string;
-    planDetails: {
-      name: string;
-      price: number;
-      credits: number;
-      description: string;
-      features: string[];
-    };
-    currentPeriodEnd?: string;
-    cancelAtPeriodEnd?: boolean;
-  };
-  plans: Record<string, {
+interface SubscriptionInfo {
+  status: string;
+  plan: string;
+  planDetails: {
     name: string;
     price: number;
     credits: number;
     description: string;
     features: string[];
-  }>;
+  };
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+}
+
+interface PlanInfo {
+  name: string;
+  price: number;
+  credits: number;
+  description: string;
+  features: string[];
+}
+
+interface SubscriptionData {
+  subscription: SubscriptionInfo | null;
+  plans: Record<string, PlanInfo>;
 }
 
 interface CreditsData {
@@ -66,30 +70,26 @@ export default function BillingPage() {
     }
   }, [searchParams, router]);
 
-  // Fetch subscription data
+  // Fetch subscription data (plans are visible to all, user data only for authenticated)
   useEffect(() => {
     async function fetchData() {
       if (status === 'loading') return;
-      if (!session?.user) {
-        router.push('/auth/signin');
-        return;
-      }
 
       try {
-        // Fetch subscription and credits in parallel
-        const [subRes, creditsRes] = await Promise.all([
-          fetch('/api/polar'),
-          fetch('/api/credits'),
-        ]);
-
+        // Always fetch plans (visible to all users)
+        const subRes = await fetch('/api/polar');
         if (subRes.ok) {
           const subData = await subRes.json();
           setSubscriptionData(subData);
         }
 
-        if (creditsRes.ok) {
-          const creditsData = await creditsRes.json();
-          setCredits(creditsData);
+        // Only fetch credits for authenticated users
+        if (session?.user) {
+          const creditsRes = await fetch('/api/credits');
+          if (creditsRes.ok) {
+            const creditsData = await creditsRes.json();
+            setCredits(creditsData);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -99,9 +99,15 @@ export default function BillingPage() {
     }
 
     fetchData();
-  }, [session, status, router]);
+  }, [session, status]);
 
   const handleSelectPlan = async (plan: string) => {
+    // Redirect to login if not authenticated
+    if (!session?.user) {
+      router.push('/auth/login?callbackUrl=/billing');
+      return;
+    }
+
     try {
       const response = await fetch('/api/polar', {
         method: 'POST',
@@ -155,7 +161,7 @@ export default function BillingPage() {
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/settings">
+            <Link href={session?.user ? '/settings' : '/'}>
               <ArrowLeft className="w-5 h-5" />
             </Link>
           </Button>
@@ -187,8 +193,8 @@ export default function BillingPage() {
           </motion.div>
         )}
 
-        {/* Credit Balance */}
-        {credits && (
+        {/* Credit Balance - Only for authenticated users */}
+        {session?.user && credits && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -221,8 +227,8 @@ export default function BillingPage() {
           </Card>
         )}
 
-        {/* Current Plan */}
-        {subscriptionData && (
+        {/* Current Plan - Only for authenticated users with subscription */}
+        {session?.user && subscriptionData?.subscription && (
           <CurrentPlan
             plan={subscriptionData.subscription.plan}
             planName={subscriptionData.subscription.planDetails.name}
@@ -238,13 +244,13 @@ export default function BillingPage() {
           />
         )}
 
-        {/* Available Plans */}
+        {/* Available Plans - Visible to everyone */}
         {subscriptionData && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">{t('billing.availablePlans')}</h2>
             <SubscriptionPlans
               plans={subscriptionData.plans}
-              currentPlan={subscriptionData.subscription.plan}
+              currentPlan={subscriptionData.subscription?.plan || 'free'}
               onSelectPlan={handleSelectPlan}
             />
           </div>

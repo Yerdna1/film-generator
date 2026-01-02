@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Copy, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -71,21 +71,6 @@ export function CopyPromptsDialog({ open, onOpenChange, characters }: CopyPrompt
             Copy Character Prompts for Gemini
           </DialogTitle>
         </DialogHeader>
-
-        <div className="flex items-center gap-2 p-3 glass rounded-lg border-l-4 border-purple-500 mb-4">
-          <span className="text-sm text-muted-foreground">
-            <strong className="text-purple-400">Tip:</strong> Copy each prompt and paste it into{' '}
-            <a
-              href="https://gemini.google.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-400 hover:underline inline-flex items-center gap-1"
-            >
-              gemini.google.com <ExternalLink className="w-3 h-3" />
-            </a>
-            {' '}to use your 100 free images/day from Google One AI Premium.
-          </span>
-        </div>
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-2">
           {characters.map((character, index) => (

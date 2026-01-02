@@ -74,9 +74,11 @@ export function ApiKeysTab({
   const t = useTranslations('settings');
   const tPage = useTranslations('settingsPage');
 
-  // Check if any Modal provider is selected
+  // Check if any Modal provider is selected OR VectCut endpoint is needed
+  // VectCut is always available for video composition in Step 6
   const isModalUsed = llmProvider === 'modal' || ttsProvider === 'modal' ||
     imageProvider === 'modal' || videoProvider === 'modal' || musicProvider === 'modal';
+  const showModalEndpoints = isModalUsed || true; // Always show for VectCut video composition
 
   return (
     <motion.div
@@ -315,8 +317,8 @@ export function ApiKeysTab({
         </Card>
       </div>
 
-      {/* Modal.com Endpoints - Only show when Modal is selected as a provider */}
-      {isModalUsed && (
+      {/* Modal.com Endpoints - Show when Modal provider is selected or for VectCut video composition */}
+      {showModalEndpoints && (
       <Card className="glass border-white/10 border-l-4 border-l-cyan-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -335,8 +337,10 @@ export function ApiKeysTab({
                   'modalLlmEndpoint': 'llmEndpoint',
                   'modalTtsEndpoint': 'ttsEndpoint',
                   'modalImageEndpoint': 'imageEndpoint',
+                  'modalImageEditEndpoint': 'imageEditEndpoint',
                   'modalVideoEndpoint': 'videoEndpoint',
                   'modalMusicEndpoint': 'musicEndpoint',
+                  'modalVectcutEndpoint': 'vectcutEndpoint',
                 };
                 const endpointKey = endpointKeyMap[endpoint.id];
 

@@ -55,12 +55,6 @@ export function NextSteps({ overallProgress, onExportMarkdown }: NextStepsProps)
         </motion.div>
       )}
 
-      {/* Tip */}
-      <div className="glass rounded-xl p-4 border-l-4 border-green-500">
-        <p className="text-sm text-muted-foreground">
-          <strong className="text-green-400">Tip:</strong> {t('steps.export.tip')}
-        </p>
-      </div>
     </>
   );
 }

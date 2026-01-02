@@ -17,6 +17,11 @@ export const COSTS = {
   SCENE_GENERATION: 2,       // Per scene - Claude ($0.01)
   CHARACTER_GENERATION: 2,   // Per character - Claude ($0.008)
   MUSIC_GENERATION: 10,      // Per music track - Suno ($0.05)
+  // Video composition (VectCutAPI)
+  VIDEO_COMPOSITION_BASE: 5,    // Per scene for composition ($0.03)
+  VIDEO_COMPOSITION_MUSIC: 2,   // Music overlay ($0.02)
+  VIDEO_COMPOSITION_CAPTION: 1, // Per 10 captions ($0.01)
+  TRANSITION_SUGGESTION: 1,     // AI transition suggestions ($0.01)
 } as const;
 
 // Helper to get image credit cost by resolution

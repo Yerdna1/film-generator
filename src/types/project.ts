@@ -179,6 +179,7 @@ export interface ModalEndpoints {
   imageEditEndpoint?: string; // e.g., https://your-app--image-edit.modal.run (Qwen-Image-Edit)
   videoEndpoint?: string;    // e.g., https://your-app--video.modal.run
   musicEndpoint?: string;    // e.g., https://your-app--ace-step.modal.run (ACE-Step)
+  vectcutEndpoint?: string;  // e.g., https://your-app--vectcut.modal.run (Video Composition)
 }
 
 // API configuration

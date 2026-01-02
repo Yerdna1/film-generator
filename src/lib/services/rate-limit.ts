@@ -24,6 +24,9 @@ export const RATE_LIMITS = {
   // AI generation endpoints (expensive operations)
   generation: { windowMs: 60_000, maxRequests: 20 },
 
+  // Video composition (expensive, long-running operations)
+  composition: { windowMs: 60_000, maxRequests: 5 },
+
   // Admin endpoints
   admin: { windowMs: 60_000, maxRequests: 50 },
 

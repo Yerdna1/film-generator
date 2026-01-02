@@ -5,4 +5,6 @@ export { useDownloadHandlers } from './useDownloadHandlers';
 export { useCaptionEditor } from './useCaptionEditor';
 export { useBackgroundMusic } from './useBackgroundMusic';
 export { useTimelineEditor } from './useTimelineEditor';
+export { useVideoComposer } from './useVideoComposer';
 export type { UseTimelineEditorReturn, TimelineEditorState } from './useTimelineEditor';
+export type { UseVideoComposerReturn, CompositionState, CompositionResult, CompositionOptions } from './useVideoComposer';
