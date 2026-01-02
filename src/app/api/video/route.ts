@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { uploadBase64ToS3, uploadVideoToS3, isS3Configured } from '@/lib/services/s3-upload';
-import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
+import { spendCredits, COSTS, checkBalance, trackRealCostOnly } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import type { VideoProvider } from '@/types/project';
 
@@ -21,6 +21,8 @@ interface VideoGenerationRequest {
   seed?: number;
   isRegeneration?: boolean; // Track if this is regenerating an existing video
   sceneId?: string; // Optional scene ID for tracking
+  skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
+  ownerId?: string; // Use owner's settings instead of session user (for collaborator regeneration)
 }
 
 // Enhance I2V prompt with motion speed hints
@@ -109,7 +111,8 @@ async function checkKieTaskStatus(
   taskId: string,
   projectId: string | undefined,
   apiKey: string,
-  userId: string | undefined,
+  creditUserId: string | undefined, // For credit deduction (undefined to skip)
+  realCostUserId: string | undefined, // For real cost tracking (track even if no credit deduction)
   download: boolean,
   isRegeneration: boolean = false,
   sceneId?: string
@@ -175,18 +178,33 @@ async function checkKieTaskStatus(
   }
 
   const realCost = ACTION_COSTS.video.grok;
-  if (status === 'complete' && userId) {
-    const actionType = isRegeneration ? 'regeneration' : 'generation';
-    await spendCredits(
-      userId,
-      COSTS.VIDEO_GENERATION,
-      'video',
-      `Kie.ai video ${actionType}`,
-      projectId,
-      'kie',
-      { isRegeneration, sceneId },
-      realCost
-    );
+  const actionType = isRegeneration ? 'regeneration' : 'generation';
+
+  if (status === 'complete') {
+    if (creditUserId) {
+      // Normal case: deduct credits and track real cost
+      await spendCredits(
+        creditUserId,
+        COSTS.VIDEO_GENERATION,
+        'video',
+        `Kie.ai video ${actionType}`,
+        projectId,
+        'kie',
+        { isRegeneration, sceneId },
+        realCost
+      );
+    } else if (realCostUserId) {
+      // Collaborator regeneration: only track real cost (credits already prepaid by admin)
+      await trackRealCostOnly(
+        realCostUserId,
+        realCost,
+        'video',
+        `Kie.ai video ${actionType} - prepaid`,
+        projectId,
+        'kie',
+        { isRegeneration, sceneId, prepaidRegeneration: true }
+      );
+    }
   }
 
   return {
@@ -205,7 +223,8 @@ async function generateWithModal(
   prompt: string,
   projectId: string | undefined,
   modalEndpoint: string,
-  userId: string | undefined,
+  creditUserId: string | undefined, // For credit deduction (undefined to skip)
+  realCostUserId: string | undefined, // For real cost tracking (track even if no credit deduction)
   isRegeneration: boolean = false,
   sceneId?: string
 ): Promise<{ videoUrl: string; cost: number; storage: string; status: string }> {
@@ -246,11 +265,12 @@ async function generateWithModal(
   }
 
   const realCost = 0.15; // Modal GPU cost per video (~$0.15 on H100)
+  const actionType = isRegeneration ? 'regeneration' : 'generation';
 
-  if (userId) {
-    const actionType = isRegeneration ? 'regeneration' : 'generation';
+  if (creditUserId) {
+    // Normal case: deduct credits and track real cost
     await spendCredits(
-      userId,
+      creditUserId,
       COSTS.VIDEO_GENERATION,
       'video',
       `Modal video ${actionType}`,
@@ -258,6 +278,17 @@ async function generateWithModal(
       'modal',
       { isRegeneration, sceneId },
       realCost
+    );
+  } else if (realCostUserId) {
+    // Collaborator regeneration: only track real cost (credits already prepaid by admin)
+    await trackRealCostOnly(
+      realCostUserId,
+      realCost,
+      'video',
+      `Modal video ${actionType} - prepaid`,
+      projectId,
+      'modal',
+      { isRegeneration, sceneId, prepaidRegeneration: true }
     );
   }
 
@@ -279,7 +310,7 @@ async function generateWithModal(
 // POST - Create video generation task
 export async function POST(request: NextRequest) {
   try {
-    const { imageUrl, prompt, projectId, mode = 'normal', seed, isRegeneration = false, sceneId }: VideoGenerationRequest = await request.json();
+    const { imageUrl, prompt, projectId, mode = 'normal', seed, isRegeneration = false, sceneId, skipCreditCheck = false, ownerId }: VideoGenerationRequest = await request.json();
 
     if (!imageUrl || !prompt) {
       return NextResponse.json({ error: 'Image URL and prompt are required' }, { status: 400 });
@@ -290,9 +321,14 @@ export async function POST(request: NextRequest) {
     let kieApiKey = process.env.KIE_API_KEY;
     let modalVideoEndpoint: string | null = null;
 
-    if (session?.user?.id) {
+    // When ownerId is provided (collaborator regeneration), use owner's settings
+    // Otherwise use session user's settings
+    const settingsUserId = ownerId || session?.user?.id;
+    const costTrackingUserId = ownerId || session?.user?.id; // Track costs to owner for regenerations
+
+    if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: settingsUserId },
       });
 
       if (userApiKeys) {
@@ -301,18 +337,28 @@ export async function POST(request: NextRequest) {
         modalVideoEndpoint = userApiKeys.modalVideoEndpoint;
       }
 
-      const balanceCheck = await checkBalance(session.user.id, COSTS.VIDEO_GENERATION);
-      if (!balanceCheck.hasEnough) {
-        return NextResponse.json({
-          error: 'Insufficient credits',
-          required: balanceCheck.required,
-          balance: balanceCheck.balance,
-          needsPurchase: true,
-        }, { status: 402 });
+      // Pre-check credit balance (skip if credits were prepaid by admin for collaborator regeneration)
+      if (!skipCreditCheck && session?.user?.id) {
+        const balanceCheck = await checkBalance(session.user.id, COSTS.VIDEO_GENERATION);
+        if (!balanceCheck.hasEnough) {
+          return NextResponse.json({
+            error: 'Insufficient credits',
+            required: balanceCheck.required,
+            balance: balanceCheck.balance,
+            needsPurchase: true,
+          }, { status: 402 });
+        }
       }
     }
 
-    console.log(`[Video] Using provider: ${videoProvider}, projectId: ${projectId}, isRegeneration: ${isRegeneration}`);
+    console.log(`[Video] Using provider: ${videoProvider}, projectId: ${projectId}, isRegeneration: ${isRegeneration}, skipCreditCheck: ${skipCreditCheck}, ownerId: ${ownerId || 'none'}`);
+
+    // For cost tracking:
+    // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
+    //   but we still want to track real API costs to the owner
+    // - When skipCreditCheck is false (normal generation): track to session user
+    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id; // For credit deduction
+    const realCostUserId = ownerId || session?.user?.id; // For real cost tracking (always track to owner)
 
     if (videoProvider === 'modal') {
       if (!modalVideoEndpoint) {
@@ -321,7 +367,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const result = await generateWithModal(imageUrl, prompt, projectId, modalVideoEndpoint, session?.user?.id, isRegeneration, sceneId);
+      const result = await generateWithModal(imageUrl, prompt, projectId, modalVideoEndpoint, effectiveUserId, realCostUserId, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -342,6 +388,7 @@ export async function POST(request: NextRequest) {
       projectId,
       isRegeneration,
       sceneId,
+      ownerId, // Pass back for GET polling
     });
 
   } catch (error) {
@@ -362,6 +409,8 @@ export async function GET(request: NextRequest) {
     const download = searchParams.get('download') !== 'false';
     const isRegeneration = searchParams.get('isRegeneration') === 'true';
     const sceneId = searchParams.get('sceneId') || undefined;
+    const ownerId = searchParams.get('ownerId') || undefined;
+    const skipCreditCheck = searchParams.get('skipCreditCheck') === 'true';
 
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
@@ -370,9 +419,12 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     let kieApiKey = process.env.KIE_API_KEY;
 
-    if (session?.user?.id) {
+    // When ownerId is provided, use owner's settings
+    const settingsUserId = ownerId || session?.user?.id;
+
+    if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: settingsUserId },
       });
       if (userApiKeys?.kieApiKey) {
         kieApiKey = userApiKeys.kieApiKey;
@@ -383,7 +435,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Kie.ai API key not configured' }, { status: 500 });
     }
 
-    const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, session?.user?.id, download, isRegeneration, sceneId);
+    // For cost tracking:
+    // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
+    //   but we still want to track real API costs to the owner
+    // - When skipCreditCheck is false (normal generation): track to session user
+    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id; // For credit deduction
+    const realCostUserId = ownerId || session?.user?.id; // For real cost tracking (always track to owner)
+
+    const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, effectiveUserId, realCostUserId, download, isRegeneration, sceneId);
     return NextResponse.json({ taskId, ...result });
 
   } catch (error) {

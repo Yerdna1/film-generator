@@ -292,7 +292,7 @@ export async function PATCH(
     const body = await request.json();
     const { action, selectedUrl, note } = body;
 
-    // Get the request with project info
+    // Get the request with project info and characters for reference images
     const regenerationRequest = await prisma.regenerationRequest.findUnique({
       where: { id: requestId },
       include: {
@@ -300,7 +300,17 @@ export async function PATCH(
           select: { id: true, name: true, email: true },
         },
         project: {
-          select: { name: true, settings: true, userId: true },
+          select: {
+            name: true,
+            settings: true,
+            userId: true,
+            characters: {
+              select: {
+                name: true,
+                imageUrl: true,
+              },
+            },
+          },
         },
       },
     });
@@ -358,9 +368,24 @@ export async function PATCH(
           }, { status: 400 });
         }
 
-        // Get resolution from project settings for image generation
-        const settings = regenerationRequest.project?.settings as { resolution?: string } | null;
-        const resolution = settings?.resolution || '2k';
+        // Get resolution and aspect ratio from project settings for image generation
+        const settings = regenerationRequest.project?.settings as {
+          resolution?: string;
+          aspectRatio?: string;
+          imageResolution?: string;
+        } | null;
+        const resolution = settings?.imageResolution || settings?.resolution || '2k';
+        const aspectRatio = settings?.aspectRatio || '16:9';
+
+        // Build reference images array from project characters
+        const referenceImages = (regenerationRequest.project?.characters || [])
+          .filter((char: { name: string; imageUrl: string | null }) => char.imageUrl)
+          .map((char: { name: string; imageUrl: string | null }) => ({
+            name: char.name,
+            imageUrl: char.imageUrl as string,
+          }));
+
+        console.log(`[Regeneration] Using ${referenceImages.length} character reference images, resolution: ${resolution}, aspectRatio: ${aspectRatio}`);
 
         // Set status to generating
         await prisma.regenerationRequest.update({
@@ -373,7 +398,8 @@ export async function PATCH(
 
         try {
           if (regenerationRequest.targetType === 'image') {
-            // Call image generation API
+            // Call image generation API with reference images for character consistency
+            // Use project owner's settings and track costs to owner
             const imageResponse = await fetch(new URL('/api/image', request.url).origin + '/api/image', {
               method: 'POST',
               headers: {
@@ -382,12 +408,14 @@ export async function PATCH(
               },
               body: JSON.stringify({
                 prompt: scene.textToImagePrompt,
-                aspectRatio: '16:9',
+                aspectRatio,
                 resolution,
                 projectId,
+                referenceImages, // IMPORTANT: Include character reference images!
                 isRegeneration: true,
                 sceneId: scene.id,
-                skipCreditCheck: true, // We'll deduct credits manually from admin
+                skipCreditCheck: true, // Credits already prepaid by admin
+                ownerId: regenerationRequest.project?.userId, // Use owner's settings and track costs to owner
               }),
             });
 
@@ -403,6 +431,7 @@ export async function PATCH(
             if (!scene.imageUrl) {
               regenerationResult = { success: false, error: 'Scene has no image. Generate image first.' };
             } else {
+              // Use project owner's settings and track costs to owner
               const videoResponse = await fetch(new URL('/api/video', request.url).origin + '/api/video', {
                 method: 'POST',
                 headers: {
@@ -416,6 +445,7 @@ export async function PATCH(
                   isRegeneration: true,
                   sceneId: scene.id,
                   skipCreditCheck: true,
+                  ownerId: regenerationRequest.project?.userId, // Use owner's settings and track costs to owner
                 }),
               });
 

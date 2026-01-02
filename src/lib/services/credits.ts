@@ -183,6 +183,54 @@ export async function spendCredits(
 }
 
 /**
+ * Track real API cost only (without deducting credits)
+ * Used for collaborator regenerations where credits were already prepaid by admin
+ */
+export async function trackRealCostOnly(
+  userId: string,
+  realCost: number,
+  type: string,
+  description?: string,
+  projectId?: string,
+  provider?: Provider,
+  metadata?: Record<string, unknown>
+): Promise<{ success: boolean; realCost: number }> {
+  try {
+    const credits = await getOrCreateCredits(userId);
+
+    await prisma.$transaction(async (tx) => {
+      // Only update totalRealCost, not balance
+      await tx.credits.update({
+        where: { userId },
+        data: {
+          totalRealCost: { increment: realCost },
+          lastUpdated: new Date(),
+        },
+      });
+
+      // Create transaction record with 0 credit amount
+      await tx.creditTransaction.create({
+        data: {
+          creditsId: credits.id,
+          amount: 0, // No credit deduction
+          realCost,
+          type,
+          provider: provider || null,
+          description: description || `${type} (prepaid regeneration)`,
+          projectId,
+          metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
+        },
+      });
+    });
+
+    return { success: true, realCost };
+  } catch (error) {
+    console.error('Error tracking real cost:', error);
+    return { success: false, realCost: 0 };
+  }
+}
+
+/**
  * Add credits to user (for purchases or bonuses)
  */
 export async function addCredits(

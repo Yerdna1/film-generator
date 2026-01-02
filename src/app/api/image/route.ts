@@ -6,7 +6,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { spendCredits, getImageCreditCost, checkBalance } from '@/lib/services/credits';
+import { spendCredits, getImageCreditCost, checkBalance, trackRealCostOnly } from '@/lib/services/credits';
 import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 import type { ImageProvider } from '@/types/project';
@@ -25,6 +25,7 @@ interface ImageGenerationRequest {
   isRegeneration?: boolean; // Track if this is regenerating an existing image
   sceneId?: string; // Optional scene ID for tracking
   skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
+  ownerId?: string; // Use owner's settings instead of session user (for collaborator regeneration)
 }
 
 // Generate image using Gemini
@@ -35,7 +36,8 @@ async function generateWithGemini(
   projectId: string | undefined,
   referenceImages: Array<{ name: string; imageUrl: string }>,
   apiKey: string,
-  userId: string | undefined,
+  creditUserId: string | undefined, // For credit deduction (undefined to skip)
+  realCostUserId: string | undefined, // For real cost tracking (track even if no credit deduction)
   isRegeneration: boolean = false,
   sceneId?: string
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
@@ -105,11 +107,12 @@ async function generateWithGemini(
 
   const realCost = getImageCost(resolution);
   const creditCost = getImageCreditCost(resolution);
+  const actionType = isRegeneration ? 'regeneration' : 'generation';
 
-  if (userId) {
-    const actionType = isRegeneration ? 'regeneration' : 'generation';
+  if (creditUserId) {
+    // Normal case: deduct credits and track real cost
     await spendCredits(
-      userId,
+      creditUserId,
       creditCost,
       'image',
       `Gemini image ${actionType} (${resolution.toUpperCase()})`,
@@ -117,6 +120,17 @@ async function generateWithGemini(
       'gemini',
       { isRegeneration, sceneId },
       realCost
+    );
+  } else if (realCostUserId) {
+    // Collaborator regeneration: only track real cost (credits already prepaid by admin)
+    await trackRealCostOnly(
+      realCostUserId,
+      realCost,
+      'image',
+      `Gemini image ${actionType} (${resolution.toUpperCase()}) - prepaid`,
+      projectId,
+      'gemini',
+      { isRegeneration, sceneId, prepaidRegeneration: true }
     );
   }
 
@@ -138,7 +152,8 @@ async function generateWithModal(
   resolution: ImageResolution,
   projectId: string | undefined,
   modalEndpoint: string,
-  userId: string | undefined,
+  creditUserId: string | undefined,
+  realCostUserId: string | undefined,
   isRegeneration: boolean = false,
   sceneId?: string
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
@@ -186,13 +201,14 @@ async function generateWithModal(
   // Modal self-hosted - track GPU costs (~$0.09 per image on H100)
   const realCost = 0.09; // Modal GPU cost per image
   const creditCost = getImageCreditCost(resolution);
+  const actionType = isRegeneration ? 'regeneration' : 'generation';
 
-  if (userId) {
-    const actionType = isRegeneration ? 'regeneration' : 'generation';
+  if (creditUserId) {
+    // Normal case: deduct credits and track real cost
     console.log('[Modal] Spending credits:', creditCost);
     try {
       await spendCredits(
-        userId,
+        creditUserId,
         creditCost,
         'image',
         `Modal image ${actionType} (${resolution.toUpperCase()})`,
@@ -206,6 +222,18 @@ async function generateWithModal(
       console.error('[Modal] Credit spending error:', creditError);
       throw creditError;
     }
+  } else if (realCostUserId) {
+    // Collaborator regeneration: only track real cost (credits already prepaid by admin)
+    console.log('[Modal] Tracking real cost only (prepaid):', realCost);
+    await trackRealCostOnly(
+      realCostUserId,
+      realCost,
+      'image',
+      `Modal image ${actionType} (${resolution.toUpperCase()}) - prepaid`,
+      projectId,
+      'modal',
+      { isRegeneration, sceneId, prepaidRegeneration: true }
+    );
   }
 
   // Upload to S3 if configured and we got base64
@@ -235,7 +263,8 @@ async function generateWithModalEdit(
   projectId: string | undefined,
   modalEndpoint: string,
   referenceImages: Array<{ name: string; imageUrl: string }>,
-  userId: string | undefined,
+  creditUserId: string | undefined, // For credit deduction (undefined to skip)
+  realCostUserId: string | undefined, // For real cost tracking (track even if no credit deduction)
   isRegeneration: boolean = false,
   sceneId?: string
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
@@ -291,13 +320,14 @@ async function generateWithModalEdit(
   // Modal self-hosted - track GPU costs (~$0.09 per image on H100)
   const realCost = 0.09; // Modal GPU cost per image
   const creditCost = getImageCreditCost(resolution);
+  const actionType = isRegeneration ? 'regeneration' : 'generation';
 
-  if (userId) {
-    const actionType = isRegeneration ? 'regeneration' : 'generation';
+  if (creditUserId) {
+    // Normal case: deduct credits and track real cost
     console.log('[Modal-Edit] Spending credits:', creditCost);
     try {
       await spendCredits(
-        userId,
+        creditUserId,
         creditCost,
         'image',
         `Modal-Edit image ${actionType} (${resolution.toUpperCase()})`,
@@ -311,6 +341,18 @@ async function generateWithModalEdit(
       console.error('[Modal-Edit] Credit spending error:', creditError);
       throw creditError;
     }
+  } else if (realCostUserId) {
+    // Collaborator regeneration: only track real cost (credits already prepaid by admin)
+    console.log('[Modal-Edit] Tracking real cost only (prepaid):', realCost);
+    await trackRealCostOnly(
+      realCostUserId,
+      realCost,
+      'image',
+      `Modal-Edit image ${actionType} (${resolution.toUpperCase()}) - prepaid`,
+      projectId,
+      'modal-edit',
+      { isRegeneration, sceneId, prepaidRegeneration: true }
+    );
   }
 
   // Upload to S3 if configured and we got base64
@@ -334,7 +376,7 @@ async function generateWithModalEdit(
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false }: ImageGenerationRequest = await request.json();
+    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false, ownerId }: ImageGenerationRequest = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -346,9 +388,14 @@ export async function POST(request: NextRequest) {
     let modalImageEndpoint: string | null = null;
     let modalImageEditEndpoint: string | null = null;
 
-    if (session?.user?.id) {
+    // When ownerId is provided (collaborator regeneration), use owner's settings
+    // Otherwise use session user's settings
+    const settingsUserId = ownerId || session?.user?.id;
+    const costTrackingUserId = ownerId || session?.user?.id; // Track costs to owner for regenerations
+
+    if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: settingsUserId },
       });
 
       if (userApiKeys) {
@@ -364,7 +411,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Pre-check credit balance (skip if credits were prepaid by admin for collaborator regeneration)
-      if (!skipCreditCheck) {
+      if (!skipCreditCheck && session?.user?.id) {
         const creditCost = getImageCreditCost(resolution);
         const balanceCheck = await checkBalance(session.user.id, creditCost);
         if (!balanceCheck.hasEnough) {
@@ -378,11 +425,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Image] Using provider: ${imageProvider}, reference images: ${referenceImages.length}, skipCreditCheck: ${skipCreditCheck}`);
+    console.log(`[Image] Using provider: ${imageProvider}, reference images: ${referenceImages.length}, skipCreditCheck: ${skipCreditCheck}, ownerId: ${ownerId || 'none'}`);
 
-    // When skipCreditCheck is true, pass undefined as userId to skip credit deduction
-    // (credits were already prepaid by admin for collaborator regeneration)
-    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id;
+    // For cost tracking:
+    // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
+    //   but we still want to track real API costs to the owner
+    // - When skipCreditCheck is false (normal generation): track to session user
+    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id; // For credit deduction
+    const realCostUserId = ownerId || session?.user?.id; // For real cost tracking (always track to owner)
 
     // Route to appropriate provider
     if (imageProvider === 'modal-edit') {
@@ -396,7 +446,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, effectiveUserId, isRegeneration, sceneId);
+        const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, effectiveUserId, realCostUserId, isRegeneration, sceneId);
         return NextResponse.json(result);
       }
 
@@ -407,7 +457,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await generateWithModalEdit(prompt, aspectRatio, resolution, projectId, modalImageEditEndpoint, referenceImages, effectiveUserId, isRegeneration, sceneId);
+      const result = await generateWithModalEdit(prompt, aspectRatio, resolution, projectId, modalImageEditEndpoint, referenceImages, effectiveUserId, realCostUserId, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -419,7 +469,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await generateWithModal(prompt, aspectRatio, resolution, projectId, modalImageEndpoint, effectiveUserId, isRegeneration, sceneId);
+      const result = await generateWithModal(prompt, aspectRatio, resolution, projectId, modalImageEndpoint, effectiveUserId, realCostUserId, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 
@@ -431,7 +481,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, effectiveUserId, isRegeneration, sceneId);
+    const result = await generateWithGemini(prompt, aspectRatio, resolution, projectId, referenceImages, geminiApiKey, effectiveUserId, realCostUserId, isRegeneration, sceneId);
     return NextResponse.json(result);
 
   } catch (error) {
