@@ -239,7 +239,7 @@ def upload_to_s3(file_path: Path, s3_key: str, request: VideoCompositionRequest)
     image=image,
     gpu="T4",  # Light GPU for video encoding
     volumes={"/cache": cache_volume},
-    timeout=900,  # 15 minutes for long videos
+    timeout=1800,  # 30 minutes for long videos with many scenes
     scaledown_window=180,
 )
 class VectCutProcessor:
@@ -267,6 +267,7 @@ class VectCutProcessor:
         output: Path,
         transition_type: str,
         transition_duration: float = 1.0,
+        encode_preset: str = "fast",
     ) -> bool:
         """Apply transition effect between two video clips using ffmpeg."""
         try:
@@ -323,7 +324,7 @@ class VectCutProcessor:
                 "-i", str(input2),
                 "-filter_complex", filter_complex,
                 "-map", "[v]", "-map", "[a]",
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:v", "libx264", "-preset", encode_preset, "-crf", "23",
                 "-c:a", "aac", "-b:a", "192k",
                 str(output)
             ]
@@ -687,7 +688,10 @@ class VectCutProcessor:
         """Main composition method."""
         width, height = get_resolution(request.resolution)
 
-        print(f"Starting composition: {len(request.scenes)} scenes, {width}x{height}")
+        # Use faster encoding preset for large videos (20+ scenes)
+        encode_preset = "ultrafast" if len(request.scenes) >= 20 else "fast"
+
+        print(f"Starting composition: {len(request.scenes)} scenes, {width}x{height}, preset={encode_preset}")
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -710,7 +714,7 @@ class VectCutProcessor:
                             "ffmpeg", "-y",
                             "-i", str(raw_path),
                             "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2",
-                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                            "-c:v", "libx264", "-preset", encode_preset, "-crf", "23",
                             "-c:a", "aac", "-b:a", "192k",
                             "-t", str(scene.duration),
                             str(video_path)
@@ -762,7 +766,8 @@ class VectCutProcessor:
                         print(f"  Applying {prev_transition} transition between scene {i} and {i+1}")
                         self.apply_transition(
                             composed_path, next_video, output_path,
-                            prev_transition, transition_duration=request.transition_duration
+                            prev_transition, transition_duration=request.transition_duration,
+                            encode_preset=encode_preset
                         )
                     else:
                         self.simple_concat([composed_path, next_video], output_path)
