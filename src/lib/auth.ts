@@ -143,9 +143,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             data: notificationsToCreate,
           });
 
-          // Send email to all admins
+          // Send email to all admins (only those with valid emails)
           await Promise.all(
-            adminUsers.map(admin =>
+            adminUsers
+              .filter((admin): admin is typeof admin & { email: string } => admin.email !== null)
+              .map(admin =>
               sendNotificationEmail({
                 to: admin.email,
                 subject: `New User Registration: ${user.name || user.email}`,

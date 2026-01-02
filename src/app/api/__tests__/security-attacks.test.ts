@@ -580,10 +580,14 @@ describe('Security Attack Tests', () => {
 
     it('should prevent path traversal in filenames', async () => {
       const maliciousFilename = '../../etc/passwd.png';
-      const sanitizedFilename = maliciousFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
+      // Proper sanitization: replace path separators and collapse multiple dots
+      const sanitizedFilename = maliciousFilename
+        .replace(/[/\\]/g, '_')  // Replace path separators
+        .replace(/\.{2,}/g, '.'); // Collapse multiple dots to single
 
       expect(sanitizedFilename).not.toContain('..');
       expect(sanitizedFilename).not.toContain('/');
+      expect(sanitizedFilename).toBe('._._etc_passwd.png');
     });
 
     it('should generate unique filenames with UUID', async () => {
