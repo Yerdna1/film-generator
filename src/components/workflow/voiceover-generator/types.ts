@@ -1,5 +1,5 @@
 import type { Project, Character, DialogueLine, VoiceProvider, VoiceLanguage } from '@/types/project';
-import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
+import type { ProjectPermissions, ProjectRole, RegenerationRequest } from '@/types/collaboration';
 import { ItemGenerationState } from '@/lib/constants/workflow';
 
 export interface Step5Props {
@@ -104,13 +104,22 @@ export interface DialogueLineCardProps {
   progress: number;
   isPlaying: boolean;
   provider: VoiceProvider;
+  projectId: string;
+  sceneId: string;
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
   isFirstDialogue?: boolean;
+  canDeleteDirectly?: boolean;
+  hasPendingRegeneration?: boolean;
+  hasPendingDeletion?: boolean;
+  approvedRegeneration?: RegenerationRequest | null;
   onTogglePlay: () => void;
   onGenerate: () => void;
   onAudioRef: (el: HTMLAudioElement | null) => void;
   onAudioEnded: () => void;
+  onDeletionRequested?: () => void;
+  onUseRegenerationAttempt?: (requestId: string) => Promise<void>;
+  onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>;
 }
 
 export interface SceneDialogueCardProps {
@@ -121,6 +130,7 @@ export interface SceneDialogueCardProps {
     dialogue: DialogueLine[];
   };
   sceneIndex: number;
+  projectId: string;
   characters: Character[];
   audioStates: AudioState;
   playingAudio: string | null;
@@ -128,10 +138,17 @@ export interface SceneDialogueCardProps {
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
   firstDialogueLineId?: string | null;
+  canDeleteDirectly?: boolean;
+  pendingRegenLineIds?: Set<string>;
+  pendingDeletionLineIds?: Set<string>;
+  approvedRegenByLineId?: Map<string, RegenerationRequest>;
   onTogglePlay: (lineId: string) => void;
   onGenerateAudio: (lineId: string, sceneId: string) => void;
   onAudioRef: (lineId: string, el: HTMLAudioElement | null) => void;
   onAudioEnded: () => void;
+  onDeletionRequested?: () => void;
+  onUseRegenerationAttempt?: (requestId: string) => Promise<void>;
+  onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>;
 }
 
 export interface ProviderInfoProps {

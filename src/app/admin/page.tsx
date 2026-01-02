@@ -134,9 +134,11 @@ export default function AdminPage() {
         // Dispatch event to update credits display in header/dashboard
         window.dispatchEvent(new CustomEvent('credits-updated'));
       } else {
-        toast.error(data.error);
+        console.error('Credit action failed:', data);
+        toast.error(data.details || data.error || 'Failed to update credits');
       }
     } catch (error) {
+      console.error('Credit action error:', error);
       toast.error('Failed to update credits');
     }
   };

@@ -65,8 +65,8 @@ export function Header() {
   const navItems = [
     { href: '/projects', label: t('nav.projects'), icon: Film },
     { href: '/discover', label: t('nav.discover'), icon: Globe },
-    { href: '/billing', label: 'Pricing', icon: CreditCard },
-    ...(isAdmin ? [{ href: '/approvals', label: 'Approvals', icon: Shield, isAdmin: true }] : []),
+    { href: '/billing', label: t('nav.pricing'), icon: CreditCard },
+    ...(isAdmin ? [{ href: '/approvals', label: t('nav.approvals'), icon: Shield, isAdmin: true }] : []),
   ];
 
   // Plan badge colors and labels

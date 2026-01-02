@@ -48,9 +48,9 @@ export interface ProjectInvitation {
   };
 }
 
-export type DeletionTargetType = 'project' | 'scene' | 'character' | 'video';
+export type DeletionTargetType = 'project' | 'scene' | 'character' | 'video' | 'audio';
 
-export type RegenerationTargetType = 'image' | 'video';
+export type RegenerationTargetType = 'image' | 'video' | 'audio';
 
 export interface DeletionRequest {
   id: string;

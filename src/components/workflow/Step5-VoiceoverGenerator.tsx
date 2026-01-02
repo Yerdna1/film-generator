@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { Mic, Volume2, VolumeX, AlertCircle } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { VoiceProvider, VoiceLanguage } from '@/types/project';
+import type { RegenerationRequest, DeletionRequest } from '@/types/collaboration';
 import {
   Step5Props,
   getVoicesForProvider,
@@ -20,7 +21,7 @@ import {
   ProviderInfo,
 } from './voiceover-generator/components';
 
-export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = false, isAuthenticated = false }: Step5Props) {
+export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
   const { updateVoiceSettings, updateCharacter, projects } = useProjectStore();
 
@@ -34,6 +35,130 @@ export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = 
 
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [volume, setVolume] = useState([75]);
+
+  // Determine if user can delete directly (admin) or must request (collaborator)
+  const canDeleteDirectly = permissions?.canDelete ?? true;
+
+  // Regeneration requests state
+  const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequest[]>([]);
+  const [approvedRegenerationRequests, setApprovedRegenerationRequests] = useState<RegenerationRequest[]>([]);
+
+  // Deletion requests state
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
+
+  // Fetch regeneration requests for this project (audio type)
+  const fetchRegenerationRequests = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests?status=pending&type=audio`);
+      if (response.ok) {
+        const data = await response.json();
+        setRegenerationRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch regeneration requests:', error);
+    }
+  }, [project.id]);
+
+  // Fetch approved/active regeneration requests for collaborators
+  const fetchApprovedRegenerationRequests = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests?status=approved,generating,selecting,awaiting_final&type=audio`);
+      if (response.ok) {
+        const data = await response.json();
+        setApprovedRegenerationRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch approved regeneration requests:', error);
+    }
+  }, [project.id]);
+
+  // Fetch deletion requests for this project
+  const fetchDeletionRequests = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/deletion-requests?status=pending&type=audio`);
+      if (response.ok) {
+        const data = await response.json();
+        setDeletionRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch deletion requests:', error);
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    fetchRegenerationRequests();
+    fetchApprovedRegenerationRequests();
+    fetchDeletionRequests();
+  }, [fetchRegenerationRequests, fetchApprovedRegenerationRequests, fetchDeletionRequests]);
+
+  // Create memoized sets for quick lookup
+  const pendingAudioRegenLineIds = useMemo(() => {
+    return new Set(
+      regenerationRequests
+        .filter(r => r.targetType === 'audio' && r.status === 'pending')
+        .map(r => r.targetId)
+    );
+  }, [regenerationRequests]);
+
+  const pendingDeletionLineIds = useMemo(() => {
+    return new Set(
+      deletionRequests
+        .filter(r => r.targetType === 'audio' && r.status === 'pending')
+        .map(r => r.targetId)
+    );
+  }, [deletionRequests]);
+
+  const approvedRegenByLineId = useMemo(() => {
+    const map = new Map<string, RegenerationRequest>();
+    for (const req of approvedRegenerationRequests) {
+      if (req.targetType === 'audio') {
+        map.set(req.targetId, req);
+      }
+    }
+    return map;
+  }, [approvedRegenerationRequests]);
+
+  // Handler for using a regeneration attempt
+  const handleUseRegenerationAttempt = useCallback(async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'regenerate' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to regenerate');
+      }
+
+      await fetchApprovedRegenerationRequests();
+    } catch (error) {
+      console.error('Failed to use regeneration attempt:', error);
+      throw error;
+    }
+  }, [project.id, fetchApprovedRegenerationRequests]);
+
+  // Handler for selecting the best regeneration
+  const handleSelectRegeneration = useCallback(async (requestId: string, selectedUrl: string) => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/regeneration-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'select', selectedUrl }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to submit selection');
+      }
+
+      await fetchApprovedRegenerationRequests();
+    } catch (error) {
+      console.error('Failed to select regeneration:', error);
+      throw error;
+    }
+  }, [project.id, fetchApprovedRegenerationRequests]);
 
   // Custom hook for audio generation
   const {
@@ -169,6 +294,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = 
               key={scene.id}
               scene={scene}
               sceneIndex={sceneIndex}
+              projectId={project.id}
               characters={project.characters}
               audioStates={audioStates}
               playingAudio={playingAudio}
@@ -176,10 +302,17 @@ export function Step5VoiceoverGenerator({ project: initialProject, isReadOnly = 
               isReadOnly={isReadOnly}
               isAuthenticated={isAuthenticated}
               firstDialogueLineId={firstDialogueLineId}
+              canDeleteDirectly={canDeleteDirectly}
+              pendingRegenLineIds={pendingAudioRegenLineIds}
+              pendingDeletionLineIds={pendingDeletionLineIds}
+              approvedRegenByLineId={approvedRegenByLineId}
               onTogglePlay={togglePlay}
               onGenerateAudio={generateAudioForLine}
               onAudioRef={setAudioRef}
               onAudioEnded={handleAudioEnded}
+              onDeletionRequested={fetchDeletionRequests}
+              onUseRegenerationAttempt={handleUseRegenerationAttempt}
+              onSelectRegeneration={handleSelectRegeneration}
             />
           ))}
       </div>

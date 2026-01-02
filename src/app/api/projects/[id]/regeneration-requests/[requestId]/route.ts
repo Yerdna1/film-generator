@@ -363,12 +363,25 @@ export async function PATCH(
         textToImagePrompt: true,
         imageToVideoPrompt: true,
         imageUrl: true,
+        dialogue: true,
       },
     });
 
     if (!scene) {
       return NextResponse.json({ error: 'Scene not found' }, { status: 404 });
     }
+
+    // Build full I2V prompt with dialogue (same as normal generation)
+    const buildFullI2VPrompt = (imageToVideoPrompt: string | null, dialogue: unknown[] | null): string => {
+      let prompt = imageToVideoPrompt || '';
+      if (dialogue && Array.isArray(dialogue) && dialogue.length > 0) {
+        const dialogueText = (dialogue as Array<{ characterName?: string; text?: string }>)
+          .map((d) => `${d.characterName || 'Unknown'}: "${d.text || ''}"`)
+          .join('\n');
+        prompt += `\n\nDialogue:\n${dialogueText}`;
+      }
+      return prompt;
+    };
 
     // Handle different actions
     switch (action) {
@@ -482,6 +495,8 @@ export async function PATCH(
             } else {
               // Use project owner's settings and track costs to owner
               const baseUrl = new URL('/api/video', request.url).origin;
+              // Build full prompt with dialogue (same as normal video generation)
+              const fullVideoPrompt = buildFullI2VPrompt(scene.imageToVideoPrompt, scene.dialogue as unknown[] | null);
               const videoResponse = await fetch(`${baseUrl}/api/video`, {
                 method: 'POST',
                 headers: {
@@ -490,7 +505,7 @@ export async function PATCH(
                 },
                 body: JSON.stringify({
                   imageUrl: scene.imageUrl,
-                  prompt: scene.imageToVideoPrompt,
+                  prompt: fullVideoPrompt,
                   projectId,
                   isRegeneration: true,
                   sceneId: scene.id,

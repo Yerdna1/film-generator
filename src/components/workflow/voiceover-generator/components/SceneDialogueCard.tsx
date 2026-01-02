@@ -10,6 +10,7 @@ import type { SceneDialogueCardProps } from '../types';
 export function SceneDialogueCard({
   scene,
   sceneIndex,
+  projectId,
   characters,
   audioStates,
   playingAudio,
@@ -17,10 +18,17 @@ export function SceneDialogueCard({
   isReadOnly = false,
   isAuthenticated = true,
   firstDialogueLineId = null,
+  canDeleteDirectly = true,
+  pendingRegenLineIds,
+  pendingDeletionLineIds,
+  approvedRegenByLineId,
   onTogglePlay,
   onGenerateAudio,
   onAudioRef,
   onAudioEnded,
+  onDeletionRequested,
+  onUseRegenerationAttempt,
+  onSelectRegeneration,
 }: SceneDialogueCardProps) {
   const t = useTranslations();
 
@@ -66,13 +74,22 @@ export function SceneDialogueCard({
                   progress={progress}
                   isPlaying={playingAudio === line.id}
                   provider={provider}
+                  projectId={projectId}
+                  sceneId={scene.id}
                   isReadOnly={isReadOnly}
                   isAuthenticated={isAuthenticated}
                   isFirstDialogue={line.id === firstDialogueLineId}
+                  canDeleteDirectly={canDeleteDirectly}
+                  hasPendingRegeneration={pendingRegenLineIds?.has(line.id) || false}
+                  hasPendingDeletion={pendingDeletionLineIds?.has(line.id) || false}
+                  approvedRegeneration={approvedRegenByLineId?.get(line.id) || null}
                   onTogglePlay={() => onTogglePlay(line.id)}
                   onGenerate={() => onGenerateAudio(line.id, scene.id)}
                   onAudioRef={(el) => onAudioRef(line.id, el)}
                   onAudioEnded={onAudioEnded}
+                  onDeletionRequested={onDeletionRequested}
+                  onUseRegenerationAttempt={onUseRegenerationAttempt}
+                  onSelectRegeneration={onSelectRegeneration}
                 />
               </motion.div>
             );

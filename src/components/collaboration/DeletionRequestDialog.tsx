@@ -19,10 +19,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { DeletionTargetType } from '@/types/collaboration';
 
 interface DeletionRequestDialogProps {
   projectId: string;
-  targetType: 'project' | 'scene' | 'character' | 'video';
+  targetType: DeletionTargetType;
   targetId: string;
   targetName?: string;
   open: boolean;

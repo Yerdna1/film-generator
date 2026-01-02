@@ -91,24 +91,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       const isDeduction = action === 'deduct_credits';
       const creditChange = isDeduction ? -amount : amount;
 
-      // Ensure credits record exists
-      if (!user.credits) {
-        await prisma.credits.create({
-          data: {
+      // Update credits in a transaction (upsert to handle missing credits record)
+      const updatedCredits = await prisma.$transaction(async (tx) => {
+        // Upsert credits record
+        const credits = await tx.credits.upsert({
+          where: { userId },
+          create: {
             userId,
-            balance: 0,
+            balance: creditChange,
             totalSpent: 0,
-            totalEarned: 0,
+            totalEarned: isDeduction ? 0 : amount,
             totalRealCost: 0,
           },
-        });
-      }
-
-      // Update credits
-      const updatedCredits = await prisma.$transaction(async (tx) => {
-        const credits = await tx.credits.update({
-          where: { userId },
-          data: {
+          update: {
             balance: { increment: creditChange },
             totalEarned: isDeduction ? undefined : { increment: amount },
             lastUpdated: new Date(),
@@ -140,40 +135,36 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: 'Amount must be a non-negative number' }, { status: 400 });
       }
 
-      // Ensure credits record exists
-      if (!user.credits) {
-        await prisma.credits.create({
-          data: {
+      const currentBalance = user.credits?.balance ?? 0;
+      const difference = amount - currentBalance;
+
+      // Update credits in a transaction (upsert to handle missing credits record)
+      await prisma.$transaction(async (tx) => {
+        const credits = await tx.credits.upsert({
+          where: { userId },
+          create: {
             userId,
             balance: amount,
             totalSpent: 0,
             totalEarned: amount,
             totalRealCost: 0,
           },
+          update: {
+            balance: amount,
+            totalEarned: difference > 0 ? { increment: difference } : undefined,
+            lastUpdated: new Date(),
+          },
         });
-      } else {
-        const difference = amount - user.credits.balance;
 
-        await prisma.$transaction(async (tx) => {
-          await tx.credits.update({
-            where: { userId },
-            data: {
-              balance: amount,
-              totalEarned: difference > 0 ? { increment: difference } : undefined,
-              lastUpdated: new Date(),
-            },
-          });
-
-          await tx.creditTransaction.create({
-            data: {
-              creditsId: user.credits!.id,
-              amount: difference,
-              type: 'admin_set',
-              description: reason || `Admin set credits to ${amount}`,
-            },
-          });
+        await tx.creditTransaction.create({
+          data: {
+            creditsId: credits.id,
+            amount: difference,
+            type: 'admin_set',
+            description: reason || `Admin set credits to ${amount}`,
+          },
         });
-      }
+      });
 
       return NextResponse.json({
         success: true,
@@ -255,8 +246,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error updating user:', error);
+    // Provide more detailed error info
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Error details:', { errorMessage, errorStack });
     return NextResponse.json(
-      { error: 'Failed to update user', details: error instanceof Error ? error.message : String(error) },
+      { error: 'Failed to update user', details: errorMessage },
       { status: 500 }
     );
   }
