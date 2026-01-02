@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys } from '@/lib/cache';
+import { verifyPermission } from '@/lib/permissions';
 
 // POST - Create new scene
 export async function POST(
@@ -19,12 +20,19 @@ export async function POST(
       );
     }
 
-    // Verify project ownership
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
+    // Verify user has edit permission (owner, admin, or collaborator)
+    const permCheck = await verifyPermission(session.user.id, projectId, 'canEdit');
+    if (!permCheck.allowed) {
+      return NextResponse.json(
+        { error: permCheck.error },
+        { status: permCheck.status }
+      );
+    }
+
+    // Get project for cache invalidation
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { userId: true },
     });
 
     if (!project) {
@@ -72,8 +80,8 @@ export async function POST(
       data: { updatedAt: new Date() },
     });
 
-    // Invalidate projects cache so next fetch gets fresh data
-    cache.invalidate(cacheKeys.userProjects(session.user.id));
+    // Invalidate projects cache for the owner
+    cache.invalidate(cacheKeys.userProjects(project.userId));
 
     return NextResponse.json({
       id: scene.id,
@@ -114,12 +122,19 @@ export async function PUT(
       );
     }
 
-    // Verify project ownership
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
+    // Verify user has edit permission (owner, admin, or collaborator)
+    const permCheck = await verifyPermission(session.user.id, projectId, 'canEdit');
+    if (!permCheck.allowed) {
+      return NextResponse.json(
+        { error: permCheck.error },
+        { status: permCheck.status }
+      );
+    }
+
+    // Get project for cache invalidation
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { userId: true },
     });
 
     if (!project) {
@@ -216,8 +231,8 @@ export async function PUT(
       data: { updatedAt: new Date() },
     });
 
-    // Invalidate projects cache so next fetch gets fresh data
-    cache.invalidate(cacheKeys.userProjects(session.user.id));
+    // Invalidate projects cache for the owner
+    cache.invalidate(cacheKeys.userProjects(project.userId));
 
     return NextResponse.json(updatedScenes);
   } catch (error) {
