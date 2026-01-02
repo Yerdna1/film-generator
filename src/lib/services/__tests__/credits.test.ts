@@ -72,7 +72,7 @@ describe('Credits Service', () => {
         'image',
         'Test image generation',
         undefined,
-        'gemini-3-pro',
+        'gemini',
         undefined,
         0.24  // realCostOverride
       )
@@ -155,7 +155,7 @@ describe('Credits Service', () => {
         'image',
         'Test image',
         undefined,
-        'gemini-3-pro',
+        'gemini',
         undefined,
         0.24
       )
@@ -168,7 +168,7 @@ describe('Credits Service', () => {
       expect(transaction?.amount).toBe(-27) // Negative for spending
       expect(transaction?.realCost).toBeCloseTo(0.24, 2)
       expect(transaction?.type).toBe('image')
-      expect(transaction?.provider).toBe('gemini-3-pro')
+      expect(transaction?.provider).toBe('gemini')
     })
   })
 
@@ -184,7 +184,7 @@ describe('Credits Service', () => {
         'image',
         'Prepaid regeneration',
         project.id,
-        'gemini-3-pro'
+        'gemini'
       )
 
       // Balance should remain unchanged

@@ -366,7 +366,7 @@ describe('Video Generation Cost Tests', () => {
       await createTestCredits(user.id, { balance: 100 })
       const project = await createTestProject(user.id)
       const scene = await createTestScene(project.id, {
-        sceneNumber: 1,
+        number: 1,
         imageUrl: 'https://test.com/image.png'
       })
 

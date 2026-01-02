@@ -37,7 +37,7 @@ describe('End-to-End Integration Tests', () => {
       const user = await createTestUser()
       const project = await createTestProject(user.id, {
         name: 'E2E Test Project',
-        story: { concept: 'An adventure story' }
+        story: 'An adventure story'
       })
 
       expect(project.userId).toBe(user.id)

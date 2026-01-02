@@ -404,12 +404,13 @@ export async function getUserStatistics(userId: string): Promise<{
   };
   recentTransactions: TransactionRecord[];
 }> {
-  // Single query for credits and all transactions
+  // Single query for credits and recent transactions (limit to reduce network transfer)
   const creditsRecord = await prisma.credits.findUnique({
     where: { userId },
     include: {
       transactions: {
         orderBy: { createdAt: 'desc' },
+        take: 200, // Limit to reduce DB traffic - enough for stats + 50 recent
       },
     },
   });

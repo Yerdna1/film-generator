@@ -156,74 +156,66 @@ export async function PUT(
 
     // SAFE: Upsert scenes instead of delete-all-recreate
     // This prevents accidental data loss from partial syncs
-    const updatedScenes = [];
-    for (const scene of scenes) {
-      if (scene.id) {
-        // Update existing scene
-        const updated = await prisma.scene.update({
-          where: { id: scene.id },
-          data: {
-            number: scene.number || 1,
-            title: scene.title || 'Scene',
-            description: scene.description || '',
-            textToImagePrompt: scene.textToImagePrompt || '',
-            imageToVideoPrompt: scene.imageToVideoPrompt || '',
-            cameraShot: scene.cameraShot || 'medium',
-            imageUrl: scene.imageUrl,
-            videoUrl: scene.videoUrl,
-            audioUrl: scene.audioUrl,
-            duration: scene.duration || 6,
-            dialogue: scene.dialogue || [],
-          },
-        });
-        updatedScenes.push({
-          id: updated.id,
-          number: updated.number,
-          title: updated.title,
-          description: updated.description,
-          textToImagePrompt: updated.textToImagePrompt,
-          imageToVideoPrompt: updated.imageToVideoPrompt,
-          cameraShot: updated.cameraShot,
-          imageUrl: updated.imageUrl,
-          videoUrl: updated.videoUrl,
-          audioUrl: updated.audioUrl,
-          duration: updated.duration,
-          dialogue: updated.dialogue as object[],
-        });
-      } else {
-        // Create new scene (no id provided)
-        const created = await prisma.scene.create({
-          data: {
-            projectId,
-            number: scene.number || 1,
-            title: scene.title || 'Scene',
-            description: scene.description || '',
-            textToImagePrompt: scene.textToImagePrompt || '',
-            imageToVideoPrompt: scene.imageToVideoPrompt || '',
-            cameraShot: scene.cameraShot || 'medium',
-            imageUrl: scene.imageUrl,
-            videoUrl: scene.videoUrl,
-            audioUrl: scene.audioUrl,
-            duration: scene.duration || 6,
-            dialogue: scene.dialogue || [],
-          },
-        });
-        updatedScenes.push({
-          id: created.id,
-          number: created.number,
-          title: created.title,
-          description: created.description,
-          textToImagePrompt: created.textToImagePrompt,
-          imageToVideoPrompt: created.imageToVideoPrompt,
-          cameraShot: created.cameraShot,
-          imageUrl: created.imageUrl,
-          videoUrl: created.videoUrl,
-          audioUrl: created.audioUrl,
-          duration: created.duration,
-          dialogue: created.dialogue as object[],
-        });
-      }
-    }
+    // Use $transaction with parallel operations for efficiency (reduces DB round-trips)
+    const updatedScenes = await prisma.$transaction(async (tx) => {
+      const operations = scenes.map((scene) => {
+        if (scene.id) {
+          // Update existing scene
+          return tx.scene.update({
+            where: { id: scene.id },
+            data: {
+              number: scene.number || 1,
+              title: scene.title || 'Scene',
+              description: scene.description || '',
+              textToImagePrompt: scene.textToImagePrompt || '',
+              imageToVideoPrompt: scene.imageToVideoPrompt || '',
+              cameraShot: scene.cameraShot || 'medium',
+              imageUrl: scene.imageUrl,
+              videoUrl: scene.videoUrl,
+              audioUrl: scene.audioUrl,
+              duration: scene.duration || 6,
+              dialogue: scene.dialogue || [],
+            },
+          });
+        } else {
+          // Create new scene (no id provided)
+          return tx.scene.create({
+            data: {
+              projectId,
+              number: scene.number || 1,
+              title: scene.title || 'Scene',
+              description: scene.description || '',
+              textToImagePrompt: scene.textToImagePrompt || '',
+              imageToVideoPrompt: scene.imageToVideoPrompt || '',
+              cameraShot: scene.cameraShot || 'medium',
+              imageUrl: scene.imageUrl,
+              videoUrl: scene.videoUrl,
+              audioUrl: scene.audioUrl,
+              duration: scene.duration || 6,
+              dialogue: scene.dialogue || [],
+            },
+          });
+        }
+      });
+
+      return Promise.all(operations);
+    });
+
+    // Transform results for response
+    const transformedScenes = updatedScenes.map((scene) => ({
+      id: scene.id,
+      number: scene.number,
+      title: scene.title,
+      description: scene.description,
+      textToImagePrompt: scene.textToImagePrompt,
+      imageToVideoPrompt: scene.imageToVideoPrompt,
+      cameraShot: scene.cameraShot,
+      imageUrl: scene.imageUrl,
+      videoUrl: scene.videoUrl,
+      audioUrl: scene.audioUrl,
+      duration: scene.duration,
+      dialogue: scene.dialogue as object[],
+    }));
 
     // Update project's updatedAt
     await prisma.project.update({
@@ -234,7 +226,7 @@ export async function PUT(
     // Invalidate projects cache for the owner
     cache.invalidate(cacheKeys.userProjects(project.userId));
 
-    return NextResponse.json(updatedScenes);
+    return NextResponse.json(transformedScenes);
   } catch (error) {
     console.error('Error updating scenes:', error);
     return NextResponse.json(

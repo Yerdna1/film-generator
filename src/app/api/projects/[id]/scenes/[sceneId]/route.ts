@@ -97,10 +97,31 @@ export async function PUT(
         { field: 'description', oldVal: currentScene.description, newVal: description },
       ];
 
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { name: true, email: true },
-      });
+      // Get user info and admin IDs ONCE before the loop (fixes N+1 query)
+      const [user, adminIds] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { name: true, email: true },
+        }),
+        getProjectAdmins(projectId),
+      ]);
+
+      // Format field name for notification
+      const fieldLabels: Record<string, string> = {
+        textToImagePrompt: 'Text-to-Image Prompt',
+        imageToVideoPrompt: 'Image-to-Video Prompt',
+        description: 'Description',
+      };
+
+      // Collect all notifications to batch create
+      const notificationsToCreate: {
+        userId: string;
+        type: string;
+        title: string;
+        message: string;
+        metadata: object;
+        actionUrl: string;
+      }[] = [];
 
       for (const { field, oldVal, newVal } of trackedFields) {
         // Only track if the field was updated and the value actually changed
@@ -118,36 +139,33 @@ export async function PUT(
             },
           });
 
-          // Format field name for notification
-          const fieldLabels: Record<string, string> = {
-            textToImagePrompt: 'Text-to-Image Prompt',
-            imageToVideoPrompt: 'Image-to-Video Prompt',
-            description: 'Description',
-          };
-
-          // Notify project admins
-          const adminIds = await getProjectAdmins(projectId);
+          // Collect notifications for all admins
           for (const adminId of adminIds) {
-            await prisma.notification.create({
-              data: {
-                userId: adminId,
-                type: 'prompt_edit',
-                title: 'Prompt Edit',
-                message: `${user?.name || user?.email || 'A collaborator'} edited ${fieldLabels[field]} for scene "${scene.title}"`,
-                metadata: {
-                  projectId,
-                  projectName: project.name,
-                  requestId: editRequest.id,
-                  sceneId,
-                  sceneName: scene.title,
-                  fieldName: field,
-                  requesterName: user?.name,
-                },
-                actionUrl: `/project/${projectId}?tab=approvals`,
+            notificationsToCreate.push({
+              userId: adminId,
+              type: 'prompt_edit',
+              title: 'Prompt Edit',
+              message: `${user?.name || user?.email || 'A collaborator'} edited ${fieldLabels[field]} for scene "${scene.title}"`,
+              metadata: {
+                projectId,
+                projectName: project.name,
+                requestId: editRequest.id,
+                sceneId,
+                sceneName: scene.title,
+                fieldName: field,
+                requesterName: user?.name,
               },
+              actionUrl: `/project/${projectId}?tab=approvals`,
             });
           }
         }
+      }
+
+      // Batch create all notifications in a single query
+      if (notificationsToCreate.length > 0) {
+        await prisma.notification.createMany({
+          data: notificationsToCreate,
+        });
       }
     }
 

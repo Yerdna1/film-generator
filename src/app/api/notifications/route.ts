@@ -21,20 +21,31 @@ export async function GET(request: NextRequest) {
       ...(unreadOnly && { read: false }),
     };
 
-    // Get notifications
-    const notifications = await prisma.notification.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
-
-    // Get unread count
-    const unreadCount = await prisma.notification.count({
-      where: {
-        userId: session.user.id,
-        read: false,
-      },
-    });
+    // Fetch notifications and unread count in parallel
+    // Use select clause to reduce data transfer (exclude large metadata field)
+    const [notifications, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          message: true,
+          read: true,
+          actionUrl: true,
+          createdAt: true,
+          // Exclude: metadata, updatedAt (not needed by frontend)
+        },
+      }),
+      prisma.notification.count({
+        where: {
+          userId: session.user.id,
+          read: false,
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       notifications,
