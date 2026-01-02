@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { getStartingCredits } from '@/lib/services/app-config';
+import { verifyAdmin } from '@/lib/admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // SECURITY: Only admins can create users directly
+    const adminCheck = await verifyAdmin();
+    if (!adminCheck.isAdmin) {
+      return NextResponse.json(
+        { error: adminCheck.error || 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
     }
 
     const { userId, email, name } = await request.json();

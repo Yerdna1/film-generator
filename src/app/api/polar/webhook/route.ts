@@ -34,16 +34,23 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     const signature = request.headers.get('polar-signature') || '';
 
-    // Verify webhook signature
-    if (process.env.POLAR_WEBHOOK_SECRET) {
-      const isValid = verifyWebhookSignature(body, signature);
-      if (!isValid) {
-        console.error('Invalid webhook signature');
-        return NextResponse.json(
-          { error: 'Invalid signature' },
-          { status: 401 }
-        );
-      }
+    // SECURITY: Webhook signature verification is MANDATORY
+    // If secret is not configured, reject all webhooks to prevent forgery attacks
+    if (!process.env.POLAR_WEBHOOK_SECRET) {
+      console.error('SECURITY: POLAR_WEBHOOK_SECRET not configured - rejecting webhook');
+      return NextResponse.json(
+        { error: 'Webhook verification not configured' },
+        { status: 500 }
+      );
+    }
+
+    const isValid = verifyWebhookSignature(body, signature);
+    if (!isValid) {
+      console.error('Invalid webhook signature - possible forgery attempt');
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 401 }
+      );
     }
 
     const event: PolarWebhookEvent = JSON.parse(body);

@@ -6,6 +6,116 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type MediaType = 'image' | 'video' | 'audio';
 
+// SECURITY: Allowed MIME types to prevent malicious file uploads
+const ALLOWED_MIME_TYPES: Record<MediaType, string[]> = {
+  image: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'],
+  video: ['video/mp4', 'video/webm', 'video/quicktime'],
+  audio: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm', 'audio/aac', 'audio/l16', 'audio/pcm', 'audio/raw'],
+};
+
+// SECURITY: Maximum file sizes (in bytes)
+const MAX_FILE_SIZES: Record<MediaType, number> = {
+  image: 20 * 1024 * 1024,  // 20 MB
+  video: 100 * 1024 * 1024, // 100 MB
+  audio: 50 * 1024 * 1024,  // 50 MB
+};
+
+// SECURITY: Magic bytes for file type verification
+const MAGIC_BYTES: Record<string, number[][]> = {
+  // Images
+  'image/png': [[0x89, 0x50, 0x4E, 0x47]],  // PNG
+  'image/jpeg': [[0xFF, 0xD8, 0xFF]],        // JPEG
+  'image/jpg': [[0xFF, 0xD8, 0xFF]],         // JPEG
+  'image/webp': [[0x52, 0x49, 0x46, 0x46]],  // RIFF (WebP)
+  'image/gif': [[0x47, 0x49, 0x46, 0x38]],   // GIF
+  // Videos
+  'video/mp4': [[0x00, 0x00, 0x00], [0x66, 0x74, 0x79, 0x70]],  // MP4 (ftyp at offset 4)
+  'video/webm': [[0x1A, 0x45, 0xDF, 0xA3]],  // WebM/MKV
+  'video/quicktime': [[0x00, 0x00, 0x00]],   // MOV (similar to MP4)
+  // Audio - many have headers added during processing, so we're more lenient
+  'audio/mpeg': [[0x49, 0x44, 0x33], [0xFF, 0xFB], [0xFF, 0xFA]],  // MP3 (ID3 or sync)
+  'audio/wav': [[0x52, 0x49, 0x46, 0x46]],   // WAV (RIFF)
+};
+
+/**
+ * SECURITY: Validate file type by checking MIME type and magic bytes
+ */
+function validateFileType(
+  buffer: Buffer,
+  claimedMimeType: string,
+  mediaType: MediaType
+): { valid: boolean; error?: string } {
+  const baseMimeType = claimedMimeType.split(';')[0].toLowerCase();
+
+  // Check if MIME type is allowed for this media type
+  const allowed = ALLOWED_MIME_TYPES[mediaType];
+  if (!allowed.includes(baseMimeType)) {
+    return {
+      valid: false,
+      error: `Invalid file type: ${baseMimeType}. Allowed types for ${mediaType}: ${allowed.join(', ')}`,
+    };
+  }
+
+  // Check file size
+  if (buffer.length > MAX_FILE_SIZES[mediaType]) {
+    const maxMB = MAX_FILE_SIZES[mediaType] / (1024 * 1024);
+    return {
+      valid: false,
+      error: `File too large. Maximum size for ${mediaType}: ${maxMB} MB`,
+    };
+  }
+
+  // Verify magic bytes if available (skip for raw audio which may be processed)
+  const magicSignatures = MAGIC_BYTES[baseMimeType];
+  if (magicSignatures && buffer.length >= 8) {
+    let matchFound = false;
+
+    for (const signature of magicSignatures) {
+      let matches = true;
+      for (let i = 0; i < signature.length; i++) {
+        if (buffer[i] !== signature[i]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        matchFound = true;
+        break;
+      }
+    }
+
+    // For video/mp4, also check for 'ftyp' at offset 4
+    if (!matchFound && (baseMimeType === 'video/mp4' || baseMimeType === 'video/quicktime')) {
+      if (buffer.length >= 8) {
+        const ftyp = buffer.slice(4, 8).toString('ascii');
+        if (ftyp === 'ftyp') {
+          matchFound = true;
+        }
+      }
+    }
+
+    if (!matchFound) {
+      return {
+        valid: false,
+        error: `File content does not match claimed type: ${baseMimeType}`,
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Determine media type from MIME type
+ */
+function getMediaTypeFromMime(mimeType: string): MediaType | null {
+  const baseMime = mimeType.split(';')[0].toLowerCase();
+  if (baseMime.startsWith('image/')) return 'image';
+  if (baseMime.startsWith('video/')) return 'video';
+  if (baseMime.startsWith('audio/')) return 'audio';
+  return null;
+}
+
 // Initialize S3 client
 const getS3Client = () => {
   const region = process.env.AWS_REGION || 'eu-central-1';
@@ -108,6 +218,19 @@ export async function uploadBase64ToS3(
 
     // Convert base64 to buffer
     const buffer = Buffer.from(base64Content, 'base64');
+
+    // SECURITY: Validate file type and size
+    const mediaType = getMediaTypeFromMime(mimeType);
+    if (mediaType) {
+      const validation = validateFileType(buffer, mimeType, mediaType);
+      if (!validation.valid) {
+        console.warn('[S3] File validation failed:', validation.error);
+        return {
+          success: false,
+          error: validation.error,
+        };
+      }
+    }
 
     // Upload to S3
     const s3Client = getS3Client();
@@ -213,6 +336,15 @@ export async function uploadBufferToS3(
 
   if (!bucket) {
     throw new Error('AWS_S3_BUCKET not configured');
+  }
+
+  // SECURITY: Validate file type and size
+  const mediaType = getMediaTypeFromMime(contentType);
+  if (mediaType) {
+    const validation = validateFileType(buffer, contentType, mediaType);
+    if (!validation.valid) {
+      throw new Error(`File validation failed: ${validation.error}`);
+    }
   }
 
   const s3Client = getS3Client();

@@ -1,17 +1,23 @@
 import { beforeAll, afterAll, afterEach, vi, expect } from 'vitest'
 import { PrismaClient } from '@prisma/client'
 
-// Test database URL
-const TEST_DB_URL = 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterfly-agblumty-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
+// SECURITY: Test database URL must be provided via environment variable
+// Never hardcode database credentials in source code
+if (!process.env.TEST_DATABASE_URL) {
+  throw new Error(
+    'TEST_DATABASE_URL environment variable is required for tests. ' +
+    'Please set it in .env.test file.'
+  );
+}
 
 // Set environment variable for services that import their own prisma client
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || TEST_DB_URL
+process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 
 // Create test database client
 export const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.TEST_DATABASE_URL || TEST_DB_URL
+      url: process.env.TEST_DATABASE_URL
     }
   }
 })

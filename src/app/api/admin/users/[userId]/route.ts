@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { sendNotificationEmail } from '@/lib/services/email';
-
-const ADMIN_EMAIL = 'andrej.galad@gmail.com';
+import { verifyAdmin } from '@/lib/admin';
 
 interface RouteParams {
   params: Promise<{ userId: string }>;
@@ -12,11 +10,15 @@ interface RouteParams {
 // GET - Get single user details
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
     const { userId } = await params;
 
-    if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
-      return NextResponse.json({ error: 'Unauthorized - Admin only' }, { status: 401 });
+    // SECURITY: Verify admin role from database
+    const adminCheck = await verifyAdmin();
+    if (!adminCheck.isAdmin) {
+      return NextResponse.json(
+        { error: adminCheck.error || 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
     }
 
     const user = await prisma.user.findUnique({
@@ -62,11 +64,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT - Update user (block/unblock, adjust credits)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
     const { userId } = await params;
 
-    if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
-      return NextResponse.json({ error: 'Unauthorized - Admin only' }, { status: 401 });
+    // SECURITY: Verify admin role from database
+    const adminCheck = await verifyAdmin();
+    if (!adminCheck.isAdmin) {
+      return NextResponse.json(
+        { error: adminCheck.error || 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();

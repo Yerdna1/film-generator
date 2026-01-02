@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db/prisma';
 import { spendCredits, getImageCreditCost, checkBalance, trackRealCostOnly } from '@/lib/services/credits';
 import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
+import { rateLimit } from '@/lib/services/rate-limit';
 import type { ImageProvider } from '@/types/project';
 
 export const maxDuration = 300; // Allow up to 5 minutes for image generation (Modal cold start can take ~2-3 min)
@@ -385,6 +386,10 @@ async function generateWithModalEdit(
 }
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limit generation to prevent abuse (20 requests/min)
+  const rateLimitResult = await rateLimit(request, 'generation');
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false, ownerId }: ImageGenerationRequest = await request.json();
 

@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-
-const ADMIN_EMAIL = 'andrej.galad@gmail.com';
+import { verifyAdmin } from '@/lib/admin';
 
 // GET - List all users with their credits
 export async function GET() {
   try {
-    const session = await auth();
-
-    if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
-      return NextResponse.json({ error: 'Unauthorized - Admin only' }, { status: 401 });
+    // SECURITY: Verify admin role from database
+    const adminCheck = await verifyAdmin();
+    if (!adminCheck.isAdmin) {
+      return NextResponse.json(
+        { error: adminCheck.error || 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
     }
 
     const users = await prisma.user.findMany({

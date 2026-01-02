@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db/prisma';
 import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { calculateVoiceCost } from '@/lib/services/real-costs';
 import { uploadAudioToS3, isS3Configured } from '@/lib/services/s3-upload';
+import { rateLimit } from '@/lib/services/rate-limit';
 import type { TTSProvider } from '@/types/project';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
@@ -236,6 +237,10 @@ async function generateWithModal(
 }
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limit generation to prevent abuse (20 requests/min)
+  const rateLimitResult = await rateLimit(request, 'generation');
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const {
       text,

@@ -123,6 +123,10 @@ model CreditTransaction {
   @@index([projectId])
   @@index([type])
   @@index([provider])
+  // OPTIMIZATION: Composite indexes for common query patterns
+  @@index([creditsId, type])              // Filtering by user's credits + type
+  @@index([creditsId, type, projectId])   // Transaction grouping queries
+  @@index([creditsId, createdAt])         // Recent transactions for user
 }
 
 model VerificationToken {
@@ -198,6 +202,9 @@ model Project {
 
   @@index([userId])
   @@index([visibility])
+  // OPTIMIZATION: Composite indexes for project list queries
+  @@index([userId, updatedAt])    // User's projects sorted by recent
+  @@index([visibility, updatedAt]) // Public projects listing
 }
 
 // Characters
@@ -451,6 +458,10 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+  // OPTIMIZATION: Composite indexes for notification polling
+  @@index([userId, read])           // Unread notification count
+  @@index([userId, createdAt])      // Recent notifications
+  @@index([userId, read, createdAt]) // Filtered notification queries
 }
 
 // App configuration - admin-controlled settings

@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db/prisma';
 import { uploadBase64ToS3, uploadVideoToS3, isS3Configured } from '@/lib/services/s3-upload';
 import { spendCredits, COSTS, checkBalance, trackRealCostOnly } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
+import { rateLimit } from '@/lib/services/rate-limit';
 import type { VideoProvider } from '@/types/project';
 
 const KIE_API_URL = 'https://api.kie.ai';
@@ -309,6 +310,10 @@ async function generateWithModal(
 
 // POST - Create video generation task
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limit generation to prevent abuse (20 requests/min)
+  const rateLimitResult = await rateLimit(request, 'generation');
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const { imageUrl, prompt, projectId, mode = 'normal', seed, isRegeneration = false, sceneId, skipCreditCheck = false, ownerId }: VideoGenerationRequest = await request.json();
 

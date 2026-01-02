@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 
-// GET - Fetch user's API keys
+/**
+ * SECURITY: Mask API key for safe display in browser
+ * Shows only last 4 characters to confirm key is set
+ */
+function maskApiKey(key: string | null): string {
+  if (!key || key.length < 8) return '';
+  return `${'•'.repeat(Math.min(key.length - 4, 20))}${key.slice(-4)}`;
+}
+
+// GET - Fetch user's API keys (masked for security)
 export async function GET() {
   try {
     const session = await auth();
@@ -45,24 +54,37 @@ export async function GET() {
       });
     }
 
-    // Return keys (masked for display, full for internal use)
+    // SECURITY: Return masked keys - only show last 4 chars to confirm key is set
+    // Full keys are never sent to client to prevent XSS/extension theft
     return NextResponse.json({
-      geminiApiKey: apiKeys.geminiApiKey || '',
-      grokApiKey: apiKeys.grokApiKey || '',
-      elevenLabsApiKey: apiKeys.elevenLabsApiKey || '',
-      claudeApiKey: apiKeys.claudeApiKey || '',
-      openaiApiKey: apiKeys.openaiApiKey || '',
-      nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
-      sunoApiKey: apiKeys.sunoApiKey || '',
-      openRouterApiKey: apiKeys.openRouterApiKey || '',
+      // Masked API keys (shows ••••xxxx format)
+      geminiApiKey: maskApiKey(apiKeys.geminiApiKey),
+      grokApiKey: maskApiKey(apiKeys.grokApiKey),
+      elevenLabsApiKey: maskApiKey(apiKeys.elevenLabsApiKey),
+      claudeApiKey: maskApiKey(apiKeys.claudeApiKey),
+      openaiApiKey: maskApiKey(apiKeys.openaiApiKey),
+      nanoBananaApiKey: maskApiKey(apiKeys.nanoBananaApiKey),
+      sunoApiKey: maskApiKey(apiKeys.sunoApiKey),
+      openRouterApiKey: maskApiKey(apiKeys.openRouterApiKey),
+      piapiApiKey: maskApiKey(apiKeys.piapiApiKey),
+      // Boolean flags to indicate if key is set (for UI logic)
+      hasGeminiKey: !!apiKeys.geminiApiKey,
+      hasGrokKey: !!apiKeys.grokApiKey,
+      hasElevenLabsKey: !!apiKeys.elevenLabsApiKey,
+      hasClaudeKey: !!apiKeys.claudeApiKey,
+      hasOpenaiKey: !!apiKeys.openaiApiKey,
+      hasNanoBananaKey: !!apiKeys.nanoBananaApiKey,
+      hasSunoKey: !!apiKeys.sunoApiKey,
+      hasOpenRouterKey: !!apiKeys.openRouterApiKey,
+      hasPiapiKey: !!apiKeys.piapiApiKey,
+      // Non-sensitive settings (can be sent in full)
       openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
-      piapiApiKey: apiKeys.piapiApiKey || '',
       llmProvider: apiKeys.llmProvider || 'openrouter',
       musicProvider: apiKeys.musicProvider || 'piapi',
       ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
       imageProvider: apiKeys.imageProvider || 'gemini',
       videoProvider: apiKeys.videoProvider || 'kie',
-      // Modal endpoints
+      // Modal endpoints (URLs, not secrets)
       modalLlmEndpoint: apiKeys.modalLlmEndpoint || '',
       modalTtsEndpoint: apiKeys.modalTtsEndpoint || '',
       modalImageEndpoint: apiKeys.modalImageEndpoint || '',

@@ -6,8 +6,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db/prisma';
 import type { Provider } from 'next-auth/providers';
 import { sendNotificationEmail } from '@/lib/services/email';
-
-const ADMIN_EMAIL = 'andrej.galad@gmail.com';
+import { LEGACY_ADMIN_EMAIL, getAdminUsers } from '@/lib/admin';
 
 // Check if Google OAuth is configured
 const isGoogleConfigured =
@@ -62,7 +61,8 @@ if (isGoogleConfigured) {
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true, // Allow linking to existing accounts with same email
+      // SECURITY: Removed allowDangerousEmailAccountLinking to prevent account takeover
+      // Users must use the same auth method they originally signed up with
     })
   );
 }
@@ -97,8 +97,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async createUser({ user }) {
       if (!user.id) return;
 
-      // Auto-approve admin
-      const isAdmin = user.email === ADMIN_EMAIL;
+      // Get all admin users from database
+      const adminUsers = await getAdminUsers();
+      const adminEmails = adminUsers.map(a => a.email);
+
+      // Check if new user is an admin (by email match with existing admins or legacy admin)
+      const isAdmin = adminEmails.includes(user.email!) || user.email === LEGACY_ADMIN_EMAIL;
 
       // Update user approval status and create API keys
       await prisma.$transaction(async (tx) => {
@@ -116,44 +120,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
       });
 
-      // If not admin, notify admin about new user
-      if (!isAdmin) {
+      // If not admin, notify all admins about new user
+      if (!isAdmin && adminUsers.length > 0) {
         try {
-          // Find admin user
-          const admin = await prisma.user.findUnique({
-            where: { email: ADMIN_EMAIL },
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+          // Create in-app notifications for all admins
+          const notificationsToCreate = adminUsers.map(admin => ({
+            userId: admin.id,
+            type: 'new_user',
+            title: 'New User Registration',
+            message: `${user.name || user.email} has registered and is waiting for approval.`,
+            metadata: {
+              newUserId: user.id,
+              newUserEmail: user.email,
+              newUserName: user.name,
+            },
+            actionUrl: '/admin',
+          }));
+
+          await prisma.notification.createMany({
+            data: notificationsToCreate,
           });
 
-          if (admin) {
-            // Create in-app notification for admin
-            await prisma.notification.create({
-              data: {
-                userId: admin.id,
-                type: 'new_user',
-                title: 'New User Registration',
-                message: `${user.name || user.email} has registered and is waiting for approval.`,
-                metadata: {
-                  newUserId: user.id,
-                  newUserEmail: user.email,
-                  newUserName: user.name,
-                },
-                actionUrl: '/admin',
-              },
-            });
-
-            // Send email to admin
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-            await sendNotificationEmail({
-              to: ADMIN_EMAIL,
-              subject: `New User Registration: ${user.name || user.email}`,
-              title: 'New User Awaiting Approval',
-              message: `A new user has registered and is waiting for your approval:\n\nName: ${user.name || 'Not provided'}\nEmail: ${user.email}\n\nPlease review and approve or reject this user in the admin dashboard.`,
-              actionUrl: `${appUrl}/admin`,
-              actionText: 'Go to Admin Dashboard',
-            });
-          }
+          // Send email to all admins
+          await Promise.all(
+            adminUsers.map(admin =>
+              sendNotificationEmail({
+                to: admin.email,
+                subject: `New User Registration: ${user.name || user.email}`,
+                title: 'New User Awaiting Approval',
+                message: `A new user has registered and is waiting for your approval:\n\nName: ${user.name || 'Not provided'}\nEmail: ${user.email}\n\nPlease review and approve or reject this user in the admin dashboard.`,
+                actionUrl: `${appUrl}/admin`,
+                actionText: 'Go to Admin Dashboard',
+              })
+            )
+          );
         } catch (error) {
-          console.error('Failed to notify admin about new user:', error);
+          console.error('Failed to notify admins about new user:', error);
         }
       }
     },

@@ -11,6 +11,7 @@ import { prisma } from '@/lib/db/prisma';
 import { uploadAudioToS3, isS3Configured } from '@/lib/services/s3-upload';
 import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/services/piapi';
+import { rateLimit } from '@/lib/services/rate-limit';
 import type { Provider } from '@/lib/services/real-costs';
 
 type MusicProvider = 'piapi' | 'suno' | 'modal';
@@ -112,6 +113,10 @@ async function downloadAudioAsBase64(audioUrl: string): Promise<string | null> {
 
 // POST - Create music generation task
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limit generation to prevent abuse (20 requests/min)
+  const rateLimitResult = await rateLimit(request, 'generation');
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const {
       prompt,

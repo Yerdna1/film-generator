@@ -152,10 +152,8 @@ async function generateSingleImage(
     // Invalidate cache so next fetch gets fresh data
     cache.invalidate(cacheKeys.userProjects(userId));
 
-    // Spend credits
+    // Spend credits (reuse userApiKeys from earlier lookup to avoid duplicate DB query)
     const creditCost = getImageCreditCost(resolution as ImageResolution);
-    const userApiKeys2 = await prisma.apiKeys.findUnique({ where: { userId } });
-    const imageProvider2 = userApiKeys2?.imageProvider || 'gemini';
 
     await spendCredits(
       userId,
@@ -163,9 +161,9 @@ async function generateSingleImage(
       'image',
       `Image generation (scene ${scene.sceneNumber})`,
       projectId,
-      imageProvider2 as Provider,
+      imageProvider as Provider,
       undefined,
-      imageProvider2.startsWith('modal') ? 0 : undefined
+      imageProvider.startsWith('modal') ? 0 : undefined
     );
 
     console.log(`[Inngest] Scene ${scene.sceneNumber} completed`);

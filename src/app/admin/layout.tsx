@@ -2,9 +2,8 @@
 
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Shield, Loader2 } from 'lucide-react';
-
-const ADMIN_EMAIL = 'andrej.galad@gmail.com';
 
 export default function AdminLayout({
   children,
@@ -12,9 +11,36 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { data: session, status } = useSession();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+
+  // Check admin status from database via API
+  useEffect(() => {
+    async function checkAdminStatus() {
+      if (status === 'authenticated' && session?.user?.id) {
+        try {
+          // Use the user status endpoint to check admin role
+          const response = await fetch('/api/user/status');
+          if (response.ok) {
+            const data = await response.json();
+            setIsAdmin(data.role === 'admin');
+          } else {
+            setIsAdmin(false);
+          }
+        } catch {
+          setIsAdmin(false);
+        }
+      }
+      setIsCheckingAdmin(false);
+    }
+
+    if (status !== 'loading') {
+      checkAdminStatus();
+    }
+  }, [session, status]);
 
   // Show loading state
-  if (status === 'loading') {
+  if (status === 'loading' || isCheckingAdmin) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[50vh]">
@@ -28,9 +54,6 @@ export default function AdminLayout({
   if (status === 'unauthenticated') {
     redirect('/');
   }
-
-  // Check if user is admin
-  const isAdmin = session?.user?.email === ADMIN_EMAIL;
 
   // Show access denied for non-admins
   if (!isAdmin) {

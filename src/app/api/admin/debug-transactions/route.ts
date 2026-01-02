@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { verifyAdmin } from '@/lib/admin';
 
 export async function GET() {
   try {
+    // SECURITY: Verify admin access before exposing sensitive data
+    const adminCheck = await verifyAdmin();
+    if (!adminCheck.isAdmin) {
+      return NextResponse.json(
+        { error: adminCheck.error || 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
+    }
+
     const transactions = await prisma.creditTransaction.findMany({
       orderBy: { createdAt: 'desc' },
       take: 50,

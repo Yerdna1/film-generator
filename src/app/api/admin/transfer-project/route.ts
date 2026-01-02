@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { verifyAdmin } from '@/lib/admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // SECURITY: Only admins can transfer projects between users
+    const adminCheck = await verifyAdmin();
+    if (!adminCheck.isAdmin) {
+      return NextResponse.json(
+        { error: adminCheck.error || 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
     }
 
     const { projectId, newUserId } = await request.json();
