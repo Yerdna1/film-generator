@@ -72,6 +72,16 @@ class SceneData(BaseModel):
     transition_to_next: Optional[str] = None  # fade, slideLeft, slideRight, zoomIn, zoomOut, swoosh
 
 
+class CaptionStyleData(BaseModel):
+    """Caption styling options."""
+    font_size: Literal["small", "medium", "large"] = "medium"
+    font_color: str = "#FFFFFF"
+    bg_color: str = "#000000"
+    bg_alpha: float = 0.7
+    position: Literal["top", "center", "bottom"] = "bottom"
+    shadow: bool = True
+
+
 class CaptionData(BaseModel):
     """Caption data for burned-in subtitles."""
     text: str
@@ -81,6 +91,13 @@ class CaptionData(BaseModel):
     font_color: str = "#FFFFFF"
     background_color: Optional[str] = "#00000080"
     position: Literal["top", "center", "bottom"] = "bottom"
+
+
+class AudioSettingsData(BaseModel):
+    """Audio settings for music."""
+    music_volume: float = 0.3
+    fade_in: float = 2.0
+    fade_out: float = 2.0
 
 
 class MusicData(BaseModel):
@@ -103,6 +120,13 @@ class VideoCompositionRequest(BaseModel):
     resolution: Literal["hd", "4k"] = "hd"
     fps: int = 30
     include_srt: bool = True
+
+    # New VectCutAPI options
+    caption_style: Optional[CaptionStyleData] = None
+    transition_style: Literal["fade", "slideLeft", "slideRight", "zoomIn", "zoomOut", "wipe", "none"] = "fade"
+    transition_duration: float = 1.0
+    audio_settings: Optional[AudioSettingsData] = None
+    ken_burns_effect: bool = True
 
     # S3 config for uploading results
     s3_bucket: Optional[str] = None
@@ -345,6 +369,7 @@ class VectCutProcessor:
         captions: list[CaptionData],
         width: int,
         height: int,
+        caption_style: Optional[CaptionStyleData] = None,
     ) -> bool:
         """Burn captions into video using ffmpeg drawtext filter."""
         if not captions:
@@ -352,14 +377,28 @@ class VectCutProcessor:
             subprocess.run(["cp", str(input_video), str(output_video)])
             return True
 
+        # Use caption_style if provided, otherwise use defaults
+        style = caption_style or CaptionStyleData()
+
+        # Map font size names to pixel sizes
+        font_size_map = {"small": 28, "medium": 36, "large": 48}
+        font_size = font_size_map.get(style.font_size, 36)
+
+        # Build background color with alpha
+        bg_alpha_hex = hex(int(style.bg_alpha * 255))[2:].zfill(2)
+        bg_color = f"{style.bg_color}{bg_alpha_hex}"
+
         try:
             # Build drawtext filters for each caption
             filters = []
             for caption in captions:
+                # Use style position or caption-specific position
+                position = style.position
+
                 # Calculate Y position
-                if caption.position == "top":
+                if position == "top":
                     y_pos = "h*0.1"
-                elif caption.position == "center":
+                elif position == "center":
                     y_pos = "(h-text_h)/2"
                 else:  # bottom
                     y_pos = "h*0.85"
@@ -367,16 +406,21 @@ class VectCutProcessor:
                 # Escape special characters
                 text = caption.text.replace("'", "'\\''").replace(":", "\\:")
 
-                # Build filter
+                # Build filter with style options
                 filter_str = (
                     f"drawtext=text='{text}':"
-                    f"fontsize={caption.font_size}:"
-                    f"fontcolor={caption.font_color}:"
+                    f"fontsize={font_size}:"
+                    f"fontcolor={style.font_color}:"
                     f"x=(w-text_w)/2:"
                     f"y={y_pos}:"
                     f"enable='between(t,{caption.start_time},{caption.end_time})':"
-                    f"box=1:boxcolor={caption.background_color or 'black@0.5'}:boxborderw=10"
+                    f"box=1:boxcolor={bg_color}:boxborderw=10"
                 )
+
+                # Add shadow if enabled
+                if style.shadow:
+                    filter_str += ":shadowcolor=black@0.5:shadowx=2:shadowy=2"
+
                 filters.append(filter_str)
 
             filter_complex = ",".join(filters)
@@ -460,15 +504,23 @@ class VectCutProcessor:
         width: int,
         height: int,
         fps: int,
+        ken_burns: bool = True,
     ) -> bool:
-        """Convert static image to video with Ken Burns effect."""
+        """Convert static image to video with optional Ken Burns effect."""
         try:
-            # Add subtle zoom effect for visual interest
-            filter_str = (
-                f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
-                f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,"
-                f"zoompan=z='min(zoom+0.001,1.1)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(duration*fps)}:s={width}x{height}:fps={fps}"
-            )
+            if ken_burns:
+                # Add subtle zoom effect for visual interest
+                filter_str = (
+                    f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+                    f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,"
+                    f"zoompan=z='min(zoom+0.001,1.1)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(duration*fps)}:s={width}x{height}:fps={fps}"
+                )
+            else:
+                # Simple scale without animation
+                filter_str = (
+                    f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+                    f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"
+                )
 
             cmd = [
                 "ffmpeg", "-y",
@@ -669,10 +721,13 @@ class VectCutProcessor:
                         print(f"    Failed to download video for scene {i+1}")
                         continue
                 elif scene.image_url:
-                    # Convert image to video
+                    # Convert image to video (with Ken Burns effect if enabled)
                     image_path = temp_path / f"image_{i:03d}.jpg"
                     if download_media(scene.image_url, image_path):
-                        if self.image_to_video(image_path, video_path, scene.duration, width, height, request.fps):
+                        if self.image_to_video(
+                            image_path, video_path, scene.duration, width, height, request.fps,
+                            ken_burns=request.ken_burns_effect
+                        ):
                             scene_videos.append((video_path, scene.transition_to_next))
                         else:
                             print(f"    Failed to convert image to video for scene {i+1}")
@@ -698,7 +753,8 @@ class VectCutProcessor:
 
                 for i in range(1, len(scene_videos)):
                     next_video, _ = scene_videos[i]
-                    prev_transition = scene_videos[i-1][1]
+                    # Use scene-specific transition or fall back to global transition_style
+                    prev_transition = scene_videos[i-1][1] or request.transition_style
 
                     output_path = temp_path / f"composed_{i:03d}.mp4"
 
@@ -706,7 +762,7 @@ class VectCutProcessor:
                         print(f"  Applying {prev_transition} transition between scene {i} and {i+1}")
                         self.apply_transition(
                             composed_path, next_video, output_path,
-                            prev_transition, transition_duration=1.0
+                            prev_transition, transition_duration=request.transition_duration
                         )
                     else:
                         self.simple_concat([composed_path, next_video], output_path)
@@ -716,12 +772,21 @@ class VectCutProcessor:
             # Step 3: Burn in captions
             print("Step 3: Burning in captions...")
             captioned_path = temp_path / "captioned.mp4"
-            self.burn_captions(composed_path, captioned_path, request.captions, width, height)
+            self.burn_captions(
+                composed_path, captioned_path, request.captions, width, height,
+                caption_style=request.caption_style
+            )
 
             # Step 4: Add music
             final_path = temp_path / "final.mp4"
             if request.music:
                 print("Step 4: Adding background music...")
+                # Apply audio_settings to music if provided
+                if request.audio_settings:
+                    request.music.volume = request.audio_settings.music_volume
+                    request.music.fade_in = request.audio_settings.fade_in
+                    request.music.fade_out = request.audio_settings.fade_out
+
                 # Get video duration
                 probe = subprocess.run(
                     ["ffprobe", "-v", "error", "-show_entries", "format=duration",

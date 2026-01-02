@@ -4,11 +4,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Download,
-  ChevronRight,
   ChevronLeft,
   Film,
-  Subtitles,
   Music,
   Video,
   Trash2,
@@ -33,11 +30,7 @@ import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import {
   useProjectStats,
   usePreviewPlayer,
-  useExportHandlers,
-  useDownloadHandlers,
-  useCaptionEditor,
   useBackgroundMusic,
-  useTimelineEditor,
   useVideoComposer,
 } from './export/hooks';
 
@@ -45,10 +38,6 @@ import {
 import {
   ProjectSummaryCard,
   MoviePreview,
-  CaptionEditor,
-  BackgroundMusicEditor,
-  MultiTrackTimeline,
-  SceneList,
 } from './export/components';
 
 interface Step6Props {
@@ -63,7 +52,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
   const t = useTranslations();
   const { projects, deleteScene } = useProjectStore();
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'scenes' | 'captions' | 'music' | 'render' | 'export'>('scenes');
+  const [activeTab, setActiveTab] = useState<'scenes' | 'music' | 'render'>('render');
 
   // Get live project data from store
   const project = projects.find((p) => p.id === initialProject.id) || initialProject;
@@ -71,20 +60,8 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
   // Custom hooks
   const { stats } = useProjectStats(project);
   const previewPlayer = usePreviewPlayer(project);
-  const exportHandlers = useExportHandlers(project);
-  const downloadHandlers = useDownloadHandlers(project);
-  const captionEditor = useCaptionEditor(project);
   const backgroundMusic = useBackgroundMusic(project);
-  const timelineEditor = useTimelineEditor(project);
   const videoComposer = useVideoComposer(project);
-
-  // Handle seek from timeline
-  const handleTimelineSeek = (time: number) => {
-    const sceneIndex = Math.floor(time / 6); // 6 seconds per scene
-    if (sceneIndex !== previewPlayer.currentIndex) {
-      previewPlayer.jumpToScene(sceneIndex);
-    }
-  };
 
   return (
     <div className="w-full max-w-[1920px] mx-auto space-y-2 px-1">
@@ -115,23 +92,22 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
       )}
 
       {/* Main Editor Layout */}
-      <div className="flex gap-2">
-        {/* Preview + Timeline Section */}
-        <div className="flex-1 min-w-0 space-y-2">
-          {/* Movie Preview - Very Compact */}
+      <div className="flex gap-3">
+        {/* Preview Section - Large */}
+        <div className="flex-1 min-w-0">
           {stats.totalScenes > 0 && (
             <Card className="glass border-white/10 overflow-hidden relative">
               {/* Lock overlay for unauthenticated users */}
               {!isAuthenticated && (
                 <div className="absolute inset-0 z-10 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center">
-                  <Lock className="w-8 h-8 text-white/70 mb-2" />
-                  <p className="text-sm text-white/80">Sign in to play movie</p>
-                  <a href="/auth/register" className="mt-2 px-4 py-1.5 rounded-full bg-orange-500 text-white text-xs font-medium hover:bg-orange-400 transition-colors">
+                  <Lock className="w-10 h-10 text-white/70 mb-3" />
+                  <p className="text-base text-white/80">Sign in to play movie</p>
+                  <a href="/auth/register" className="mt-3 px-5 py-2 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-400 transition-colors">
                     Sign up free
                   </a>
                 </div>
               )}
-              <CardContent className="p-1.5">
+              <CardContent className="p-3">
                 <MoviePreview
                   project={project}
                   isPlaying={previewPlayer.isPlaying}
@@ -159,20 +135,9 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                   onVideoTimeUpdate={previewPlayer.handleVideoTimeUpdate}
                   onVideoCanPlay={previewPlayer.handleVideoCanPlay}
                   getVideoUrl={previewPlayer.getVideoUrl}
-                  compact
                 />
               </CardContent>
             </Card>
-          )}
-
-          {/* Multi-Track Timeline - Always visible */}
-          {stats.totalScenes > 0 && (
-            <MultiTrackTimeline
-              project={project}
-              currentTime={previewPlayer.currentMovieTime}
-              timelineEditor={timelineEditor}
-              onSeek={handleTimelineSeek}
-            />
           )}
         </div>
 
@@ -189,41 +154,27 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
               <Card className="glass border-black/10 dark:border-white/10 h-full">
                 <CardContent className="p-0">
                   <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-                    <TabsList className="w-full grid grid-cols-5 rounded-none bg-black/[0.02] dark:bg-white/[0.02] h-11">
+                    <TabsList className="w-full grid grid-cols-3 rounded-none bg-black/[0.02] dark:bg-white/[0.02] h-11">
                       <TabsTrigger
                         value="scenes"
-                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400 data-[state=active]:shadow-none"
+                        className="rounded-none gap-1.5 text-xs font-medium data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400 data-[state=active]:shadow-none"
                       >
                         <Video className="w-4 h-4" />
                         Scenes
                       </TabsTrigger>
                       <TabsTrigger
-                        value="captions"
-                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-yellow-500/15 data-[state=active]:text-yellow-600 dark:data-[state=active]:text-yellow-400 data-[state=active]:shadow-none"
-                      >
-                        <Subtitles className="w-4 h-4" />
-                        Subs
-                      </TabsTrigger>
-                      <TabsTrigger
                         value="music"
-                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=active]:shadow-none"
+                        className="rounded-none gap-1.5 text-xs font-medium data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=active]:shadow-none"
                       >
                         <Music className="w-4 h-4" />
                         Music
                       </TabsTrigger>
                       <TabsTrigger
                         value="render"
-                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-cyan-500/15 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-400 data-[state=active]:shadow-none"
+                        className="rounded-none gap-1.5 text-xs font-medium data-[state=active]:bg-cyan-500/15 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-400 data-[state=active]:shadow-none"
                       >
                         <Clapperboard className="w-4 h-4" />
                         Render
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="export"
-                        className="rounded-none gap-1 text-xs font-medium data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-none"
-                      >
-                        <Download className="w-4 h-4" />
-                        Export
                       </TabsTrigger>
                     </TabsList>
 
@@ -235,29 +186,13 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                             {project.scenes.length} scenes · {Math.round(project.scenes.length * 6 / 60)} min
                           </p>
 
-                          {/* Sign-in required message for unauthenticated users */}
-                          {!isAuthenticated && (
-                            <a
-                              href="/auth/register"
-                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
-                            >
-                              <Lock className="w-4 h-4 text-orange-400" />
-                              <span className="text-sm text-orange-400">Sign in to modify scenes</span>
-                            </a>
-                          )}
-
-                          <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
+                          <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
                             {project.scenes.map((scene, index) => (
                               <div
                                 key={scene.id}
-                                onClick={isAuthenticated ? () => {
-                                  timelineEditor.selectScene(scene.id);
-                                  previewPlayer.jumpToScene(index);
-                                } : undefined}
-                                className={`group flex items-center gap-2.5 p-2 rounded-md border transition-all ${
-                                  isAuthenticated ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'
-                                } ${
-                                  timelineEditor.selectedSceneId === scene.id
+                                onClick={() => previewPlayer.jumpToScene(index)}
+                                className={`group flex items-center gap-2.5 p-2 rounded-md border transition-all cursor-pointer ${
+                                  previewPlayer.currentIndex === index
                                     ? 'border-orange-500/50 bg-orange-500/10'
                                     : 'border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] hover:border-orange-500/30 hover:bg-orange-500/5'
                                 }`}
@@ -296,110 +231,6 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                             <div className="text-center py-8 text-muted-foreground">
                               <Film className="w-8 h-8 mx-auto mb-2 opacity-40" />
                               <p className="text-sm">No scenes</p>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-
-                      {/* CAPTIONS TAB */}
-                      <TabsContent value="captions" className="m-0 p-4">
-                        <div className="space-y-4">
-                          {/* Sign-in required message for unauthenticated users */}
-                          {!isAuthenticated && (
-                            <a
-                              href="/auth/register"
-                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
-                            >
-                              <Lock className="w-4 h-4 text-orange-400" />
-                              <span className="text-sm text-orange-400">Sign in to edit captions</span>
-                            </a>
-                          )}
-
-                          {/* Auto-generate button - only for editors */}
-                          {!isReadOnly && isAuthenticated && project.scenes.some(s => s.dialogue?.length > 0) && (
-                            <button
-                              onClick={captionEditor.autoGenerateAllCaptions}
-                              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 transition-all"
-                            >
-                              <Sparkles className="w-4 h-4" />
-                              Auto-generate All
-                            </button>
-                          )}
-
-                          {/* Scene selector - vertical list with big thumbnails */}
-                          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-                            {project.scenes.map((scene, index) => {
-                              const count = scene.captions?.length || 0;
-                              const isSelected = captionEditor.selectedSceneIndex === index;
-                              return (
-                                <button
-                                  key={scene.id}
-                                  onClick={() => captionEditor.setSelectedSceneIndex(index)}
-                                  className={`w-full flex items-center gap-3 p-2 rounded-md border-2 transition-all text-left ${
-                                    isSelected ? 'border-yellow-500 bg-yellow-500/10' : 'border-transparent hover:border-yellow-500/30 hover:bg-yellow-500/5'
-                                  }`}
-                                >
-                                  <div className="relative w-16 h-10 rounded overflow-hidden bg-black/20 dark:bg-black/50 flex-shrink-0">
-                                    {scene.imageUrl ? (
-                                      <img src={scene.imageUrl} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">{index + 1}</div>
-                                    )}
-                                    {scene.videoUrl && (
-                                      <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-green-500" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{index + 1}. {scene.title || 'Untitled'}</p>
-                                  </div>
-                                  {count > 0 && (
-                                    <span className="px-2 py-0.5 rounded-full bg-yellow-500 text-xs font-bold text-black">{count}</span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {/* Current scene captions */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">Scene {captionEditor.selectedSceneIndex + 1}</span>
-                              {!isReadOnly && isAuthenticated && (
-                                <button onClick={captionEditor.startNewCaption} className="text-sm text-yellow-600 dark:text-yellow-400 hover:underline">+ Add</button>
-                              )}
-                            </div>
-
-                            {captionEditor.sceneCaptions.length > 0 ? (
-                              <div className="space-y-1.5">
-                                {captionEditor.sceneCaptions.map((caption) => (
-                                  <div key={caption.id} className="group flex items-start gap-2 p-2 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] hover:border-yellow-500/30 transition-all">
-                                    <p className="flex-1 text-sm leading-relaxed">{caption.text}</p>
-                                    {!isReadOnly && isAuthenticated && (
-                                      <button onClick={() => captionEditor.deleteCaption(caption.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all shrink-0">
-                                        <X className="w-4 h-4" />
-                                      </button>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-muted-foreground text-center py-6">No captions for this scene</p>
-                            )}
-                          </div>
-
-                          {/* Editing form - only for editors */}
-                          {!isReadOnly && isAuthenticated && captionEditor.isEditing && captionEditor.editingCaption && (
-                            <div className="space-y-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
-                              <textarea
-                                value={captionEditor.editingCaption.text}
-                                onChange={(e) => captionEditor.updateCaptionField('text', e.target.value)}
-                                placeholder="Enter caption text..."
-                                className="w-full h-20 px-3 py-2 rounded-md bg-white dark:bg-black/30 border border-black/10 dark:border-white/10 text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:border-yellow-500/50"
-                              />
-                              <div className="flex gap-2">
-                                <button onClick={captionEditor.cancelEditing} className="flex-1 py-2 rounded-md text-sm border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-all">Cancel</button>
-                                <button onClick={() => captionEditor.saveCaption(captionEditor.editingCaption!)} className="flex-1 py-2 rounded-md text-sm font-medium text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 transition-all">Save</button>
-                              </div>
                             </div>
                           )}
                         </div>
@@ -696,14 +527,169 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                       type="checkbox"
-                                      checked={videoComposer.options.aiTransitions}
-                                      onChange={(e) => videoComposer.setAiTransitions(e.target.checked)}
+                                      checked={videoComposer.options.kenBurnsEffect}
+                                      onChange={(e) => videoComposer.setKenBurnsEffect(e.target.checked)}
                                       className="w-4 h-4 rounded border-black/20 dark:border-white/20 text-cyan-500 focus:ring-cyan-500"
                                     />
-                                    <span className="text-sm">AI-suggest transitions</span>
+                                    <span className="text-sm">Ken Burns effect (images)</span>
                                   </label>
                                 </div>
                               </div>
+
+                              {/* Transition Settings */}
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">Transitions</p>
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  {(['fade', 'slideLeft', 'zoomIn', 'wipe', 'none'] as const).map((style) => (
+                                    <button
+                                      key={style}
+                                      onClick={() => videoComposer.setTransitionStyle(style)}
+                                      className={`py-1.5 rounded text-xs font-medium border transition-all ${
+                                        videoComposer.options.transitionStyle === style
+                                          ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                                          : 'border-black/10 dark:border-white/10 hover:border-purple-500/30'
+                                      }`}
+                                    >
+                                      {style === 'slideLeft' ? 'Slide' : style === 'zoomIn' ? 'Zoom' : style.charAt(0).toUpperCase() + style.slice(1)}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-muted-foreground w-16">Duration</span>
+                                  <input
+                                    type="range"
+                                    min="0.3"
+                                    max="2"
+                                    step="0.1"
+                                    value={videoComposer.options.transitionDuration}
+                                    onChange={(e) => videoComposer.setTransitionDuration(parseFloat(e.target.value))}
+                                    className="flex-1 h-1.5 rounded-full bg-black/10 dark:bg-white/10 accent-purple-500"
+                                  />
+                                  <span className="text-xs w-8 text-right">{videoComposer.options.transitionDuration}s</span>
+                                </div>
+                              </div>
+
+                              {/* Caption Styling (when captions enabled) */}
+                              {videoComposer.options.includeCaptions && (
+                                <div className="space-y-2 p-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
+                                  <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">Caption Style</p>
+                                  <div className="grid grid-cols-3 gap-1.5">
+                                    {(['small', 'medium', 'large'] as const).map((size) => (
+                                      <button
+                                        key={size}
+                                        onClick={() => videoComposer.setCaptionStyle({ fontSize: size })}
+                                        className={`py-1.5 rounded text-xs font-medium border transition-all ${
+                                          videoComposer.options.captionStyle.fontSize === size
+                                            ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                                            : 'border-black/10 dark:border-white/10 hover:border-yellow-500/30'
+                                        }`}
+                                      >
+                                        {size.charAt(0).toUpperCase() + size.slice(1)}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">Text</span>
+                                    <input
+                                      type="color"
+                                      value={videoComposer.options.captionStyle.fontColor}
+                                      onChange={(e) => videoComposer.setCaptionStyle({ fontColor: e.target.value })}
+                                      className="w-6 h-6 rounded cursor-pointer"
+                                    />
+                                    <span className="text-xs text-muted-foreground ml-2">BG</span>
+                                    <input
+                                      type="color"
+                                      value={videoComposer.options.captionStyle.bgColor}
+                                      onChange={(e) => videoComposer.setCaptionStyle({ bgColor: e.target.value })}
+                                      className="w-6 h-6 rounded cursor-pointer"
+                                    />
+                                    <input
+                                      type="range"
+                                      min="0"
+                                      max="1"
+                                      step="0.1"
+                                      value={videoComposer.options.captionStyle.bgAlpha}
+                                      onChange={(e) => videoComposer.setCaptionStyle({ bgAlpha: parseFloat(e.target.value) })}
+                                      className="w-16 h-1.5 accent-yellow-500"
+                                      title="Background opacity"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <label className="flex items-center gap-1.5 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={videoComposer.options.captionStyle.shadow}
+                                        onChange={(e) => videoComposer.setCaptionStyle({ shadow: e.target.checked })}
+                                        className="w-3.5 h-3.5 rounded border-black/20 dark:border-white/20 text-yellow-500 focus:ring-yellow-500"
+                                      />
+                                      <span className="text-xs">Shadow</span>
+                                    </label>
+                                    <div className="flex gap-1">
+                                      {(['top', 'center', 'bottom'] as const).map((pos) => (
+                                        <button
+                                          key={pos}
+                                          onClick={() => videoComposer.setCaptionStyle({ position: pos })}
+                                          className={`px-2 py-1 rounded text-xs transition-all ${
+                                            videoComposer.options.captionStyle.position === pos
+                                              ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                                              : 'hover:bg-black/5 dark:hover:bg-white/5'
+                                          }`}
+                                        >
+                                          {pos === 'top' ? '↑' : pos === 'bottom' ? '↓' : '•'}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Audio Settings (when music enabled) */}
+                              {videoComposer.options.includeMusic && project.backgroundMusic && (
+                                <div className="space-y-2 p-3 rounded-lg border border-purple-500/20 bg-purple-500/5">
+                                  <p className="text-xs font-medium text-purple-600 dark:text-purple-400">Music Settings</p>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground w-14">Volume</span>
+                                      <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        value={videoComposer.options.audioSettings.musicVolume}
+                                        onChange={(e) => videoComposer.setAudioSettings({ musicVolume: parseFloat(e.target.value) })}
+                                        className="flex-1 h-1.5 rounded-full bg-black/10 dark:bg-white/10 accent-purple-500"
+                                      />
+                                      <span className="text-xs w-8 text-right">{Math.round(videoComposer.options.audioSettings.musicVolume * 100)}%</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground w-14">Fade In</span>
+                                      <input
+                                        type="range"
+                                        min="0"
+                                        max="5"
+                                        step="0.5"
+                                        value={videoComposer.options.audioSettings.fadeIn}
+                                        onChange={(e) => videoComposer.setAudioSettings({ fadeIn: parseFloat(e.target.value) })}
+                                        className="flex-1 h-1.5 rounded-full bg-black/10 dark:bg-white/10 accent-purple-500"
+                                      />
+                                      <span className="text-xs w-8 text-right">{videoComposer.options.audioSettings.fadeIn}s</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground w-14">Fade Out</span>
+                                      <input
+                                        type="range"
+                                        min="0"
+                                        max="5"
+                                        step="0.5"
+                                        value={videoComposer.options.audioSettings.fadeOut}
+                                        onChange={(e) => videoComposer.setAudioSettings({ fadeOut: parseFloat(e.target.value) })}
+                                        className="flex-1 h-1.5 rounded-full bg-black/10 dark:bg-white/10 accent-purple-500"
+                                      />
+                                      <span className="text-xs w-8 text-right">{videoComposer.options.audioSettings.fadeOut}s</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
                               {/* Cost Estimate */}
                               <div className="p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
@@ -735,88 +721,6 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                         </div>
                       </TabsContent>
 
-                      {/* EXPORT TAB */}
-                      <TabsContent value="export" className="m-0 p-4">
-                        <div className="space-y-4">
-                          <p className="text-xs text-muted-foreground">
-                            {stats.scenesWithVideos} videos · {stats.scenesWithImages} images · {stats.dialogueLinesWithAudio} audio
-                          </p>
-
-                          {/* Sign-in required message for unauthenticated users */}
-                          {!isAuthenticated && (
-                            <a
-                              href="/auth/register"
-                              className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
-                            >
-                              <Lock className="w-4 h-4 text-orange-400" />
-                              <span className="text-sm text-orange-400">Sign in to download assets</span>
-                            </a>
-                          )}
-
-                          <div className="space-y-2">
-                            <button
-                              onClick={isAuthenticated ? downloadHandlers.handleDownloadAll : undefined}
-                              disabled={!isAuthenticated || downloadHandlers.downloadingAll}
-                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                              {downloadHandlers.downloadingAll ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                              ) : !isAuthenticated ? (
-                                <Lock className="h-4 w-4" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                              Download All
-                            </button>
-
-                            <button
-                              onClick={isAuthenticated ? exportHandlers.handleExportCapCut : undefined}
-                              disabled={!isAuthenticated}
-                              className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] text-sm font-medium hover:border-cyan-500/40 hover:bg-cyan-500/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                              {!isAuthenticated ? (
-                                <Lock className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <svg className="h-4 w-4 text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                                  <circle cx="12" cy="13" r="3" />
-                                </svg>
-                              )}
-                              Export for CapCut
-                            </button>
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-1">
-                            <div className="h-px flex-1 bg-black/5 dark:bg-white/10" />
-                            <span className="text-xs text-muted-foreground">or</span>
-                            <div className="h-px flex-1 bg-black/5 dark:bg-white/10" />
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button
-                              onClick={isAuthenticated ? downloadHandlers.handleDownloadVideos : undefined}
-                              disabled={!isAuthenticated || downloadHandlers.downloadingVideos || stats.scenesWithVideos === 0}
-                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-orange-500/30 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              Videos
-                            </button>
-                            <button
-                              onClick={isAuthenticated ? downloadHandlers.handleDownloadAudio : undefined}
-                              disabled={!isAuthenticated || downloadHandlers.downloadingAudio || stats.dialogueLinesWithAudio === 0}
-                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-violet-500/30 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              Audio
-                            </button>
-                            <button
-                              onClick={isAuthenticated ? exportHandlers.handleExportJSON : undefined}
-                              disabled={!isAuthenticated}
-                              className="flex-1 rounded-md border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-blue-500/30 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              JSON
-                            </button>
-                          </div>
-                        </div>
-                      </TabsContent>
                     </div>
                   </Tabs>
                 </CardContent>

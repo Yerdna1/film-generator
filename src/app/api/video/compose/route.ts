@@ -12,6 +12,21 @@ import type { Project, Scene, Caption, BackgroundMusic } from '@/types/project';
 export const maxDuration = 300; // 5 minutes for long compositions
 
 // Request types
+interface CaptionStyle {
+  fontSize: 'small' | 'medium' | 'large';
+  fontColor: string;
+  bgColor: string;
+  bgAlpha: number;
+  position: 'top' | 'center' | 'bottom';
+  shadow: boolean;
+}
+
+interface AudioSettings {
+  musicVolume: number;
+  fadeIn: number;
+  fadeOut: number;
+}
+
 interface ComposeRequest {
   projectId: string;
   outputFormat: 'mp4' | 'draft' | 'both';
@@ -19,6 +34,12 @@ interface ComposeRequest {
   includeCaptions: boolean;
   includeMusic: boolean;
   aiTransitions?: boolean;
+  // New VectCutAPI options
+  captionStyle?: CaptionStyle;
+  transitionStyle?: 'fade' | 'slideLeft' | 'slideRight' | 'zoomIn' | 'zoomOut' | 'wipe' | 'none';
+  transitionDuration?: number;
+  audioSettings?: AudioSettings;
+  kenBurnsEffect?: boolean;
 }
 
 interface SceneData {
@@ -140,7 +161,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body: ComposeRequest = await request.json();
-    const { projectId, outputFormat, resolution, includeCaptions, includeMusic, aiTransitions } = body;
+    const {
+      projectId, outputFormat, resolution, includeCaptions, includeMusic, aiTransitions,
+      captionStyle, transitionStyle, transitionDuration, audioSettings, kenBurnsEffect
+    } = body;
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
@@ -263,6 +287,23 @@ export async function POST(request: NextRequest) {
       resolution,
       fps: 30,
       include_srt: includeCaptions,
+      // New VectCutAPI options
+      caption_style: captionStyle ? {
+        font_size: captionStyle.fontSize,
+        font_color: captionStyle.fontColor,
+        bg_color: captionStyle.bgColor,
+        bg_alpha: captionStyle.bgAlpha,
+        position: captionStyle.position,
+        shadow: captionStyle.shadow,
+      } : undefined,
+      transition_style: transitionStyle || 'fade',
+      transition_duration: transitionDuration || 1.0,
+      audio_settings: audioSettings ? {
+        music_volume: audioSettings.musicVolume,
+        fade_in: audioSettings.fadeIn,
+        fade_out: audioSettings.fadeOut,
+      } : undefined,
+      ken_burns_effect: kenBurnsEffect !== false, // default true
       ...s3Config,
     };
 

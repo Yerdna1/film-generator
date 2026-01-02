@@ -58,7 +58,11 @@
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" node:*)",
       "mcp__playwright__browser_handle_dialog",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" node -e:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git clone:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm list:*)",
+      "Bash(nvm use:*)"
     ]
   }
 }

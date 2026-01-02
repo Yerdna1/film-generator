@@ -5,6 +5,24 @@ import type { Project, TransitionType } from '@/types/project';
 
 export type OutputFormat = 'mp4' | 'draft' | 'both';
 export type Resolution = 'hd' | '4k';
+export type CaptionFontSize = 'small' | 'medium' | 'large';
+export type CaptionPosition = 'top' | 'center' | 'bottom';
+export type TransitionStyle = 'fade' | 'slideLeft' | 'slideRight' | 'zoomIn' | 'zoomOut' | 'wipe' | 'none';
+
+export interface CaptionStyle {
+  fontSize: CaptionFontSize;
+  fontColor: string;
+  bgColor: string;
+  bgAlpha: number;
+  position: CaptionPosition;
+  shadow: boolean;
+}
+
+export interface AudioSettings {
+  musicVolume: number;
+  fadeIn: number;
+  fadeOut: number;
+}
 
 export interface CompositionState {
   isComposing: boolean;
@@ -31,6 +49,15 @@ export interface CompositionOptions {
   includeCaptions: boolean;
   includeMusic: boolean;
   aiTransitions: boolean;
+  // Caption styling
+  captionStyle: CaptionStyle;
+  // Transition settings
+  transitionStyle: TransitionStyle;
+  transitionDuration: number;
+  // Audio settings
+  audioSettings: AudioSettings;
+  // Video effects
+  kenBurnsEffect: boolean;
 }
 
 export interface CostEstimate {
@@ -56,6 +83,15 @@ export interface UseVideoComposerReturn {
   setIncludeCaptions: (include: boolean) => void;
   setIncludeMusic: (include: boolean) => void;
   setAiTransitions: (enable: boolean) => void;
+  // Caption styling
+  setCaptionStyle: (style: Partial<CaptionStyle>) => void;
+  // Transition settings
+  setTransitionStyle: (style: TransitionStyle) => void;
+  setTransitionDuration: (duration: number) => void;
+  // Audio settings
+  setAudioSettings: (settings: Partial<AudioSettings>) => void;
+  // Video effects
+  setKenBurnsEffect: (enable: boolean) => void;
 
   // AI Transitions
   suggestedTransitions: Record<string, TransitionType>;
@@ -78,6 +114,22 @@ export interface UseVideoComposerReturn {
 
 const POLL_INTERVAL = 3000; // 3 seconds
 
+// Default values
+const DEFAULT_CAPTION_STYLE: CaptionStyle = {
+  fontSize: 'medium',
+  fontColor: '#FFFFFF',
+  bgColor: '#000000',
+  bgAlpha: 0.7,
+  position: 'bottom',
+  shadow: true,
+};
+
+const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  musicVolume: 0.3,
+  fadeIn: 2.0,
+  fadeOut: 2.0,
+};
+
 export function useVideoComposer(project: Project): UseVideoComposerReturn {
   // Options state
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('both');
@@ -85,6 +137,28 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
   const [includeCaptions, setIncludeCaptions] = useState(true);
   const [includeMusic, setIncludeMusic] = useState(true);
   const [aiTransitions, setAiTransitions] = useState(false);
+
+  // Caption styling
+  const [captionStyle, setCaptionStyleState] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE);
+
+  // Transition settings
+  const [transitionStyle, setTransitionStyle] = useState<TransitionStyle>('fade');
+  const [transitionDuration, setTransitionDuration] = useState(1.0);
+
+  // Audio settings
+  const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(DEFAULT_AUDIO_SETTINGS);
+
+  // Video effects
+  const [kenBurnsEffect, setKenBurnsEffect] = useState(true);
+
+  // Setters for partial updates
+  const setCaptionStyle = useCallback((style: Partial<CaptionStyle>) => {
+    setCaptionStyleState(prev => ({ ...prev, ...style }));
+  }, []);
+
+  const setAudioSettings = useCallback((settings: Partial<AudioSettings>) => {
+    setAudioSettingsState(prev => ({ ...prev, ...settings }));
+  }, []);
 
   // Composition state
   const [compositionState, setCompositionState] = useState<CompositionState>({
@@ -313,6 +387,12 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
           includeMusic: includeMusic && hasMusic,
           aiTransitions,
           transitions: aiTransitions ? suggestedTransitions : undefined,
+          // New VectCutAPI options
+          captionStyle,
+          transitionStyle,
+          transitionDuration,
+          audioSettings,
+          kenBurnsEffect,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -368,7 +448,8 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     }
   }, [
     canCompose, project.id, outputFormat, resolution, includeCaptions,
-    includeMusic, hasMusic, aiTransitions, suggestedTransitions, pollJobStatus
+    includeMusic, hasMusic, aiTransitions, suggestedTransitions, pollJobStatus,
+    captionStyle, transitionStyle, transitionDuration, audioSettings, kenBurnsEffect
   ]);
 
   // Cancel composition
@@ -446,12 +527,26 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
       includeCaptions,
       includeMusic,
       aiTransitions,
+      captionStyle,
+      transitionStyle,
+      transitionDuration,
+      audioSettings,
+      kenBurnsEffect,
     },
     setOutputFormat,
     setResolution,
     setIncludeCaptions,
     setIncludeMusic,
     setAiTransitions,
+    // Caption styling
+    setCaptionStyle,
+    // Transition settings
+    setTransitionStyle,
+    setTransitionDuration,
+    // Audio settings
+    setAudioSettings,
+    // Video effects
+    setKenBurnsEffect,
 
     // AI Transitions
     suggestedTransitions,
