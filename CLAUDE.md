@@ -88,7 +88,7 @@ const response = result.stdout;
 
 ## Modal Endpoints
 - Image: `https://andrej-galad--film-generator-image-qwenimagegenerator-api.modal.run`
-- Image Edit: `https://andrej-galad--film-generator-image-edit-qwenimageeditor-api.modal.run`
+- Image Edit: `https://andrej-galad--film-generator-image-edit-qwenimageeditgen-94d79a.modal.run`
 - TTS: `https://andrej-galad--chatterbox-tts-generator.modal.run`
 - Video: `https://andrej-galad--hallo3-portrait-avatar.modal.run`
 - Music: `https://andrej-galad--music-generator.modal.run`
