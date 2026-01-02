@@ -69,7 +69,7 @@ export function RegenerationSelectionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl glass-strong border-white/10">
+      <DialogContent className="!max-w-[85vw] w-[1100px] glass-strong border-white/10">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {request.targetType === 'image' ? (
@@ -114,7 +114,7 @@ export function RegenerationSelectionModal({
 
           {/* Generated images grid */}
           {generatedUrls.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
               {generatedUrls.map((url, index) => (
                 <motion.div
                   key={url}
@@ -122,7 +122,7 @@ export function RegenerationSelectionModal({
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => setSelectedUrl(url)}
-                  className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                  className={`relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                     selectedUrl === url
                       ? 'border-green-500 ring-2 ring-green-500/30 scale-[1.02]'
                       : 'border-white/10 hover:border-purple-500/50'
@@ -132,12 +132,12 @@ export function RegenerationSelectionModal({
                     <img
                       src={url}
                       alt={`Option ${index + 1}`}
-                      className="w-full aspect-video object-cover"
+                      className="w-full aspect-[16/10] min-h-[200px] object-cover"
                     />
                   ) : (
                     <video
                       src={url}
-                      className="w-full aspect-video object-cover"
+                      className="w-full aspect-[16/10] min-h-[200px] object-cover"
                       controls={false}
                       muted
                       loop
@@ -175,10 +175,10 @@ export function RegenerationSelectionModal({
               {Array.from({ length: attemptsRemaining }).map((_, index) => (
                 <div
                   key={`placeholder-${index}`}
-                  className="aspect-video rounded-lg border-2 border-dashed border-white/10 flex items-center justify-center bg-black/20"
+                  className="aspect-[16/10] min-h-[200px] rounded-xl border-2 border-dashed border-white/10 flex items-center justify-center bg-black/20"
                 >
                   <div className="text-center text-muted-foreground">
-                    <RefreshCw className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <RefreshCw className="w-10 h-10 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">
                       Slot {generatedUrls.length + index + 1}
                     </p>

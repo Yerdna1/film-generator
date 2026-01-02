@@ -141,11 +141,15 @@ class QwenImageEditGenerator:
         # Enhanced prompt for better results
         enhanced_prompt = prompt + ", Ultra HD, 4K, cinematic composition."
 
+        # Create an isolated generator with the seed for reproducibility
+        generator = torch.Generator(device='cuda').manual_seed(seed)
+        print(f"Using isolated generator with seed: {seed}")
+
         # Prepare inputs
         inputs = {
             "prompt": enhanced_prompt,
             "negative_prompt": " ",
-            "generator": torch.manual_seed(seed),
+            "generator": generator,
             "true_cfg_scale": true_cfg_scale,
             "num_inference_steps": num_inference_steps,
             "guidance_scale": guidance_scale,
