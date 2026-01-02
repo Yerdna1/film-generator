@@ -159,6 +159,10 @@ async function generateWithModal(
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
   console.log('[Modal] Generating image with endpoint:', modalEndpoint);
 
+  // Generate random seed for variety in outputs
+  const randomSeed = Math.floor(Math.random() * 2147483647);
+  console.log('[Modal] Using seed:', randomSeed);
+
   const response = await fetch(modalEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -166,6 +170,7 @@ async function generateWithModal(
       prompt,
       aspect_ratio: aspectRatio,
       resolution,
+      seed: randomSeed,
     }),
   });
 
@@ -279,6 +284,10 @@ async function generateWithModalEdit(
     }
   }
 
+  // Generate random seed for variety in outputs
+  const randomSeed = Math.floor(Math.random() * 2147483647);
+  console.log('[Modal-Edit] Using seed:', randomSeed);
+
   const response = await fetch(modalEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -286,6 +295,7 @@ async function generateWithModalEdit(
       prompt,
       aspect_ratio: aspectRatio,
       reference_images: refImageUrls,
+      seed: randomSeed,
     }),
   });
 
