@@ -22,6 +22,13 @@ import {
   RefreshCw,
   CheckCheck,
   Filter,
+  Terminal,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  AlertCircle,
+  CheckCircle,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,6 +50,14 @@ interface ProjectInfo {
   name: string;
 }
 
+// Log entry type for regeneration tracking
+interface LogEntry {
+  timestamp: string;
+  type: 'info' | 'success' | 'error' | 'cost';
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 export default function ApprovalsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -61,6 +76,7 @@ export default function ApprovalsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [expandedDiffs, setExpandedDiffs] = useState<Set<string>>(new Set());
+  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
   const [filterProject, setFilterProject] = useState<string>('all');
   const [filterUser, setFilterUser] = useState<string>('all');
 
@@ -275,6 +291,36 @@ export default function ApprovalsPage() {
         next.add(id);
       }
       return next;
+    });
+  };
+
+  const toggleLogs = (id: string) => {
+    setExpandedLogs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Get icon for log type
+  const getLogIcon = (type: string) => {
+    switch (type) {
+      case 'success': return <CheckCircle className="w-3 h-3 text-green-400" />;
+      case 'error': return <AlertCircle className="w-3 h-3 text-red-400" />;
+      case 'cost': return <DollarSign className="w-3 h-3 text-amber-400" />;
+      default: return <Info className="w-3 h-3 text-blue-400" />;
+    }
+  };
+
+  const formatLogTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
     });
   };
 
@@ -553,6 +599,57 @@ export default function ApprovalsPage() {
                               </Avatar>
                               <span className="truncate">{request.requester?.name}</span>
                             </div>
+
+                            {/* Logs Console */}
+                            {((request as unknown as { logs?: LogEntry[] }).logs?.length ?? 0) > 0 && (
+                              <div className="mt-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="w-full h-6 text-xs text-cyan-400 hover:bg-cyan-500/10 justify-between"
+                                  onClick={() => toggleLogs(request.id)}
+                                >
+                                  <span className="flex items-center gap-1">
+                                    <Terminal className="w-3 h-3" />
+                                    Console Logs ({((request as unknown as { logs?: LogEntry[] }).logs?.length ?? 0)})
+                                  </span>
+                                  {expandedLogs.has(request.id) ? (
+                                    <ChevronUp className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronDown className="w-3 h-3" />
+                                  )}
+                                </Button>
+                                {expandedLogs.has(request.id) && (
+                                  <div className="mt-2 p-2 bg-black/50 rounded border border-cyan-500/20 font-mono text-[10px] max-h-40 overflow-y-auto space-y-1">
+                                    {((request as unknown as { logs?: LogEntry[] }).logs || []).map((log, idx) => (
+                                      <div key={idx} className="flex items-start gap-2">
+                                        <span className="text-muted-foreground shrink-0">
+                                          {formatLogTime(log.timestamp)}
+                                        </span>
+                                        {getLogIcon(log.type)}
+                                        <span className={
+                                          log.type === 'error' ? 'text-red-400' :
+                                          log.type === 'success' ? 'text-green-400' :
+                                          log.type === 'cost' ? 'text-amber-400' :
+                                          'text-blue-400'
+                                        }>
+                                          {log.message}
+                                        </span>
+                                      </div>
+                                    ))}
+                                    {/* Show details for cost logs */}
+                                    {((request as unknown as { logs?: LogEntry[] }).logs || [])
+                                      .filter(log => log.type === 'cost' && log.details)
+                                      .map((log, idx) => (
+                                        <div key={`detail-${idx}`} className="pl-16 text-muted-foreground">
+                                          Provider: {String(log.details?.provider)} | Cost: ${Number(log.details?.realCost || 0).toFixed(2)}
+                                        </div>
+                                      ))
+                                    }
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
                             <div className="flex gap-1">
                               <Button

@@ -10,6 +10,37 @@ import { verifyPermission, getUserProjectRole, getProjectAdmins } from '@/lib/pe
 import { checkBalance, getImageCreditCost, spendCredits, COSTS } from '@/lib/services/credits';
 import { deleteFromS3 } from '@/lib/services/s3-upload';
 
+// Log entry type for regeneration request tracking
+interface LogEntry {
+  timestamp: string;
+  type: 'info' | 'success' | 'error' | 'cost';
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+// Helper to add log entry to a regeneration request
+async function addLog(requestId: string, entry: Omit<LogEntry, 'timestamp'>) {
+  const request = await prisma.regenerationRequest.findUnique({
+    where: { id: requestId },
+    select: { logs: true },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentLogs = (request?.logs as any[]) || [];
+  const newLog = {
+    ...entry,
+    timestamp: new Date().toISOString(),
+  };
+
+  await prisma.regenerationRequest.update({
+    where: { id: requestId },
+    data: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      logs: [...currentLogs, newLog] as any,
+    },
+  });
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; requestId: string }> }
@@ -387,6 +418,19 @@ export async function PATCH(
 
         console.log(`[Regeneration] Using ${referenceImages.length} character reference images, resolution: ${resolution}, aspectRatio: ${aspectRatio}`);
 
+        // Log regeneration start
+        await addLog(requestId, {
+          type: 'info',
+          message: `Starting ${regenerationRequest.targetType} regeneration (attempt ${regenerationRequest.attemptsUsed + 1}/${regenerationRequest.maxAttempts})`,
+          details: {
+            resolution,
+            aspectRatio,
+            referenceImages: referenceImages.length,
+            ownerId: regenerationRequest.project?.userId,
+            skipCreditCheck: true,
+          },
+        });
+
         // Set status to generating
         await prisma.regenerationRequest.update({
           where: { id: requestId },
@@ -394,7 +438,7 @@ export async function PATCH(
         });
 
         // Perform the regeneration
-        let regenerationResult: { success: boolean; url?: string; error?: string };
+        let regenerationResult: { success: boolean; url?: string; error?: string; provider?: string; cost?: number };
 
         try {
           if (regenerationRequest.targetType === 'image') {
@@ -422,7 +466,12 @@ export async function PATCH(
             const imageData = await imageResponse.json();
 
             if (imageResponse.ok && imageData.imageUrl) {
-              regenerationResult = { success: true, url: imageData.imageUrl };
+              regenerationResult = {
+                success: true,
+                url: imageData.imageUrl,
+                cost: imageData.cost,
+                provider: imageData.storage === 's3' ? 'modal-edit' : 'gemini',
+              };
             } else {
               regenerationResult = { success: false, error: imageData.error || 'Image generation failed' };
             }
@@ -452,7 +501,12 @@ export async function PATCH(
               const videoData = await videoResponse.json();
 
               if (videoResponse.ok && videoData.videoUrl) {
-                regenerationResult = { success: true, url: videoData.videoUrl };
+                regenerationResult = {
+                  success: true,
+                  url: videoData.videoUrl,
+                  cost: videoData.cost,
+                  provider: videoData.storage === 's3' ? 'modal' : 'kie',
+                };
               } else {
                 regenerationResult = { success: false, error: videoData.error || 'Video generation failed' };
               }
@@ -468,6 +522,32 @@ export async function PATCH(
 
         if (regenerationResult.success && regenerationResult.url) {
           // Credits already prepaid by admin on approval - no deduction needed here
+
+          // Log success with cost tracking
+          await addLog(requestId, {
+            type: 'success',
+            message: `${regenerationRequest.targetType} generated successfully`,
+            details: {
+              provider: regenerationResult.provider,
+              realCost: regenerationResult.cost,
+              urlPreview: regenerationResult.url.substring(0, 80) + '...',
+              creditsDeducted: 0,
+              note: 'Credits prepaid by admin, real cost tracked to owner',
+            },
+          });
+
+          // Add cost tracking log
+          if (regenerationResult.cost) {
+            await addLog(requestId, {
+              type: 'cost',
+              message: `Real cost $${regenerationResult.cost.toFixed(2)} tracked to project owner`,
+              details: {
+                provider: regenerationResult.provider,
+                realCost: regenerationResult.cost,
+                ownerId: regenerationRequest.project?.userId,
+              },
+            });
+          }
 
           // Add URL to generatedUrls array
           const currentUrls = (regenerationRequest.generatedUrls as string[]) || [];
@@ -514,6 +594,15 @@ export async function PATCH(
             generatedUrls: newUrls,
           });
         } else {
+          // Log error
+          await addLog(requestId, {
+            type: 'error',
+            message: `${regenerationRequest.targetType} generation failed`,
+            details: {
+              error: regenerationResult.error,
+            },
+          });
+
           // Regeneration failed, but don't count as attempt
           await prisma.regenerationRequest.update({
             where: { id: requestId },
