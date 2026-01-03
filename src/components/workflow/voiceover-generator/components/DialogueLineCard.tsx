@@ -121,7 +121,7 @@ export function DialogueLineCard({
         />
       )}
 
-      <div className={`rounded-lg p-3 flex items-start gap-3 relative overflow-hidden border ${getCardBackground()} ${isRestricted ? 'select-none' : ''}`}>
+      <div className={`rounded-lg p-2 flex items-center gap-2 relative overflow-hidden border ${getCardBackground()} ${isRestricted ? 'select-none' : ''}`}>
         {/* Blur overlay for restricted content */}
         {isRestricted && (
           <a
@@ -141,82 +141,70 @@ export function DialogueLineCard({
             <img
               src={character.imageUrl}
               alt={character.name}
-              className={`w-10 h-10 rounded-lg object-cover ${isRestricted ? 'blur-sm' : ''}`}
+              className={`w-8 h-8 rounded object-cover ${isRestricted ? 'blur-sm' : ''}`}
             />
           ) : (
-            <div className={`w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center ${isRestricted ? 'blur-sm' : ''}`}>
-              <User className="w-5 h-5 text-violet-400" />
+            <div className={`w-8 h-8 rounded bg-violet-500/20 flex items-center justify-center ${isRestricted ? 'blur-sm' : ''}`}>
+              <User className="w-4 h-4 text-violet-400" />
             </div>
           )}
         </div>
 
         {/* Dialogue Content */}
         <div className={`flex-1 min-w-0 ${isRestricted ? 'blur-sm' : ''}`}>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <p className="text-sm truncate">
             <span className="font-semibold text-violet-400">
-              {character?.name || line.characterName}
+              {character?.name || line.characterName}:
             </span>
-            {character?.voiceName && (
-              <Badge variant="outline" className="text-xs border-white/10">
-                {character.voiceName}
-              </Badge>
-            )}
-            {line.audioUrl && line.ttsProvider && (
-              <Badge
-                className={`text-xs border-0 ${
-                  line.ttsProvider === 'elevenlabs'
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : 'bg-green-500/20 text-green-400'
-                }`}
-              >
-                {line.ttsProvider === 'elevenlabs' ? '🇬🇧 ElevenLabs' : '🇸🇰 Gemini TTS'}
-              </Badge>
-            )}
-            {/* Status badges */}
-            {hasPendingRegeneration && (
-              <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <Clock className="w-2.5 h-2.5" />
-                Pending
-              </Badge>
-            )}
-            {approvedRegeneration?.status === 'approved' && (
-              <Badge
-                className="bg-emerald-500 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5 cursor-pointer hover:bg-emerald-400"
-                onClick={() => setShowRegenerationModal(true)}
-              >
-                <Sparkles className="w-2.5 h-2.5" />
-                Click to Regenerate ({approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x)
-              </Badge>
-            )}
-            {approvedRegeneration?.status === 'generating' && (
-              <Badge className="bg-blue-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                Generating...
-              </Badge>
-            )}
-            {approvedRegeneration?.status === 'selecting' && (
-              <Badge
-                className="bg-amber-500 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5 cursor-pointer hover:bg-amber-400"
-                onClick={() => setShowRegenerationModal(true)}
-              >
-                <Play className="w-2.5 h-2.5" />
-                Select Best
-              </Badge>
-            )}
-            {approvedRegeneration?.status === 'awaiting_final' && (
-              <Badge className="bg-purple-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <Clock className="w-2.5 h-2.5" />
-                Awaiting Approval
-              </Badge>
-            )}
-            {hasPendingDeletion && (
-              <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <Trash2 className="w-2.5 h-2.5" />
-                Delete Pending
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">"{line.text}"</p>
+            <span className="text-muted-foreground ml-1">"{line.text}"</span>
+          </p>
+          {/* Status badges - only show if there are any */}
+          {(hasPendingRegeneration || hasPendingDeletion || approvedRegeneration) && (
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {hasPendingRegeneration && (
+                <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
+                  <Clock className="w-2 h-2" />
+                  Pending
+                </Badge>
+              )}
+              {approvedRegeneration?.status === 'approved' && (
+                <Badge
+                  className="bg-emerald-500 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5 cursor-pointer hover:bg-emerald-400"
+                  onClick={() => setShowRegenerationModal(true)}
+                >
+                  <Sparkles className="w-2 h-2" />
+                  Regen ({approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x)
+                </Badge>
+              )}
+              {approvedRegeneration?.status === 'generating' && (
+                <Badge className="bg-blue-500/90 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
+                  <RefreshCw className="w-2 h-2 animate-spin" />
+                  Gen...
+                </Badge>
+              )}
+              {approvedRegeneration?.status === 'selecting' && (
+                <Badge
+                  className="bg-amber-500 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5 cursor-pointer hover:bg-amber-400"
+                  onClick={() => setShowRegenerationModal(true)}
+                >
+                  <Play className="w-2 h-2" />
+                  Select
+                </Badge>
+              )}
+              {approvedRegeneration?.status === 'awaiting_final' && (
+                <Badge className="bg-purple-500/90 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
+                  <Clock className="w-2 h-2" />
+                  Awaiting
+                </Badge>
+              )}
+              {hasPendingDeletion && (
+                <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
+                  <Trash2 className="w-2 h-2" />
+                  Delete
+                </Badge>
+              )}
+            </div>
+          )}
 
           {/* Only load audio for non-restricted content */}
           {line.audioUrl && !isRestricted && (
@@ -231,65 +219,44 @@ export function DialogueLineCard({
         {/* Actions */}
         <div className={`flex items-center gap-2 flex-shrink-0 ${isRestricted ? 'blur-sm' : ''}`}>
           {status === 'generating' ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-amber-500/10 text-amber-400">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-3 h-3" />
               </motion.div>
-              <span className="text-xs">{progress}%</span>
+              <span className="text-[10px]">{progress}%</span>
             </div>
           ) : status === 'complete' || line.audioUrl ? (
             <>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-6 w-6"
                 onClick={onTogglePlay}
               >
                 {isPlaying ? (
-                  <Pause className="w-4 h-4" />
+                  <Pause className="w-3 h-3" />
                 ) : (
-                  <Play className="w-4 h-4 ml-0.5" />
+                  <Play className="w-3 h-3 ml-0.5" />
                 )}
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Download className="w-4 h-4" />
-              </Button>
-              {/* Delete button for audio */}
               {!isReadOnly && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
+                  className={`h-6 w-6 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
                   onClick={() => canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true)}
                   disabled={hasPendingDeletion}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3 h-3" />
                 </Button>
               )}
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <CheckCircle2 className="w-4 h-4 text-green-400" />
             </>
-          ) : !isReadOnly ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-white/10 hover:bg-white/5"
-              onClick={onGenerate}
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              {t('steps.voiceover.generate')}
-              <span className="ml-1 text-[10px] opacity-70">
-                {formatCostCompact(
-                  provider === 'gemini-tts'
-                    ? ACTION_COSTS.voiceover.geminiTts
-                    : ACTION_COSTS.voiceover.elevenlabs
-                )}
-              </span>
-            </Button>
           ) : (
-            <span className="text-xs text-muted-foreground">No audio</span>
+            <span className="text-[10px] text-muted-foreground/50">—</span>
           )}
         </div>
       </div>

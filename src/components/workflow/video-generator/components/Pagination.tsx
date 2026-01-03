@@ -132,25 +132,35 @@ export function Pagination({
           </Tooltip>
         </TooltipProvider>
 
-        {/* Page Numbers */}
-        <div className="flex items-center gap-1 mx-2">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let pageNum: number;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNum = totalPages - 4 + i;
+        {/* Page Numbers - show all pages up to 20, otherwise sliding window */}
+        <div className="flex items-center gap-0.5 mx-2">
+          {(() => {
+            const maxVisible = 20;
+            let pages: number[] = [];
+
+            if (totalPages <= maxVisible) {
+              // Show all pages
+              pages = Array.from({ length: totalPages }, (_, i) => i + 1);
             } else {
-              pageNum = currentPage - 2 + i;
+              // Sliding window for many pages
+              const windowSize = 9;
+              const halfWindow = Math.floor(windowSize / 2);
+
+              if (currentPage <= halfWindow + 1) {
+                pages = Array.from({ length: windowSize }, (_, i) => i + 1);
+              } else if (currentPage >= totalPages - halfWindow) {
+                pages = Array.from({ length: windowSize }, (_, i) => totalPages - windowSize + 1 + i);
+              } else {
+                pages = Array.from({ length: windowSize }, (_, i) => currentPage - halfWindow + i);
+              }
             }
-            return (
+
+            return pages.map((pageNum) => (
               <Button
                 key={pageNum}
                 variant={currentPage === pageNum ? 'default' : 'outline'}
                 size="icon"
-                className={`h-8 w-8 ${
+                className={`h-9 w-9 text-sm font-medium ${
                   currentPage === pageNum
                     ? 'bg-orange-600 hover:bg-orange-500 border-0'
                     : 'border-white/10 hover:bg-white/5'
@@ -159,8 +169,8 @@ export function Pagination({
               >
                 {pageNum}
               </Button>
-            );
-          })}
+            ));
+          })()}
         </div>
 
         <TooltipProvider>

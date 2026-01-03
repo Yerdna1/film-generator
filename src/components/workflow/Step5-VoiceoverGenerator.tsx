@@ -18,6 +18,8 @@ import {
   VoiceoverProgress,
   SceneDialogueCard,
 } from './voiceover-generator/components';
+import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
+import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
@@ -45,6 +47,29 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
   // Deletion requests state
   const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
+
+  // Filter scenes with dialogue for pagination
+  const scenesWithDialogue = useMemo(() =>
+    (project.scenes || []).filter((scene) => (scene.dialogue || []).length > 0),
+    [project.scenes]
+  );
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(scenesWithDialogue.length / SCENES_PER_PAGE);
+  const startIndex = (currentPage - 1) * SCENES_PER_PAGE;
+  const endIndex = startIndex + SCENES_PER_PAGE;
+
+  const paginatedScenes = useMemo(() => {
+    return scenesWithDialogue.slice(startIndex, endIndex);
+  }, [scenesWithDialogue, startIndex, endIndex]);
+
+  // Reset page if it exceeds total pages (e.g., after scenes deleted)
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   // Fetch regeneration requests for this project (audio type)
   const fetchRegenerationRequests = useCallback(async () => {
@@ -216,15 +241,26 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         </div>
       )}
 
+      {/* Top Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        totalItems={scenesWithDialogue.length}
+        onPageChange={setCurrentPage}
+      />
+
       {/* Dialogue Lines by Scene - 3 column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(project.scenes || [])
-          .filter((scene) => (scene.dialogue || []).length > 0)
-          .map((scene, sceneIndex) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {paginatedScenes.map((scene, idx) => {
+          // Calculate the actual scene index across all pages
+          const actualIndex = startIndex + idx;
+          return (
             <SceneDialogueCard
               key={scene.id}
               scene={scene}
-              sceneIndex={sceneIndex}
+              sceneIndex={actualIndex}
               projectId={project.id}
               characters={project.characters || []}
               audioStates={audioStates}
@@ -245,8 +281,19 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
               onUseRegenerationAttempt={handleUseRegenerationAttempt}
               onSelectRegeneration={handleSelectRegeneration}
             />
-          ))}
+          );
+        })}
       </div>
+
+      {/* Bottom Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        totalItems={scenesWithDialogue.length}
+        onPageChange={setCurrentPage}
+      />
 
       {/* Provider Selection & Controls */}
       <div className="glass rounded-2xl p-6 space-y-4">

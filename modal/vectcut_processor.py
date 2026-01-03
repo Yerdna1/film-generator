@@ -252,7 +252,7 @@ def upload_to_s3(file_path: Path, s3_key: str, request: VideoCompositionRequest)
     image=image,
     gpu="T4",  # Light GPU for video encoding
     volumes={"/cache": cache_volume},
-    timeout=1800,  # 30 minutes for long videos with many scenes
+    timeout=14400,  # 4 hours for very long videos with slow preset (360+ scenes)
     scaledown_window=180,
 )
 class VectCutProcessor:
@@ -337,7 +337,7 @@ class VectCutProcessor:
                 "-i", str(input2),
                 "-filter_complex", filter_complex,
                 "-map", "[v]", "-map", "[a]",
-                "-c:v", "libx264", "-preset", encode_preset, "-crf", "23",
+                "-c:v", "libx264", "-preset", encode_preset, "-crf", "18",
                 "-c:a", "aac", "-b:a", "192k",
                 str(output)
             ]
@@ -443,7 +443,7 @@ class VectCutProcessor:
                 "ffmpeg", "-y",
                 "-i", str(input_video),
                 "-vf", filter_complex,
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:v", "libx264", "-preset", "slow", "-crf", "18",
                 "-c:a", "copy",
                 str(output_video)
             ]
@@ -666,7 +666,7 @@ class VectCutProcessor:
                 "-i", str(image_path),
                 "-f", "lavfi", "-i", f"anullsrc=channel_layout=stereo:sample_rate=44100",
                 "-vf", filter_str,
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:v", "libx264", "-preset", "slow", "-crf", "18",
                 "-c:a", "aac",
                 "-t", str(duration),
                 "-pix_fmt", "yuv420p",
@@ -825,8 +825,14 @@ class VectCutProcessor:
         """Main composition method."""
         width, height = get_resolution(request.resolution)
 
-        # Use faster encoding preset for large videos (20+ scenes)
-        encode_preset = "ultrafast" if len(request.scenes) >= 20 else "fast"
+        # Use quality-focused encoding preset
+        # For best quality: use "slow" preset and CRF 18
+        # For very large videos (200+): use "medium" to balance quality and time
+        scene_count = len(request.scenes)
+        if scene_count >= 200:
+            encode_preset = "medium"  # 200+ scenes: still good quality
+        else:
+            encode_preset = "slow"  # <200 scenes: best quality
 
         print(f"Starting composition: {len(request.scenes)} scenes, {width}x{height}, preset={encode_preset}")
 
@@ -853,8 +859,8 @@ class VectCutProcessor:
                             "ffmpeg", "-y",
                             "-i", str(raw_path),
                             "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2",
-                            "-c:v", "libx264", "-preset", encode_preset, "-crf", "23",
-                            "-c:a", "aac", "-b:a", "192k",
+                            "-c:v", "libx264", "-preset", encode_preset, "-crf", "18",
+                            "-c:a", "aac", "-b:a", "256k",
                             "-t", str(scene.duration),
                             str(video_path)
                         ]

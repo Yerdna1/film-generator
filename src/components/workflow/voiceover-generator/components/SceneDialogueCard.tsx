@@ -2,8 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { DialogueLineCard } from './DialogueLineCard';
 import type { SceneDialogueCardProps } from '../types';
 
@@ -38,21 +36,15 @@ export function SceneDialogueCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: sceneIndex * 0.1 }}
     >
-      <Card className="glass border-white/10 overflow-hidden">
-        <CardHeader className="pb-3 border-b border-white/5">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Badge className="bg-violet-500/20 text-violet-400 border-0">
-                {t('steps.scenes.sceneLabel')} {scene.number || sceneIndex + 1}
-              </Badge>
-              {scene.title}
-            </CardTitle>
-            <Badge variant="outline" className="border-white/10">
-              {scene.dialogue.length} {t('steps.voiceover.lines')}
-            </Badge>
+      <div className="glass border border-white/10 rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-1.5 py-px">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="text-violet-400 font-bold text-base shrink-0">#{scene.number || sceneIndex + 1}</span>
+            <span className="truncate text-muted-foreground text-[11px]">{scene.title}</span>
           </div>
-        </CardHeader>
-        <CardContent className="p-4 space-y-3">
+          <span className="text-[10px] text-muted-foreground shrink-0">{scene.dialogue.length}</span>
+        </div>
+        <div className="px-1 pb-1 space-y-0.5">
           {scene.dialogue.map((line, lineIndex) => {
             const character = characters.find((c) => c.id === line.characterId);
             const status = line.audioUrl
@@ -61,41 +53,35 @@ export function SceneDialogueCard({
             const progress = audioStates[line.id]?.progress || 0;
 
             return (
-              <motion.div
+              <DialogueLineCard
                 key={line.id || `line-${lineIndex}`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: lineIndex * 0.05 }}
-              >
-                <DialogueLineCard
-                  line={line}
-                  character={character}
-                  status={status}
-                  progress={progress}
-                  isPlaying={playingAudio === line.id}
-                  provider={provider}
-                  projectId={projectId}
-                  sceneId={scene.id}
-                  isReadOnly={isReadOnly}
-                  isAuthenticated={isAuthenticated}
-                  isFirstDialogue={line.id === firstDialogueLineId}
-                  canDeleteDirectly={canDeleteDirectly}
-                  hasPendingRegeneration={pendingRegenLineIds?.has(line.id) || false}
-                  hasPendingDeletion={pendingDeletionLineIds?.has(line.id) || false}
-                  approvedRegeneration={approvedRegenByLineId?.get(line.id) || null}
-                  onTogglePlay={() => onTogglePlay(line.id)}
-                  onGenerate={() => onGenerateAudio(line.id, scene.id)}
-                  onAudioRef={(el) => onAudioRef(line.id, el)}
-                  onAudioEnded={onAudioEnded}
-                  onDeletionRequested={onDeletionRequested}
-                  onUseRegenerationAttempt={onUseRegenerationAttempt}
-                  onSelectRegeneration={onSelectRegeneration}
-                />
-              </motion.div>
+                line={line}
+                character={character}
+                status={status}
+                progress={progress}
+                isPlaying={playingAudio === line.id}
+                provider={provider}
+                projectId={projectId}
+                sceneId={scene.id}
+                isReadOnly={isReadOnly}
+                isAuthenticated={isAuthenticated}
+                isFirstDialogue={line.id === firstDialogueLineId}
+                canDeleteDirectly={canDeleteDirectly}
+                hasPendingRegeneration={pendingRegenLineIds?.has(line.id) || false}
+                hasPendingDeletion={pendingDeletionLineIds?.has(line.id) || false}
+                approvedRegeneration={approvedRegenByLineId?.get(line.id) || null}
+                onTogglePlay={() => onTogglePlay(line.id)}
+                onGenerate={() => onGenerateAudio(line.id, scene.id)}
+                onAudioRef={(el) => onAudioRef(line.id, el)}
+                onAudioEnded={onAudioEnded}
+                onDeletionRequested={onDeletionRequested}
+                onUseRegenerationAttempt={onUseRegenerationAttempt}
+                onSelectRegeneration={onSelectRegeneration}
+              />
             );
           })}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   );
 }
