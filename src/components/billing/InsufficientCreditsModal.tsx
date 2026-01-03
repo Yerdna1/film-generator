@@ -175,8 +175,13 @@ export function InsufficientCreditsModal({
       }
 
       if (!response.ok) {
-        console.error('Regeneration request failed:', { status: response.status, data });
-        setApprovalError(data.error || `Request failed: ${response.status}`);
+        console.error('Regeneration request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          url: response.url
+        });
+        setApprovalError(data.error || `Request failed: ${response.status} ${response.statusText}`);
         return;
       }
 
