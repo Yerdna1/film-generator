@@ -1168,6 +1168,7 @@
       "claude": "Claude",
       "modal": "Modal",
       "modal-edit": "Modal Edit",
+      "modal-vectcut": "Modal VectCut",
       "unknown": "Other"
     }
   },
