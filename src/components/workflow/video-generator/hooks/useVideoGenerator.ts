@@ -9,7 +9,7 @@ import type { VideoMode, VideoStatus, SceneVideoState } from '../types';
 
 export function useVideoGenerator(initialProject: Project) {
   const { updateScene, projects } = useProjectStore();
-  const { handleApiResponse } = useCredits();
+  const { handleApiResponse, handleBulkApiResponse } = useCredits();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -156,8 +156,16 @@ export function useVideoGenerator(initialProject: Project) {
   }, [project.id]);
 
   // Generate video for a scene
-  const generateSceneVideo = useCallback(async (scene: Scene, forceRegeneration: boolean = false) => {
+  // bulkContext is optional - when provided, uses bulk handler for insufficient credits modal
+  const generateSceneVideo = useCallback(async (
+    scene: Scene,
+    forceRegenerationOrBulkContext: boolean | { projectId: string; scenes: Array<{ id: string; title: string; number: number; imageUrl?: string | null }>; targetType: 'video' } = false
+  ) => {
     if (!scene.imageUrl) return;
+
+    // Handle both overload patterns
+    const forceRegeneration = typeof forceRegenerationOrBulkContext === 'boolean' ? forceRegenerationOrBulkContext : false;
+    const bulkContext = typeof forceRegenerationOrBulkContext === 'object' ? forceRegenerationOrBulkContext : null;
 
     // Detect if this is a regeneration (scene already has a video)
     const isRegeneration = forceRegeneration || !!scene.videoUrl;
@@ -188,15 +196,20 @@ export function useVideoGenerator(initialProject: Project) {
         }),
       });
 
-      // Pass regeneration context so user can request admin approval if insufficient credits
-      const isInsufficientCredits = await handleApiResponse(response, {
-        projectId: project.id,
-        sceneId: scene.id,
-        sceneName: scene.title,
-        sceneNumber: scene.number,
-        targetType: 'video',
-        imageUrl: scene.imageUrl,
-      });
+      // Use bulk or single context based on what was provided
+      let isInsufficientCredits: boolean;
+      if (bulkContext) {
+        isInsufficientCredits = await handleBulkApiResponse(response, bulkContext);
+      } else {
+        isInsufficientCredits = await handleApiResponse(response, {
+          projectId: project.id,
+          sceneId: scene.id,
+          sceneName: scene.title,
+          sceneNumber: scene.number,
+          targetType: 'video',
+          imageUrl: scene.imageUrl,
+        });
+      }
       if (isInsufficientCredits) {
         setVideoStates((prev) => ({
           ...prev,
@@ -259,7 +272,7 @@ export function useVideoGenerator(initialProject: Project) {
         },
       }));
     }
-  }, [project.id, videoMode, buildFullI2VPrompt, handleApiResponse, pollForVideoCompletion, updateScene]);
+  }, [project.id, videoMode, buildFullI2VPrompt, handleApiResponse, handleBulkApiResponse, pollForVideoCompletion, updateScene]);
 
   // Handle generate video for a single scene
   const handleGenerateVideo = useCallback(async (scene: Scene) => {
@@ -346,10 +359,24 @@ export function useVideoGenerator(initialProject: Project) {
     const RATE_LIMIT_DELAY_MS = 1500;
     const scenesToGenerate = scenesWithImages.filter(s => selectedScenes.has(s.id));
 
+    // Prepare bulk context for the case of insufficient credits
+    const bulkContext = {
+      projectId: project.id,
+      scenes: scenesToGenerate.map(s => ({
+        id: s.id,
+        title: s.title,
+        number: s.number,
+        imageUrl: s.imageUrl,
+      })),
+      targetType: 'video' as const,
+    };
+
     for (const scene of scenesToGenerate) {
       if (stopGenerationRef.current) break;
 
-      await generateSceneVideo(scene);
+      // Check credits before starting (the first failed API call will show the modal)
+      // Generate the video using generateSceneVideo
+      await generateSceneVideo(scene, bulkContext);
       // Remove from selection after generation
       setSelectedScenes(prev => {
         const newSet = new Set(prev);
@@ -361,7 +388,7 @@ export function useVideoGenerator(initialProject: Project) {
 
     setIsGeneratingAll(false);
     stopGenerationRef.current = false;
-  }, [selectedScenes, scenesWithImages, isGeneratingAll, generateSceneVideo]);
+  }, [selectedScenes, scenesWithImages, isGeneratingAll, generateSceneVideo, project.id]);
 
   return {
     // Project data

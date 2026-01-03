@@ -420,6 +420,7 @@ model RegenerationRequest {
   targetId       String    // Scene ID (scenes hold both imageUrl and videoUrl)
   targetName     String?   // Scene title for display
   reason         String?   // Optional reason for regeneration
+  batchId        String?   // Groups multiple requests for bulk approval (null = single request)
   // Status flow: pending → approved → generating → selecting → awaiting_final → completed/rejected/failed
   status         String    @default("pending")
   maxAttempts    Int       @default(3)  // Maximum regeneration attempts allowed per approval
@@ -447,6 +448,7 @@ model RegenerationRequest {
   @@index([requesterId])
   @@index([status])
   @@index([targetId])
+  @@index([batchId])
 }
 
 // Prompt edit tracking for collaborator changes

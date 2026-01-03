@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import NextImage from 'next/image';
@@ -19,11 +19,29 @@ import {
   RefreshCw,
   FileText,
   Undo2,
+  ChevronDown,
+  ChevronRight,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { DeletionRequest, RegenerationRequest, PromptEditRequest } from '@/types/collaboration';
+
+// Extended type for RegenerationRequest with batchId
+interface RegenerationRequestWithBatch extends RegenerationRequest {
+  batchId?: string | null;
+}
+
+// Grouped batch type
+interface BatchGroup {
+  batchId: string;
+  requests: RegenerationRequestWithBatch[];
+  targetType: 'image' | 'video';
+  requester: RegenerationRequest['requester'];
+  reason?: string | null;
+  createdAt: string;
+}
 
 interface ApprovalPanelProps {
   projectId: string;
@@ -52,13 +70,63 @@ const fieldLabels: Record<string, string> = {
 export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
   const t = useTranslations();
   const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
-  const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequest[]>([]);
+  const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequestWithBatch[]>([]);
   const [promptEditRequests, setPromptEditRequests] = useState<PromptEditRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [processingBatchId, setProcessingBatchId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [showNoteInput, setShowNoteInput] = useState<string | null>(null);
   const [expandedDiff, setExpandedDiff] = useState<string | null>(null);
+  const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+
+  // Group regeneration requests by batchId
+  const { batchGroups, singleRequests } = useMemo(() => {
+    const batches = new Map<string, RegenerationRequestWithBatch[]>();
+    const singles: RegenerationRequestWithBatch[] = [];
+
+    for (const request of regenerationRequests) {
+      if (request.batchId) {
+        if (!batches.has(request.batchId)) {
+          batches.set(request.batchId, []);
+        }
+        batches.get(request.batchId)!.push(request);
+      } else {
+        singles.push(request);
+      }
+    }
+
+    const groups: BatchGroup[] = [];
+    for (const [batchId, requests] of batches) {
+      if (requests.length > 0) {
+        groups.push({
+          batchId,
+          requests,
+          targetType: requests[0].targetType as 'image' | 'video',
+          requester: requests[0].requester,
+          reason: requests[0].reason,
+          createdAt: requests[0].createdAt,
+        });
+      }
+    }
+
+    // Sort groups by date (newest first)
+    groups.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return { batchGroups: groups, singleRequests: singles };
+  }, [regenerationRequests]);
+
+  const toggleBatchExpanded = (batchId: string) => {
+    setExpandedBatches(prev => {
+      const next = new Set(prev);
+      if (next.has(batchId)) {
+        next.delete(batchId);
+      } else {
+        next.add(batchId);
+      }
+      return next;
+    });
+  };
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -139,6 +207,36 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
     }
   };
 
+  const handleBatchAction = async (batchId: string, approved: boolean) => {
+    setProcessingBatchId(batchId);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/regeneration-requests/bulk`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batchId,
+          approved,
+          note: reviewNotes[`batch_${batchId}`] || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        // Remove all requests with this batchId
+        setRegenerationRequests((prev) => prev.filter((r) => r.batchId !== batchId));
+        setShowNoteInput(null);
+        setExpandedBatches(prev => {
+          const next = new Set(prev);
+          next.delete(batchId);
+          return next;
+        });
+      }
+    } catch (e) {
+      console.error('Failed to process batch regeneration request:', e);
+    } finally {
+      setProcessingBatchId(null);
+    }
+  };
+
   const handlePromptEditAction = async (requestId: string, action: 'approve' | 'reject' | 'revert') => {
     setProcessingId(requestId);
     try {
@@ -179,7 +277,10 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
   const pendingDeletions = deletionRequests.filter((r) => r.status === 'pending');
   const pendingRegenerations = regenerationRequests.filter((r) => r.status === 'pending');
   const pendingPromptEdits = promptEditRequests.filter((r) => r.status === 'pending');
-  const totalPending = pendingDeletions.length + pendingRegenerations.length + pendingPromptEdits.length;
+  // For display, count batches as 1 item + single requests
+  const pendingBatchCount = batchGroups.filter(b => b.requests.some(r => r.status === 'pending')).length;
+  const pendingSingleCount = singleRequests.filter(r => r.status === 'pending').length;
+  const totalPending = pendingDeletions.length + pendingBatchCount + pendingSingleCount + pendingPromptEdits.length;
 
   if (!canApprove) return null;
 
@@ -215,7 +316,202 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
 
           <div className="space-y-3">
             <AnimatePresence mode="popLayout">
-              {pendingRegenerations.map((request) => {
+              {/* Batch Groups */}
+              {batchGroups.map((batch) => {
+                const Icon = regenerationTargetIcons[batch.targetType] || RefreshCw;
+                const isProcessing = processingBatchId === batch.batchId;
+                const isExpanded = expandedBatches.has(batch.batchId);
+                const pendingInBatch = batch.requests.filter(r => r.status === 'pending');
+
+                if (pendingInBatch.length === 0) return null;
+
+                return (
+                  <motion.div
+                    key={batch.batchId}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="bg-cyan-500/5 border border-cyan-500/20 rounded-lg overflow-hidden"
+                  >
+                    {/* Batch Header - Collapsible */}
+                    <div
+                      className="p-4 cursor-pointer hover:bg-cyan-500/10 transition-colors"
+                      onClick={() => toggleBatchExpanded(batch.batchId)}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Batch icon */}
+                        <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                          <Layers className="w-5 h-5 text-cyan-400" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-cyan-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-cyan-400" />
+                            )}
+                            <span className="font-medium text-cyan-400">
+                              {pendingInBatch.length} {batch.targetType}{pendingInBatch.length > 1 ? 's' : ''} requested
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs">
+                              Batch
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <Avatar className="w-4 h-4">
+                              <AvatarImage src={batch.requester?.image || undefined} />
+                              <AvatarFallback className="text-[8px]">
+                                {batch.requester?.name?.charAt(0) || '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{batch.requester?.name || 'Unknown'}</span>
+                            <span>·</span>
+                            <Clock className="w-3 h-3" />
+                            <span>{formatDate(batch.createdAt)}</span>
+                          </div>
+
+                          {batch.reason && (
+                            <div className="mt-2 p-2 bg-white/5 rounded text-sm text-muted-foreground">
+                              "{batch.reason}"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Batch Actions */}
+                      <div className="flex items-center gap-2 pt-3 mt-3 border-t border-cyan-500/10">
+                        {showNoteInput !== `batch_${batch.batchId}` && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowNoteInput(`batch_${batch.batchId}`);
+                            }}
+                            className="text-muted-foreground"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-1" />
+                            Add Note
+                          </Button>
+                        )}
+
+                        <div className="flex-1" />
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBatchAction(batch.batchId, false);
+                          }}
+                          disabled={isProcessing}
+                          className="text-muted-foreground hover:text-foreground hover:bg-white/5"
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <X className="w-4 h-4 mr-1" />
+                              Reject All
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBatchAction(batch.batchId, true);
+                          }}
+                          disabled={isProcessing}
+                          className="bg-cyan-600 hover:bg-cyan-500 text-white"
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4 mr-1" />
+                              Approve All ({pendingInBatch.length})
+                            </>
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Review note input for batch */}
+                      {showNoteInput === `batch_${batch.batchId}` && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="pt-3 mt-3 border-t border-cyan-500/10"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Textarea
+                            value={reviewNotes[`batch_${batch.batchId}`] || ''}
+                            onChange={(e) =>
+                              setReviewNotes((prev) => ({ ...prev, [`batch_${batch.batchId}`]: e.target.value }))
+                            }
+                            placeholder="Add a note for all items in this batch (optional)..."
+                            className="bg-white/5 border-white/10 min-h-[60px] text-sm"
+                          />
+                        </motion.div>
+                      )}
+                    </div>
+
+                    {/* Expanded Items */}
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="border-t border-cyan-500/20 bg-black/20"
+                        >
+                          <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
+                            {pendingInBatch.map((request) => (
+                              <div
+                                key={request.id}
+                                className="flex items-center gap-3 p-2 rounded bg-white/5"
+                              >
+                                {/* Scene thumbnail */}
+                                <div className="relative w-12 h-7 rounded overflow-hidden bg-black/30 flex-shrink-0">
+                                  {request.scene?.imageUrl ? (
+                                    <NextImage
+                                      src={request.scene.imageUrl}
+                                      alt={request.scene?.title || 'Scene'}
+                                      fill
+                                      className="object-cover"
+                                      sizes="48px"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <ImageIcon className="w-3 h-3 text-muted-foreground/50" />
+                                    </div>
+                                  )}
+                                  <div className="absolute bottom-0 right-0 p-0.5 bg-cyan-500/80 rounded-tl">
+                                    <Icon className="w-2 h-2 text-white" />
+                                  </div>
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">
+                                    {request.targetName || `Scene ${request.scene?.number || 'Unknown'}`}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+
+              {/* Single Requests (no batch) */}
+              {singleRequests.filter(r => r.status === 'pending').map((request) => {
                 const Icon = regenerationTargetIcons[request.targetType] || RefreshCw;
                 const isProcessing = processingId === request.id;
 

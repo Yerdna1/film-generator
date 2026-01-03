@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { AlertCircle, Sparkles, ArrowRight, Loader2, RefreshCw, UserCheck } from 'lucide-react';
+import { AlertCircle, Sparkles, ArrowRight, Loader2, RefreshCw, UserCheck, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,13 +24,27 @@ export interface RegenerationContext {
   imageUrl?: string | null;
 }
 
+// Extended context for bulk operations
+export interface BulkRegenerationContext {
+  projectId: string;
+  scenes: Array<{
+    id: string;
+    title: string;
+    number: number;
+    imageUrl?: string | null;
+  }>;
+  targetType: RegenerationTargetType;
+}
+
 interface InsufficientCreditsModalProps {
   isOpen: boolean;
   onClose: () => void;
   required: number;
   balance: number;
-  // Optional: For showing "Request Admin Approval" option
+  // Optional: For showing "Request Admin Approval" option (single scene)
   regenerationContext?: RegenerationContext | null;
+  // Optional: For bulk operations (multiple scenes)
+  bulkRegenerationContext?: BulkRegenerationContext | null;
   onRequestApproval?: () => void;
 }
 
@@ -53,6 +67,7 @@ export function InsufficientCreditsModal({
   required,
   balance,
   regenerationContext,
+  bulkRegenerationContext,
   onRequestApproval,
 }: InsufficientCreditsModalProps) {
   const t = useTranslations();
@@ -61,20 +76,84 @@ export function InsufficientCreditsModal({
   const [requestingApproval, setRequestingApproval] = useState(false);
   const [approvalSuccess, setApprovalSuccess] = useState(false);
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [isProjectAdmin, setIsProjectAdmin] = useState<boolean | null>(null);
+  const [checkingPermissions, setCheckingPermissions] = useState(false);
+
+  // Determine if we have any regeneration context (single or bulk)
+  const hasContext = regenerationContext || bulkRegenerationContext;
+  const isBulk = !!bulkRegenerationContext;
+  const sceneCount = isBulk ? bulkRegenerationContext.scenes.length : 1;
+  const targetType = isBulk ? bulkRegenerationContext.targetType : regenerationContext?.targetType;
+  const projectId = isBulk ? bulkRegenerationContext.projectId : regenerationContext?.projectId;
+
+  // Calculate actual required credits for bulk operations
+  // The 'required' from 402 is for a single item, multiply by count for bulk
+  const actualRequired = isBulk ? required * sceneCount : required;
+
+  // Check if user can request approval (only collaborators can, not admins)
+  useEffect(() => {
+    if (!isOpen || !projectId || !hasContext) {
+      setIsProjectAdmin(null);
+      return;
+    }
+
+    const checkPermissions = async () => {
+      setCheckingPermissions(true);
+      try {
+        const response = await fetch(`/api/projects/${projectId}/permissions`);
+        if (response.ok) {
+          const data = await response.json();
+          // If user can regenerate directly, they're an admin and can't request from themselves
+          setIsProjectAdmin(data.permissions?.canRegenerate === true);
+        } else {
+          // On error, assume they can try to request
+          setIsProjectAdmin(false);
+        }
+      } catch {
+        setIsProjectAdmin(false);
+      } finally {
+        setCheckingPermissions(false);
+      }
+    };
+
+    checkPermissions();
+  }, [isOpen, projectId, hasContext]);
+
+  // Can show request approval option only if user is a collaborator (not admin)
+  const canShowRequestApproval = hasContext && isProjectAdmin === false;
 
   const handleRequestApproval = async () => {
-    if (!regenerationContext) return;
+    if (!hasContext || !projectId) {
+      setApprovalError('Missing project context');
+      return;
+    }
+
+    if (!targetType) {
+      setApprovalError('Missing target type');
+      return;
+    }
 
     setRequestingApproval(true);
     setApprovalError(null);
 
     try {
-      const response = await fetch(`/api/projects/${regenerationContext.projectId}/regeneration-requests`, {
+      const sceneIds = isBulk
+        ? bulkRegenerationContext.scenes.map(s => s.id)
+        : [regenerationContext!.sceneId];
+
+      if (sceneIds.length === 0) {
+        setApprovalError('No scenes selected');
+        return;
+      }
+
+      console.log('Submitting regeneration request:', { projectId, targetType, sceneIds });
+
+      const response = await fetch(`/api/projects/${projectId}/regeneration-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          targetType: regenerationContext.targetType,
-          sceneIds: [regenerationContext.sceneId],
+          targetType,
+          sceneIds,
           reason: 'Insufficient credits - requesting admin to regenerate',
         }),
       });
@@ -82,7 +161,8 @@ export function InsufficientCreditsModal({
       const data = await response.json();
 
       if (!response.ok) {
-        setApprovalError(data.error || 'Failed to submit request');
+        console.error('Regeneration request failed:', data);
+        setApprovalError(data.error || `Request failed: ${response.status}`);
         return;
       }
 
@@ -94,8 +174,9 @@ export function InsufficientCreditsModal({
         onClose();
         setApprovalSuccess(false);
       }, 2000);
-    } catch {
-      setApprovalError('Failed to submit request');
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      setApprovalError(error instanceof Error ? error.message : 'Failed to submit request');
     } finally {
       setRequestingApproval(false);
     }
@@ -150,8 +231,11 @@ export function InsufficientCreditsModal({
           {/* Credit Status */}
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
             <div>
-              <div className="text-sm text-muted-foreground">{t('insufficientCredits.required')}</div>
-              <div className="text-lg font-semibold text-red-400">{required} {t('credits.points')}</div>
+              <div className="text-sm text-muted-foreground">
+                {t('insufficientCredits.required')}
+                {isBulk && <span className="text-xs ml-1">({sceneCount} items)</span>}
+              </div>
+              <div className="text-lg font-semibold text-red-400">{actualRequired} {t('credits.points')}</div>
             </div>
             <div className="text-2xl text-muted-foreground">/</div>
             <div>
@@ -202,8 +286,8 @@ export function InsufficientCreditsModal({
             {t('insufficientCredits.viewAllPlans')}
           </Button>
 
-          {/* Request Admin Approval - Only shown when regeneration context is available */}
-          {regenerationContext && (
+          {/* Request Admin Approval - Only shown for collaborators (not admins) */}
+          {hasContext && (
             <>
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -214,61 +298,107 @@ export function InsufficientCreditsModal({
                 </div>
               </div>
 
-              {approvalSuccess ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-center"
-                >
-                  <UserCheck className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-cyan-400">{t('insufficientCredits.requestSubmitted')}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t('insufficientCredits.adminNotified')}
-                  </p>
-                </motion.div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <RefreshCw className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-cyan-400">
-                          {t('insufficientCredits.requestAdminApproval')}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {t('insufficientCredits.askAdmin', { type: regenerationContext.targetType })}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {t('insufficientCredits.scene')} {regenerationContext.sceneNumber}: {regenerationContext.sceneName}
-                        </p>
-                      </div>
+              {/* Loading state while checking permissions */}
+              {checkingPermissions && (
+                <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Checking permissions...</span>
+                </div>
+              )}
+
+              {/* Admin message - they cannot request from themselves */}
+              {!checkingPermissions && isProjectAdmin === true && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Crown className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-400">
+                        You are the project owner
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        As the project owner, you have full regeneration permissions but need credits to proceed.
+                        Purchase a plan above to continue generating content.
+                      </p>
                     </div>
                   </div>
+                </div>
+              )}
 
-                  {approvalError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
-                      {approvalError}
+              {/* Collaborator request approval option */}
+              {!checkingPermissions && canShowRequestApproval && (
+                <>
+                  {approvalSuccess ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-center"
+                    >
+                      <UserCheck className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-cyan-400">{t('insufficientCredits.requestSubmitted')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t('insufficientCredits.adminNotified')}
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <RefreshCw className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-cyan-400">
+                              {t('insufficientCredits.requestAdminApproval')}
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {isBulk
+                                ? `Ask an admin to regenerate ${sceneCount} ${targetType}${sceneCount > 1 ? 's' : ''} using their credits.`
+                                : t('insufficientCredits.askAdmin', { type: targetType || 'image' })}
+                            </p>
+                            {isBulk ? (
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                <span className="font-medium">{sceneCount} scenes selected:</span>{' '}
+                                {bulkRegenerationContext.scenes
+                                  .slice(0, 3)
+                                  .map(s => `Scene ${s.number}`)
+                                  .join(', ')}
+                                {sceneCount > 3 && ` +${sceneCount - 3} more`}
+                              </div>
+                            ) : regenerationContext && (
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {t('insufficientCredits.scene')} {regenerationContext.sceneNumber}: {regenerationContext.sceneName}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {approvalError && (
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+                          {approvalError}
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={handleRequestApproval}
+                        disabled={requestingApproval}
+                        className="w-full bg-cyan-600 hover:bg-cyan-500"
+                      >
+                        {requestingApproval ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            {t('insufficientCredits.submittingRequest')}
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            {isBulk
+                              ? `Request Approval for ${sceneCount} ${targetType}${sceneCount > 1 ? 's' : ''}`
+                              : t('insufficientCredits.requestAdminApproval')}
+                          </>
+                        )}
+                      </Button>
                     </div>
                   )}
-
-                  <Button
-                    onClick={handleRequestApproval}
-                    disabled={requestingApproval}
-                    className="w-full bg-cyan-600 hover:bg-cyan-500"
-                  >
-                    {requestingApproval ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        {t('insufficientCredits.submittingRequest')}
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        {t('insufficientCredits.requestAdminApproval')}
-                      </>
-                    )}
-                  </Button>
-                </div>
+                </>
               )}
             </>
           )}

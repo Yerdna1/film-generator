@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines a multi-phase testing strategy covering all critical aspects of the Film Generator application. The plan includes approximately **710 test cases** organized across 15 phases.
+This document outlines a multi-phase testing strategy covering all critical aspects of the Film Generator application. The plan includes approximately **815 test cases** organized across 16 phases.
 
 **Application Inventory:**
 - 62 API route files with ~90 HTTP methods
@@ -1541,6 +1541,263 @@ npm run test -- --grep "SWR|deduplication"
 | 14 | 40 | Database & S3 Load Monitoring Tests |
 | 15 | 25 | Performance & Request Deduplication Tests |
 | **Total** | **710** | **Comprehensive Coverage** |
+
+---
+
+## Phase 16: Bulk Regeneration Request Tests (105 tests)
+
+### 16.1 Batch Request Creation Tests (15 tests)
+
+**File:** `src/app/api/projects/[id]/regeneration-requests/__tests__/bulk-creation.test.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 726 | `POST batch request - generates batchId for multiple scenes` | UUID assigned |
+| 727 | `POST batch request - all requests share same batchId` | Consistent grouping |
+| 728 | `POST single request - batchId is null` | Single scene handling |
+| 729 | `POST batch request - image type` | Image batch creation |
+| 730 | `POST batch request - video type` | Video batch creation |
+| 731 | `POST batch request - validates all sceneIds exist` | Scene validation |
+| 732 | `POST batch request - skips scenes with pending requests` | Deduplication |
+| 733 | `POST batch request - returns created + skipped count` | Response format |
+| 734 | `POST batch request - admin only sees direct regenerate message` | Admin redirect |
+| 735 | `POST batch request - collaborator can request` | Collaborator permission |
+| 736 | `POST batch request - reader cannot request` | Reader blocked |
+| 737 | `POST batch request - creates notification for admins` | Admin notification |
+| 738 | `POST batch request - notification shows batch count` | "20 images requested" |
+| 739 | `POST batch request - email sent to admins` | Email notification |
+| 740 | `POST batch request - stores reason for all items` | Shared reason |
+
+---
+
+### 16.2 Bulk Approval API Tests (20 tests)
+
+**File:** `src/app/api/projects/[id]/regeneration-requests/bulk/__tests__/bulk-approval.test.ts`
+
+#### Bulk Approval (10 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 741 | `PUT bulk approve - requires batchId` | Validation error |
+| 742 | `PUT bulk approve - finds all pending requests in batch` | Batch lookup |
+| 743 | `PUT bulk approve - calculates total credits (3x per item)` | Cost calculation |
+| 744 | `PUT bulk approve - checks admin has enough credits` | Balance check |
+| 745 | `PUT bulk approve - returns 402 if insufficient credits` | Credits error |
+| 746 | `PUT bulk approve - deducts all credits in one transaction` | Atomic deduction |
+| 747 | `PUT bulk approve - updates all requests to approved` | Batch update |
+| 748 | `PUT bulk approve - sets maxAttempts on all` | Config applied |
+| 749 | `PUT bulk approve - sends single notification to requester` | Grouped notification |
+| 750 | `PUT bulk approve - returns success with count and credits` | Response format |
+
+#### Bulk Rejection (5 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 751 | `PUT bulk reject - requires batchId` | Validation error |
+| 752 | `PUT bulk reject - updates all requests to rejected` | Batch update |
+| 753 | `PUT bulk reject - no credit deduction on rejection` | No cost |
+| 754 | `PUT bulk reject - stores rejection note on all` | Note saved |
+| 755 | `PUT bulk reject - sends single notification to requester` | Grouped notification |
+
+#### Bulk API Authorization (5 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 756 | `PUT bulk - admin can approve/reject` | Admin permission |
+| 757 | `PUT bulk - collaborator cannot approve/reject` | Collaborator blocked |
+| 758 | `PUT bulk - reader cannot approve/reject` | Reader blocked |
+| 759 | `PUT bulk - validates project membership` | Project access |
+| 760 | `GET bulk - returns batch summary` | Batch info endpoint |
+
+---
+
+### 16.3 ApprovalPanel Batch UI Tests (20 tests)
+
+**File:** `src/components/collaboration/__tests__/approval-panel-batch.test.tsx`
+
+#### Batch Grouping (8 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 761 | `groups requests by batchId` | Batch grouping logic |
+| 762 | `shows single requests separately` | Non-batch handling |
+| 763 | `batch shows "N images requested" header` | Count display |
+| 764 | `batch shows "Batch" badge` | Visual indicator |
+| 765 | `batch shows requester avatar and name` | Requester info |
+| 766 | `batch shows creation date` | Timestamp display |
+| 767 | `batch shows shared reason` | Reason display |
+| 768 | `batch is collapsible` | Expand/collapse |
+
+#### Batch Actions (7 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 769 | `Approve All button shows count` | "Approve All (20)" |
+| 770 | `Approve All triggers bulk API` | API call |
+| 771 | `Reject All button visible` | Button rendered |
+| 772 | `Reject All triggers bulk API` | API call |
+| 773 | `Add Note input for batch` | Note input |
+| 774 | `processing state shows spinner` | Loading state |
+| 775 | `successful approval removes batch` | UI update |
+
+#### Batch Expand/Collapse (5 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 776 | `clicking header toggles expand` | Toggle behavior |
+| 777 | `expanded shows scene thumbnails` | Scene list |
+| 778 | `expanded shows scene titles/numbers` | Scene info |
+| 779 | `expanded state persists during processing` | State maintained |
+| 780 | `multiple batches can be expanded` | Multi-expand |
+
+---
+
+### 16.4 InsufficientCreditsModal Bulk Tests (12 tests)
+
+**File:** `src/components/billing/__tests__/insufficient-credits-modal-bulk.test.tsx`
+
+#### Bulk Context Display (6 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 781 | `shows bulk context when provided` | Bulk mode detection |
+| 782 | `displays scene count in message` | "100 images" |
+| 783 | `shows first 3 scenes + "+N more"` | Scene summary |
+| 784 | `shows target type (image/video)` | Type display |
+| 785 | `Request Approval button shows count` | "Request Approval for 100 images" |
+| 786 | `single context still works` | Backward compatibility |
+
+#### Bulk Request Submission (6 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 787 | `submits all sceneIds in bulk request` | Batch submission |
+| 788 | `shows success message after request` | Success feedback |
+| 789 | `closes modal after success` | Auto-close |
+| 790 | `shows error on failed submission` | Error handling |
+| 791 | `disables button during submission` | Loading state |
+| 792 | `clears context on modal close` | Cleanup |
+
+---
+
+### 16.5 Workflow Integration Tests - Images (10 tests)
+
+**File:** `src/components/workflow/scene-generator/hooks/__tests__/bulk-image-regen.test.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 793 | `handleRegenerateSelected - passes bulk context on 402` | Context passed |
+| 794 | `handleRegenerateSelected - shows all selected scenes in modal` | Correct count |
+| 795 | `handleRegenerateSelected - bulk context includes all scene data` | Full data |
+| 796 | `handleRegenerateSelected - breaks loop on insufficient credits` | Loop exit |
+| 797 | `handleGenerateAllSceneImages - bulk context on 402` | All scenes context |
+| 798 | `single scene generation - uses single context` | Single mode |
+| 799 | `collaborator selects 100 scenes - one modal shown` | No multiple modals |
+| 800 | `bulk request submission - creates batch with batchId` | API integration |
+| 801 | `after bulk request - clears selection` | Selection cleared |
+| 802 | `after bulk request - shows success toast` | User feedback |
+
+---
+
+### 16.6 Workflow Integration Tests - Videos (8 tests)
+
+**File:** `src/components/workflow/video-generator/hooks/__tests__/bulk-video-regen.test.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 803 | `handleGenerateSelected - passes bulk context on 402` | Context passed |
+| 804 | `handleGenerateSelected - shows all selected videos in modal` | Correct count |
+| 805 | `handleGenerateSelected - bulk context has targetType=video` | Type correct |
+| 806 | `generateSceneVideo - accepts bulk context parameter` | Function signature |
+| 807 | `generateSceneVideo - uses bulk handler when context provided` | Handler selection |
+| 808 | `collaborator selects videos - one modal for all` | Single modal |
+| 809 | `bulk video request - creates batch` | API integration |
+| 810 | `after bulk video request - clears selection` | Selection cleared |
+
+---
+
+### 16.7 Credits Context Bulk Handler Tests (8 tests)
+
+**File:** `src/contexts/__tests__/credits-context-bulk.test.tsx`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 811 | `handleBulkApiResponse - detects 402 response` | Status detection |
+| 812 | `handleBulkApiResponse - sets bulk context state` | State update |
+| 813 | `handleBulkApiResponse - clears single context` | Context switch |
+| 814 | `handleBulkApiResponse - returns true on 402` | Return value |
+| 815 | `handleBulkApiResponse - returns false on success` | Non-402 handling |
+| 816 | `setBulkRegenerationContext - sets state` | Direct setter |
+| 817 | `hideInsufficientCredits - clears both contexts` | Cleanup |
+| 818 | `modal renders with bulk context` | Modal integration |
+
+---
+
+### 16.8 Role-Based Bulk Request Tests (12 tests)
+
+**File:** `src/app/api/projects/[id]/regeneration-requests/__tests__/bulk-roles.test.ts`
+
+#### Admin Role (4 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 819 | `admin - can bulk approve` | Permission granted |
+| 820 | `admin - can bulk reject` | Permission granted |
+| 821 | `admin - credits deducted on bulk approve` | Cost applied |
+| 822 | `admin - sees all batch requests` | Full visibility |
+
+#### Collaborator Role (4 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 823 | `collaborator - can create batch request` | Permission granted |
+| 824 | `collaborator - cannot bulk approve` | Permission denied |
+| 825 | `collaborator - cannot bulk reject` | Permission denied |
+| 826 | `collaborator - sees own batch requests only` | Limited visibility |
+
+#### Reader Role (2 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 827 | `reader - cannot create batch request` | Permission denied |
+| 828 | `reader - cannot see batch requests` | No visibility |
+
+#### Public (2 tests)
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 829 | `public - cannot access batch endpoints` | Authentication required |
+| 830 | `public - cannot create requests on public projects` | No requests |
+
+---
+
+## Running Bulk Request Tests
+
+```bash
+# Run all bulk request tests
+npm run test -- --grep "bulk|batch|Bulk|Batch"
+
+# Run specific bulk test files
+npm run test src/app/api/projects/[id]/regeneration-requests/__tests__/bulk-creation.test.ts
+npm run test src/app/api/projects/[id]/regeneration-requests/bulk/__tests__/bulk-approval.test.ts
+npm run test src/components/collaboration/__tests__/approval-panel-batch.test.tsx
+npm run test src/components/billing/__tests__/insufficient-credits-modal-bulk.test.tsx
+
+# Run role-based bulk tests
+npm run test -- --grep "bulk.*role|Role.*bulk"
+```
+
+---
+
+## Summary
+
+| Phase | Tests | Description |
+|-------|-------|-------------|
+| 1 | 45 | Core Unit Tests (Credits, Costs, Permissions) |
+| 2 | 55 | Role & Permission Integration Tests |
+| 3 | 60 | Collaboration Workflow Tests |
+| 4 | 70 | Generation & Cost Tracking Tests |
+| 5 | 25 | Statistics & Reporting Tests |
+| 6 | 25 | Edge Cases & Security Tests |
+| 7 | 90 | Complete API Route Tests |
+| 8 | 70 | Workflow Step Tests |
+| 9 | 30 | Admin Panel Tests |
+| 10 | 40 | Complete Cost Deduction Tests |
+| 11 | 30 | End-to-End Integration Tests |
+| 12 | 50 | Service Function Unit Tests |
+| 13 | 55 | Security Attack Simulation Tests |
+| 14 | 40 | Database & S3 Load Monitoring Tests |
+| 15 | 25 | Performance & Request Deduplication Tests |
+| 16 | 105 | Bulk Regeneration Request Tests |
+| **Total** | **815** | **Comprehensive Coverage** |
 
 ---
 

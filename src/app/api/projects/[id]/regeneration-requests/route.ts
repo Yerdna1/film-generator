@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 import { verifyPermission, getProjectAdmins } from '@/lib/permissions';
 import { sendNotificationEmail, isEmailConfigured } from '@/lib/services/email';
 import type { RegenerationTargetType } from '@/types/collaboration';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(
   request: NextRequest,
@@ -140,7 +141,7 @@ export async function POST(
       const canRegenerate = await verifyPermission(userId, projectId, 'canRegenerate');
       if (canRegenerate.allowed) {
         return NextResponse.json(
-          { error: 'You have permission to regenerate directly. Use the regenerate button instead.' },
+          { error: 'As an admin, you cannot request regeneration from yourself. Please purchase more credits to continue.' },
           { status: 400 }
         );
       }
@@ -203,6 +204,9 @@ export async function POST(
     });
 
     // Create regeneration requests for each scene
+    // Generate a batchId if creating multiple requests (for bulk approval)
+    const batchId = newSceneIds.length > 1 ? uuidv4() : null;
+
     const sceneMap = new Map(scenes.map(s => [s.id, s]));
     const createdRequests = await prisma.$transaction(
       newSceneIds.map((sceneId: string) => {
@@ -215,6 +219,7 @@ export async function POST(
             targetId: sceneId,
             targetName: scene?.title || `Scene ${scene?.number || 'Unknown'}`,
             reason,
+            batchId, // Link requests in a batch for bulk approval
           },
           include: {
             requester: {

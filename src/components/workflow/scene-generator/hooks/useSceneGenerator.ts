@@ -67,7 +67,7 @@ interface NewSceneData {
 
 export function useSceneGenerator(initialProject: Project) {
   const { addScene, updateScene, deleteScene, updateSettings, projects } = useProjectStore();
-  const { handleApiResponse } = useCredits();
+  const { handleApiResponse, handleBulkApiResponse } = useCredits();
 
   // Get live project data from store
   const project = projects.find(p => p.id === initialProject.id) || initialProject;
@@ -743,6 +743,18 @@ export function useSceneGenerator(initialProject: Project) {
         imageUrl: c.imageUrl!,
       }));
 
+    // Prepare bulk context for the case of insufficient credits
+    const bulkContext = {
+      projectId: project.id,
+      scenes: scenesToRegenerate.map(s => ({
+        id: s.id,
+        title: s.title,
+        number: s.number,
+        imageUrl: s.imageUrl,
+      })),
+      targetType: 'image' as const,
+    };
+
     try {
       for (const scene of scenesToRegenerate) {
         if (stopGenerationRef.current) break;
@@ -768,7 +780,8 @@ export function useSceneGenerator(initialProject: Project) {
             MAX_RETRIES
           );
 
-          const isInsufficientCredits = await handleApiResponse(response);
+          // Use bulk handler to show all selected scenes in the modal
+          const isInsufficientCredits = await handleBulkApiResponse(response, bulkContext);
           if (isInsufficientCredits) {
             break;
           }
@@ -800,7 +813,7 @@ export function useSceneGenerator(initialProject: Project) {
       setIsGeneratingAllImages(false);
       setGeneratingImageForScene(null);
     }
-  }, [selectedScenes, project, sceneAspectRatio, imageResolution, handleApiResponse, updateScene]);
+  }, [selectedScenes, project, sceneAspectRatio, imageResolution, handleBulkApiResponse, updateScene]);
 
   return {
     // Project data
