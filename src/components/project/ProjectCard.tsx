@@ -87,10 +87,10 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('common.time.justNow');
+    if (diffMins < 60) return t('common.time.minutesAgo', { minutes: diffMins });
+    if (diffHours < 24) return t('common.time.hoursAgo', { hours: diffHours });
+    if (diffDays < 7) return t('common.time.daysAgo', { days: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -314,7 +314,7 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-green-400">{formatRealCost(cost.realCost)}</p>
-                  <p className="text-[10px] text-muted-foreground">Real Cost</p>
+                  <p className="text-[10px] text-muted-foreground">{t('common.realCost')}</p>
                 </div>
               </div>
               {/* Credits */}
@@ -324,7 +324,7 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-amber-400">{cost.credits}</p>
-                  <p className="text-[10px] text-muted-foreground">Credits</p>
+                  <p className="text-[10px] text-muted-foreground">{t('common.credits')}</p>
                 </div>
               </div>
             </div>

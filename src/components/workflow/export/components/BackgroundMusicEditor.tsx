@@ -153,7 +153,7 @@ export function BackgroundMusicEditor({
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{currentMusic.title || 'Background Music'}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {currentMusic.duration ? formatDuration(currentMusic.duration) : 'Unknown duration'}
+                  {currentMusic.duration ? formatDuration(currentMusic.duration) : t('common.unknownDuration')}
                 </p>
               </div>
               <Button

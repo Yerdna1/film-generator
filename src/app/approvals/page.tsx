@@ -128,11 +128,11 @@ export default function ApprovalsPage() {
     const userMap = new Map<string, string>();
     [...deletionRequests, ...regenerationRequests, ...promptEditRequests].forEach(r => {
       if (r.requester) {
-        userMap.set(r.requester.id, r.requester.name || r.requester.email || 'Unknown');
+        userMap.set(r.requester.id, r.requester.name || r.requester.email || t('common.unknown'));
       }
     });
     return Array.from(userMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [deletionRequests, regenerationRequests, promptEditRequests]);
+  }, [deletionRequests, regenerationRequests, promptEditRequests, t]);
 
   // Filter requests
   const filteredDeletions = useMemo(() => {
@@ -328,29 +328,29 @@ export default function ApprovalsPage() {
   const usersWithDeletions = useMemo(() => {
     const userCounts = new Map<string, { name: string; count: number }>();
     filteredDeletions.forEach(r => {
-      const current = userCounts.get(r.requesterId) || { name: r.requester?.name || 'Unknown', count: 0 };
+      const current = userCounts.get(r.requesterId) || { name: r.requester?.name || t('common.unknown'), count: 0 };
       userCounts.set(r.requesterId, { ...current, count: current.count + 1 });
     });
     return Array.from(userCounts.entries()).filter(([_, v]) => v.count > 1);
-  }, [filteredDeletions]);
+  }, [filteredDeletions, t]);
 
   const usersWithRegenerations = useMemo(() => {
     const userCounts = new Map<string, { name: string; count: number }>();
     filteredRegenerations.forEach(r => {
-      const current = userCounts.get(r.requesterId) || { name: r.requester?.name || 'Unknown', count: 0 };
+      const current = userCounts.get(r.requesterId) || { name: r.requester?.name || t('common.unknown'), count: 0 };
       userCounts.set(r.requesterId, { ...current, count: current.count + 1 });
     });
     return Array.from(userCounts.entries()).filter(([_, v]) => v.count > 1);
-  }, [filteredRegenerations]);
+  }, [filteredRegenerations, t]);
 
   const usersWithPromptEdits = useMemo(() => {
     const userCounts = new Map<string, { name: string; count: number }>();
     filteredPromptEdits.forEach(r => {
-      const current = userCounts.get(r.requesterId) || { name: r.requester?.name || 'Unknown', count: 0 };
+      const current = userCounts.get(r.requesterId) || { name: r.requester?.name || t('common.unknown'), count: 0 };
       userCounts.set(r.requesterId, { ...current, count: current.count + 1 });
     });
     return Array.from(userCounts.entries()).filter(([_, v]) => v.count > 1);
-  }, [filteredPromptEdits]);
+  }, [filteredPromptEdits, t]);
 
   const totalPending = filteredDeletions.length + filteredRegenerations.length + filteredPromptEdits.length + awaitingFinalApproval.length;
 

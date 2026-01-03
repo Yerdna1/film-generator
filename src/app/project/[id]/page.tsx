@@ -59,11 +59,7 @@ const roleIcons: Record<ProjectRole, React.ComponentType<{ className?: string }>
   reader: Eye,
 };
 
-const roleLabels: Record<ProjectRole, string> = {
-  admin: 'Admin',
-  collaborator: 'Collaborator',
-  reader: 'Viewer',
-};
+// Role labels are now handled via translations - see getRoleLabel function inside component
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
@@ -71,6 +67,9 @@ export default function ProjectWorkspacePage() {
   const searchParams = useSearchParams();
   const t = useTranslations();
   const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject, refreshScenes } = useProjectStore();
+
+  // Get translated role label
+  const getRoleLabel = (role: ProjectRole) => t(`roles.${role}`);
 
   // Check if we're in approvals-only mode (from notification link)
   const isApprovalsMode = searchParams.get('tab') === 'approvals';
@@ -373,7 +372,7 @@ export default function ProjectWorkspacePage() {
                       userRole === 'collaborator' ? 'bg-purple-500/20 text-purple-400' :
                       'bg-cyan-500/20 text-cyan-400'
                     }`}>
-                      {roleLabels[userRole]}
+                      {getRoleLabel(userRole)}
                     </span>
                   )}
                 </Button>
@@ -598,7 +597,7 @@ export default function ProjectWorkspacePage() {
                           </div>
                           <div>
                             <p className="font-medium">{t('collaboration.yourRole')}</p>
-                            <p className="text-sm text-muted-foreground">{roleLabels[userRole]}</p>
+                            <p className="text-sm text-muted-foreground">{getRoleLabel(userRole)}</p>
                           </div>
                         </>
                       );

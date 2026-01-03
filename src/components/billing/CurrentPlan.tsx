@@ -70,7 +70,7 @@ export function CurrentPlan({
               <CardDescription>{t('billing.manageSubscription')}</CardDescription>
             </div>
             <Badge className={statusColors[status] || statusColors.free}>
-              {status === 'active' ? t('billing.active') : status === 'canceled' ? t('billing.canceled') : status === 'past_due' ? 'Past Due' : t('billing.free')}
+              {status === 'active' ? t('billing.active') : status === 'canceled' ? t('billing.canceled') : status === 'past_due' ? t('billing.pastDue') : t('billing.free')}
             </Badge>
           </div>
         </CardHeader>

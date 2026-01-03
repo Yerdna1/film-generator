@@ -252,7 +252,7 @@ export function MembersPanel({
 
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">
-                  {member.user?.name || 'Unknown User'}
+                  {member.user?.name || t('common.unknownUser')}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
                   {member.user?.email}

@@ -64,7 +64,7 @@
     "profile": "Profile",
     "statistics": "Statistics",
     "admin": "Admin",
-    "billing": "Billing",
+    "billing": "Billing & Plans",
     "pricing": "Pricing",
     "approvals": "Approvals"
   },
@@ -78,7 +78,13 @@
     "allProjects": "All Projects",
     "searchProjects": "Search projects...",
     "creditsBalance": "Credits Balance",
-    "creditsUsed": "Credits Used"
+    "creditsUsed": "Credits Used",
+    "stats": {
+      "projects": "Projects",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "scenes": "Scenes"
+    }
   },
   "project": {
     "newProject": "New Project",
@@ -182,7 +188,21 @@
       "addCharactersFirst": "Please add characters in Step 2 first to generate scenes",
       "selectCharacter": "Character",
       "dialoguePlaceholder": "Enter dialogue line...",
-      "addCharactersForDialogue": "Add characters in Step 2 to enable dialogue"
+      "addCharactersForDialogue": "Add characters in Step 2 to enable dialogue",
+      "signInToView": "Sign in to view",
+      "status": {
+        "pending": "Pending",
+        "generating": "Generating...",
+        "awaitingApproval": "Awaiting Approval",
+        "deletePending": "Delete Pending",
+        "clickToRegenerate": "CLICK TO REGENERATE",
+        "clickToSelectBest": "CLICK TO SELECT BEST"
+      },
+      "prompts": {
+        "t2iPrompt": "T2I Prompt",
+        "i2vPrompt": "I2V Prompt"
+      },
+      "unknown": "Unknown"
     },
     "videos": {
       "title": "Videos",
@@ -278,6 +298,10 @@
       "davinciInstructions": "Import media into DaVinci Resolve for professional color grading and audio mixing.",
       "congratulations": "Project Complete!",
       "congratulationsDescription": "Your film project is ready for export. Download all prompts and assets to start editing.",
+      "renderVideo": "Render Video",
+      "signInToRender": "Sign in to render videos",
+      "vectcutNotConfigured": "VectCut endpoint not configured. Add your Modal endpoint URL in Settings.",
+      "rendering": "Rendering...",
       "tip": "Keep the JSON export as a backup. You can import it later to continue working on the project.",
       "timeline": "Timeline",
       "totalDuration": "total",
@@ -1133,6 +1157,64 @@
     "freeCredits": "free credits",
     "subscriptionEnding": "Subscription Ending",
     "subscriptionEndingDesc": "Your subscription will end on {date}. You will be downgraded to the Free plan.",
-    "nextBillingDate": "Next billing date"
+    "nextBillingDate": "Next billing date",
+    "pastDue": "Past Due",
+    "planFeatures": {
+      "creditsOnSignup": "{credits} credits on signup",
+      "creditsPerMonth": "{credits} credits/month",
+      "basicFeatures": "Basic features",
+      "allAiModels": "All AI models",
+      "priorityGeneration": "Priority generation",
+      "highestPriority": "Highest priority",
+      "communitySupport": "Community support",
+      "emailSupport": "Email support",
+      "prioritySupport": "Priority support",
+      "dedicatedSupport": "Dedicated support",
+      "forHobbyists": "For hobbyists",
+      "forRegularUsers": "For regular users"
+    }
+  },
+  "common": {
+    "unknown": "Unknown",
+    "unknownUser": "Unknown User",
+    "unknownDuration": "Unknown duration",
+    "realCost": "Real Cost",
+    "credits": "Credits",
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{minutes}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago"
+    }
+  },
+  "roles": {
+    "admin": "Admin",
+    "collaborator": "Collaborator",
+    "viewer": "Viewer",
+    "reader": "Viewer"
+  },
+  "statistics": {
+    "transactionTypes": {
+      "image": "Image",
+      "video": "Video",
+      "voiceover": "Voiceover",
+      "scene": "Scene",
+      "character": "Character",
+      "prompt": "Prompt",
+      "admin_bonus": "Admin Bonus",
+      "admin_deduction": "Admin Deduction",
+      "subscription": "Subscription"
+    },
+    "providers": {
+      "gemini": "Google Gemini",
+      "gemini-tts": "Gemini TTS",
+      "elevenlabs": "ElevenLabs",
+      "grok": "Grok AI",
+      "kie": "Kie.ai",
+      "nanoBanana": "Nano Banana",
+      "claude": "Claude",
+      "modal": "Modal",
+      "unknown": "Other"
+    }
   }
 }

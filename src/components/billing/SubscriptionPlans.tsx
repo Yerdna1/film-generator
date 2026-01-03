@@ -44,9 +44,54 @@ const planBadgeColors: Record<string, string> = {
   studio: 'bg-amber-500/20 text-amber-400',
 };
 
+// Feature translation mapping (Polar features to translation keys)
+const featureTranslationMap: Record<string, string> = {
+  'Basic features': 'billing.planFeatures.basicFeatures',
+  'Community support': 'billing.planFeatures.communitySupport',
+  'All AI models': 'billing.planFeatures.allAiModels',
+  'Email support': 'billing.planFeatures.emailSupport',
+  'Priority generation': 'billing.planFeatures.priorityGeneration',
+  'Priority support': 'billing.planFeatures.prioritySupport',
+  'Highest priority': 'billing.planFeatures.highestPriority',
+  'Dedicated support': 'billing.planFeatures.dedicatedSupport',
+};
+
+// Description translation mapping
+const descriptionTranslationMap: Record<string, string> = {
+  'For hobbyists': 'billing.planFeatures.forHobbyists',
+  'For regular users': 'billing.planFeatures.forRegularUsers',
+};
+
 export function SubscriptionPlans({ plans, currentPlan, onSelectPlan }: SubscriptionPlansProps) {
   const t = useTranslations();
   const [loading, setLoading] = useState<string | null>(null);
+
+  // Translate feature from Polar
+  const translateFeature = (feature: string): string => {
+    // Check for exact match
+    if (featureTranslationMap[feature]) {
+      return t(featureTranslationMap[feature]);
+    }
+    // Check for credits patterns
+    const creditsOnSignupMatch = feature.match(/^(\d+(?:,\d+)*)\s*credits?\s*on\s*signup$/i);
+    if (creditsOnSignupMatch) {
+      return t('billing.planFeatures.creditsOnSignup', { credits: creditsOnSignupMatch[1] });
+    }
+    const creditsPerMonthMatch = feature.match(/^(\d+(?:,\d+)*)\s*credits?\/month$/i);
+    if (creditsPerMonthMatch) {
+      return t('billing.planFeatures.creditsPerMonth', { credits: creditsPerMonthMatch[1] });
+    }
+    // Return original if no translation found
+    return feature;
+  };
+
+  // Translate description from Polar
+  const translateDescription = (description: string): string => {
+    if (descriptionTranslationMap[description]) {
+      return t(descriptionTranslationMap[description]);
+    }
+    return description;
+  };
 
   const handleSelect = async (plan: string) => {
     if (plan === currentPlan || plan === 'free') return;
@@ -93,7 +138,7 @@ export function SubscriptionPlans({ plans, currentPlan, onSelectPlan }: Subscrip
                     <span className="text-muted-foreground">{t('billing.perMonth')}</span>
                   )}
                 </div>
-                <CardDescription>{plan.description}</CardDescription>
+                <CardDescription>{translateDescription(plan.description)}</CardDescription>
               </CardHeader>
 
               <CardContent className="flex-1 flex flex-col">
@@ -106,7 +151,7 @@ export function SubscriptionPlans({ plans, currentPlan, onSelectPlan }: Subscrip
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                      <span>{feature}</span>
+                      <span>{translateFeature(feature)}</span>
                     </li>
                   ))}
                 </ul>

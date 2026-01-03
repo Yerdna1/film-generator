@@ -244,7 +244,7 @@ export function Header() {
                   <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
                     <Link href="/billing">
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Billing & Plans
+                      {t('nav.billing')}
                     </Link>
                   </DropdownMenuItem>
                   {user.email === 'andrej.galad@gmail.com' && (

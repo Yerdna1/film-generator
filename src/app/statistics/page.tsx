@@ -433,14 +433,14 @@ export default function StatisticsPage() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-1">
                                 <p className="font-medium text-xs truncate">
-                                  {tx.type}
+                                  {t(`statistics.transactionTypes.${tx.type}`, { defaultValue: tx.type })}
                                 </p>
                                 {isRegeneration && (
                                   <span className="text-[9px] text-orange-400">↻</span>
                                 )}
                               </div>
                               <p className="text-[10px] text-muted-foreground truncate">
-                                {tx.provider || 'Unknown'}
+                                {tx.provider ? t(`statistics.providers.${tx.provider}`, { defaultValue: tx.provider }) : t('common.unknown')}
                               </p>
                             </div>
                           </div>

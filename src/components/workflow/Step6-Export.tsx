@@ -154,8 +154,8 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                   {/* Header */}
                   <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-2">
                     <Clapperboard className="w-4 h-4 text-cyan-500" />
-                    <span className="text-sm font-medium">Render Video</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{project.scenes.length} scenes</span>
+                    <span className="text-sm font-medium">{t('steps.export.renderVideo')}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{project.scenes.length} {t('steps.export.scenes').toLowerCase()}</span>
                   </div>
 
                   <div className="max-h-[650px] overflow-y-auto p-4 space-y-4">
@@ -166,7 +166,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                         className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
                       >
                         <Lock className="w-4 h-4 text-orange-400" />
-                        <span className="text-sm text-orange-400">Sign in to render videos</span>
+                        <span className="text-sm text-orange-400">{t('steps.export.signInToRender')}</span>
                       </a>
                     )}
 
@@ -174,7 +174,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                     {isAuthenticated && !videoComposer.hasEndpoint && (
                       <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                         <p className="text-sm text-amber-600 dark:text-amber-400">
-                          VectCut endpoint not configured. Add your Modal endpoint URL in Settings.
+                          {t('steps.export.vectcutNotConfigured')}
                         </p>
                       </div>
                     )}
@@ -185,7 +185,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                         <div className="flex items-center gap-3">
                           <Loader2 className="w-5 h-5 text-cyan-500 animate-spin" />
                           <div className="flex-1">
-                            <p className="text-sm font-medium">{videoComposer.compositionState.phase || 'Rendering...'}</p>
+                            <p className="text-sm font-medium">{videoComposer.compositionState.phase || t('steps.export.rendering')}</p>
                             <div className="mt-2 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
                               <div
                                 className="h-full bg-gradient-to-r from-cyan-500 to-teal-500 transition-all"
@@ -638,7 +638,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                           className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                           <Clapperboard className="w-4 h-4" />
-                          Render Video
+                          {t('steps.export.renderVideo')}
                         </button>
                       </>
                     )}

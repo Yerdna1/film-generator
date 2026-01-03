@@ -190,7 +190,7 @@ function SceneCardComponent({
                         <Lock className="w-4 h-4 text-white/70" />
                       </div>
                       <p className="text-[10px] text-white/80 text-center px-2">
-                        Sign in to view
+                        {t('steps.scenes.signInToView')}
                       </p>
                     </a>
                   </div>
@@ -228,7 +228,7 @@ function SceneCardComponent({
                 {hasPendingRegeneration && (
                   <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                     <Clock className="w-2.5 h-2.5" />
-                    Pending
+                    {t('steps.scenes.status.pending')}
                   </Badge>
                 )}
                 {approvedRegeneration && approvedRegeneration.status === 'approved' && (
@@ -238,14 +238,14 @@ function SceneCardComponent({
                   >
                     <Badge
                       className="bg-emerald-500 text-white border-2 border-emerald-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-emerald-400 hover:scale-110 transition-all shadow-lg shadow-emerald-500/50"
-                      title={`Click to regenerate!`}
+                      title={t('steps.scenes.status.clickToRegenerate')}
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowRegenerationModal(true);
                       }}
                     >
                       <Sparkles className="w-3 h-3" />
-                      <span className="font-bold">CLICK TO REGENERATE</span>
+                      <span className="font-bold">{t('steps.scenes.status.clickToRegenerate')}</span>
                       <span className="bg-white/20 px-1 rounded">{approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x</span>
                     </Badge>
                   </motion.div>
@@ -253,7 +253,7 @@ function SceneCardComponent({
                 {approvedRegeneration && approvedRegeneration.status === 'generating' && (
                   <Badge className="bg-blue-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                     <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                    Generating...
+                    {t('steps.scenes.status.generating')}
                   </Badge>
                 )}
                 {approvedRegeneration && approvedRegeneration.status === 'selecting' && (
@@ -263,27 +263,27 @@ function SceneCardComponent({
                   >
                     <Badge
                       className="bg-amber-500 text-white border-2 border-amber-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-amber-400 hover:scale-110 transition-all shadow-lg shadow-amber-500/50"
-                      title="Click to select your preferred image"
+                      title={t('steps.scenes.status.clickToSelectBest')}
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowRegenerationModal(true);
                       }}
                     >
                       <Play className="w-3 h-3" />
-                      <span className="font-bold">CLICK TO SELECT BEST</span>
+                      <span className="font-bold">{t('steps.scenes.status.clickToSelectBest')}</span>
                     </Badge>
                   </motion.div>
                 )}
                 {approvedRegeneration && approvedRegeneration.status === 'awaiting_final' && (
                   <Badge className="bg-purple-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                     <Clock className="w-2.5 h-2.5" />
-                    Awaiting Approval
+                    {t('steps.scenes.status.awaitingApproval')}
                   </Badge>
                 )}
                 {hasPendingDeletion && (
-                  <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title="Deletion request pending admin approval">
+                  <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title={t('steps.scenes.status.deletePending')}>
                     <Trash2 className="w-2.5 h-2.5" />
-                    Delete Pending
+                    {t('steps.scenes.status.deletePending')}
                   </Badge>
                 )}
               </div>
@@ -414,7 +414,7 @@ function SceneCardComponent({
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-emerald-400 flex items-center gap-1">
                       <ImageIcon className="w-3 h-3" />
-                      T2I Prompt
+                      {t('steps.scenes.prompts.t2iPrompt')}
                     </Label>
                     <div className="flex items-center gap-0.5">
                       {!isReadOnly && (
@@ -437,7 +437,7 @@ function SceneCardComponent({
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-cyan-400 flex items-center gap-1">
                       <Film className="w-3 h-3" />
-                      I2V Prompt
+                      {t('steps.scenes.prompts.i2vPrompt')}
                     </Label>
                     <CopyButton text={scene.imageToVideoPrompt} size="icon" className="h-5 w-5" />
                   </div>
@@ -453,14 +453,14 @@ function SceneCardComponent({
                   <div className="space-y-1">
                     <Label className="text-[10px] text-purple-400 flex items-center gap-1">
                       <MessageSquare className="w-3 h-3" />
-                      Dialogue
+                      {t('steps.scenes.dialogue')}
                     </Label>
                     <div className="glass rounded p-1.5 space-y-1">
                       {scene.dialogue.map((line, idx) => {
                         const character = characters.find((c) => c.id === line.characterId);
                         return (
                           <p key={idx} className="text-[10px]">
-                            <span className="font-medium text-purple-400">{character?.name || 'Unknown'}:</span>{' '}
+                            <span className="font-medium text-purple-400">{character?.name || t('steps.scenes.unknown')}:</span>{' '}
                             <span className="text-muted-foreground">"{line.text}"</span>
                           </p>
                         );

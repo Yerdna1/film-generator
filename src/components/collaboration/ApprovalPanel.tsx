@@ -367,7 +367,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                                 {batch.requester?.name?.charAt(0) || '?'}
                               </AvatarFallback>
                             </Avatar>
-                            <span>{batch.requester?.name || 'Unknown'}</span>
+                            <span>{batch.requester?.name || t('common.unknown')}</span>
                             <span>·</span>
                             <Clock className="w-3 h-3" />
                             <span>{formatDate(batch.createdAt)}</span>
@@ -497,7 +497,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
 
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm font-medium truncate">
-                                    {request.targetName || `Scene ${request.scene?.number || 'Unknown'}`}
+                                    {request.targetName || `Scene ${request.scene?.number || t('common.unknown')}`}
                                   </div>
                                 </div>
                               </div>
@@ -564,7 +564,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                               {request.requester?.name?.charAt(0) || '?'}
                             </AvatarFallback>
                           </Avatar>
-                          <span>{request.requester?.name || 'Unknown'}</span>
+                          <span>{request.requester?.name || t('common.unknown')}</span>
                           <span>·</span>
                           <Clock className="w-3 h-3" />
                           <span>{formatDate(request.createdAt)}</span>
@@ -699,7 +699,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                               {request.requester?.name?.charAt(0) || '?'}
                             </AvatarFallback>
                           </Avatar>
-                          <span>{request.requester?.name || 'Unknown'}</span>
+                          <span>{request.requester?.name || t('common.unknown')}</span>
                           <span>·</span>
                           <Clock className="w-3 h-3" />
                           <span>{formatDate(request.createdAt)}</span>
@@ -874,7 +874,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                               {request.requester?.name?.charAt(0) || '?'}
                             </AvatarFallback>
                           </Avatar>
-                          <span>{request.requester?.name || 'Unknown'}</span>
+                          <span>{request.requester?.name || t('common.unknown')}</span>
                           <span>·</span>
                           <Clock className="w-3 h-3" />
                           <span>{formatDate(request.createdAt)}</span>

@@ -64,7 +64,7 @@
     "profile": "Profil",
     "statistics": "Štatistiky",
     "admin": "Admin",
-    "billing": "Fakturácia",
+    "billing": "Fakturácia a plány",
     "pricing": "Cenník",
     "approvals": "Schválenia"
   },
@@ -78,7 +78,13 @@
     "allProjects": "Všetky projekty",
     "searchProjects": "Hľadať projekty...",
     "creditsBalance": "Zostatok kreditov",
-    "creditsUsed": "Použité kredity"
+    "creditsUsed": "Použité kredity",
+    "stats": {
+      "projects": "Projekty",
+      "inProgress": "Rozpracované",
+      "completed": "Dokončené",
+      "scenes": "Scény"
+    }
   },
   "project": {
     "newProject": "Nový projekt",
@@ -182,7 +188,21 @@
       "addCharactersFirst": "Najprv pridajte postavy v kroku 2 pre generovanie scén",
       "selectCharacter": "Postava",
       "dialoguePlaceholder": "Zadajte dialóg...",
-      "addCharactersForDialogue": "Pridajte postavy v kroku 2 pre dialógy"
+      "addCharactersForDialogue": "Pridajte postavy v kroku 2 pre dialógy",
+      "signInToView": "Prihláste sa pre zobrazenie",
+      "status": {
+        "pending": "Čaká",
+        "generating": "Generuje sa...",
+        "awaitingApproval": "Čaká na schválenie",
+        "deletePending": "Čaká na odstránenie",
+        "clickToRegenerate": "KLIKNITE PRE REGENERÁCIU",
+        "clickToSelectBest": "KLIKNITE PRE VÝBER NAJLEPŠEJ"
+      },
+      "prompts": {
+        "t2iPrompt": "T2I Prompt",
+        "i2vPrompt": "I2V Prompt"
+      },
+      "unknown": "Neznáme"
     },
     "videos": {
       "title": "Videá",
@@ -278,6 +298,10 @@
       "davinciInstructions": "Importujte médiá do DaVinci Resolve pre profesionálnu farebnú korekciu a mixáž zvuku.",
       "congratulations": "Projekt je dokončený!",
       "congratulationsDescription": "Váš filmový projekt je pripravený na export. Stiahnite všetky prompty a súbory a začnite strihať.",
+      "renderVideo": "Renderovať video",
+      "signInToRender": "Prihláste sa pre renderovanie videí",
+      "vectcutNotConfigured": "VectCut endpoint nie je nakonfigurovaný. Pridajte URL vášho Modal endpointu v Nastaveniach.",
+      "rendering": "Renderuje sa...",
       "tip": "Uchovajte JSON export ako zálohu. Môžete ho neskôr importovať a pokračovať v práci na projekte.",
       "timeline": "Časová os",
       "totalDuration": "celkom",
@@ -1133,6 +1157,64 @@
     "freeCredits": "bezplatných kreditov",
     "subscriptionEnding": "Predplatné končí",
     "subscriptionEndingDesc": "Vaše predplatné skončí {date}. Budete preradený na bezplatný plán.",
-    "nextBillingDate": "Ďalší dátum fakturácie"
+    "nextBillingDate": "Ďalší dátum fakturácie",
+    "pastDue": "Po splatnosti",
+    "planFeatures": {
+      "creditsOnSignup": "{credits} kreditov pri registrácii",
+      "creditsPerMonth": "{credits} kreditov/mesiac",
+      "basicFeatures": "Základné funkcie",
+      "allAiModels": "Všetky AI modely",
+      "priorityGeneration": "Prioritné generovanie",
+      "highestPriority": "Najvyššia priorita",
+      "communitySupport": "Komunitná podpora",
+      "emailSupport": "E-mailová podpora",
+      "prioritySupport": "Prioritná podpora",
+      "dedicatedSupport": "Vyhradená podpora",
+      "forHobbyists": "Pre hobby tvorcov",
+      "forRegularUsers": "Pre bežných používateľov"
+    }
+  },
+  "common": {
+    "unknown": "Neznáme",
+    "unknownUser": "Neznámy používateľ",
+    "unknownDuration": "Neznáma dĺžka",
+    "realCost": "Skutočná cena",
+    "credits": "Kredity",
+    "time": {
+      "justNow": "Práve teraz",
+      "minutesAgo": "pred {minutes}m",
+      "hoursAgo": "pred {hours}h",
+      "daysAgo": "pred {days}d"
+    }
+  },
+  "roles": {
+    "admin": "Admin",
+    "collaborator": "Spolupracovník",
+    "viewer": "Zobrazovateľ",
+    "reader": "Zobrazovateľ"
+  },
+  "statistics": {
+    "transactionTypes": {
+      "image": "Obrázok",
+      "video": "Video",
+      "voiceover": "Hlasový komentár",
+      "scene": "Scéna",
+      "character": "Postava",
+      "prompt": "Prompt",
+      "admin_bonus": "Admin bonus",
+      "admin_deduction": "Admin odpočet",
+      "subscription": "Predplatné"
+    },
+    "providers": {
+      "gemini": "Google Gemini",
+      "gemini-tts": "Gemini TTS",
+      "elevenlabs": "ElevenLabs",
+      "grok": "Grok AI",
+      "kie": "Kie.ai",
+      "nanoBanana": "Nano Banana",
+      "claude": "Claude",
+      "modal": "Modal",
+      "unknown": "Iné"
+    }
   }
 }

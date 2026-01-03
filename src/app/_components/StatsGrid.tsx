@@ -30,7 +30,7 @@ export function StatsGrid({ stats, creditsData, breakdown }: StatsGridProps) {
             </div>
             <div>
               <p className="text-xl font-bold">{stats.total}</p>
-              <p className="text-[10px] text-muted-foreground">Projects</p>
+              <p className="text-[10px] text-muted-foreground">{t('dashboard.stats.projects')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -39,7 +39,7 @@ export function StatsGrid({ stats, creditsData, breakdown }: StatsGridProps) {
             </div>
             <div>
               <p className="text-xl font-bold">{stats.inProgress}</p>
-              <p className="text-[10px] text-muted-foreground">In Progress</p>
+              <p className="text-[10px] text-muted-foreground">{t('dashboard.stats.inProgress')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export function StatsGrid({ stats, creditsData, breakdown }: StatsGridProps) {
             </div>
             <div>
               <p className="text-xl font-bold">{stats.completed}</p>
-              <p className="text-[10px] text-muted-foreground">Completed</p>
+              <p className="text-[10px] text-muted-foreground">{t('dashboard.stats.completed')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export function StatsGrid({ stats, creditsData, breakdown }: StatsGridProps) {
             </div>
             <div>
               <p className="text-xl font-bold">{stats.totalScenes}</p>
-              <p className="text-[10px] text-muted-foreground">Scenes</p>
+              <p className="text-[10px] text-muted-foreground">{t('dashboard.stats.scenes')}</p>
             </div>
           </div>
         </div>
