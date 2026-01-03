@@ -2,8 +2,8 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
-// Test database URL
-const TEST_DB_URL = 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterfly-agblumty-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
+// Test database URL - Use direct connection (not pooler) to avoid transaction issues
+const TEST_DB_URL = 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterfly-agblumty.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
 
 export default defineConfig({
   plugins: [react()],
@@ -44,6 +44,10 @@ export default defineConfig({
       forks: {
         singleFork: true
       }
-    }
+    },
+    sequence: {
+      concurrent: false
+    },
+    fileParallelism: false
   }
 })

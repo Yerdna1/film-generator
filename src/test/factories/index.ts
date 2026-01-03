@@ -29,11 +29,14 @@ export async function createFullTestEnvironment(options: {
   const adminCredits = options.adminCredits ?? 1000
   const collaboratorCredits = options.collaboratorCredits ?? 500
 
-  // Create users
-  const admin = await createTestAdmin({ email: 'admin@test.com' })
-  const collaborator = await createTestCollaborator({ email: 'collaborator@test.com' })
-  const reader = await createTestReader({ email: 'reader@test.com' })
-  const outsider = await createTestUser({ email: 'outsider@test.com', name: 'Outsider User' })
+  // Use unique email suffix to avoid collisions between tests
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  // Create users with unique emails
+  const admin = await createTestAdmin({ email: `admin-${uniqueSuffix}@test.com` })
+  const collaborator = await createTestCollaborator({ email: `collaborator-${uniqueSuffix}@test.com` })
+  const reader = await createTestReader({ email: `reader-${uniqueSuffix}@test.com` })
+  const outsider = await createTestUser({ email: `outsider-${uniqueSuffix}@test.com`, name: 'Outsider User' })
 
   // Create credits
   const adminCreds = await createTestCredits(admin.id, { balance: adminCredits })
