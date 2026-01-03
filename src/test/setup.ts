@@ -1,26 +1,30 @@
-import { beforeAll, afterAll, afterEach, vi, expect } from 'vitest'
-import { PrismaClient } from '@prisma/client'
+import { beforeAll, afterAll, afterEach, vi, expect, beforeEach } from 'vitest'
 
-// SECURITY: Test database URL must be provided via environment variable
-// Never hardcode database credentials in source code
-if (!process.env.TEST_DATABASE_URL) {
-  throw new Error(
-    'TEST_DATABASE_URL environment variable is required for tests. ' +
-    'Please set it in .env.test file.'
-  );
-}
+// Test database URL - must match the URL in vitest.config.mts
+const TEST_DB_URL = 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterfly-agblumty.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
 
-// Set environment variable for services that import their own prisma client
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
-
-// Create test database client
-export const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.TEST_DATABASE_URL
+// Use vi.hoisted to create a SINGLE shared client that's available to vi.mock
+// vi.hoisted runs before vi.mock, ensuring the client exists when the mock factory runs
+const { testPrisma } = vi.hoisted(() => {
+  const { PrismaClient } = require('@prisma/client')
+  const client = new PrismaClient({
+    datasources: {
+      db: {
+        url: 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterfly-agblumty.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
+      }
     }
-  }
+  })
+  return { testPrisma: client }
 })
+
+// Export the shared client for factories
+export const prisma = testPrisma
+
+// Mock the @/lib/db/prisma module to use the SAME shared client
+vi.mock('@/lib/db/prisma', () => ({
+  prisma: testPrisma,
+  default: testPrisma
+}))
 
 // Mock external services
 vi.mock('@/lib/services/s3-upload', () => ({
@@ -34,14 +38,8 @@ vi.mock('@/lib/services/email', () => ({
   sendNotificationEmail: vi.fn().mockResolvedValue(true)
 }))
 
-// Global setup
-beforeAll(async () => {
-  // Connect to database
-  await prisma.$connect()
-})
-
-// Cleanup after each test
-afterEach(async () => {
+// Database cleanup function - used before and after tests
+async function cleanupDatabase() {
   // Clean up test data in reverse order of dependencies
   await prisma.creditTransaction.deleteMany({})
   await prisma.credits.deleteMany({})
@@ -56,9 +54,28 @@ afterEach(async () => {
   await prisma.project.deleteMany({})
   await prisma.apiKeys.deleteMany({})
   await prisma.user.deleteMany({})
+}
 
+// Global setup
+beforeAll(async () => {
+  // Connect to database
+  await prisma.$connect()
+  // Initial cleanup to ensure clean state
+  await cleanupDatabase()
+})
+
+// Cleanup BEFORE each test to ensure clean slate
+import { beforeEach } from 'vitest'
+beforeEach(async () => {
+  // Ensure database is clean before test starts
+  await cleanupDatabase()
   // Clear all mocks
   vi.clearAllMocks()
+})
+
+// Also cleanup after each test for good measure
+afterEach(async () => {
+  await cleanupDatabase()
 })
 
 // Global teardown
