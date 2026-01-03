@@ -933,7 +933,17 @@
       "finalApproved": "Regeneration Approved",
       "finalApprovedMessage": "Your selected {type} for \"{title}\" has been approved and applied!",
       "batchApproved": "Batch Regeneration Approved",
-      "batchApprovedMessage": "Your batch request for {count} {type} was approved! You can now regenerate each up to {maxAttempts} times."
+      "batchApprovedMessage": "Your batch request for {count} {type} was approved! You can now regenerate each up to {maxAttempts} times.",
+      "finalApprovalRequired": "Final Approval Required",
+      "selectionReady": "Selection Ready",
+      "requestedImages": "{user} requested to regenerate images for: {scenes}",
+      "requestedVideo": "{user} requested to regenerate video for: {scene}",
+      "selectedForApproval": "{user} selected a regenerated {type} for \"{title}\". Please review and approve."
+    },
+    "types": {
+      "image": "image",
+      "video": "video",
+      "audio": "audio"
     }
   },
   "approvals": {

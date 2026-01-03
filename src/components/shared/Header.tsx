@@ -9,7 +9,6 @@ import {
   Film,
   Plus,
   Settings,
-  HelpCircle,
   Menu,
   X,
   ChevronDown,
@@ -21,7 +20,6 @@ import {
   Shield,
   Globe,
   CreditCard,
-  Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -129,18 +127,6 @@ export function Header() {
                 </Button>
               </Link>
             ))}
-            {/* Subscription Plan Badge */}
-            {user && subscriptionPlan && (
-              <Link href="/billing">
-                <Badge
-                  variant="outline"
-                  className={`ml-2 cursor-pointer hover:opacity-80 transition-opacity ${getPlanBadge().className}`}
-                >
-                  <Crown className="w-3 h-3 mr-1" />
-                  {getPlanBadge().label}
-                </Badge>
-              </Link>
-            )}
           </nav>
 
           {/* Right side actions */}
@@ -151,34 +137,8 @@ export function Header() {
             {/* Language Switcher */}
             <LanguageSwitcher />
 
-            {/* Settings - only for paid subscribers or admin */}
-            {user && (isAdmin || (subscriptionPlan && subscriptionPlan !== 'free')) && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
-                asChild
-              >
-                <Link href="/settings">
-                  <Settings className="w-5 h-5" />
-                </Link>
-              </Button>
-            )}
-
             {/* Theme Toggle */}
             <ThemeToggle />
-
-            {/* Help */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden sm:flex text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
-              asChild
-            >
-              <Link href="/help">
-                <HelpCircle className="w-5 h-5" />
-              </Link>
-            </Button>
 
             {/* Notifications (for logged-in users) */}
             {user && <NotificationBell />}

@@ -10,10 +10,7 @@ import {
   User,
   Film,
   Coins,
-  Calendar,
   Settings,
-  Shield,
-  TrendingUp,
   Image as ImageIcon,
   Video,
   Mic,
@@ -24,7 +21,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useProjectStore } from '@/lib/stores/project-store';
 
 interface CreditsData {
@@ -128,116 +124,76 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* Profile Header */}
+      <div className="px-4 py-8">
+        <div className="max-w-[1600px] mx-auto space-y-8">
+          {/* Profile Header - Compact */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            className="glass rounded-xl p-4"
           >
-            <Card className="glass border-white/10 overflow-hidden">
-              <div className="h-24 bg-gradient-to-r from-purple-600/30 via-cyan-600/30 to-pink-600/30" />
-              <CardContent className="p-6 -mt-12">
-                <div className="flex flex-col md:flex-row md:items-end gap-6">
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-4xl font-bold text-white shadow-xl border-4 border-background">
-                    {userInitial}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h2 className="text-2xl font-bold">{userName}</h2>
-                      <Badge variant="outline" className="border-cyan-500/30 text-cyan-400">
-                        {session ? t('proPlan') : t('freePlan')}
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground">{userEmail}</p>
-                    <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {t('joined')} Dec 2024
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Film className="w-4 h-4" />
-                        {projects.length} {t('projects')}
-                      </span>
-                    </div>
-                  </div>
-                  {!session && (
-                    <div className="flex gap-2">
-                      <Link href="/auth/login">
-                        <Button variant="outline" className="border-white/10">
-                          {tAuth('signIn')}
-                        </Button>
-                      </Link>
-                      <Link href="/auth/register">
-                        <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0">
-                          {tAuth('createAccount')}
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-xl font-bold text-white">
+                {userInitial}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold truncate">{userName}</h2>
+                  <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 text-xs">
+                    {session ? t('proPlan') : t('freePlan')}
+                  </Badge>
                 </div>
-              </CardContent>
-            </Card>
+                <p className="text-sm text-muted-foreground truncate">{userEmail}</p>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Film className="w-4 h-4" />
+                  {projects.length} {t('projects')}
+                </span>
+              </div>
+              {!session && (
+                <div className="flex gap-2">
+                  <Link href="/auth/login">
+                    <Button variant="outline" size="sm" className="border-white/10">
+                      {tAuth('signIn')}
+                    </Button>
+                  </Link>
+                  <Link href="/auth/register">
+                    <Button size="sm" className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0">
+                      {tAuth('createAccount')}
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           </motion.div>
 
-          {/* Credits Overview */}
+          {/* Credits & Stats Row */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            className="grid grid-cols-2 md:grid-cols-5 gap-4"
           >
-            <Card className="glass border-white/10 border-l-4 border-l-amber-500">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-amber-400" />
-                  {t('creditsOverview')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t('availableBalance')}</p>
-                    <p className="text-4xl font-bold text-amber-400">
-                      {creditsData?.credits.balance || 0}
-                      <span className="text-lg text-muted-foreground ml-1">pts</span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t('totalSpent')}</p>
-                    <p className="text-2xl font-semibold text-red-400">
-                      -{creditsData?.credits.totalSpent || 0}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t('totalEarned')}</p>
-                    <p className="text-2xl font-semibold text-green-400">
-                      +{creditsData?.credits.totalEarned || 0}
-                    </p>
-                  </div>
+            {/* Credits Overview - spans 1 column on mobile, 1 on desktop */}
+            <Card className="glass border-white/10 border-l-4 border-l-amber-500 col-span-2 md:col-span-1">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Coins className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-medium text-muted-foreground">{t('creditsOverview')}</span>
                 </div>
-                <div className="mt-6">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">{t('usage')}</span>
-                    <span>
-                      {creditsData?.credits.totalSpent || 0} / {creditsData?.credits.totalEarned || 0}
-                    </span>
-                  </div>
-                  <Progress
-                    value={creditsData ? (creditsData.credits.totalSpent / creditsData.credits.totalEarned) * 100 : 0}
-                    className="h-2"
-                  />
+                <p className="text-3xl font-bold text-amber-400 mb-2">
+                  {creditsData?.credits.balance || 0}
+                  <span className="text-sm text-muted-foreground ml-1">pts</span>
+                </p>
+                <div className="flex gap-3 text-xs">
+                  <span className="text-red-400">-{creditsData?.credits.totalSpent || 0}</span>
+                  <span className="text-green-400">+{creditsData?.credits.totalEarned || 0}</span>
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
 
-          {/* Stats Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          >
+            {/* Stats Cards */}
             <Card className="glass border-white/10">
               <CardContent className="p-4 text-center">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center mx-auto mb-2">
@@ -345,53 +301,6 @@ export default function ProfilePage() {
             </Card>
           </motion.div>
 
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="grid md:grid-cols-3 gap-4"
-          >
-            <Link href="/settings">
-              <Card className="glass border-white/10 cursor-pointer hover:bg-white/5 transition-colors">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{t('quickActions.settings')}</p>
-                    <p className="text-xs text-muted-foreground">{t('quickActions.settingsDesc')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/help">
-              <Card className="glass border-white/10 cursor-pointer hover:bg-white/5 transition-colors">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{t('quickActions.help')}</p>
-                    <p className="text-xs text-muted-foreground">{t('quickActions.helpDesc')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/">
-              <Card className="glass border-white/10 cursor-pointer hover:bg-white/5 transition-colors">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{t('quickActions.dashboard')}</p>
-                    <p className="text-xs text-muted-foreground">{t('quickActions.dashboardDesc')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </motion.div>
         </div>
       </div>
     </div>

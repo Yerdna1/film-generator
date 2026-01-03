@@ -19,7 +19,7 @@ export function StatsGrid({ stats, creditsData, breakdown }: StatsGridProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="glass rounded-xl p-4 mb-8"
+      className="glass rounded-xl p-4 mt-12 mb-8"
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Project Stats */}

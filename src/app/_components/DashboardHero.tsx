@@ -2,15 +2,19 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Plus, Sparkles, Upload } from 'lucide-react';
+import { Plus, Sparkles, Upload, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface DashboardHeroProps {
   onNewProject: () => void;
   onImportProject: () => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  hasProjects: boolean;
 }
 
-export function DashboardHero({ onNewProject, onImportProject }: DashboardHeroProps) {
+export function DashboardHero({ onNewProject, onImportProject, searchQuery, onSearchChange, hasProjects }: DashboardHeroProps) {
   const t = useTranslations();
 
   return (
@@ -18,7 +22,7 @@ export function DashboardHero({ onNewProject, onImportProject }: DashboardHeroPr
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="mb-12"
+      className="mb-8"
     >
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
         <div>
@@ -44,8 +48,19 @@ export function DashboardHero({ onNewProject, onImportProject }: DashboardHeroPr
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="flex gap-3"
+          className="flex gap-3 items-center"
         >
+          {hasProjects && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder={t('dashboard.searchProjects')}
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-9 h-12 w-48 lg:w-64 glass border-white/10 focus:border-purple-500/50 transition-colors"
+              />
+            </div>
+          )}
           <Button
             size="lg"
             variant="outline"

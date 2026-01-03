@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [importProjectOpen, setImportProjectOpen] = useState(false);
   const [userStatus, setUserStatus] = useState<{ isApproved: boolean; isBlocked: boolean } | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Check user approval status
   useEffect(() => {
@@ -79,6 +80,17 @@ export default function DashboardPage() {
       <DashboardHero
         onNewProject={() => setNewProjectOpen(true)}
         onImportProject={() => setImportProjectOpen(true)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        hasProjects={projects.length > 0}
+      />
+
+      {/* Projects Content */}
+      <ProjectsSection
+        projects={projects}
+        projectCosts={projectCosts}
+        onCreateProject={() => setNewProjectOpen(true)}
+        searchQuery={searchQuery}
       />
 
       {/* Combined Stats Row */}
@@ -89,13 +101,6 @@ export default function DashboardPage() {
           breakdown={creditsBreakdown}
         />
       )}
-
-      {/* Projects Content */}
-      <ProjectsSection
-        projects={projects}
-        projectCosts={projectCosts}
-        onCreateProject={() => setNewProjectOpen(true)}
-      />
 
       {/* Dialogs */}
       <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />

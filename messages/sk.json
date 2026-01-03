@@ -933,7 +933,17 @@
       "finalApproved": "Regenerácia schválená",
       "finalApprovedMessage": "Váš vybraný {type} pre \"{title}\" bol schválený a aplikovaný!",
       "batchApproved": "Hromadná regenerácia schválená",
-      "batchApprovedMessage": "Vaša hromadná žiadosť pre {count} {type} bola schválená! Každý môžete regenerovať až {maxAttempts}-krát."
+      "batchApprovedMessage": "Vaša hromadná žiadosť pre {count} {type} bola schválená! Každý môžete regenerovať až {maxAttempts}-krát.",
+      "finalApprovalRequired": "Vyžaduje sa finálne schválenie",
+      "selectionReady": "Výber pripravený",
+      "requestedImages": "{user} požiadal o regeneráciu obrázkov pre: {scenes}",
+      "requestedVideo": "{user} požiadal o regeneráciu videa pre: {scene}",
+      "selectedForApproval": "{user} vybral regenerovaný {type} pre \"{title}\". Prosím, skontrolujte a schváľte."
+    },
+    "types": {
+      "image": "obrázok",
+      "video": "video",
+      "audio": "zvuk"
     }
   },
   "approvals": {

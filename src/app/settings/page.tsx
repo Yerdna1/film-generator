@@ -119,8 +119,8 @@ export default function SettingsPage() {
     <div className="min-h-screen">
       <SettingsHeader />
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="px-4 py-8">
+        <div className="max-w-[1600px] mx-auto">
           <Tabs defaultValue="api" className="space-y-6">
             <TabsList className="glass w-full md:w-auto justify-start">
               <TabsTrigger value="api" className="gap-2">

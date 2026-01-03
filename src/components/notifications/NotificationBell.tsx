@@ -114,12 +114,15 @@ export function NotificationBell() {
   // Translate notification title
   const translateTitle = (title: string): string => {
     const titleMap: Record<string, string> = {
+      'Regeneration Request': 'notifications.regenerationRequest.title',
       'Regeneration Request Approved': 'notifications.regenerationRequest.approved',
       'Regeneration Approved': 'notifications.regenerationRequest.finalApproved',
       'Batch Regeneration Approved': 'notifications.regenerationRequest.batchApproved',
       'Regeneration Request Rejected': 'notifications.regenerationRequest.rejected',
       'Regeneration Completed': 'notifications.regenerationRequest.completed',
       'Regeneration Failed': 'notifications.regenerationRequest.failed',
+      'Final Approval Required': 'notifications.regenerationRequest.finalApprovalRequired',
+      'Selection Ready': 'notifications.regenerationRequest.selectionReady',
     };
     return titleMap[title] ? t(titleMap[title]) : title;
   };
@@ -130,7 +133,7 @@ export function NotificationBell() {
     const approvedMatch = message.match(/^Your (\w+) regeneration request for "(.+?)" was approved! You can now regenerate it up to (\d+) times\.$/);
     if (approvedMatch) {
       return t('notifications.regenerationRequest.approvedMessage', {
-        type: approvedMatch[1],
+        type: t(`notifications.types.${approvedMatch[1]}`, { defaultValue: approvedMatch[1] }),
         title: approvedMatch[2],
         maxAttempts: approvedMatch[3]
       });
@@ -140,7 +143,7 @@ export function NotificationBell() {
     const finalApprovedMatch = message.match(/^Your selected (\w+) for "(.+?)" has been approved and applied!$/);
     if (finalApprovedMatch) {
       return t('notifications.regenerationRequest.finalApprovedMessage', {
-        type: finalApprovedMatch[1],
+        type: t(`notifications.types.${finalApprovedMatch[1]}`, { defaultValue: finalApprovedMatch[1] }),
         title: finalApprovedMatch[2]
       });
     }
@@ -150,8 +153,36 @@ export function NotificationBell() {
     if (batchMatch) {
       return t('notifications.regenerationRequest.batchApprovedMessage', {
         count: batchMatch[1],
-        type: batchMatch[2],
+        type: t(`notifications.types.${batchMatch[2]}`, { defaultValue: batchMatch[2] }),
         maxAttempts: '3' // Default
+      });
+    }
+
+    // Match "{user} requested to regenerate images for: {scenes}"
+    const requestImagesMatch = message.match(/^(.+?) requested to regenerate images for: (.+)$/);
+    if (requestImagesMatch) {
+      return t('notifications.regenerationRequest.requestedImages', {
+        user: requestImagesMatch[1],
+        scenes: requestImagesMatch[2]
+      });
+    }
+
+    // Match "{user} requested to regenerate video for: {scene}"
+    const requestVideoMatch = message.match(/^(.+?) requested to regenerate video for: (.+)$/);
+    if (requestVideoMatch) {
+      return t('notifications.regenerationRequest.requestedVideo', {
+        user: requestVideoMatch[1],
+        scene: requestVideoMatch[2]
+      });
+    }
+
+    // Match "{user} selected a regenerated {type} for "{title}". Please review and approve."
+    const selectedMatch = message.match(/^(.+?) selected a regenerated (\w+) for "(.+?)"\. Please review and approve\.$/);
+    if (selectedMatch) {
+      return t('notifications.regenerationRequest.selectedForApproval', {
+        user: selectedMatch[1],
+        type: t(`notifications.types.${selectedMatch[2]}`, { defaultValue: selectedMatch[2] }),
+        title: selectedMatch[3]
       });
     }
 
