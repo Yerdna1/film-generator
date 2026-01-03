@@ -17,8 +17,7 @@ const PRODUCTS_TO_CREATE = [
     recurringInterval: 'month' as const,
     prices: [
       {
-        type: 'recurring' as const,
-        recurringInterval: 'month' as const,
+        amountType: 'fixed' as const,
         priceAmount: 900, // $9.00 in cents
         priceCurrency: 'usd',
       },
@@ -34,8 +33,7 @@ const PRODUCTS_TO_CREATE = [
     recurringInterval: 'month' as const,
     prices: [
       {
-        type: 'recurring' as const,
-        recurringInterval: 'month' as const,
+        amountType: 'fixed' as const,
         priceAmount: 2900, // $29.00 in cents
         priceCurrency: 'usd',
       },
@@ -51,8 +49,7 @@ const PRODUCTS_TO_CREATE = [
     recurringInterval: 'month' as const,
     prices: [
       {
-        type: 'recurring' as const,
-        recurringInterval: 'month' as const,
+        amountType: 'fixed' as const,
         priceAmount: 7900, // $79.00 in cents
         priceCurrency: 'usd',
       },
@@ -94,11 +91,11 @@ async function setupProducts() {
 
       try {
         const product = await polar.products.create({
-          organizationId: org.id,
           name: productConfig.name,
           description: productConfig.description,
           prices: productConfig.prices,
-          isRecurring: true,
+          recurringInterval: productConfig.recurringInterval,
+          metadata: productConfig.metadata,
         });
 
         createdProducts.push({
