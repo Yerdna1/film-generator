@@ -175,7 +175,7 @@ export default function ApprovalsPage() {
       const response = await fetch(`/api/projects/${request.projectId}/deletion-requests/${request.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: action }),
+        body: JSON.stringify({ approved: action === 'approved' }),
       });
       if (response.ok) {
         setDeletionRequests(prev => prev.filter(r => r.id !== request.id));
