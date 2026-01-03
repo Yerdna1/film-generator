@@ -966,6 +966,24 @@
     "scene": "Scéna",
     "submittingRequest": "Odosielam žiadosť..."
   },
+  "regeneration": {
+    "allAttemptsUsed": "Všetky pokusy boli vyčerpané. Vyberte najlepšiu možnosť na odoslanie na konečné schválenie.",
+    "generateOptions": "Vygenerujte až {maxAttempts} možností a potom vyberte tú najlepšiu. {attemptsRemaining, plural, one {Zostáva # pokus} few {Zostávajú # pokusy} other {Zostáva # pokusov}}.",
+    "regenerationOptions": "Možnosti regenerácie",
+    "generated": "Vygenerované",
+    "selectBestOption": "Vyberte najlepšiu možnosť",
+    "readyToGenerate": "Pripravené na generovanie",
+    "noOptionsYet": "Zatiaľ žiadne možnosti",
+    "clickRegenerate": "Kliknite na \"Generovať\" pre vytvorenie prvej možnosti",
+    "generating": "Generujem...",
+    "generate": "Generovať",
+    "attemptsLeft": "zostáva {count}",
+    "submitSelection": "Odoslať výber",
+    "submitting": "Odosielam...",
+    "option": "Možnosť",
+    "slot": "Pozícia",
+    "scene": "Scéna"
+  },
   "statistics": {
     "title": "Štatistiky využitia",
     "subtitle": "Sledujte vaše API náklady a využitie",

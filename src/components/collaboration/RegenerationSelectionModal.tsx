@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export function RegenerationSelectionModal({
   onRegenerate,
   onSelect,
 }: RegenerationSelectionModalProps) {
+  const t = useTranslations('regeneration');
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,13 +79,13 @@ export function RegenerationSelectionModal({
             ) : (
               <Video className="w-5 h-5 text-cyan-400" />
             )}
-            Regeneration Options - {request.targetName || 'Scene'}
+            {t('regenerationOptions')} - {request.targetName || t('scene')}
           </DialogTitle>
           <DialogDescription>
             {request.status === 'selecting' ? (
-              'All attempts have been used. Please select the best option to submit for final approval.'
+              t('allAttemptsUsed')
             ) : (
-              `Generate up to ${request.maxAttempts} options and then select the best one. ${attemptsRemaining} attempt${attemptsRemaining !== 1 ? 's' : ''} remaining.`
+              t('generateOptions', { maxAttempts: request.maxAttempts, attemptsRemaining })
             )}
           </DialogDescription>
         </DialogHeader>
@@ -92,7 +94,7 @@ export function RegenerationSelectionModal({
           {/* Status badges */}
           <div className="flex items-center gap-2 mb-4">
             <Badge variant="outline" className="border-purple-500/30 text-purple-400">
-              {request.attemptsUsed}/{request.maxAttempts} Generated
+              {request.attemptsUsed}/{request.maxAttempts} {t('generated')}
             </Badge>
             <Badge
               variant="outline"
@@ -105,9 +107,9 @@ export function RegenerationSelectionModal({
               }
             >
               {request.status === 'selecting'
-                ? 'Select Best Option'
+                ? t('selectBestOption')
                 : request.status === 'approved'
-                ? 'Ready to Generate'
+                ? t('readyToGenerate')
                 : request.status}
             </Badge>
           </div>
@@ -149,7 +151,7 @@ export function RegenerationSelectionModal({
                   {/* Option number badge */}
                   <div className="absolute top-2 left-2">
                     <Badge className="bg-black/70 text-white border-0">
-                      Option {index + 1}
+                      {t('option')} {index + 1}
                     </Badge>
                   </div>
 
@@ -180,7 +182,7 @@ export function RegenerationSelectionModal({
                   <div className="text-center text-muted-foreground">
                     <RefreshCw className="w-10 h-10 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">
-                      Slot {generatedUrls.length + index + 1}
+                      {t('slot')} {generatedUrls.length + index + 1}
                     </p>
                   </div>
                 </div>
@@ -189,9 +191,9 @@ export function RegenerationSelectionModal({
           ) : (
             <div className="text-center py-12 bg-black/20 rounded-lg border border-white/10">
               <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground mb-2">No images generated yet</p>
+              <p className="text-muted-foreground mb-2">{t('noOptionsYet')}</p>
               <p className="text-sm text-muted-foreground">
-                Click &quot;Regenerate&quot; to generate your first option
+                {t('clickRegenerate')}
               </p>
             </div>
           )}
@@ -209,12 +211,12 @@ export function RegenerationSelectionModal({
               {isRegenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
+                  {t('generating')}
                 </>
               ) : (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Regenerate ({attemptsRemaining} left)
+                  {t('generate')} ({t('attemptsLeft', { count: attemptsRemaining })})
                 </>
               )}
             </Button>
@@ -229,12 +231,12 @@ export function RegenerationSelectionModal({
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Submitting...
+                {t('submitting')}
               </>
             ) : (
               <>
                 <Send className="w-4 h-4 mr-2" />
-                Submit Selection for Approval
+                {t('submitSelection')}
               </>
             )}
           </Button>

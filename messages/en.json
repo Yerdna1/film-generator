@@ -966,6 +966,24 @@
     "scene": "Scene",
     "submittingRequest": "Submitting Request..."
   },
+  "regeneration": {
+    "allAttemptsUsed": "All attempts have been used. Please select the best option to submit for final approval.",
+    "generateOptions": "Generate up to {maxAttempts} options and then select the best one. {attemptsRemaining, plural, one {# attempt} other {# attempts}} remaining.",
+    "regenerationOptions": "Regeneration Options",
+    "generated": "Generated",
+    "selectBestOption": "Select Best Option",
+    "readyToGenerate": "Ready to Generate",
+    "noOptionsYet": "No options generated yet",
+    "clickRegenerate": "Click \"Generate\" to create your first option",
+    "generating": "Generating...",
+    "generate": "Generate",
+    "attemptsLeft": "{count} left",
+    "submitSelection": "Submit Selection",
+    "submitting": "Submitting...",
+    "option": "Option",
+    "slot": "Slot",
+    "scene": "Scene"
+  },
   "statistics": {
     "title": "Usage Statistics",
     "subtitle": "Track your API costs and usage",
