@@ -333,8 +333,20 @@ export async function getUserAccessibleProjectsSummary(userId: string) {
     },
   });
 
+  // Helper to check if a URL is actually a URL (not base64 data)
+  const isValidUrl = (url: string | null): boolean => {
+    if (!url) return false;
+    // Base64 data URLs start with "data:" and are very long
+    // Valid URLs start with http:// or https://
+    return url.startsWith('http://') || url.startsWith('https://');
+  };
+
   // Transform owned projects
-  const ownedWithRole = ownedProjects.map((project) => ({
+  const ownedWithRole = ownedProjects.map((project) => {
+    const sceneImageUrl = project.scenes[0]?.imageUrl;
+    const sceneVideoUrl = project.scenes[0]?.videoUrl;
+
+    return {
     id: project.id,
     name: project.name,
     userId: project.userId,
@@ -346,19 +358,25 @@ export async function getUserAccessibleProjectsSummary(userId: string) {
     story: project.story as { title?: string; concept?: string; genre?: string },
     renderedVideoUrl: project.renderedVideoUrl,
     renderedDraftUrl: project.renderedDraftUrl,
-    thumbnailUrl: project.scenes[0]?.imageUrl || null,
-    thumbnailVideoUrl: project.scenes[0]?.videoUrl || null,
+    // Only include URLs, not base64 data (which can be 1MB+)
+    thumbnailUrl: isValidUrl(sceneImageUrl) ? sceneImageUrl : null,
+    thumbnailVideoUrl: isValidUrl(sceneVideoUrl) ? sceneVideoUrl : null,
     scenesCount: project._count.scenes,
     charactersCount: project._count.characters,
     role: 'admin' as ProjectRole,
     isOwner: true,
     owner: undefined as { id: string; name: string | null; image: string | null } | undefined,
-  }));
+  };
+  });
 
   // Transform shared projects
   const sharedWithRole = sharedMemberships
     .filter((m) => m.project.userId !== userId)
-    .map((membership) => ({
+    .map((membership) => {
+      const sceneImageUrl = membership.project.scenes[0]?.imageUrl;
+      const sceneVideoUrl = membership.project.scenes[0]?.videoUrl;
+
+      return {
       id: membership.project.id,
       name: membership.project.name,
       userId: membership.project.userId,
@@ -370,14 +388,16 @@ export async function getUserAccessibleProjectsSummary(userId: string) {
       story: membership.project.story as { title?: string; concept?: string; genre?: string },
       renderedVideoUrl: membership.project.renderedVideoUrl,
       renderedDraftUrl: membership.project.renderedDraftUrl,
-      thumbnailUrl: membership.project.scenes[0]?.imageUrl || null,
-      thumbnailVideoUrl: membership.project.scenes[0]?.videoUrl || null,
+      // Only include URLs, not base64 data (which can be 1MB+)
+      thumbnailUrl: isValidUrl(sceneImageUrl) ? sceneImageUrl : null,
+      thumbnailVideoUrl: isValidUrl(sceneVideoUrl) ? sceneVideoUrl : null,
       scenesCount: membership.project._count.scenes,
       charactersCount: membership.project._count.characters,
       role: membership.role as ProjectRole,
       isOwner: false,
       owner: membership.project.user,
-    }));
+    };
+    });
 
   return [...ownedWithRole, ...sharedWithRole];
 }
