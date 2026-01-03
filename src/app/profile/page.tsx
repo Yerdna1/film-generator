@@ -64,9 +64,9 @@ export default function ProfilePage() {
     fetchCredits();
   }, []);
 
-  // Calculate stats
-  const totalScenes = projects.reduce((acc, p) => acc + p.scenes.length, 0);
-  const totalCharacters = projects.reduce((acc, p) => acc + p.characters.length, 0);
+  // Calculate stats (safe accessors for summary data without full arrays)
+  const totalScenes = projects.reduce((acc, p) => acc + (p.scenes?.length || 0), 0);
+  const totalCharacters = projects.reduce((acc, p) => acc + (p.characters?.length || 0), 0);
   const completedProjects = projects.filter((p) => p.isComplete).length;
 
   // Calculate usage breakdown from transactions

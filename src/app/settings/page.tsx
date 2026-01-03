@@ -23,50 +23,7 @@ export default function SettingsPage() {
   const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = session?.user?.email === 'andrej.galad@gmail.com';
-
-  // Check subscription and redirect FREE users
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    if (!session?.user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    // Fetch subscription plan
-    fetch('/api/polar')
-      .then((res) => res.json())
-      .then((data) => {
-        const plan = data.subscription?.plan || 'free';
-        setSubscriptionPlan(plan);
-
-        // Redirect FREE users (unless admin) to billing page
-        if (plan === 'free' && !isAdmin) {
-          router.push('/billing');
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        // On error, assume free and redirect
-        if (!isAdmin) {
-          router.push('/billing');
-        } else {
-          setLoading(false);
-        }
-      });
-  }, [session, status, router, isAdmin]);
-
-  // Show loading while checking subscription
-  if (loading || status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  // Call useSettings hook unconditionally (before any early returns) to follow React hooks rules
   const {
     // State
     showKeys,
@@ -113,6 +70,50 @@ export default function SettingsPage() {
     handleModalEndpointChange,
     handleSaveModalEndpoints,
   } = useSettings();
+
+  const isAdmin = session?.user?.email === 'andrej.galad@gmail.com';
+
+  // Check subscription and redirect FREE users
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    if (!session?.user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    // Fetch subscription plan
+    fetch('/api/polar')
+      .then((res) => res.json())
+      .then((data) => {
+        const plan = data.subscription?.plan || 'free';
+        setSubscriptionPlan(plan);
+
+        // Redirect FREE users (unless admin) to billing page
+        if (plan === 'free' && !isAdmin) {
+          router.push('/billing');
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // On error, assume free and redirect
+        if (!isAdmin) {
+          router.push('/billing');
+        } else {
+          setLoading(false);
+        }
+      });
+  }, [session, status, router, isAdmin]);
+
+  // Show loading while checking subscription
+  if (loading || status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
