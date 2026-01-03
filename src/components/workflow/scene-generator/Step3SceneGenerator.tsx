@@ -270,36 +270,19 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   }, [currentPage, totalPages]);
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
-      {/* Header & Progress */}
-      <SceneHeader
-        sceneCount={projectSettings.sceneCount}
-        totalScenes={scenes.length}
-        scenesWithImages={scenesWithImages}
-        imageResolution={imageResolution}
-        aspectRatio={sceneAspectRatio}
-        imageProvider={imageProvider}
-        hasCharacters={characters.length > 0}
-        isGeneratingScenes={isGeneratingScenes}
-        sceneJobProgress={sceneJobProgress}
-        sceneJobStatus={sceneJobStatus}
-        isSceneJobRunning={isSceneJobRunning}
-        onSceneCountChange={handleSceneCountChange}
-        onImageResolutionChange={(value) => updateSettings({ imageResolution: value })}
-        onAspectRatioChange={setSceneAspectRatio}
-        onGenerateAllScenes={handleGenerateAllScenes}
-      />
-
+    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
       {/* Pagination - Top */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        startIndex={startIndex}
-        endIndex={endIndex}
-        totalItems={scenes.length}
-        onPageChange={setCurrentPage}
-        variant="full"
-      />
+      {scenes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          totalItems={scenes.length}
+          onPageChange={setCurrentPage}
+          variant="full"
+        />
+      )}
 
       {/* Scenes Grid - 2-3-4-5 columns like Step 4 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
@@ -365,6 +348,27 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         onPageChange={setCurrentPage}
         variant="compact"
       />
+
+      {/* Settings & Progress - only for editors */}
+      {!isReadOnly && (
+        <SceneHeader
+          sceneCount={projectSettings.sceneCount}
+          totalScenes={scenes.length}
+          scenesWithImages={scenesWithImages}
+          imageResolution={imageResolution}
+          aspectRatio={sceneAspectRatio}
+          imageProvider={imageProvider}
+          hasCharacters={characters.length > 0}
+          isGeneratingScenes={isGeneratingScenes}
+          sceneJobProgress={sceneJobProgress}
+          sceneJobStatus={sceneJobStatus}
+          isSceneJobRunning={isSceneJobRunning}
+          onSceneCountChange={handleSceneCountChange}
+          onImageResolutionChange={(value) => updateSettings({ imageResolution: value })}
+          onAspectRatioChange={setSceneAspectRatio}
+          onGenerateAllScenes={handleGenerateAllScenes}
+        />
+      )}
 
       {/* Quick Actions - only for editors */}
       {!isReadOnly && (

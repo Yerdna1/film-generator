@@ -212,47 +212,22 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
   }, [scenes, selectedScenes]);
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
-      {/* Header & Progress */}
-      <VideoHeader
-        totalScenes={scenes.length}
-        scenesWithVideos={scenesWithVideos.length}
-      />
-
-      {/* Quick Actions - only for editors */}
-      {!isReadOnly && (
-        <VideoQuickActions
-          videoMode={videoMode}
-          onVideoModeChange={setVideoMode}
-          scenesWithImages={scenesWithImages.length}
-          scenesWithVideos={scenesWithVideos.length}
-          scenesNeedingGeneration={scenesNeedingGeneration.length}
-          isGeneratingAll={isGeneratingAll}
-          onGenerateAll={handleGenerateAll}
-          onStopGeneration={handleStopGeneration}
-          selectedCount={selectedScenes.size}
-          onSelectAll={selectAll}
-          onSelectAllWithVideos={selectAllWithVideos}
-          onSelectAllWithoutVideos={selectAllWithoutVideos}
-          onClearSelection={clearSelection}
-          onGenerateSelected={handleGenerateSelected}
-          onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
-        />
-      )}
-
+    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
       {/* Warning if no images */}
       {scenesWithImages.length === 0 && <NoImagesWarning />}
 
       {/* Pagination Controls - Top */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        startIndex={startIndex}
-        endIndex={endIndex}
-        totalItems={scenes.length}
-        onPageChange={setCurrentPage}
-        variant="full"
-      />
+      {scenes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          totalItems={scenes.length}
+          onPageChange={setCurrentPage}
+          variant="full"
+        />
+      )}
 
       {/* Scenes Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
@@ -312,6 +287,33 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         onPageChange={setCurrentPage}
         variant="compact"
       />
+
+      {/* Progress Overview */}
+      <VideoHeader
+        totalScenes={scenes.length}
+        scenesWithVideos={scenesWithVideos.length}
+      />
+
+      {/* Quick Actions - only for editors */}
+      {!isReadOnly && (
+        <VideoQuickActions
+          videoMode={videoMode}
+          onVideoModeChange={setVideoMode}
+          scenesWithImages={scenesWithImages.length}
+          scenesWithVideos={scenesWithVideos.length}
+          scenesNeedingGeneration={scenesNeedingGeneration.length}
+          isGeneratingAll={isGeneratingAll}
+          onGenerateAll={handleGenerateAll}
+          onStopGeneration={handleStopGeneration}
+          selectedCount={selectedScenes.size}
+          onSelectAll={selectAll}
+          onSelectAllWithVideos={selectAllWithVideos}
+          onSelectAllWithoutVideos={selectAllWithoutVideos}
+          onClearSelection={clearSelection}
+          onGenerateSelected={handleGenerateSelected}
+          onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
+        />
+      )}
 
       {/* Request Regeneration Dialog */}
       <RequestRegenerationDialog

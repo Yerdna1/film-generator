@@ -205,6 +205,49 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 px-4">
+      {/* No dialogue warning */}
+      {allDialogueLines.length === 0 && (
+        <div className="glass rounded-xl p-6 border-l-4 border-amber-500 text-center">
+          <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+          <h3 className="font-semibold mb-2">{t('steps.voiceover.noDialogue')}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t('steps.voiceover.noDialogueDescription')}
+          </p>
+        </div>
+      )}
+
+      {/* Dialogue Lines by Scene - 3 column grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {(project.scenes || [])
+          .filter((scene) => (scene.dialogue || []).length > 0)
+          .map((scene, sceneIndex) => (
+            <SceneDialogueCard
+              key={scene.id}
+              scene={scene}
+              sceneIndex={sceneIndex}
+              projectId={project.id}
+              characters={project.characters || []}
+              audioStates={audioStates}
+              playingAudio={playingAudio}
+              provider={voiceSettings.provider}
+              isReadOnly={isReadOnly}
+              isAuthenticated={isAuthenticated}
+              firstDialogueLineId={firstDialogueLineId}
+              canDeleteDirectly={canDeleteDirectly}
+              pendingRegenLineIds={pendingAudioRegenLineIds}
+              pendingDeletionLineIds={pendingDeletionLineIds}
+              approvedRegenByLineId={approvedRegenByLineId}
+              onTogglePlay={togglePlay}
+              onGenerateAudio={generateAudioForLine}
+              onAudioRef={setAudioRef}
+              onAudioEnded={handleAudioEnded}
+              onDeletionRequested={fetchDeletionRequests}
+              onUseRegenerationAttempt={handleUseRegenerationAttempt}
+              onSelectRegeneration={handleSelectRegeneration}
+            />
+          ))}
+      </div>
+
       {/* Provider Selection & Controls */}
       <div className="glass rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -261,49 +304,6 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             onDownloadAll={handleDownloadAll}
           />
         )}
-      </div>
-
-      {/* No dialogue warning */}
-      {allDialogueLines.length === 0 && (
-        <div className="glass rounded-xl p-6 border-l-4 border-amber-500 text-center">
-          <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-          <h3 className="font-semibold mb-2">{t('steps.voiceover.noDialogue')}</h3>
-          <p className="text-sm text-muted-foreground">
-            {t('steps.voiceover.noDialogueDescription')}
-          </p>
-        </div>
-      )}
-
-      {/* Dialogue Lines by Scene - 3 column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(project.scenes || [])
-          .filter((scene) => (scene.dialogue || []).length > 0)
-          .map((scene, sceneIndex) => (
-            <SceneDialogueCard
-              key={scene.id}
-              scene={scene}
-              sceneIndex={sceneIndex}
-              projectId={project.id}
-              characters={project.characters || []}
-              audioStates={audioStates}
-              playingAudio={playingAudio}
-              provider={voiceSettings.provider}
-              isReadOnly={isReadOnly}
-              isAuthenticated={isAuthenticated}
-              firstDialogueLineId={firstDialogueLineId}
-              canDeleteDirectly={canDeleteDirectly}
-              pendingRegenLineIds={pendingAudioRegenLineIds}
-              pendingDeletionLineIds={pendingDeletionLineIds}
-              approvedRegenByLineId={approvedRegenByLineId}
-              onTogglePlay={togglePlay}
-              onGenerateAudio={generateAudioForLine}
-              onAudioRef={setAudioRef}
-              onAudioEnded={handleAudioEnded}
-              onDeletionRequested={fetchDeletionRequests}
-              onUseRegenerationAttempt={handleUseRegenerationAttempt}
-              onSelectRegeneration={handleSelectRegeneration}
-            />
-          ))}
       </div>
     </div>
   );
