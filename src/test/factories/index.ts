@@ -32,32 +32,13 @@ export async function createFullTestEnvironment(options: {
   // Use unique email suffix to avoid collisions between tests
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-  console.log('[createFullTestEnvironment] Starting with suffix:', uniqueSuffix)
-
   // Create users with unique emails
-  console.log('[createFullTestEnvironment] Creating admin...')
   const admin = await createTestAdmin({ email: `admin-${uniqueSuffix}@test.com` })
-  console.log('[createFullTestEnvironment] Admin created:', admin.id)
-
-  console.log('[createFullTestEnvironment] Creating collaborator...')
   const collaborator = await createTestCollaborator({ email: `collaborator-${uniqueSuffix}@test.com` })
-  console.log('[createFullTestEnvironment] Collaborator created:', collaborator.id)
-
-  console.log('[createFullTestEnvironment] Creating reader...')
   const reader = await createTestReader({ email: `reader-${uniqueSuffix}@test.com` })
-  console.log('[createFullTestEnvironment] Reader created:', reader.id)
-
-  console.log('[createFullTestEnvironment] Creating outsider...')
   const outsider = await createTestUser({ email: `outsider-${uniqueSuffix}@test.com`, name: 'Outsider User' })
-  console.log('[createFullTestEnvironment] Outsider created:', outsider.id)
-
-  // Verify users exist before creating credits
-  const { prisma } = await import('../setup')
-  const adminCheck = await prisma.user.findUnique({ where: { id: admin.id } })
-  console.log('[createFullTestEnvironment] Admin exists check:', adminCheck?.id)
 
   // Create credits
-  console.log('[createFullTestEnvironment] Creating admin credits for user:', admin.id)
   const adminCreds = await createTestCredits(admin.id, { balance: adminCredits })
   const collabCreds = await createTestCredits(collaborator.id, { balance: collaboratorCredits })
   const readerCreds = await createTestCredits(reader.id, { balance: 0 })
