@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Notification, NotificationType } from '@/types/collaboration';
+import { useNotifications } from '@/hooks';
 
 const notificationIcons: Record<NotificationType, React.ComponentType<{ className?: string }>> = {
   deletion_request: Trash2,
@@ -54,47 +55,21 @@ const notificationColors: Record<NotificationType, string> = {
 
 export function NotificationBell() {
   const t = useTranslations();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const response = await fetch('/api/notifications?limit=20');
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications);
-        setUnreadCount(data.unreadCount);
-      }
-    } catch (e) {
-      console.error('Failed to fetch notifications:', e);
-    }
-  }, []);
-
-  // Initial fetch and polling
-  useEffect(() => {
-    fetchNotifications();
-
-    // Poll every 60 seconds (reduced from 30s to minimize DB traffic)
-    const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
-
-  // Refetch when popover opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchNotifications();
-    }
-  }, [isOpen, fetchNotifications]);
+  // Use centralized SWR hook for notifications
+  const {
+    notifications,
+    unreadCount,
+    markAsRead: handleMarkAsRead,
+    markAllAsRead: handleMarkAllAsRead,
+    refresh
+  } = useNotifications();
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      await handleMarkAsRead(id);
     } catch (e) {
       console.error('Failed to mark notification as read:', e);
     }
@@ -103,9 +78,7 @@ export function NotificationBell() {
   const markAllAsRead = async () => {
     setIsLoading(true);
     try {
-      await fetch('/api/notifications/read-all', { method: 'PUT' });
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
+      await handleMarkAllAsRead();
     } catch (e) {
       console.error('Failed to mark all as read:', e);
     } finally {

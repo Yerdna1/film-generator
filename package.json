@@ -22,7 +22,9 @@
     "test:phase3": "vitest run --grep 'Invitation|Deletion|Regeneration'",
     "test:phase4": "vitest run --grep 'Generation|Image|Video|TTS|Music|Scene'",
     "test:phase5": "vitest run --grep 'Statistics'",
-    "test:phase6": "vitest run --grep 'Concurrency|Security|Error'"
+    "test:phase6": "vitest run --grep 'Concurrency|Security|Error'",
+    "perf:test": "npx tsx scripts/performance-test.ts",
+    "perf:browser": "npx tsx scripts/performance-test-browser.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.1",
@@ -78,6 +80,7 @@
     "react-hook-form": "^7.69.0",
     "resend": "^6.6.0",
     "sonner": "^2.0.7",
+    "swr": "^2.3.8",
     "tailwind-merge": "^3.4.0",
     "uuid": "^13.0.0",
     "ws": "^8.18.3",

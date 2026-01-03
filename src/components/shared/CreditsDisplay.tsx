@@ -12,64 +12,29 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { COSTS } from '@/lib/services/credits';
+import { useCredits } from '@/hooks';
 
 interface CreditsDisplayProps {
   className?: string;
 }
 
-interface CreditsData {
-  credits: {
-    balance: number;
-    totalSpent: number;
-    totalEarned: number;
-  };
-  costs: typeof COSTS;
-  transactions?: Array<{
-    id: string;
-    amount: number;
-    type: string;
-    description: string | null;
-    createdAt: string;
-  }>;
-}
-
 export function CreditsDisplay({ className }: CreditsDisplayProps) {
   const t = useTranslations();
-  const [data, setData] = useState<CreditsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, refresh } = useCredits();
   const [open, setOpen] = useState(false);
-
-  const fetchCredits = async () => {
-    try {
-      // Add cache-busting to ensure fresh data
-      const res = await fetch(`/api/credits?history=true&limit=10&t=${Date.now()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setData(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch credits:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCredits();
-  }, []);
 
   // Listen for credit updates from admin or other sources
   useEffect(() => {
     const handleCreditUpdate = () => {
       console.log('Credits update event received, refetching...');
-      fetchCredits();
+      refresh();
     };
 
     window.addEventListener('credits-updated', handleCreditUpdate);
     return () => window.removeEventListener('credits-updated', handleCreditUpdate);
-  }, []);
+  }, [refresh]);
 
-  if (loading || !data) {
+  if (isLoading || !data) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <div className="w-20 h-8 bg-white/5 animate-pulse rounded-lg" />

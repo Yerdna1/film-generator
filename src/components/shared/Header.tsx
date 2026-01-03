@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,30 +37,18 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { CreditsDisplay } from './CreditsDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useSubscription } from '@/hooks';
 
 export function Header() {
   const t = useTranslations();
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
 
   const user = session?.user;
-
   const isAdmin = user?.email === 'andrej.galad@gmail.com';
 
-  // Fetch subscription plan
-  useEffect(() => {
-    if (user) {
-      fetch('/api/polar')
-        .then((res) => res.json())
-        .then((data) => {
-          setSubscriptionPlan(data.subscription?.plan || 'free');
-        })
-        .catch(() => {
-          setSubscriptionPlan('free');
-        });
-    }
-  }, [user]);
+  // Use centralized subscription hook with SWR deduplication
+  const { plan: subscriptionPlan } = useSubscription({ enabled: !!user });
 
   const navItems = [
     { href: '/projects', label: t('nav.projects'), icon: Film },

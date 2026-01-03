@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines a multi-phase testing strategy covering all critical aspects of the Film Generator application. The plan includes approximately **550+ test cases** organized across 12 phases.
+This document outlines a multi-phase testing strategy covering all critical aspects of the Film Generator application. The plan includes approximately **710 test cases** organized across 15 phases.
 
 **Application Inventory:**
 - 62 API route files with ~90 HTTP methods
@@ -1449,6 +1449,98 @@ npm run test:watch
 | 13 | 55 | Security Attack Simulation Tests |
 | 14 | 40 | Database & S3 Load Monitoring Tests |
 | **Total** | **685** | **Comprehensive Coverage** |
+
+---
+
+## Phase 15: Performance & Request Deduplication Tests (25 tests)
+
+### 15.1 SWR Hook Deduplication Tests (10 tests)
+
+**File:** `src/hooks/__tests__/swr-deduplication.test.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 701 | `useCredits - single request on mount` | Only one API call made |
+| 702 | `useCredits - deduplicates concurrent calls` | SWR deduplication works |
+| 703 | `useCredits - caches result for 30s` | Caching verified |
+| 704 | `useSubscription - single request on mount` | Only one API call made |
+| 705 | `useSubscription - caches result for 60s` | Longer TTL for subscription |
+| 706 | `useNotifications - single request on mount` | Only one API call made |
+| 707 | `useNotifications - optimistic updates work` | Mark as read without refetch |
+| 708 | `useStatistics - single request on mount` | Only one API call made |
+| 709 | `useProjectCosts - single request on mount` | Only one API call made |
+| 710 | `all hooks - no cache-busting params` | No Date.now() in URLs |
+
+---
+
+### 15.2 Homepage Load Performance Tests (10 tests)
+
+**File:** `scripts/performance-test.ts` & `scripts/performance-test-browser.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 711 | `homepage - max 9 API calls on load` | No duplicate requests |
+| 712 | `homepage - /api/credits called once` | Deduplicated from 3x |
+| 713 | `homepage - /api/polar called once` | Deduplicated from 2x |
+| 714 | `homepage - /api/notifications called once` | Deduplicated from 2x |
+| 715 | `homepage - load time under 2s` | Performance threshold |
+| 716 | `homepage - no waterfall requests` | Parallel loading |
+| 717 | `credits refresh - single request` | Event-based refresh |
+| 718 | `subscription refresh - single request` | Manual refresh works |
+| 719 | `notifications refresh - single request` | Manual refresh works |
+| 720 | `SWR cache invalidation - works correctly` | mutate() clears cache |
+
+---
+
+### 15.3 Request Optimization Tests (5 tests)
+
+**File:** `src/app/_components/hooks/__tests__/useDashboardData.test.ts`
+
+| # | Test Case | Description |
+|---|-----------|-------------|
+| 721 | `useDashboardData - uses centralized hooks` | No duplicate fetching |
+| 722 | `CreditsDisplay - uses useCredits hook` | Shared hook usage |
+| 723 | `Header - uses useSubscription hook` | Shared hook usage |
+| 724 | `NotificationBell - uses useNotifications hook` | Shared hook usage |
+| 725 | `all components - share SWR cache` | Global cache verified |
+
+---
+
+## Running Performance Tests
+
+```bash
+# Run API-based performance test
+npm run perf:test
+
+# Run browser-based performance test (requires Playwright)
+npm run perf:browser
+
+# Run SWR hook unit tests
+npm run test -- --grep "SWR|deduplication"
+```
+
+---
+
+## Summary
+
+| Phase | Tests | Description |
+|-------|-------|-------------|
+| 1 | 45 | Core Unit Tests (Credits, Costs, Permissions) |
+| 2 | 55 | Role & Permission Integration Tests |
+| 3 | 60 | Collaboration Workflow Tests |
+| 4 | 70 | Generation & Cost Tracking Tests |
+| 5 | 25 | Statistics & Reporting Tests |
+| 6 | 25 | Edge Cases & Security Tests |
+| 7 | 90 | Complete API Route Tests |
+| 8 | 70 | Workflow Step Tests |
+| 9 | 30 | Admin Panel Tests |
+| 10 | 40 | Complete Cost Deduction Tests |
+| 11 | 30 | End-to-End Integration Tests |
+| 12 | 50 | Service Function Unit Tests |
+| 13 | 55 | Security Attack Simulation Tests |
+| 14 | 40 | Database & S3 Load Monitoring Tests |
+| 15 | 25 | Performance & Request Deduplication Tests |
+| **Total** | **710** | **Comprehensive Coverage** |
 
 ---
 
