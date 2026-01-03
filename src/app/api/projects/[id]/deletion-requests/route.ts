@@ -191,7 +191,7 @@ export async function POST(
             targetName,
             requesterName: user?.name,
           },
-          actionUrl: `/project/${projectId}?tab=approvals`,
+          actionUrl: `/approvals`,
         },
       });
     }

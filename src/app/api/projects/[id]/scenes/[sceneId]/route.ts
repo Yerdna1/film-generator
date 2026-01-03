@@ -169,7 +169,7 @@ export async function PUT(
                 fieldName: field,
                 requesterName: user?.name,
               },
-              actionUrl: `/project/${projectId}?tab=approvals`,
+              actionUrl: `/approvals`,
             });
           }
         }

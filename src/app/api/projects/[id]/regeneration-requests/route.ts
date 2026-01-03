@@ -285,7 +285,7 @@ export async function POST(
             sceneCount,
             requesterName,
           },
-          actionUrl: `/project/${projectId}?tab=approvals`,
+          actionUrl: `/approvals`,
         },
       });
     }
@@ -307,7 +307,7 @@ export async function POST(
               subject: `Regeneration Request for "${project?.name}"`,
               title: 'Regeneration Request',
               message: `${requesterName} requested to regenerate ${sceneCount} ${targetType}${sceneCount > 1 ? 's' : ''} for scenes: ${sceneNames}${moreScenes}.${reason ? `\n\nReason: "${reason}"` : ''}`,
-              actionUrl: `${appUrl}/project/${projectId}?tab=approvals`,
+              actionUrl: `${appUrl}/approvals`,
               actionText: 'Review Request',
             });
           } catch (emailError) {
