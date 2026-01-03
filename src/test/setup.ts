@@ -65,7 +65,6 @@ beforeAll(async () => {
 })
 
 // Cleanup BEFORE each test to ensure clean slate
-import { beforeEach } from 'vitest'
 beforeEach(async () => {
   // Ensure database is clean before test starts
   await cleanupDatabase()
