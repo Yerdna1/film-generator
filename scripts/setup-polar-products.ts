@@ -13,7 +13,7 @@ const polar = new Polar({
 const PRODUCTS_TO_CREATE = [
   {
     name: 'Starter Plan',
-    description: 'For hobbyists - 2,000 credits per month',
+    description: 'For hobbyists - 500 credits per month',
     recurringInterval: 'month' as const,
     prices: [
       {
@@ -25,12 +25,12 @@ const PRODUCTS_TO_CREATE = [
     ],
     metadata: {
       plan: 'starter',
-      credits: '2000',
+      credits: '500',
     },
   },
   {
     name: 'Pro Plan',
-    description: 'For regular users - 8,000 credits per month',
+    description: 'For regular users - 2,000 credits per month',
     recurringInterval: 'month' as const,
     prices: [
       {
@@ -42,12 +42,12 @@ const PRODUCTS_TO_CREATE = [
     ],
     metadata: {
       plan: 'pro',
-      credits: '8000',
+      credits: '2000',
     },
   },
   {
     name: 'Studio Plan',
-    description: 'For creators - 25,000 credits per month',
+    description: 'For creators - 6,000 credits per month',
     recurringInterval: 'month' as const,
     prices: [
       {
@@ -59,7 +59,7 @@ const PRODUCTS_TO_CREATE = [
     ],
     metadata: {
       plan: 'studio',
-      credits: '25000',
+      credits: '6000',
     },
   },
 ];

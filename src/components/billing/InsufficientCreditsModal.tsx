@@ -56,9 +56,9 @@ interface Plan {
 }
 
 const quickPlans: Record<string, Plan> = {
-  starter: { name: 'Starter', price: 9, credits: 2000, description: 'For hobbyists' },
-  pro: { name: 'Pro', price: 29, credits: 8000, description: 'Most popular' },
-  studio: { name: 'Studio', price: 79, credits: 25000, description: 'For creators' },
+  starter: { name: 'Starter', price: 9, credits: 500, description: 'For hobbyists' },
+  pro: { name: 'Pro', price: 29, credits: 2000, description: 'Most popular' },
+  studio: { name: 'Studio', price: 79, credits: 6000, description: 'For creators' },
 };
 
 export function InsufficientCreditsModal({
