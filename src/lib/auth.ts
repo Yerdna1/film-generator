@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db/prisma';
 import type { Provider } from 'next-auth/providers';
 import { sendNotificationEmail } from '@/lib/services/email';
 import { LEGACY_ADMIN_EMAIL, getAdminUsers } from '@/lib/admin';
+import { cache } from '@/lib/cache';
 
 // Check if Google OAuth is configured
 const isGoogleConfigured =
@@ -94,6 +95,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   events: {
+    async signOut(message) {
+      // Invalidate ALL caches for the user when they log out
+      // JWT strategy provides token, session strategy provides session
+      const token = 'token' in message ? message.token : null;
+      if (token?.id) {
+        const userId = token.id as string;
+        cache.invalidateUser(userId);
+        console.log(`[Cache INVALIDATED] All caches for user ${userId} on logout`);
+      }
+    },
     async createUser({ user }) {
       if (!user.id) return;
 

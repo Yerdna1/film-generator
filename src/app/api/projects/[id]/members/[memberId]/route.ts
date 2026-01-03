@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { verifyPermission } from '@/lib/permissions';
+import { cache, cacheKeys } from '@/lib/cache';
 import type { ProjectRole } from '@/types/collaboration';
 
 export async function PUT(
@@ -98,6 +99,10 @@ export async function PUT(
       },
     });
 
+    // Invalidate cache for the affected member
+    cache.invalidate(cacheKeys.userProjects(member.userId));
+    console.log(`[Cache INVALIDATED] User ${member.userId} projects cache after role change`);
+
     return NextResponse.json({ member: updatedMember });
   } catch (error) {
     console.error('Update member error:', error);
@@ -175,6 +180,10 @@ export async function DELETE(
         },
       });
     }
+
+    // Invalidate cache for the removed member so they no longer see this project
+    cache.invalidate(cacheKeys.userProjects(member.userId));
+    console.log(`[Cache INVALIDATED] User ${member.userId} projects cache after removal from project`);
 
     return NextResponse.json({ success: true });
   } catch (error) {
