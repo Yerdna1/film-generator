@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Users } from 'lucide-react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { generateCharacterPrompt } from '@/lib/prompts/master-prompt';
 import type { Character } from '@/types/project';
@@ -169,20 +168,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const charactersWithImages = characters.filter((c) => c.imageUrl).length;
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
-      {/* Header */}
-      <div className="text-center">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 mb-4"
-        >
-          <Users className="w-8 h-8 text-cyan-400" />
-        </motion.div>
-        <h2 className="text-2xl font-bold mb-2">{t('steps.characters.title')}</h2>
-        <p className="text-muted-foreground">{t('steps.characters.description')}</p>
-      </div>
-
+    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
       {/* Image Generation Settings */}
       <ImageGenerationSettings
         imageResolution={settings.imageResolution || '2k'}

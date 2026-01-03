@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -70,19 +70,6 @@ export function SceneHeader({
 
   return (
     <>
-      {/* Header */}
-      <div className="text-center">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 mb-4"
-        >
-          <ImageIcon className="w-8 h-8 text-emerald-400" />
-        </motion.div>
-        <h2 className="text-2xl font-bold mb-2">{t('steps.scenes.title')}</h2>
-        <p className="text-muted-foreground">{t('steps.scenes.description')}</p>
-      </div>
-
       {/* Progress & Scene Count */}
       <div className="glass rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">

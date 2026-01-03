@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
 import { Mic, Volume2, VolumeX, AlertCircle } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useProjectStore } from '@/lib/stores/project-store';
@@ -205,20 +204,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 px-4">
-      {/* Header */}
-      <div className="text-center">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 mb-4"
-        >
-          <Mic className="w-8 h-8 text-violet-400" />
-        </motion.div>
-        <h2 className="text-2xl font-bold mb-2">{t('steps.voiceover.title')}</h2>
-        <p className="text-muted-foreground">{t('steps.voiceover.description')}</p>
-      </div>
-
+    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
       {/* Provider Selection & Controls */}
       <div className="glass rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">

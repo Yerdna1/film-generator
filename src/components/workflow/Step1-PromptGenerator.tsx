@@ -154,19 +154,6 @@ Format the output exactly like the base template but with richer, more detailed 
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 px-4">
-      {/* Header */}
-      <div className="text-center">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 mb-2"
-        >
-          <Wand2 className="w-6 h-6 text-purple-400" />
-        </motion.div>
-        <h2 className="text-xl font-bold mb-1">{t('steps.prompt.title')}</h2>
-        <p className="text-sm text-muted-foreground">{t('steps.prompt.description')}</p>
-      </div>
-
       {/* 2-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left Column - Story Form */}

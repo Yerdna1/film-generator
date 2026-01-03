@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
-import { Video, Film, Clock } from 'lucide-react';
+import { Film, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
@@ -16,19 +15,6 @@ export function VideoHeader({ totalScenes, scenesWithVideos }: VideoHeaderProps)
 
   return (
     <>
-      {/* Header */}
-      <div className="text-center">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500/20 to-red-500/20 mb-4"
-        >
-          <Video className="w-8 h-8 text-orange-400" />
-        </motion.div>
-        <h2 className="text-2xl font-bold mb-2">{t('steps.videos.title')}</h2>
-        <p className="text-muted-foreground">{t('steps.videos.description')}</p>
-      </div>
-
       {/* Progress Overview */}
       <div className="glass rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
