@@ -50,8 +50,7 @@ describe('Performance Benchmarks', () => {
   beforeAll(async () => {
     // Create test data
     testUser = await createTestUser({
-      email: `perf-test-${Date.now()}@example.com`,
-      isApproved: true
+      email: `perf-test-${Date.now()}@example.com`
     })
 
     testProject = await createTestProject(testUser.id, {
