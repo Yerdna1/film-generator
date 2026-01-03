@@ -30,9 +30,11 @@ interface AudioSettings {
 interface ComposeRequest {
   projectId: string;
   outputFormat: 'mp4' | 'draft' | 'both';
-  resolution: 'hd' | '4k';
+  resolution: 'sd' | 'hd' | '4k';
   includeCaptions: boolean;
   includeMusic: boolean;
+  includeVoiceovers?: boolean;  // Include dialogue voiceovers from scenes
+  replaceVideoAudio?: boolean;  // Strip original video audio, replace with voiceovers only
   aiTransitions?: boolean;
   // New VectCutAPI options
   captionStyle?: CaptionStyle;
@@ -48,6 +50,16 @@ interface SceneData {
   image_url?: string;
   duration: number;
   transition_to_next?: string;
+  voiceovers?: VoiceoverData[];
+  strip_original_audio?: boolean;  // Remove original video audio, replace with voiceovers
+}
+
+interface VoiceoverData {
+  audio_url: string;
+  start_time: number;  // Relative to scene start
+  duration: number;
+  volume: number;
+  character_name?: string;
 }
 
 interface CaptionData {
@@ -74,7 +86,7 @@ function calculateCompositionCost(
   includeMusic: boolean,
   includeCaptions: boolean,
   captionCount: number,
-  resolution: 'hd' | '4k'
+  resolution: 'sd' | 'hd' | '4k'
 ): { credits: number; realCost: number } {
   // Base cost per scene
   let credits = sceneCount * (COSTS.VIDEO_COMPOSITION_BASE || 5);
@@ -102,14 +114,42 @@ function calculateCompositionCost(
 }
 
 // Convert project scenes to composition format
-function prepareSceneData(scenes: Scene[], transitions?: Record<string, string>): SceneData[] {
-  return scenes.map((scene, index) => ({
-    id: scene.id,
-    video_url: scene.videoUrl || undefined,
-    image_url: scene.imageUrl || undefined,
-    duration: scene.duration || 6,
-    transition_to_next: transitions?.[scene.id] || (index < scenes.length - 1 ? 'fade' : undefined),
-  }));
+function prepareSceneData(
+  scenes: Scene[],
+  transitions?: Record<string, string>,
+  includeVoiceovers: boolean = true,
+  replaceVideoAudio: boolean = false
+): SceneData[] {
+  return scenes.map((scene, index) => {
+    // Collect voiceovers from dialogue lines that have audio
+    const voiceovers: VoiceoverData[] = [];
+    let dialogueTime = 0;
+
+    if (includeVoiceovers && scene.dialogue) {
+      for (const line of scene.dialogue) {
+        if (line.audioUrl) {
+          voiceovers.push({
+            audio_url: line.audioUrl,
+            start_time: dialogueTime,
+            duration: line.audioDuration || 3,
+            volume: 1.0,
+            character_name: line.characterName,
+          });
+          dialogueTime += (line.audioDuration || 3) + 0.3; // Small gap between lines
+        }
+      }
+    }
+
+    return {
+      id: scene.id,
+      video_url: scene.videoUrl || undefined,
+      image_url: scene.imageUrl || undefined,
+      duration: scene.duration || 6,
+      transition_to_next: transitions?.[scene.id] || (index < scenes.length - 1 ? 'fade' : undefined),
+      voiceovers: voiceovers.length > 0 ? voiceovers : undefined,
+      strip_original_audio: replaceVideoAudio,  // Strip original audio if replacing with voiceovers
+    };
+  });
 }
 
 // Convert project captions to composition format
@@ -162,8 +202,9 @@ export async function POST(request: NextRequest) {
   try {
     const body: ComposeRequest = await request.json();
     const {
-      projectId, outputFormat, resolution, includeCaptions, includeMusic, aiTransitions,
-      captionStyle, transitionStyle, transitionDuration, audioSettings, kenBurnsEffect
+      projectId, outputFormat, resolution, includeCaptions, includeMusic,
+      includeVoiceovers = true, replaceVideoAudio = false,
+      aiTransitions, captionStyle, transitionStyle, transitionDuration, audioSettings, kenBurnsEffect
     } = body;
 
     if (!projectId) {
@@ -262,7 +303,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Prepare composition request
-    const sceneData = prepareSceneData(scenes);
+    const sceneData = prepareSceneData(scenes, undefined, includeVoiceovers, replaceVideoAudio);
     const captionData = includeCaptions ? prepareCaptionData(scenes) : [];
     const musicData = includeMusic ? prepareMusicData(settings?.backgroundMusic) : null;
 

@@ -395,7 +395,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                         <div className="space-y-2">
                           <p className="text-xs font-medium text-muted-foreground">Resolution</p>
                           <div className="flex gap-2">
-                            {(['hd', '4k'] as const).map((res) => (
+                            {(['sd', 'hd', '4k'] as const).map((res) => (
                               <button
                                 key={res}
                                 onClick={() => videoComposer.setResolution(res)}
@@ -405,7 +405,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                                     : 'border-black/10 dark:border-white/10 hover:border-cyan-500/30'
                                 }`}
                               >
-                                {res === 'hd' ? 'HD (1080p)' : '4K (2160p)'}
+                                {res === 'sd' ? 'SD (720p)' : res === 'hd' ? 'HD (1080p)' : '4K (2160p)'}
                               </button>
                             ))}
                           </div>
@@ -436,6 +436,26 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                                 Include music {!project.backgroundMusic && '(add above)'}
                               </span>
                             </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={videoComposer.options.includeVoiceovers}
+                                onChange={(e) => videoComposer.setIncludeVoiceovers(e.target.checked)}
+                                className="w-4 h-4 rounded border-black/20 dark:border-white/20 text-cyan-500 focus:ring-cyan-500"
+                              />
+                              <span className="text-sm">Include voiceovers</span>
+                            </label>
+                            {videoComposer.options.includeVoiceovers && (
+                              <label className="flex items-center gap-2 cursor-pointer ml-6">
+                                <input
+                                  type="checkbox"
+                                  checked={videoComposer.options.replaceVideoAudio}
+                                  onChange={(e) => videoComposer.setReplaceVideoAudio(e.target.checked)}
+                                  className="w-4 h-4 rounded border-black/20 dark:border-white/20 text-orange-500 focus:ring-orange-500"
+                                />
+                                <span className="text-sm text-orange-400">Replace video audio</span>
+                              </label>
+                            )}
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"

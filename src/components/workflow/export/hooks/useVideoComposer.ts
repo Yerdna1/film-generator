@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Project, TransitionType } from '@/types/project';
 
 export type OutputFormat = 'mp4' | 'draft' | 'both';
-export type Resolution = 'hd' | '4k';
+export type Resolution = 'sd' | 'hd' | '4k';
 export type CaptionFontSize = 'small' | 'medium' | 'large';
 export type CaptionPosition = 'top' | 'center' | 'bottom';
 export type TransitionStyle = 'fade' | 'slideLeft' | 'slideRight' | 'zoomIn' | 'zoomOut' | 'wipe' | 'none';
@@ -48,6 +48,8 @@ export interface CompositionOptions {
   resolution: Resolution;
   includeCaptions: boolean;
   includeMusic: boolean;
+  includeVoiceovers: boolean;  // Include dialogue voiceovers from scenes
+  replaceVideoAudio: boolean;  // Strip original video audio, use only voiceovers
   aiTransitions: boolean;
   // Caption styling
   captionStyle: CaptionStyle;
@@ -82,6 +84,8 @@ export interface UseVideoComposerReturn {
   setResolution: (resolution: Resolution) => void;
   setIncludeCaptions: (include: boolean) => void;
   setIncludeMusic: (include: boolean) => void;
+  setIncludeVoiceovers: (include: boolean) => void;
+  setReplaceVideoAudio: (replace: boolean) => void;
   setAiTransitions: (enable: boolean) => void;
   // Caption styling
   setCaptionStyle: (style: Partial<CaptionStyle>) => void;
@@ -137,6 +141,8 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
   const [resolution, setResolution] = useState<Resolution>('hd');
   const [includeCaptions, setIncludeCaptions] = useState(true);
   const [includeMusic, setIncludeMusic] = useState(true);
+  const [includeVoiceovers, setIncludeVoiceovers] = useState(true);
+  const [replaceVideoAudio, setReplaceVideoAudio] = useState(false);
   const [aiTransitions, setAiTransitions] = useState(false);
 
   // Caption styling
@@ -427,6 +433,8 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
           resolution,
           includeCaptions,
           includeMusic: includeMusic && hasMusic,
+          includeVoiceovers,
+          replaceVideoAudio,
           aiTransitions,
           transitions: aiTransitions ? suggestedTransitions : undefined,
           // New VectCutAPI options
@@ -490,7 +498,8 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     }
   }, [
     canCompose, project.id, outputFormat, resolution, includeCaptions,
-    includeMusic, hasMusic, aiTransitions, suggestedTransitions, pollJobStatus,
+    includeMusic, hasMusic, includeVoiceovers, replaceVideoAudio,
+    aiTransitions, suggestedTransitions, pollJobStatus,
     captionStyle, transitionStyle, transitionDuration, audioSettings, kenBurnsEffect
   ]);
 
@@ -604,6 +613,8 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
       resolution,
       includeCaptions,
       includeMusic,
+      includeVoiceovers,
+      replaceVideoAudio,
       aiTransitions,
       captionStyle,
       transitionStyle,
@@ -615,6 +626,8 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     setResolution,
     setIncludeCaptions,
     setIncludeMusic,
+    setIncludeVoiceovers,
+    setReplaceVideoAudio,
     setAiTransitions,
     // Caption styling
     setCaptionStyle,

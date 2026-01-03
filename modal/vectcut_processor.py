@@ -63,6 +63,15 @@ cache_volume = modal.Volume.from_name("vectcut-cache", create_if_missing=True)
 from pydantic import BaseModel, Field
 
 
+class VoiceoverData(BaseModel):
+    """Voiceover/dialogue audio data for a scene."""
+    audio_url: str  # S3 URL or base64
+    start_time: float = 0  # Relative to scene start in seconds
+    duration: float = 3.0  # Audio duration in seconds
+    volume: float = 1.0  # 0-1
+    character_name: Optional[str] = None
+
+
 class SceneData(BaseModel):
     """Scene data for video composition."""
     id: str
@@ -70,6 +79,8 @@ class SceneData(BaseModel):
     image_url: Optional[str] = None  # Fallback if no video
     duration: float = 6.0  # seconds
     transition_to_next: Optional[str] = None  # fade, slideLeft, slideRight, zoomIn, zoomOut, swoosh
+    voiceovers: Optional[list[VoiceoverData]] = None  # Dialogue audio tracks
+    strip_original_audio: bool = False  # Remove original video audio before adding voiceovers
 
 
 class CaptionStyleData(BaseModel):
@@ -117,7 +128,7 @@ class VideoCompositionRequest(BaseModel):
     captions: list[CaptionData] = []
     music: Optional[MusicData] = None
     output_format: Literal["mp4", "draft", "both"] = "both"
-    resolution: Literal["hd", "4k"] = "hd"
+    resolution: Literal["sd", "hd", "4k"] = "hd"
     fps: int = 30
     include_srt: bool = True
 
@@ -200,6 +211,8 @@ def get_resolution(resolution: str) -> tuple[int, int]:
     """Get width and height for resolution preset."""
     if resolution == "4k":
         return 3840, 2160
+    elif resolution == "sd":
+        return 1280, 720
     return 1920, 1080  # HD default
 
 
@@ -497,6 +510,130 @@ class VectCutProcessor:
             subprocess.run(["cp", str(input_video), str(output_video)])
             return True
 
+    def add_voiceovers(
+        self,
+        input_video: Path,
+        output_video: Path,
+        voiceovers: list[VoiceoverData],
+        scene_start_time: float,
+        strip_original_audio: bool = False,
+    ) -> bool:
+        """Add voiceover audio tracks to video at specified times.
+
+        If strip_original_audio is True, the original video audio is removed
+        and replaced with only the voiceovers.
+        """
+        if not voiceovers:
+            if strip_original_audio:
+                # Just strip audio, no voiceovers to add
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-i", str(input_video),
+                    "-c:v", "copy",
+                    "-an",  # Remove audio
+                    str(output_video)
+                ]
+                subprocess.run(cmd, capture_output=True)
+                return True
+            subprocess.run(["cp", str(input_video), str(output_video)])
+            return True
+
+        try:
+            # Download all voiceover audio files
+            audio_inputs = []
+            audio_files = []
+
+            for i, vo in enumerate(voiceovers):
+                vo_path = input_video.parent / f"voiceover_{i}.wav"
+                if download_media(vo.audio_url, vo_path):
+                    audio_inputs.extend(["-i", str(vo_path)])
+                    audio_files.append((vo_path, vo))
+
+            if not audio_files:
+                subprocess.run(["cp", str(input_video), str(output_video)])
+                return True
+
+            # Build complex filter for voiceovers
+            filter_parts = []
+
+            if strip_original_audio:
+                # Only use voiceovers, no original audio
+                # Generate silent base audio matching video duration
+                probe = subprocess.run(
+                    ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                     "-of", "default=noprint_wrappers=1:nokey=1", str(input_video)],
+                    capture_output=True, text=True
+                )
+                video_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 10.0
+
+                amix_inputs = []
+                for i, (vo_path, vo) in enumerate(audio_files):
+                    input_idx = i + 1  # +1 because video is input 0
+                    delay_ms = int(vo.start_time * 1000)
+                    filter_parts.append(
+                        f"[{input_idx}:a]adelay={delay_ms}|{delay_ms},volume={vo.volume}[vo{i}]"
+                    )
+                    amix_inputs.append(f"[vo{i}]")
+
+                # Mix only voiceovers (no original audio)
+                filter_str = ";".join(filter_parts)
+                if len(amix_inputs) > 1:
+                    filter_str += ";" + "".join(amix_inputs) + f"amix=inputs={len(amix_inputs)}:duration=longest[aout]"
+                else:
+                    # Single voiceover, just use it directly
+                    filter_str = f"[1:a]adelay={int(audio_files[0][1].start_time * 1000)}|{int(audio_files[0][1].start_time * 1000)},volume={audio_files[0][1].volume}[aout]"
+
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-i", str(input_video),
+                    *audio_inputs,
+                    "-filter_complex", filter_str,
+                    "-map", "0:v",
+                    "-map", "[aout]",
+                    "-c:v", "copy",
+                    "-c:a", "aac", "-b:a", "192k",
+                    "-shortest",
+                    str(output_video)
+                ]
+            else:
+                # Mix voiceovers with original audio
+                amix_inputs = ["[0:a]"]
+                for i, (vo_path, vo) in enumerate(audio_files):
+                    input_idx = i + 1
+                    delay_ms = int(vo.start_time * 1000)
+                    filter_parts.append(
+                        f"[{input_idx}:a]adelay={delay_ms}|{delay_ms},volume={vo.volume}[vo{i}]"
+                    )
+                    amix_inputs.append(f"[vo{i}]")
+
+                filter_str = ";".join(filter_parts)
+                if filter_str:
+                    filter_str += ";"
+                filter_str += "".join(amix_inputs) + f"amix=inputs={len(amix_inputs)}:duration=first[aout]"
+
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-i", str(input_video),
+                    *audio_inputs,
+                    "-filter_complex", filter_str,
+                    "-map", "0:v",
+                    "-map", "[aout]",
+                    "-c:v", "copy",
+                    "-c:a", "aac", "-b:a", "192k",
+                    str(output_video)
+                ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Voiceover mixing failed: {result.stderr}")
+                subprocess.run(["cp", str(input_video), str(output_video)])
+
+            return True
+        except Exception as e:
+            print(f"Voiceover error: {e}")
+            subprocess.run(["cp", str(input_video), str(output_video)])
+            return True
+
     def image_to_video(
         self,
         image_path: Path,
@@ -704,6 +841,8 @@ class VectCutProcessor:
                 print(f"  Processing scene {i+1}/{len(request.scenes)}: {scene.id}")
 
                 video_path = temp_path / f"scene_{i:03d}.mp4"
+                final_scene_path = temp_path / f"scene_final_{i:03d}.mp4"
+                scene_created = False
 
                 if scene.video_url:
                     # Download video
@@ -720,7 +859,7 @@ class VectCutProcessor:
                             str(video_path)
                         ]
                         subprocess.run(cmd, capture_output=True)
-                        scene_videos.append((video_path, scene.transition_to_next))
+                        scene_created = True
                     else:
                         print(f"    Failed to download video for scene {i+1}")
                         continue
@@ -732,13 +871,30 @@ class VectCutProcessor:
                             image_path, video_path, scene.duration, width, height, request.fps,
                             ken_burns=request.ken_burns_effect
                         ):
-                            scene_videos.append((video_path, scene.transition_to_next))
+                            scene_created = True
                         else:
                             print(f"    Failed to convert image to video for scene {i+1}")
                     else:
                         print(f"    Failed to download image for scene {i+1}")
                 else:
                     print(f"    No media for scene {i+1}")
+
+                # Add voiceovers to scene if available
+                if scene_created:
+                    if scene.voiceovers and len(scene.voiceovers) > 0:
+                        print(f"    Adding {len(scene.voiceovers)} voiceover(s) to scene {i+1} (strip_audio={scene.strip_original_audio})")
+                        self.add_voiceovers(
+                            video_path, final_scene_path, scene.voiceovers, 0,
+                            strip_original_audio=scene.strip_original_audio
+                        )
+                        scene_videos.append((final_scene_path, scene.transition_to_next))
+                    elif scene.strip_original_audio:
+                        # Strip audio but no voiceovers
+                        print(f"    Stripping audio from scene {i+1}")
+                        self.add_voiceovers(video_path, final_scene_path, [], 0, strip_original_audio=True)
+                        scene_videos.append((final_scene_path, scene.transition_to_next))
+                    else:
+                        scene_videos.append((video_path, scene.transition_to_next))
 
             if not scene_videos:
                 return VideoCompositionResponse(
