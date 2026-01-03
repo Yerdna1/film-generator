@@ -36,6 +36,8 @@ interface Step3Props {
 export function Step3SceneGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step3Props) {
   // Determine if user can delete directly (admin) or must request (collaborator)
   const canDeleteDirectly = permissions?.canDelete ?? true;
+  // Admin can lock/unlock scenes (owner or has canApproveRequests permission)
+  const isAdmin = permissions?.canApproveRequests ?? true;
   const { apiConfig, setApiConfig } = useProjectStore();
 
   // Use SWR hook for API keys with deduplication (eliminates redundant fetches across components)
@@ -250,6 +252,29 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     }
   }, [project.id, fetchApprovedRegenerationRequests]);
 
+  // Handler for toggling scene lock status (admin only)
+  const { updateScene } = useProjectStore();
+  const handleToggleLock = useCallback(async (sceneId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}/scenes/${sceneId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to toggle lock');
+      }
+
+      const data = await response.json();
+      // Update local scene state with new locked value
+      await updateScene(project.id, sceneId, { locked: data.locked });
+    } catch (error) {
+      console.error('Failed to toggle scene lock:', error);
+      throw error;
+    }
+  }, [project.id, updateScene]);
+
   // Get selected scenes data for the dialog
   const selectedScenesData = useMemo(() => {
     return scenes
@@ -310,6 +335,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
               hasPendingDeletion={pendingDeletionSceneIds.has(scene.id)}
               approvedRegeneration={approvedRegenBySceneId.get(scene.id) || null}
               canDeleteDirectly={canDeleteDirectly}
+              isAdmin={isAdmin}
               isReadOnly={isReadOnly}
               isAuthenticated={isAuthenticated}
               isFirstImage={isFirstImage}
@@ -323,6 +349,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
               onDeletionRequested={fetchDeletionRequests}
               onUseRegenerationAttempt={handleUseRegenerationAttempt}
               onSelectRegeneration={handleSelectRegeneration}
+              onToggleLock={() => handleToggleLock(scene.id)}
             />
           );
         })}
