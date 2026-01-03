@@ -46,7 +46,7 @@ export async function PUT(
       );
     }
 
-    // Get current scene values before update (for tracking changes)
+    // Get current scene values before update (for tracking changes and locked check)
     const currentScene = await prisma.scene.findUnique({
       where: { id: sceneId },
       select: {
@@ -54,8 +54,22 @@ export async function PUT(
         description: true,
         textToImagePrompt: true,
         imageToVideoPrompt: true,
+        locked: true,
+        imageUpdatedAt: true,
       },
     });
+
+    // Check if scene is locked - nobody can modify locked scenes through the UI
+    if (currentScene?.locked) {
+      return NextResponse.json(
+        {
+          error: 'Scene is locked',
+          locked: true,
+          message: 'This scene is locked and cannot be modified through the UI. Direct database access is required.'
+        },
+        { status: 423 }  // 423 Locked status code
+      );
+    }
 
     const body = await request.json();
     const {
@@ -81,7 +95,7 @@ export async function PUT(
         ...(textToImagePrompt !== undefined && { textToImagePrompt }),
         ...(imageToVideoPrompt !== undefined && { imageToVideoPrompt }),
         ...(cameraShot !== undefined && { cameraShot }),
-        ...(imageUrl !== undefined && { imageUrl }),
+        ...(imageUrl !== undefined && { imageUrl, imageUpdatedAt: new Date() }),
         ...(videoUrl !== undefined && { videoUrl }),
         ...(audioUrl !== undefined && { audioUrl }),
         ...(duration !== undefined && { duration }),
@@ -191,6 +205,9 @@ export async function PUT(
       audioUrl: scene.audioUrl,
       duration: scene.duration,
       dialogue: scene.dialogue as object[],
+      locked: scene.locked,
+      imageUpdatedAt: scene.imageUpdatedAt?.toISOString(),
+      videoGeneratedFromImageAt: scene.videoGeneratedFromImageAt?.toISOString(),
     });
   } catch (error) {
     console.error('Error updating scene:', error);

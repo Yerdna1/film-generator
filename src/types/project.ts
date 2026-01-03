@@ -124,6 +124,10 @@ export interface Scene {
   duration: number; // in seconds
   transition?: SceneTransition; // Transition effect to next scene
   captions?: Caption[]; // Subtitles/captions for this scene
+  // Scene locking and image-video sync tracking
+  locked?: boolean;
+  imageUpdatedAt?: string; // ISO string
+  videoGeneratedFromImageAt?: string; // ISO string
 }
 
 // Voice settings per character

@@ -3,6 +3,7 @@
     "appName": "Film Generator",
     "appDescription": "AI-powered short film creation studio",
     "loading": "Loading...",
+    "processing": "Processing...",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -34,7 +35,18 @@
     "firstPage": "First page",
     "lastPage": "Last page",
     "previousPage": "Previous page",
-    "nextPage": "Next page"
+    "nextPage": "Next page",
+    "unknown": "Unknown",
+    "unknownUser": "Unknown User",
+    "unknownDuration": "Unknown duration",
+    "realCost": "Real Cost",
+    "credits": "Credits",
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{minutes}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago"
+    }
   },
   "auth": {
     "signIn": "Sign In",
@@ -196,8 +208,18 @@
         "awaitingApproval": "Awaiting Approval",
         "deletePending": "Delete Pending",
         "clickToRegenerate": "CLICK TO REGENERATE",
-        "clickToSelectBest": "CLICK TO SELECT BEST"
+        "clickToSelectBest": "CLICK TO SELECT BEST",
+        "locked": "Locked"
       },
+      "locked": {
+        "title": "Scene Locked",
+        "description": "This scene is locked and cannot be modified through the application.",
+        "descriptionWithName": "Scene \"{name}\" is locked and cannot be modified through the application.",
+        "databaseRequired": "Database Access Required",
+        "databaseHint": "To modify this scene, you need to access the database directly. This protection is in place to prevent accidental changes to finalized content."
+      },
+      "lock": "Lock Scene",
+      "unlock": "Unlock Scene",
       "prompts": {
         "t2iPrompt": "T2I Prompt",
         "i2vPrompt": "I2V Prompt"
@@ -236,6 +258,16 @@
       "modeNormal": "Normal",
       "modeFun": "Fun",
       "voiceoverNote": "Voiceover audio is not included - add dialogue audio from Step 5 in your video editor (CapCut)",
+      "staleWarning": {
+        "title": "Image Updated",
+        "description": "The source image has been updated since this video was generated.",
+        "descriptionWithName": "The image for \"{name}\" has been updated since the video was generated.",
+        "imageUpdated": "Image Updated",
+        "videoGenerated": "Video Generated From",
+        "hint": "Regenerating the video will create a new video based on the current image. The old video will be replaced.",
+        "regenerateAnyway": "Regenerate Anyway",
+        "badge": "Image Updated"
+      },
       "costEstimate": "Cost Estimate",
       "remaining": "Remaining",
       "totalCost": "Total Cost",
@@ -1176,19 +1208,6 @@
       "dedicatedSupport": "Dedicated support",
       "forHobbyists": "For hobbyists",
       "forRegularUsers": "For regular users"
-    }
-  },
-  "common": {
-    "unknown": "Unknown",
-    "unknownUser": "Unknown User",
-    "unknownDuration": "Unknown duration",
-    "realCost": "Real Cost",
-    "credits": "Credits",
-    "time": {
-      "justNow": "Just now",
-      "minutesAgo": "{minutes}m ago",
-      "hoursAgo": "{hours}h ago",
-      "daysAgo": "{days}d ago"
     }
   },
   "roles": {

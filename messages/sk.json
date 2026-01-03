@@ -3,6 +3,7 @@
     "appName": "Generátor filmov",
     "appDescription": "AI štúdio na tvorbu krátkych filmov",
     "loading": "Načítava sa...",
+    "processing": "Spracováva sa...",
     "save": "Uložiť",
     "cancel": "Zrušiť",
     "delete": "Odstrániť",
@@ -34,7 +35,18 @@
     "firstPage": "Prvá strana",
     "lastPage": "Posledná strana",
     "previousPage": "Predchádzajúca strana",
-    "nextPage": "Nasledujúca strana"
+    "nextPage": "Nasledujúca strana",
+    "unknown": "Neznáme",
+    "unknownUser": "Neznámy používateľ",
+    "unknownDuration": "Neznáma dĺžka",
+    "realCost": "Skutočná cena",
+    "credits": "Kredity",
+    "time": {
+      "justNow": "Práve teraz",
+      "minutesAgo": "pred {minutes}m",
+      "hoursAgo": "pred {hours}h",
+      "daysAgo": "pred {days}d"
+    }
   },
   "auth": {
     "signIn": "Prihlásiť sa",
@@ -196,8 +208,18 @@
         "awaitingApproval": "Čaká na schválenie",
         "deletePending": "Čaká na odstránenie",
         "clickToRegenerate": "KLIKNITE PRE REGENERÁCIU",
-        "clickToSelectBest": "KLIKNITE PRE VÝBER NAJLEPŠEJ"
+        "clickToSelectBest": "KLIKNITE PRE VÝBER NAJLEPŠEJ",
+        "locked": "Zamknutá"
       },
+      "locked": {
+        "title": "Scéna je zamknutá",
+        "description": "Táto scéna je zamknutá a nie je možné ju upravovať cez aplikáciu.",
+        "descriptionWithName": "Scéna \"{name}\" je zamknutá a nie je možné ju upravovať cez aplikáciu.",
+        "databaseRequired": "Potrebný prístup k databáze",
+        "databaseHint": "Na úpravu tejto scény potrebujete priamy prístup k databáze. Toto opatrenie zabraňuje náhodným zmenám finalizovaného obsahu."
+      },
+      "lock": "Zamknúť scénu",
+      "unlock": "Odomknúť scénu",
       "prompts": {
         "t2iPrompt": "T2I Prompt",
         "i2vPrompt": "I2V Prompt"
@@ -236,6 +258,16 @@
       "modeNormal": "Normálny",
       "modeFun": "Zábavný",
       "voiceoverNote": "Hlasový komentár nie je zahrnutý - pridajte dialógy z kroku 5 vo video editore (CapCut)",
+      "staleWarning": {
+        "title": "Obrázok bol aktualizovaný",
+        "description": "Zdrojový obrázok bol aktualizovaný od vygenerovnia tohto videa.",
+        "descriptionWithName": "Obrázok pre scénu \"{name}\" bol aktualizovaný od vygenerovnia videa.",
+        "imageUpdated": "Obrázok aktualizovaný",
+        "videoGenerated": "Video vygenerované z",
+        "hint": "Regenerácia videa vytvorí nové video na základe aktuálneho obrázka. Staré video bude nahradené.",
+        "regenerateAnyway": "Napriek tomu regenerovať",
+        "badge": "Obrázok aktualizovaný"
+      },
       "costEstimate": "Odhad nákladov",
       "remaining": "Zostáva",
       "totalCost": "Celková cena",
@@ -1176,19 +1208,6 @@
       "dedicatedSupport": "Vyhradená podpora",
       "forHobbyists": "Pre hobby tvorcov",
       "forRegularUsers": "Pre bežných používateľov"
-    }
-  },
-  "common": {
-    "unknown": "Neznáme",
-    "unknownUser": "Neznámy používateľ",
-    "unknownDuration": "Neznáma dĺžka",
-    "realCost": "Skutočná cena",
-    "credits": "Kredity",
-    "time": {
-      "justNow": "Práve teraz",
-      "minutesAgo": "pred {minutes}m",
-      "hoursAgo": "pred {hours}h",
-      "daysAgo": "pred {days}d"
     }
   },
   "roles": {

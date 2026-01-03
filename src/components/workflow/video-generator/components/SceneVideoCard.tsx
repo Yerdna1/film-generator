@@ -16,7 +16,9 @@ import {
   MessageSquare,
   Clock,
   Lock,
+  Unlock,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +33,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyButton } from '@/components/shared/CopyButton';
 import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
+import { LockedSceneModal } from '@/components/shared/LockedSceneModal';
+import { StaleVideoWarningModal } from '@/components/shared/StaleVideoWarningModal';
 import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
 import { RegenerationSelectionModal } from '@/components/collaboration/RegenerationSelectionModal';
 import type { Scene } from '@/types/project';
@@ -50,6 +54,7 @@ interface SceneVideoCardProps {
   hasPendingDeletion?: boolean;
   approvedRegeneration?: RegenerationRequest | null;
   canDeleteDirectly?: boolean;
+  isAdmin?: boolean;
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
   isFirstVideo?: boolean;
@@ -61,6 +66,7 @@ interface SceneVideoCardProps {
   onDeletionRequested?: () => void;
   onUseRegenerationAttempt?: (requestId: string) => Promise<void>;
   onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>;
+  onToggleLock?: () => void;
 }
 
 const getStatusColor = (status: VideoStatus) => {
@@ -109,6 +115,7 @@ export function SceneVideoCard({
   hasPendingDeletion = false,
   approvedRegeneration = null,
   canDeleteDirectly = true,
+  isAdmin = false,
   isReadOnly = false,
   isAuthenticated = true,
   isFirstVideo = false,
@@ -120,15 +127,57 @@ export function SceneVideoCard({
   onDeletionRequested,
   onUseRegenerationAttempt,
   onSelectRegeneration,
+  onToggleLock,
 }: SceneVideoCardProps) {
   const t = useTranslations();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeletionRequest, setShowDeletionRequest] = useState(false);
   const [showRegenerationModal, setShowRegenerationModal] = useState(false);
+  const [showLockedModal, setShowLockedModal] = useState(false);
+  const [showStaleWarning, setShowStaleWarning] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
 
   // Determine if this video is restricted (non-first video for unauthenticated users)
   const isRestricted = !isAuthenticated && scene.videoUrl && !isFirstVideo;
+
+  // Determine if video is stale (image was updated after video was generated)
+  const isVideoStale = !!(
+    scene.videoUrl &&
+    scene.imageUpdatedAt &&
+    scene.videoGeneratedFromImageAt &&
+    new Date(scene.imageUpdatedAt) > new Date(scene.videoGeneratedFromImageAt)
+  );
+
+  // Handler for locked actions - shows modal instead of performing action
+  const handleLockedAction = () => {
+    if (scene.locked) {
+      setShowLockedModal(true);
+      return true;
+    }
+    return false;
+  };
+
+  // Handle generate video with stale check
+  const handleGenerateVideo = () => {
+    if (handleLockedAction()) return;
+    if (isVideoStale) {
+      setShowStaleWarning(true);
+    } else {
+      onGenerateVideo();
+    }
+  };
+
+  // Handle lock toggle
+  const handleToggleLock = async () => {
+    if (!onToggleLock) return;
+    setIsTogglingLock(true);
+    try {
+      await onToggleLock();
+    } finally {
+      setIsTogglingLock(false);
+    }
+  };
 
   return (
     <>
@@ -172,6 +221,23 @@ export function SceneVideoCard({
           }}
         />
       )}
+      {/* Locked Scene Modal */}
+      <LockedSceneModal
+        isOpen={showLockedModal}
+        onClose={() => setShowLockedModal(false)}
+        sceneName={scene.title}
+      />
+      {/* Stale Video Warning Modal */}
+      <StaleVideoWarningModal
+        isOpen={showStaleWarning}
+        onClose={() => setShowStaleWarning(false)}
+        onConfirm={() => {
+          onGenerateVideo();
+        }}
+        sceneName={scene.title}
+        imageUpdatedAt={scene.imageUpdatedAt}
+        videoGeneratedAt={scene.videoGeneratedFromImageAt}
+      />
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -179,7 +245,9 @@ export function SceneVideoCard({
     >
       <Card className={`overflow-hidden ${
         // Background colors based on regeneration status
-        approvedRegeneration?.status === 'approved'
+        scene.locked
+          ? 'bg-amber-900/40 border-amber-500/50 ring-1 ring-amber-500/30'
+          : approvedRegeneration?.status === 'approved'
           ? 'bg-emerald-900/60 border-emerald-400 ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20'
           : approvedRegeneration?.status === 'generating'
           ? 'bg-blue-900/60 border-blue-400 ring-2 ring-blue-400/50 shadow-lg shadow-blue-500/20'
@@ -272,6 +340,18 @@ export function SceneVideoCard({
             <Badge className="bg-black/60 text-white border-0">
               {t('steps.scenes.sceneLabel')} {scene.number || index + 1}
             </Badge>
+            {scene.locked && (
+              <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                <Lock className="w-2.5 h-2.5" />
+                {t('steps.scenes.status.locked')}
+              </Badge>
+            )}
+            {isVideoStale && !scene.locked && (
+              <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title={t('steps.videos.staleWarning.badge')}>
+                <AlertTriangle className="w-2.5 h-2.5" />
+                {t('steps.videos.staleWarning.badge')}
+              </Badge>
+            )}
             {hasPendingRegeneration && (
               <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                 <Clock className="w-2.5 h-2.5" />
@@ -392,8 +472,14 @@ export function SceneVideoCard({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 h-7 border-white/10 hover:bg-white/5"
-                          onClick={onGenerateVideo}
+                          className={`flex-1 h-7 ${
+                            scene.locked
+                              ? 'border-amber-500/30 text-amber-400'
+                              : isVideoStale
+                              ? 'border-orange-500/30 text-orange-400'
+                              : 'border-white/10 hover:bg-white/5'
+                          }`}
+                          onClick={handleGenerateVideo}
                           disabled={status === 'generating'}
                         >
                           {status === 'generating' ? (
@@ -403,13 +489,45 @@ export function SceneVideoCard({
                             >
                               <RefreshCw className="w-3.5 h-3.5" />
                             </motion.div>
+                          ) : scene.locked ? (
+                            <Lock className="w-3.5 h-3.5" />
+                          ) : isVideoStale ? (
+                            <AlertTriangle className="w-3.5 h-3.5" />
                           ) : (
                             <Sparkles className="w-3.5 h-3.5" />
                           )}
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{t('steps.videos.generateVideo')}</p>
+                        <p>{scene.locked ? t('steps.scenes.status.locked') : isVideoStale ? t('steps.videos.staleWarning.badge') : t('steps.videos.generateVideo')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+
+                {/* Lock/Unlock button - admin only */}
+                {isAdmin && onToggleLock && !isReadOnly && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleToggleLock}
+                          disabled={isTogglingLock}
+                          className={`h-7 ${scene.locked ? 'text-amber-400 hover:text-amber-300' : 'text-muted-foreground hover:text-amber-400'}`}
+                        >
+                          {isTogglingLock ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : scene.locked ? (
+                            <Unlock className="w-3.5 h-3.5" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{scene.locked ? t('steps.scenes.unlock') : t('steps.scenes.lock')}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

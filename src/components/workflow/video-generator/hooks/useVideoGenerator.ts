@@ -230,7 +230,11 @@ export function useVideoGenerator(initialProject: Project) {
           // Pass isRegeneration from the response (set during POST)
           const videoUrl = await pollForVideoCompletion(data.taskId, scene.id, data.isRegeneration || isRegeneration);
           if (videoUrl) {
-            updateScene(project.id, scene.id, { videoUrl });
+            // Track when video was generated from which image version
+            updateScene(project.id, scene.id, {
+              videoUrl,
+              videoGeneratedFromImageAt: scene.imageUpdatedAt || new Date().toISOString(),
+            });
             setVideoStates((prev) => ({
               ...prev,
               [scene.id]: { status: 'complete', progress: 100 },
@@ -241,7 +245,11 @@ export function useVideoGenerator(initialProject: Project) {
         }
 
         if (data.videoUrl) {
-          updateScene(project.id, scene.id, { videoUrl: data.videoUrl });
+          // Track when video was generated from which image version
+          updateScene(project.id, scene.id, {
+            videoUrl: data.videoUrl,
+            videoGeneratedFromImageAt: scene.imageUpdatedAt || new Date().toISOString(),
+          });
           setVideoStates((prev) => ({
             ...prev,
             [scene.id]: { status: 'complete', progress: 100 },

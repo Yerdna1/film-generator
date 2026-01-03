@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
 import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
 import { RegenerationSelectionModal } from '@/components/collaboration/RegenerationSelectionModal';
+import { LockedSceneModal } from '@/components/shared/LockedSceneModal';
 import type { RegenerationRequest } from '@/types/collaboration';
 import {
   Image as ImageIcon,
@@ -22,6 +23,7 @@ import {
   Expand,
   Clock,
   Lock,
+  Unlock,
   CheckCircle,
   Play,
 } from 'lucide-react';
@@ -53,6 +55,7 @@ interface SceneCardProps {
   hasPendingDeletion?: boolean;
   approvedRegeneration?: RegenerationRequest | null; // Approved request ready to use
   canDeleteDirectly?: boolean; // Admin can delete directly, collaborators must request
+  isAdmin?: boolean; // Can lock/unlock scenes
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
   isFirstImage?: boolean;
@@ -66,6 +69,7 @@ interface SceneCardProps {
   onDeletionRequested?: () => void; // Callback when deletion request is sent
   onUseRegenerationAttempt?: (requestId: string) => Promise<void>; // Use one of the approved regeneration attempts
   onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>; // Submit selection for final approval
+  onToggleLock?: () => void; // Toggle lock status (admin only)
 }
 
 function SceneCardComponent({
@@ -82,6 +86,7 @@ function SceneCardComponent({
   hasPendingDeletion = false,
   approvedRegeneration = null,
   canDeleteDirectly = true,
+  isAdmin = false,
   isReadOnly = false,
   isAuthenticated = true,
   isFirstImage = false,
@@ -95,15 +100,38 @@ function SceneCardComponent({
   onDeletionRequested,
   onUseRegenerationAttempt,
   onSelectRegeneration,
+  onToggleLock,
 }: SceneCardProps) {
   const t = useTranslations();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeletionRequest, setShowDeletionRequest] = useState(false);
   const [showRegenerationModal, setShowRegenerationModal] = useState(false);
+  const [showLockedModal, setShowLockedModal] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
 
   // Determine if this image is restricted (non-first image for unauthenticated users)
   const isRestricted = !isAuthenticated && scene.imageUrl && !isFirstImage;
+
+  // Handler for locked actions - shows modal instead of performing action
+  const handleLockedAction = () => {
+    if (scene.locked) {
+      setShowLockedModal(true);
+      return true;
+    }
+    return false;
+  };
+
+  // Handle lock toggle
+  const handleToggleLock = async () => {
+    if (!onToggleLock) return;
+    setIsTogglingLock(true);
+    try {
+      await onToggleLock();
+    } finally {
+      setIsTogglingLock(false);
+    }
+  };
 
   return (
     <>
@@ -144,6 +172,12 @@ function SceneCardComponent({
           }}
         />
       )}
+      {/* Locked Scene Modal */}
+      <LockedSceneModal
+        isOpen={showLockedModal}
+        onClose={() => setShowLockedModal(false)}
+        sceneName={scene.title}
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -151,7 +185,9 @@ function SceneCardComponent({
       >
         <Card className={`overflow-hidden ${
           // Background colors based on regeneration status - use solid bg instead of glass for status cards
-          approvedRegeneration?.status === 'approved'
+          scene.locked
+            ? 'bg-amber-900/40 border-amber-500/50 ring-1 ring-amber-500/30'
+            : approvedRegeneration?.status === 'approved'
             ? 'bg-emerald-900/60 border-emerald-400 ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20'
             : approvedRegeneration?.status === 'generating'
             ? 'bg-blue-900/60 border-blue-400 ring-2 ring-blue-400/50 shadow-lg shadow-blue-500/20'
@@ -225,6 +261,12 @@ function SceneCardComponent({
                 <Badge className="bg-black/60 text-emerald-400 border-0 text-xs px-1.5 py-0.5">
                   {index + 1}
                 </Badge>
+                {scene.locked && (
+                  <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5" />
+                    {t('steps.scenes.status.locked')}
+                  </Badge>
+                )}
                 {hasPendingRegeneration && (
                   <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
                     <Clock className="w-2.5 h-2.5" />
@@ -370,14 +412,23 @@ function SceneCardComponent({
                 <div className="flex gap-1 pt-0.5">
                   <Button
                     size="sm"
-                    className="flex-1 h-7 bg-gradient-to-r from-emerald-600/80 to-teal-600/80 hover:from-emerald-500 hover:to-teal-500 text-white border-0 text-xs"
-                    onClick={onGenerateImage}
+                    className={`flex-1 h-7 text-white border-0 text-xs ${
+                      scene.locked
+                        ? 'bg-amber-600/50 hover:bg-amber-600/70 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-emerald-600/80 to-teal-600/80 hover:from-emerald-500 hover:to-teal-500'
+                    }`}
+                    onClick={() => {
+                      if (handleLockedAction()) return;
+                      onGenerateImage();
+                    }}
                     disabled={isGeneratingImage || isGeneratingAllImages}
                   >
                     {isGeneratingImage ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                         <Sparkles className="w-3.5 h-3.5" />
                       </motion.div>
+                    ) : scene.locked ? (
+                      <Lock className="w-3.5 h-3.5" />
                     ) : scene.imageUrl ? (
                       <RefreshCw className="w-3.5 h-3.5" />
                     ) : (
@@ -387,20 +438,45 @@ function SceneCardComponent({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 border-white/10 hover:bg-white/5"
-                    onClick={onEdit}
+                    className={`h-7 ${scene.locked ? 'border-amber-500/30 text-amber-400' : 'border-white/10 hover:bg-white/5'}`}
+                    onClick={() => {
+                      if (handleLockedAction()) return;
+                      onEdit();
+                    }}
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    {scene.locked ? <Lock className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
                   </Button>
+                  {/* Lock/Unlock button - admin only */}
+                  {isAdmin && onToggleLock && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleToggleLock}
+                      disabled={isTogglingLock}
+                      className={`h-7 ${scene.locked ? 'text-amber-400 hover:text-amber-300' : 'text-muted-foreground hover:text-amber-400'}`}
+                      title={scene.locked ? t('steps.scenes.unlock') : t('steps.scenes.lock')}
+                    >
+                      {isTogglingLock ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : scene.locked ? (
+                        <Unlock className="w-3.5 h-3.5" />
+                      ) : (
+                        <Lock className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true)}
-                    className={`h-7 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
+                    onClick={() => {
+                      if (handleLockedAction()) return;
+                      canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true);
+                    }}
+                    className={`h-7 ${scene.locked ? 'text-amber-400' : hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
                     disabled={hasPendingDeletion}
-                    title={hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete scene' : 'Request deletion'}
+                    title={scene.locked ? t('steps.scenes.status.locked') : hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete scene' : 'Request deletion'}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    {scene.locked ? <Lock className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
                   </Button>
                 </div>
               )}
@@ -418,8 +494,16 @@ function SceneCardComponent({
                     </Label>
                     <div className="flex items-center gap-0.5">
                       {!isReadOnly && (
-                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onRegeneratePrompts}>
-                          <RefreshCw className="w-3 h-3" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-5 w-5 ${scene.locked ? 'text-amber-400' : ''}`}
+                          onClick={() => {
+                            if (handleLockedAction()) return;
+                            onRegeneratePrompts();
+                          }}
+                        >
+                          {scene.locked ? <Lock className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
                         </Button>
                       )}
                       <CopyButton text={scene.textToImagePrompt} size="icon" className="h-5 w-5" />
@@ -487,6 +571,7 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.scene.textToImagePrompt === nextProps.scene.textToImagePrompt &&
     prevProps.scene.imageToVideoPrompt === nextProps.scene.imageToVideoPrompt &&
     prevProps.scene.dialogue.length === nextProps.scene.dialogue.length &&
+    prevProps.scene.locked === nextProps.scene.locked &&
     prevProps.projectId === nextProps.projectId &&
     prevProps.isExpanded === nextProps.isExpanded &&
     prevProps.isGeneratingImage === nextProps.isGeneratingImage &&
@@ -500,6 +585,7 @@ export const SceneCard = memo(SceneCardComponent, (prevProps, nextProps) => {
     prevProps.approvedRegeneration?.attemptsUsed === nextProps.approvedRegeneration?.attemptsUsed &&
     prevProps.approvedRegeneration?.generatedUrls?.length === nextProps.approvedRegeneration?.generatedUrls?.length &&
     prevProps.canDeleteDirectly === nextProps.canDeleteDirectly &&
+    prevProps.isAdmin === nextProps.isAdmin &&
     prevProps.isReadOnly === nextProps.isReadOnly &&
     prevProps.isAuthenticated === nextProps.isAuthenticated &&
     prevProps.isFirstImage === nextProps.isFirstImage

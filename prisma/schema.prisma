@@ -234,21 +234,25 @@ model Character {
 
 // Scenes
 model Scene {
-  id                 String   @id @default(cuid())
-  projectId          String
-  number             Int
-  title              String
-  description        String   @db.Text
-  textToImagePrompt  String   @db.Text
-  imageToVideoPrompt String   @db.Text
-  cameraShot         String   @default("medium")
-  imageUrl           String?  @db.Text
-  videoUrl           String?  @db.Text
-  audioUrl           String?  @db.Text
-  duration           Int      @default(6)
-  dialogue           Json     @default("[]")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                        String    @id @default(cuid())
+  projectId                 String
+  number                    Int
+  title                     String
+  description               String    @db.Text
+  textToImagePrompt         String    @db.Text
+  imageToVideoPrompt        String    @db.Text
+  cameraShot                String    @default("medium")
+  imageUrl                  String?   @db.Text
+  videoUrl                  String?   @db.Text
+  audioUrl                  String?   @db.Text
+  duration                  Int       @default(6)
+  dialogue                  Json      @default("[]")
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  // Scene locking and image-video sync tracking
+  locked                    Boolean   @default(false)
+  imageUpdatedAt            DateTime?
+  videoGeneratedFromImageAt DateTime?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
