@@ -253,7 +253,6 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   }, [project.id, fetchApprovedRegenerationRequests]);
 
   // Handler for toggling scene lock status (admin only)
-  const { updateScene } = useProjectStore();
   const handleToggleLock = useCallback(async (sceneId: string) => {
     try {
       const response = await fetch(`/api/projects/${project.id}/scenes/${sceneId}/lock`, {
@@ -267,13 +266,31 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       }
 
       const data = await response.json();
-      // Update local scene state with new locked value
-      await updateScene(project.id, sceneId, { locked: data.locked });
+      // Update local scene state directly (API already updated DB)
+      useProjectStore.setState((state) => ({
+        projects: state.projects.map((p) =>
+          p.id === project.id
+            ? {
+                ...p,
+                scenes: p.scenes.map((s) => (s.id === sceneId ? { ...s, locked: data.locked } : s)),
+              }
+            : p
+        ),
+        currentProject:
+          state.currentProject?.id === project.id
+            ? {
+                ...state.currentProject,
+                scenes: state.currentProject.scenes.map((s) =>
+                  s.id === sceneId ? { ...s, locked: data.locked } : s
+                ),
+              }
+            : state.currentProject,
+      }));
     } catch (error) {
       console.error('Failed to toggle scene lock:', error);
       throw error;
     }
-  }, [project.id, updateScene]);
+  }, [project.id]);
 
   // Get selected scenes data for the dialog
   const selectedScenesData = useMemo(() => {
