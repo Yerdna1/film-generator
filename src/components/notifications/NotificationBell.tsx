@@ -111,6 +111,53 @@ export function NotificationBell() {
     return date.toLocaleDateString();
   };
 
+  // Translate notification title
+  const translateTitle = (title: string): string => {
+    const titleMap: Record<string, string> = {
+      'Regeneration Request Approved': 'notifications.regenerationRequest.approved',
+      'Regeneration Approved': 'notifications.regenerationRequest.finalApproved',
+      'Batch Regeneration Approved': 'notifications.regenerationRequest.batchApproved',
+      'Regeneration Request Rejected': 'notifications.regenerationRequest.rejected',
+      'Regeneration Completed': 'notifications.regenerationRequest.completed',
+      'Regeneration Failed': 'notifications.regenerationRequest.failed',
+    };
+    return titleMap[title] ? t(titleMap[title]) : title;
+  };
+
+  // Translate notification message
+  const translateMessage = (title: string, message: string): string => {
+    // Match "Your {type} regeneration request for "{title}" was approved! You can now regenerate it up to {n} times."
+    const approvedMatch = message.match(/^Your (\w+) regeneration request for "(.+?)" was approved! You can now regenerate it up to (\d+) times\.$/);
+    if (approvedMatch) {
+      return t('notifications.regenerationRequest.approvedMessage', {
+        type: approvedMatch[1],
+        title: approvedMatch[2],
+        maxAttempts: approvedMatch[3]
+      });
+    }
+
+    // Match "Your selected {type} for "{title}" has been approved and applied!"
+    const finalApprovedMatch = message.match(/^Your selected (\w+) for "(.+?)" has been approved and applied!$/);
+    if (finalApprovedMatch) {
+      return t('notifications.regenerationRequest.finalApprovedMessage', {
+        type: finalApprovedMatch[1],
+        title: finalApprovedMatch[2]
+      });
+    }
+
+    // Match batch approval messages
+    const batchMatch = message.match(/^Your batch request for (\d+) (\w+)s? was approved!/);
+    if (batchMatch) {
+      return t('notifications.regenerationRequest.batchApprovedMessage', {
+        count: batchMatch[1],
+        type: batchMatch[2],
+        maxAttempts: '3' // Default
+      });
+    }
+
+    return message;
+  };
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -183,14 +230,14 @@ export function NotificationBell() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <p className={`text-sm font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                            {notification.title}
+                            {translateTitle(notification.title)}
                           </p>
                           {!notification.read && (
                             <span className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0 mt-1.5" />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                          {notification.message}
+                          {translateMessage(notification.title, notification.message)}
                         </p>
                         <p className="text-[10px] text-muted-foreground/60 mt-1">
                           {formatTime(notification.createdAt)}

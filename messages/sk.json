@@ -891,13 +891,17 @@
       "title": "Žiadosť o regeneráciu",
       "message": "{user} požiadal o regeneráciu {target}",
       "approved": "Žiadosť o regeneráciu schválená",
-      "approvedMessage": "Vaša žiadosť o regeneráciu {target} bola schválená. Teraz môžete regenerovať.",
+      "approvedMessage": "Vaša žiadosť o regeneráciu {type} pre \"{title}\" bola schválená! Môžete ho regenerovať až {maxAttempts}-krát.",
       "rejected": "Žiadosť o regeneráciu zamietnutá",
       "rejectedMessage": "Vaša žiadosť o regeneráciu {target} bola zamietnutá.",
       "completed": "Regenerácia dokončená",
       "completedMessage": "Regenerácia pre {target} bola dokončená a aplikovaná.",
       "failed": "Regenerácia zlyhala",
-      "failedMessage": "Regenerácia pre {target} zlyhala. Skúste to znova."
+      "failedMessage": "Regenerácia pre {target} zlyhala. Skúste to znova.",
+      "finalApproved": "Regenerácia schválená",
+      "finalApprovedMessage": "Váš vybraný {type} pre \"{title}\" bol schválený a aplikovaný!",
+      "batchApproved": "Hromadná regenerácia schválená",
+      "batchApprovedMessage": "Vaša hromadná žiadosť pre {count} {type} bola schválená! Každý môžete regenerovať až {maxAttempts}-krát."
     }
   },
   "approvals": {
