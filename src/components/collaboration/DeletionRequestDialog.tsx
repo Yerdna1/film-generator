@@ -93,11 +93,8 @@ export function DeletionRequestDialog({
     }, 200);
   };
 
-  const targetLabels: Record<string, string> = {
-    project: 'project',
-    scene: 'scene',
-    character: 'character',
-    video: 'video',
+  const getTargetLabel = (type: string) => {
+    return t(`collaborationModals.deletion.targetTypes.${type}` as any) || type;
   };
 
   return (
@@ -122,9 +119,9 @@ export function DeletionRequestDialog({
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
               <Check className="w-8 h-8 text-green-400" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Request Submitted</h3>
+            <h3 className="font-semibold text-lg mb-2">{t('collaborationModals.deletion.requestSubmitted')}</h3>
             <p className="text-sm text-muted-foreground">
-              An admin will review your deletion request.
+              {t('collaborationModals.deletion.adminWillReview')}
             </p>
           </motion.div>
         ) : (
@@ -134,24 +131,25 @@ export function DeletionRequestDialog({
                 <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-orange-400">
-                    Deletion Request
+                    {t('collaborationModals.deletion.deletionRequest')}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    You're requesting to delete this {targetLabels[targetType]}
-                    {targetName && `: "${targetName}"`}.
-                    An admin must approve this before it takes effect.
+                    {t('collaborationModals.deletion.deletionWarning', {
+                      type: getTargetLabel(targetType),
+                      name: targetName ? `: "${targetName}"` : ''
+                    })}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reason">Reason (optional)</Label>
+              <Label htmlFor="reason">{t('collaborationModals.deletion.reasonOptional')}</Label>
               <Textarea
                 id="reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Why do you want to delete this item?"
+                placeholder={t('collaborationModals.deletion.whyDeletePlaceholder')}
                 className="bg-white/5 border-white/10 min-h-[100px]"
               />
             </div>
@@ -170,7 +168,7 @@ export function DeletionRequestDialog({
                 className="flex-1"
                 disabled={isLoading}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -180,12 +178,12 @@ export function DeletionRequestDialog({
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Submitting...
+                    {t('collaborationModals.deletion.submitting')}
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Submit Request
+                    {t('collaborationModals.deletion.submitRequest')}
                   </>
                 )}
               </Button>

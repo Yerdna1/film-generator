@@ -268,9 +268,9 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffHours < 1) return t('collaborationModals.approvalPanel.justNow');
+    if (diffHours < 24) return t('collaborationModals.approvalPanel.hoursAgo', { hours: diffHours });
+    if (diffDays < 7) return t('collaborationModals.approvalPanel.daysAgo', { days: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -308,7 +308,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <RefreshCw className="w-5 h-5 text-cyan-400" />
-            <h3 className="font-semibold">Regeneration Requests</h3>
+            <h3 className="font-semibold">{t('collaborationModals.approvalPanel.regenerationRequests')}</h3>
             <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 text-xs font-medium">
               {pendingRegenerations.length}
             </span>
@@ -353,10 +353,10 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                               <ChevronRight className="w-4 h-4 text-cyan-400" />
                             )}
                             <span className="font-medium text-cyan-400">
-                              {pendingInBatch.length} {batch.targetType}{pendingInBatch.length > 1 ? 's' : ''} requested
+                              {t('collaborationModals.approvalPanel.itemsRequested', { count: pendingInBatch.length, type: batch.targetType })}
                             </span>
                             <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs">
-                              Batch
+                              {t('collaborationModals.approvalPanel.batch')}
                             </span>
                           </div>
 
@@ -394,7 +394,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                             className="text-muted-foreground"
                           >
                             <MessageSquare className="w-4 h-4 mr-1" />
-                            Add Note
+                            {t('collaborationModals.approvalPanel.addNote')}
                           </Button>
                         )}
 
@@ -415,7 +415,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           ) : (
                             <>
                               <X className="w-4 h-4 mr-1" />
-                              Reject All
+                              {t('collaborationModals.approvalPanel.rejectAll')}
                             </>
                           )}
                         </Button>
@@ -434,7 +434,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           ) : (
                             <>
                               <Check className="w-4 h-4 mr-1" />
-                              Approve All ({pendingInBatch.length})
+                              {t('collaborationModals.approvalPanel.approveAll', { count: pendingInBatch.length })}
                             </>
                           )}
                         </Button>
@@ -453,7 +453,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                             onChange={(e) =>
                               setReviewNotes((prev) => ({ ...prev, [`batch_${batch.batchId}`]: e.target.value }))
                             }
-                            placeholder="Add a note for all items in this batch (optional)..."
+                            placeholder={t('collaborationModals.approvalPanel.addBatchNotePlaceholder')}
                             className="bg-white/5 border-white/10 min-h-[60px] text-sm"
                           />
                         </motion.div>
@@ -548,7 +548,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">
-                            Regenerate {request.targetType}
+                            {t('collaborationModals.approvalPanel.regenerateType', { type: request.targetType })}
                           </span>
                           {request.targetName && (
                             <span className="text-muted-foreground truncate">
@@ -590,7 +590,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           onChange={(e) =>
                             setReviewNotes((prev) => ({ ...prev, [request.id]: e.target.value }))
                           }
-                          placeholder="Add a note (optional)..."
+                          placeholder={t('collaborationModals.approvalPanel.addNotePlaceholder')}
                           className="bg-white/5 border-white/10 min-h-[60px] text-sm"
                         />
                       </motion.div>
@@ -606,7 +606,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           className="text-muted-foreground"
                         >
                           <MessageSquare className="w-4 h-4 mr-1" />
-                          Add Note
+                          {t('collaborationModals.approvalPanel.addNote')}
                         </Button>
                       )}
 
@@ -624,7 +624,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         ) : (
                           <>
                             <X className="w-4 h-4 mr-1" />
-                            Reject
+                            {t('approvals.reject')}
                           </>
                         )}
                       </Button>
@@ -640,7 +640,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         ) : (
                           <>
                             <RefreshCw className="w-4 h-4 mr-1" />
-                            Approve & Regenerate
+                            {t('collaborationModals.approvalPanel.approveAndRegenerate')}
                           </>
                         )}
                       </Button>
@@ -658,7 +658,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-purple-400" />
-            <h3 className="font-semibold">Prompt Edits</h3>
+            <h3 className="font-semibold">{t('collaborationModals.approvalPanel.promptEdits')}</h3>
             <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">
               {pendingPromptEdits.length}
             </span>
@@ -712,7 +712,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           onClick={() => setExpandedDiff(isExpanded ? null : request.id)}
                           className="mt-2 text-purple-400 hover:text-purple-300 h-7 px-2"
                         >
-                          {isExpanded ? 'Hide Changes' : 'Show Changes'}
+                          {isExpanded ? t('collaborationModals.approvalPanel.hideChanges') : t('collaborationModals.approvalPanel.showChanges')}
                         </Button>
                       </div>
                     </div>
@@ -729,11 +729,11 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-xs font-medium text-red-400">
                             <X className="w-3 h-3" />
-                            Before
+                            {t('approvals.before')}
                           </div>
                           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg max-h-32 overflow-y-auto">
                             <pre className="text-xs text-red-200 whitespace-pre-wrap font-mono break-words">
-                              {request.oldValue || '(empty)'}
+                              {request.oldValue || t('approvals.empty')}
                             </pre>
                           </div>
                         </div>
@@ -742,11 +742,11 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-xs font-medium text-green-400">
                             <Check className="w-3 h-3" />
-                            After
+                            {t('approvals.after')}
                           </div>
                           <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg max-h-32 overflow-y-auto">
                             <pre className="text-xs text-green-200 whitespace-pre-wrap font-mono break-words">
-                              {request.newValue || '(empty)'}
+                              {request.newValue || t('approvals.empty')}
                             </pre>
                           </div>
                         </div>
@@ -765,7 +765,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           onChange={(e) =>
                             setReviewNotes((prev) => ({ ...prev, [request.id]: e.target.value }))
                           }
-                          placeholder="Add a note (optional)..."
+                          placeholder={t('collaborationModals.approvalPanel.addNotePlaceholder')}
                           className="bg-white/5 border-white/10 min-h-[60px] text-sm"
                         />
                       </motion.div>
@@ -781,7 +781,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           className="text-muted-foreground"
                         >
                           <MessageSquare className="w-4 h-4 mr-1" />
-                          Add Note
+                          {t('collaborationModals.approvalPanel.addNote')}
                         </Button>
                       )}
 
@@ -799,7 +799,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         ) : (
                           <>
                             <Undo2 className="w-4 h-4 mr-1" />
-                            Revert
+                            {t('approvals.revert')}
                           </>
                         )}
                       </Button>
@@ -815,7 +815,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         ) : (
                           <>
                             <Check className="w-4 h-4 mr-1" />
-                            Accept
+                            {t('approvals.accept')}
                           </>
                         )}
                       </Button>
@@ -833,7 +833,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Trash2 className="w-5 h-5 text-orange-400" />
-            <h3 className="font-semibold">Deletion Requests</h3>
+            <h3 className="font-semibold">{t('collaborationModals.approvalPanel.deletionRequests')}</h3>
             <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-medium">
               {pendingDeletions.length}
             </span>
@@ -861,7 +861,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">Delete {request.targetType}</span>
+                          <span className="font-medium">{t('collaborationModals.approvalPanel.deleteType', { type: request.targetType })}</span>
                           {request.targetName && (
                             <span className="text-muted-foreground">"{request.targetName}"</span>
                           )}
@@ -900,7 +900,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           onChange={(e) =>
                             setReviewNotes((prev) => ({ ...prev, [request.id]: e.target.value }))
                           }
-                          placeholder="Add a note (optional)..."
+                          placeholder={t('collaborationModals.approvalPanel.addNotePlaceholder')}
                           className="bg-white/5 border-white/10 min-h-[60px] text-sm"
                         />
                       </motion.div>
@@ -916,7 +916,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                           className="text-muted-foreground"
                         >
                           <MessageSquare className="w-4 h-4 mr-1" />
-                          Add Note
+                          {t('collaborationModals.approvalPanel.addNote')}
                         </Button>
                       )}
 
@@ -934,7 +934,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         ) : (
                           <>
                             <X className="w-4 h-4 mr-1" />
-                            Reject
+                            {t('approvals.reject')}
                           </>
                         )}
                       </Button>
@@ -950,7 +950,7 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
                         ) : (
                           <>
                             <Check className="w-4 h-4 mr-1" />
-                            Approve Delete
+                            {t('collaborationModals.approvalPanel.approveDelete')}
                           </>
                         )}
                       </Button>

@@ -49,11 +49,7 @@ const roleIcons: Record<ProjectRole, React.ComponentType<{ className?: string }>
   reader: Eye,
 };
 
-const roleLabels: Record<ProjectRole, string> = {
-  admin: 'Admin',
-  collaborator: 'Collaborator',
-  reader: 'Viewer',
-};
+// Role labels are now fetched from translations in the component
 
 const roleColors: Record<ProjectRole, string> = {
   admin: 'text-yellow-400',
@@ -68,6 +64,16 @@ export function MembersPanel({
   canManageMembers,
 }: MembersPanelProps) {
   const t = useTranslations();
+
+  const getRoleLabel = (role: ProjectRole) => {
+    const labels: Record<ProjectRole, string> = {
+      admin: t('collaborationModals.invite.roleLabels.admin'),
+      collaborator: t('collaborationModals.invite.roleLabels.collaborator'),
+      reader: t('collaborationModals.invite.roleLabels.viewer'),
+    };
+    return labels[role] || role;
+  };
+
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [invitations, setInvitations] = useState<ProjectInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,7 +141,7 @@ export function MembersPanel({
   };
 
   const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) return;
+    if (!confirm(t('collaborationModals.members.confirmRemoveMember'))) return;
 
     try {
       const response = await fetch(`/api/projects/${projectId}/members/${memberId}`, {
@@ -271,13 +277,13 @@ export function MembersPanel({
                       <SelectItem value="collaborator">
                         <div className="flex items-center gap-2">
                           <Edit3 className="w-4 h-4 text-purple-400" />
-                          Collaborator
+                          {getRoleLabel('collaborator')}
                         </div>
                       </SelectItem>
                       <SelectItem value="reader">
                         <div className="flex items-center gap-2">
                           <Eye className="w-4 h-4 text-cyan-400" />
-                          Viewer
+                          {getRoleLabel('reader')}
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -285,7 +291,7 @@ export function MembersPanel({
                 ) : (
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/5 ${roleColors[member.role as ProjectRole]}`}>
                     <RoleIcon className="w-4 h-4" />
-                    <span className="text-sm">{roleLabels[member.role as ProjectRole]}</span>
+                    <span className="text-sm">{getRoleLabel(member.role as ProjectRole)}</span>
                   </div>
                 )}
 
@@ -335,7 +341,7 @@ export function MembersPanel({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{invite.email}</p>
                   <p className="text-xs text-muted-foreground">
-                    Invited as {roleLabels[invite.role as ProjectRole]} · Expires {formatDate(invite.expiresAt)}
+                    {t('collaborationModals.members.invitedAs', { role: getRoleLabel(invite.role as ProjectRole), date: formatDate(invite.expiresAt) })}
                   </p>
                 </div>
 

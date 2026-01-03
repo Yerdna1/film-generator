@@ -105,7 +105,8 @@ export function RequestRegenerationDialog({
   };
 
   const Icon = targetType === 'image' ? ImageIcon : Video;
-  const typeLabel = targetType === 'image' ? 'image' : 'video';
+  const typeLabel = targetType === 'image' ? t('credits.image').toLowerCase() : t('credits.video').toLowerCase();
+  const typeLabelCapitalized = targetType === 'image' ? t('credits.image') : t('credits.video');
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -113,11 +114,10 @@ export function RequestRegenerationDialog({
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <RefreshCw className="w-5 h-5 text-cyan-400" />
-            Request {typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} Regeneration
+            {t('collaborationModals.regenerationRequest.requestTitle', { type: typeLabelCapitalized })}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Submit a request for an admin to regenerate {scenes.length === 1 ? 'this' : 'these'} {typeLabel}{scenes.length > 1 ? 's' : ''}.
-            The admin's credits will be used.
+            {t('collaborationModals.regenerationRequest.submitDescription', { count: scenes.length, type: typeLabel })}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,14 +130,14 @@ export function RequestRegenerationDialog({
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-500/20 flex items-center justify-center">
               <Check className="w-8 h-8 text-cyan-400" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Request Submitted</h3>
+            <h3 className="font-semibold text-lg mb-2">{t('collaborationModals.regenerationRequest.requestSubmitted')}</h3>
             <p className="text-sm text-muted-foreground">
               {result?.created === 1
-                ? 'Your regeneration request has been sent to the admin.'
-                : `${result?.created} regeneration requests have been sent to the admin.`}
+                ? t('collaborationModals.regenerationRequest.requestSentSingle')
+                : t('collaborationModals.regenerationRequest.requestSentMultiple', { count: result?.created || 0 })}
               {result?.skipped && result.skipped > 0 && (
                 <span className="block mt-1 text-yellow-400">
-                  {result.skipped} {result.skipped === 1 ? 'scene was' : 'scenes were'} skipped (already pending).
+                  {t('collaborationModals.regenerationRequest.scenesSkipped', { count: result.skipped })}
                 </span>
               )}
             </p>
@@ -147,7 +147,7 @@ export function RequestRegenerationDialog({
             {/* Scene previews */}
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground">
-                Selected {typeLabel}{scenes.length > 1 ? 's' : ''} ({scenes.length})
+                {t('collaborationModals.regenerationRequest.selectedItems', { type: typeLabel, count: scenes.length })}
               </Label>
               <ScrollArea className="h-[120px] rounded-lg border border-white/10 bg-white/5">
                 <div className="p-2 space-y-2">
@@ -173,7 +173,7 @@ export function RequestRegenerationDialog({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{scene.title}</p>
-                        <p className="text-xs text-muted-foreground">Scene {scene.number}</p>
+                        <p className="text-xs text-muted-foreground">{t('collaborationModals.regenerationRequest.sceneNumber', { number: scene.number })}</p>
                       </div>
                       <Icon className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                     </div>
@@ -187,22 +187,22 @@ export function RequestRegenerationDialog({
                 <RefreshCw className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-cyan-400">
-                    Regeneration Request
+                    {t('collaborationModals.regenerationRequest.regenerationRequest')}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    An admin will review and approve this request. When approved, the {typeLabel}{scenes.length > 1 ? 's' : ''} will be regenerated using the admin's credits.
+                    {t('collaborationModals.regenerationRequest.adminWillReview', { type: typeLabel, count: scenes.length })}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reason">Reason (optional)</Label>
+              <Label htmlFor="reason">{t('collaborationModals.regenerationRequest.reasonOptional')}</Label>
               <Textarea
                 id="reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder={`Why do you want to regenerate ${scenes.length === 1 ? 'this' : 'these'} ${typeLabel}${scenes.length > 1 ? 's' : ''}?`}
+                placeholder={t('collaborationModals.regenerationRequest.whyRegeneratePlaceholder', { count: scenes.length, type: typeLabel })}
                 className="bg-white/5 border-white/10 min-h-[80px]"
               />
             </div>
@@ -221,7 +221,7 @@ export function RequestRegenerationDialog({
                 className="flex-1"
                 disabled={isLoading}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -231,12 +231,12 @@ export function RequestRegenerationDialog({
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Submitting...
+                    {t('collaborationModals.regenerationRequest.submitting')}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Submit Request
+                    {t('collaborationModals.regenerationRequest.submitRequest')}
                   </>
                 )}
               </Button>

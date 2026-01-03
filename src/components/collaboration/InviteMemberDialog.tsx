@@ -40,23 +40,7 @@ interface InviteMemberDialogProps {
   onInviteSent?: () => void;
 }
 
-const roleOptions: { value: ProjectRole; label: string; description: string }[] = [
-  {
-    value: 'collaborator',
-    label: 'Collaborator',
-    description: 'Can edit prompts and regenerate content',
-  },
-  {
-    value: 'reader',
-    label: 'Viewer',
-    description: 'View-only access',
-  },
-  {
-    value: 'admin',
-    label: 'Admin',
-    description: 'Full control including member management',
-  },
-];
+// Role options are now fetched from translations in the component
 
 export function InviteMemberDialog({
   projectId,
@@ -66,6 +50,25 @@ export function InviteMemberDialog({
   onInviteSent,
 }: InviteMemberDialogProps) {
   const t = useTranslations();
+
+  const roleOptions: { value: ProjectRole; label: string; description: string }[] = [
+    {
+      value: 'collaborator',
+      label: t('collaborationModals.invite.roleLabels.collaborator'),
+      description: t('collaborationModals.invite.roleDescriptions.collaborator'),
+    },
+    {
+      value: 'reader',
+      label: t('collaborationModals.invite.roleLabels.viewer'),
+      description: t('collaborationModals.invite.roleDescriptions.viewer'),
+    },
+    {
+      value: 'admin',
+      label: t('collaborationModals.invite.roleLabels.admin'),
+      description: t('collaborationModals.invite.roleDescriptions.admin'),
+    },
+  ];
+
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<ProjectRole>('collaborator');
   const [message, setMessage] = useState('');
@@ -185,12 +188,12 @@ export function InviteMemberDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="message">Personal Message (optional)</Label>
+                <Label htmlFor="message">{t('collaborationModals.invite.personalMessage')}</Label>
                 <Textarea
                   id="message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Add a personal note to the invitation..."
+                  placeholder={t('collaborationModals.invite.personalMessagePlaceholder')}
                   className="bg-white/5 border-white/10 min-h-[80px]"
                 />
               </div>
@@ -210,7 +213,7 @@ export function InviteMemberDialog({
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Sending...
+                    {t('collaborationModals.invite.sending')}
                   </>
                 ) : (
                   <>
@@ -231,16 +234,16 @@ export function InviteMemberDialog({
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
                   <Check className="w-8 h-8 text-green-400" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Invitation Sent!</h3>
+                <h3 className="font-semibold text-lg mb-2">{t('collaborationModals.invite.invitationSent')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  An invitation has been sent to <strong>{email}</strong>
+                  {t('collaborationModals.invite.invitationSentTo')} <strong>{email}</strong>
                 </p>
               </div>
 
               <div className="p-4 bg-white/5 rounded-lg space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <LinkIcon className="w-4 h-4" />
-                  <span>Or share this invite link:</span>
+                  <span>{t('collaborationModals.invite.orShareLink')}</span>
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -273,10 +276,10 @@ export function InviteMemberDialog({
                   }}
                   className="flex-1"
                 >
-                  Invite Another
+                  {t('collaborationModals.invite.inviteAnother')}
                 </Button>
                 <Button onClick={handleClose} className="flex-1">
-                  Done
+                  {t('collaborationModals.invite.done')}
                 </Button>
               </div>
             </motion.div>

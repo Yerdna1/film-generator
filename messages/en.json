@@ -984,6 +984,88 @@
     "slot": "Slot",
     "scene": "Scene"
   },
+  "collaborationModals": {
+    "deletion": {
+      "requestSubmitted": "Request Submitted",
+      "adminWillReview": "An admin will review your deletion request.",
+      "deletionRequest": "Deletion Request",
+      "deletionWarning": "You're requesting to delete this {type}{name}. An admin must approve this before it takes effect.",
+      "reasonOptional": "Reason (optional)",
+      "whyDeletePlaceholder": "Why do you want to delete this item?",
+      "submitting": "Submitting...",
+      "submitRequest": "Submit Request",
+      "targetTypes": {
+        "project": "project",
+        "scene": "scene",
+        "character": "character",
+        "video": "video"
+      }
+    },
+    "regenerationRequest": {
+      "requestTitle": "Request {type} Regeneration",
+      "submitDescription": "Submit a request for an admin to regenerate {count, plural, one {this} other {these}} {type}{count, plural, one {} other {s}}. The admin's credits will be used.",
+      "requestSubmitted": "Request Submitted",
+      "requestSentSingle": "Your regeneration request has been sent to the admin.",
+      "requestSentMultiple": "{count} regeneration requests have been sent to the admin.",
+      "scenesSkipped": "{count} {count, plural, one {scene was} other {scenes were}} skipped (already pending).",
+      "selectedItems": "Selected {type}{count, plural, one {} other {s}} ({count})",
+      "sceneNumber": "Scene {number}",
+      "regenerationRequest": "Regeneration Request",
+      "adminWillReview": "An admin will review and approve this request. When approved, the {type}{count, plural, one {} other {s}} will be regenerated using the admin's credits.",
+      "reasonOptional": "Reason (optional)",
+      "whyRegeneratePlaceholder": "Why do you want to regenerate {count, plural, one {this} other {these}} {type}{count, plural, one {} other {s}}?",
+      "submitting": "Submitting...",
+      "submitRequest": "Submit Request"
+    },
+    "invite": {
+      "roleLabels": {
+        "collaborator": "Collaborator",
+        "viewer": "Viewer",
+        "admin": "Admin"
+      },
+      "roleDescriptions": {
+        "collaborator": "Can edit prompts and regenerate content",
+        "viewer": "View-only access",
+        "admin": "Full control including member management"
+      },
+      "personalMessage": "Personal Message (optional)",
+      "personalMessagePlaceholder": "Add a personal note to the invitation...",
+      "sending": "Sending...",
+      "invitationSent": "Invitation Sent!",
+      "invitationSentTo": "An invitation has been sent to",
+      "orShareLink": "Or share this invite link:",
+      "inviteAnother": "Invite Another",
+      "done": "Done"
+    },
+    "members": {
+      "confirmRemoveMember": "Are you sure you want to remove this member?",
+      "invitedAs": "Invited as {role} · Expires {date}",
+      "failedToLoadMembers": "Failed to load members",
+      "failedToUpdateRole": "Failed to update role",
+      "failedToRemoveMember": "Failed to remove member"
+    },
+    "approvalPanel": {
+      "regenerationRequests": "Regeneration Requests",
+      "itemsRequested": "{count} {type}{count, plural, one {} other {s}} requested",
+      "batch": "Batch",
+      "addNote": "Add Note",
+      "rejectAll": "Reject All",
+      "approveAll": "Approve All ({count})",
+      "addBatchNotePlaceholder": "Add a note for all items in this batch (optional)...",
+      "regenerateType": "Regenerate {type}",
+      "addNotePlaceholder": "Add a note (optional)...",
+      "approveAndRegenerate": "Approve & Regenerate",
+      "promptEdits": "Prompt Edits",
+      "hideChanges": "Hide Changes",
+      "showChanges": "Show Changes",
+      "deletionRequests": "Deletion Requests",
+      "deleteType": "Delete {type}",
+      "approveDelete": "Approve Delete",
+      "justNow": "Just now",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago"
+    }
+  },
   "statistics": {
     "title": "Usage Statistics",
     "subtitle": "Track your API costs and usage",

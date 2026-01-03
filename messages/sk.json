@@ -984,6 +984,88 @@
     "slot": "Pozícia",
     "scene": "Scéna"
   },
+  "collaborationModals": {
+    "deletion": {
+      "requestSubmitted": "Žiadosť odoslaná",
+      "adminWillReview": "Admin preskúma vašu žiadosť o odstránenie.",
+      "deletionRequest": "Žiadosť o odstránenie",
+      "deletionWarning": "Žiadate o odstránenie tohto {type}{name}. Admin musí túto žiadosť schváliť.",
+      "reasonOptional": "Dôvod (voliteľné)",
+      "whyDeletePlaceholder": "Prečo chcete túto položku odstrániť?",
+      "submitting": "Odosielam...",
+      "submitRequest": "Odoslať žiadosť",
+      "targetTypes": {
+        "project": "projektu",
+        "scene": "scény",
+        "character": "postavy",
+        "video": "videa"
+      }
+    },
+    "regenerationRequest": {
+      "requestTitle": "Žiadosť o regeneráciu {type}",
+      "submitDescription": "Odošlite žiadosť adminovi o regeneráciu {count, plural, one {tohto} other {týchto}} {type}. Použijú sa kredity admina.",
+      "requestSubmitted": "Žiadosť odoslaná",
+      "requestSentSingle": "Vaša žiadosť o regeneráciu bola odoslaná adminovi.",
+      "requestSentMultiple": "{count} žiadostí o regeneráciu bolo odoslaných adminovi.",
+      "scenesSkipped": "{count} {count, plural, one {scéna bola preskočená} few {scény boli preskočené} other {scén bolo preskočených}} (už čaká).",
+      "selectedItems": "Vybrané {type} ({count})",
+      "sceneNumber": "Scéna {number}",
+      "regenerationRequest": "Žiadosť o regeneráciu",
+      "adminWillReview": "Admin preskúma a schváli túto žiadosť. Po schválení bude {type} pregenerovaný pomocou kreditov admina.",
+      "reasonOptional": "Dôvod (voliteľné)",
+      "whyRegeneratePlaceholder": "Prečo chcete pregenerovať {count, plural, one {tento} other {tieto}} {type}?",
+      "submitting": "Odosielam...",
+      "submitRequest": "Odoslať žiadosť"
+    },
+    "invite": {
+      "roleLabels": {
+        "collaborator": "Spolupracovník",
+        "viewer": "Čitateľ",
+        "admin": "Administrátor"
+      },
+      "roleDescriptions": {
+        "collaborator": "Môže upravovať prompty a regenerovať obsah",
+        "viewer": "Len na prezeranie",
+        "admin": "Plná kontrola vrátane správy členov"
+      },
+      "personalMessage": "Osobná správa (voliteľné)",
+      "personalMessagePlaceholder": "Pridajte osobnú poznámku k pozvánke...",
+      "sending": "Odosielam...",
+      "invitationSent": "Pozvánka odoslaná!",
+      "invitationSentTo": "Pozvánka bola odoslaná na",
+      "orShareLink": "Alebo zdieľajte tento odkaz:",
+      "inviteAnother": "Pozvať ďalšieho",
+      "done": "Hotovo"
+    },
+    "members": {
+      "confirmRemoveMember": "Naozaj chcete odstrániť tohto člena?",
+      "invitedAs": "Pozvaný ako {role} · Vyprší {date}",
+      "failedToLoadMembers": "Nepodarilo sa načítať členov",
+      "failedToUpdateRole": "Nepodarilo sa aktualizovať rolu",
+      "failedToRemoveMember": "Nepodarilo sa odstrániť člena"
+    },
+    "approvalPanel": {
+      "regenerationRequests": "Žiadosti o regeneráciu",
+      "itemsRequested": "{count} {type} požadovaných",
+      "batch": "Dávka",
+      "addNote": "Pridať poznámku",
+      "rejectAll": "Zamietnuť všetko",
+      "approveAll": "Schváliť všetko ({count})",
+      "addBatchNotePlaceholder": "Pridajte poznámku pre všetky položky v tejto dávke (voliteľné)...",
+      "regenerateType": "Pregenerovať {type}",
+      "addNotePlaceholder": "Pridať poznámku (voliteľné)...",
+      "approveAndRegenerate": "Schváliť a regenerovať",
+      "promptEdits": "Úpravy promptov",
+      "hideChanges": "Skryť zmeny",
+      "showChanges": "Zobraziť zmeny",
+      "deletionRequests": "Žiadosti o odstránenie",
+      "deleteType": "Odstrániť {type}",
+      "approveDelete": "Schváliť odstránenie",
+      "justNow": "Práve teraz",
+      "hoursAgo": "pred {hours} hod",
+      "daysAgo": "pred {days} dňami"
+    }
+  },
   "statistics": {
     "title": "Štatistiky využitia",
     "subtitle": "Sledujte vaše API náklady a využitie",
