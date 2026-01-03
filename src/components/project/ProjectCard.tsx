@@ -66,18 +66,30 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
 
   const currencySymbol = getCurrencySymbol();
 
-  // Get the first available thumbnail image from scenes or characters
+  // Get thumbnail - supports both full project and summary format
   const thumbnailUrl = useMemo(() => {
-    // First try to get an image from scenes
-    const sceneWithImage = project.scenes.find(scene => scene.imageUrl);
-    if (sceneWithImage?.imageUrl) return sceneWithImage.imageUrl;
+    // Check if summary format (has thumbnailUrl directly)
+    if ('thumbnailUrl' in project && project.thumbnailUrl) {
+      return project.thumbnailUrl as string;
+    }
 
-    // Then try to get an image from characters
-    const characterWithImage = project.characters.find(char => char.imageUrl);
-    if (characterWithImage?.imageUrl) return characterWithImage.imageUrl;
+    // Full project format - find from scenes/characters arrays
+    if (project.scenes?.length) {
+      const sceneWithImage = project.scenes.find(scene => scene.imageUrl);
+      if (sceneWithImage?.imageUrl) return sceneWithImage.imageUrl;
+    }
+
+    if (project.characters?.length) {
+      const characterWithImage = project.characters.find(char => char.imageUrl);
+      if (characterWithImage?.imageUrl) return characterWithImage.imageUrl;
+    }
 
     return null;
-  }, [project.scenes, project.characters]);
+  }, [project]);
+
+  // Get counts - supports both full project and summary format
+  const scenesCount = 'scenesCount' in project ? (project.scenesCount as number) : project.scenes?.length ?? 0;
+  const charactersCount = 'charactersCount' in project ? (project.charactersCount as number) : project.characters?.length ?? 0;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -295,11 +307,11 @@ export function ProjectCard({ project, variant = 'default', cost }: ProjectCardP
         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
           <div className="flex items-center gap-1">
             <Users className="w-4 h-4" />
-            <span>{project.characters.length} {t('project.characters')}</span>
+            <span>{charactersCount} {t('project.characters')}</span>
           </div>
           <div className="flex items-center gap-1">
             <Layers className="w-4 h-4" />
-            <span>{project.scenes.length} {t('project.scenes')}</span>
+            <span>{scenesCount} {t('project.scenes')}</span>
           </div>
         </div>
 

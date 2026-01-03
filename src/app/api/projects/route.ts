@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
-import { getUserAccessibleProjects } from '@/lib/permissions';
+import { getUserAccessibleProjectsSummary } from '@/lib/permissions';
 
-// GET - Fetch all projects for user (owned + shared, with 2-hour cache)
+// GET - Fetch all projects for user (owned + shared)
+// OPTIMIZED: Returns summary data only (~1KB per project vs ~50KB full)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -28,64 +29,32 @@ export async function GET(request: NextRequest) {
       const cachedProjects = cache.get<unknown[]>(cacheKey);
       if (cachedProjects) {
         return NextResponse.json(cachedProjects, {
-          headers: { 'X-Cache': 'HIT' },
+          headers: {
+            'X-Cache': 'HIT',
+            'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+          },
         });
       }
     }
 
-    // Get all accessible projects (owned + shared)
-    const projects = await getUserAccessibleProjects(userId);
+    // Get lightweight project summaries (optimized for dashboard)
+    const projects = await getUserAccessibleProjectsSummary(userId);
 
-    // Transform to match frontend Project type
+    // Transform dates to ISO strings
     const transformedProjects = projects.map((project) => ({
-      id: project.id,
-      name: project.name,
-      userId: project.userId,
-      style: project.style,
-      masterPrompt: project.masterPrompt,
-      currentStep: project.currentStep,
-      isComplete: project.isComplete,
+      ...project,
       createdAt: project.createdAt.toISOString(),
       updatedAt: project.updatedAt.toISOString(),
-      settings: project.settings as object,
-      story: project.story as object,
-      voiceSettings: project.voiceSettings as object,
-      characters: project.characters.map((c) => ({
-        id: c.id,
-        name: c.name,
-        description: c.description,
-        visualDescription: c.visualDescription,
-        personality: c.personality,
-        masterPrompt: c.masterPrompt,
-        imageUrl: c.imageUrl,
-        voiceId: c.voiceId,
-        voiceName: c.voiceName,
-      })),
-      scenes: project.scenes.map((s) => ({
-        id: s.id,
-        number: s.number,
-        title: s.title,
-        description: s.description,
-        textToImagePrompt: s.textToImagePrompt,
-        imageToVideoPrompt: s.imageToVideoPrompt,
-        cameraShot: s.cameraShot,
-        imageUrl: s.imageUrl,
-        videoUrl: s.videoUrl,
-        audioUrl: s.audioUrl,
-        duration: s.duration,
-        dialogue: s.dialogue as object[],
-      })),
-      // Include collaboration info
-      role: project.role,
-      isOwner: project.isOwner,
-      owner: 'owner' in project ? project.owner : undefined,
     }));
 
     // Cache for 2 hours
     cache.set(cacheKey, transformedProjects, cacheTTL.LONG);
 
     return NextResponse.json(transformedProjects, {
-      headers: { 'X-Cache': 'MISS' },
+      headers: {
+        'X-Cache': 'MISS',
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+      },
     });
   } catch (error) {
     console.error('Error fetching projects:', error);

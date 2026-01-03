@@ -66,7 +66,11 @@ export default function DashboardPage() {
     total: projects.length,
     inProgress: projects.filter((p) => !p.isComplete).length,
     completed: projects.filter((p) => p.isComplete).length,
-    totalScenes: projects.reduce((acc, p) => acc + p.scenes.length, 0),
+    // Support both summary format (scenesCount) and full format (scenes.length)
+    totalScenes: projects.reduce((acc, p) => {
+      const count = 'scenesCount' in p ? (p.scenesCount as number) : p.scenes?.length ?? 0;
+      return acc + count;
+    }, 0),
   };
 
   return (
