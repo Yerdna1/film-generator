@@ -1058,7 +1058,8 @@
         "project": "project",
         "scene": "scene",
         "character": "character",
-        "video": "video"
+        "video": "video",
+        "audio": "audio"
       }
     },
     "regenerationRequest": {

@@ -59,7 +59,9 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   // Get live project data from store, but prefer initialProject for full data
   // Store may contain summary data without settings/story details
   const storeProject = projects.find(p => p.id === initialProject.id);
-  const project = storeProject?.settings ? storeProject : initialProject;
+  // Check for story.title to determine if we have full data (not just summary)
+  const hasFullData = storeProject?.story && typeof storeProject.story === 'object' && 'title' in storeProject.story;
+  const project = hasFullData ? storeProject : initialProject;
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);

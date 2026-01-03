@@ -71,7 +71,7 @@ export default function ProjectWorkspacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
-  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject, refreshScenes } = useProjectStore();
+  const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject, updateProject } = useProjectStore();
 
   // Get translated role label
   const getRoleLabel = (role: ProjectRole) => t(`roles.${role}`);
@@ -108,10 +108,19 @@ export default function ProjectWorkspacePage() {
         }
         setIsAuthenticated(data.isAuthenticated ?? false);
 
-        // For collaborators/readers, refresh scenes from DB to get latest approved images
-        // This ensures regenerated images approved by admin are visible
-        if (shouldRefreshScenes && data.scenes && data.role !== 'admin') {
-          refreshScenes(projectId, data.scenes);
+        // Update project with full data from API for all users
+        // This ensures store has full scene/character/story data (not just summary from dashboard)
+        // Also ensures collaborators see latest approved images
+        if (shouldRefreshScenes) {
+          updateProject(projectId, {
+            scenes: data.scenes || [],
+            characters: data.characters || [],
+            settings: data.settings || {},
+            voiceSettings: data.voiceSettings || {},
+            story: data.story || {},
+            masterPrompt: data.masterPrompt || '',
+            style: data.style,
+          });
         }
       }
     } catch (e) {
@@ -119,7 +128,7 @@ export default function ProjectWorkspacePage() {
     } finally {
       setIsLoadingPermissions(false);
     }
-  }, [refreshScenes]);
+  }, [updateProject]);
 
   // Toggle project visibility
   const handleToggleVisibility = async () => {

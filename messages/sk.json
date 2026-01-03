@@ -1058,7 +1058,8 @@
         "project": "projektu",
         "scene": "scény",
         "character": "postavy",
-        "video": "videa"
+        "video": "videa",
+        "audio": "zvuku"
       }
     },
     "regenerationRequest": {
