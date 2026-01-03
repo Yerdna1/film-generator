@@ -69,8 +69,15 @@ export function useSceneGenerator(initialProject: Project) {
   const { addScene, updateScene, deleteScene, updateSettings, projects } = useProjectStore();
   const { handleApiResponse, handleBulkApiResponse } = useCredits();
 
-  // Get live project data from store
-  const project = projects.find(p => p.id === initialProject.id) || initialProject;
+  // Get live project data from store, but prefer initialProject for full data (scenes array)
+  // Store may contain summary data without scenes
+  const storeProject = projects.find(p => p.id === initialProject.id);
+  const project = storeProject?.scenes ? storeProject : initialProject;
+
+  // Safe accessors for arrays that may be undefined in summary data
+  const scenes = project.scenes || [];
+  const characters = project.characters || [];
+  const projectSettings = project.settings || { sceneCount: 12, imageResolution: '2k' };
 
   // UI State
   const [isAddingScene, setIsAddingScene] = useState(false);
@@ -310,8 +317,8 @@ export function useSceneGenerator(initialProject: Project) {
   const [editSceneData, setEditSceneData] = useState<EditSceneData | null>(null);
 
   // Computed values
-  const scenesWithImages = project.scenes.filter((s) => s.imageUrl).length;
-  const imageResolution = project.settings?.imageResolution || '2k';
+  const scenesWithImages = scenes.filter((s) => s.imageUrl).length;
+  const imageResolution = projectSettings.imageResolution || '2k';
 
   // Toggle scene expansion
   const toggleExpanded = useCallback((sceneId: string) => {
@@ -333,10 +340,10 @@ export function useSceneGenerator(initialProject: Project) {
         cameraShot: newScene.cameraShot,
       },
       project.style,
-      project.characters
+      characters
     );
 
-    const sceneNumber = project.scenes.length + 1;
+    const sceneNumber = scenes.length + 1;
 
     addScene(project.id, {
       number: sceneNumber,
@@ -364,10 +371,10 @@ export function useSceneGenerator(initialProject: Project) {
         cameraShot: scene.cameraShot,
       },
       project.style,
-      project.characters
+      characters
     );
     updateScene(project.id, scene.id, { textToImagePrompt, imageToVideoPrompt });
-  }, [project, updateScene]);
+  }, [project, characters, updateScene]);
 
   // Start editing a scene
   const startEditScene = useCallback((scene: Scene) => {
@@ -412,7 +419,7 @@ export function useSceneGenerator(initialProject: Project) {
 
   // Generate all scenes with AI via Inngest background job
   const handleGenerateAllScenes = useCallback(async () => {
-    if (project.characters.length === 0) {
+    if (characters.length === 0) {
       alert('Please add characters in Step 2 first');
       return;
     }
@@ -432,7 +439,7 @@ export function useSceneGenerator(initialProject: Project) {
         body: JSON.stringify({
           projectId: project.id,
           story: project.story,
-          characters: project.characters.map((c) => ({
+          characters: characters.map((c) => ({
             id: c.id,
             name: c.name,
             description: c.description,
@@ -474,7 +481,7 @@ export function useSceneGenerator(initialProject: Project) {
     setGeneratingImageForScene(scene.id);
 
     try {
-      const referenceImages = project.characters
+      const referenceImages = characters
         .filter((c) => c.imageUrl)
         .map((c) => ({
           name: c.name,
@@ -539,13 +546,13 @@ export function useSceneGenerator(initialProject: Project) {
       return;
     }
 
-    const scenesWithoutImages = project.scenes.filter((s) => !s.imageUrl);
+    const scenesWithoutImages = scenes.filter((s) => !s.imageUrl);
     if (scenesWithoutImages.length === 0) {
       alert('All scenes already have images');
       return;
     }
 
-    const referenceImages = project.characters
+    const referenceImages = characters
       .filter((c) => c.imageUrl)
       .map((c) => ({
         name: c.name,
@@ -636,7 +643,7 @@ export function useSceneGenerator(initialProject: Project) {
   // Handle regenerate all images
   const handleRegenerateAllImages = useCallback(async () => {
     // Clear all existing images first
-    for (const scene of project.scenes) {
+    for (const scene of scenes) {
       if (scene.imageUrl) {
         await updateScene(project.id, scene.id, { imageUrl: undefined });
       }
@@ -645,7 +652,7 @@ export function useSceneGenerator(initialProject: Project) {
     await new Promise(resolve => setTimeout(resolve, 100));
     // Now generate all
     handleGenerateAllSceneImages();
-  }, [project, updateScene, handleGenerateAllSceneImages]);
+  }, [project.id, scenes, updateScene, handleGenerateAllSceneImages]);
 
   // Start background generation (Inngest) - works even when tab is closed
   const handleStartBackgroundGeneration = useCallback(async (limit?: number) => {
@@ -654,7 +661,7 @@ export function useSceneGenerator(initialProject: Project) {
       return;
     }
 
-    const scenesWithoutImages = project.scenes.filter((s) => !s.imageUrl);
+    const scenesWithoutImages = scenes.filter((s) => !s.imageUrl);
     if (scenesWithoutImages.length === 0) {
       alert('All scenes already have images');
       return;
@@ -716,27 +723,27 @@ export function useSceneGenerator(initialProject: Project) {
   }, []);
 
   const selectAllWithImages = useCallback(() => {
-    const scenesWithImgs = project.scenes.filter(s => s.imageUrl).map(s => s.id);
+    const scenesWithImgs = scenes.filter(s => s.imageUrl).map(s => s.id);
     setSelectedScenes(new Set(scenesWithImgs));
-  }, [project.scenes]);
+  }, [scenes]);
 
   const selectAll = useCallback(() => {
-    const allIds = project.scenes.map(s => s.id);
+    const allIds = scenes.map(s => s.id);
     setSelectedScenes(new Set(allIds));
-  }, [project.scenes]);
+  }, [scenes]);
 
   // Regenerate selected scenes
   const handleRegenerateSelected = useCallback(async () => {
     if (selectedScenes.size === 0) return;
 
-    const scenesToRegenerate = project.scenes.filter(s => selectedScenes.has(s.id));
+    const scenesToRegenerate = scenes.filter(s => selectedScenes.has(s.id));
     if (scenesToRegenerate.length === 0) return;
 
     setIsGeneratingAllImages(true);
     stopGenerationRef.current = false;
 
     // Get character reference images for consistency
-    const referenceImages = project.characters
+    const referenceImages = characters
       .filter((c) => c.imageUrl)
       .map((c) => ({
         name: c.name,
@@ -818,6 +825,9 @@ export function useSceneGenerator(initialProject: Project) {
   return {
     // Project data
     project,
+    scenes,           // Safe accessor for project.scenes
+    characters,       // Safe accessor for project.characters
+    projectSettings,  // Safe accessor for project.settings
     scenesWithImages,
     imageResolution: imageResolution as ImageResolution,
 

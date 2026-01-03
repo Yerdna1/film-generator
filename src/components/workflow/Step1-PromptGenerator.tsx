@@ -56,8 +56,10 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const t = useTranslations();
   const { updateStory, setMasterPrompt, projects } = useProjectStore();
 
-  // Get live project data from store
-  const project = projects.find(p => p.id === initialProject.id) || initialProject;
+  // Get live project data from store, but prefer initialProject for full data
+  // Store may contain summary data without settings/story details
+  const storeProject = projects.find(p => p.id === initialProject.id);
+  const project = storeProject?.settings ? storeProject : initialProject;
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);

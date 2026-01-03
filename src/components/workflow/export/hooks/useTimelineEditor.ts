@@ -71,6 +71,9 @@ const SCENE_DURATION = 6; // seconds per scene
 export function useTimelineEditor(project: Project): UseTimelineEditorReturn {
   const { updateScene, updateProject } = useProjectStore();
 
+  // Safe accessor for scenes array
+  const scenes = project.scenes || [];
+
   const [state, setState] = useState<TimelineEditorState>({
     zoom: 40,
     scrollLeft: 0,
@@ -84,8 +87,8 @@ export function useTimelineEditor(project: Project): UseTimelineEditorReturn {
   // Computed values
   const pixelsPerScene = useMemo(() => state.zoom * SCENE_DURATION, [state.zoom]);
   const totalTimelineWidth = useMemo(
-    () => project.scenes.length * pixelsPerScene,
-    [project.scenes.length, pixelsPerScene]
+    () => scenes.length * pixelsPerScene,
+    [scenes.length, pixelsPerScene]
   );
 
   // Zoom controls
@@ -155,7 +158,6 @@ export function useTimelineEditor(project: Project): UseTimelineEditorReturn {
   const reorderScenes = useCallback((activeId: string, overId: string) => {
     if (activeId === overId) return;
 
-    const scenes = project.scenes;
     const oldIndex = scenes.findIndex(s => s.id === activeId);
     const newIndex = scenes.findIndex(s => s.id === overId);
 
@@ -171,7 +173,7 @@ export function useTimelineEditor(project: Project): UseTimelineEditorReturn {
 
     // Update project with reordered scenes
     updateProject(project.id, { scenes: updatedScenes });
-  }, [project.scenes, project.id, updateProject]);
+  }, [scenes, project.id, updateProject]);
 
   const updateSceneTransition = useCallback((sceneId: string, transitionType: TransitionType) => {
     updateScene(project.id, sceneId, {
@@ -189,7 +191,7 @@ export function useTimelineEditor(project: Project): UseTimelineEditorReturn {
     startTime: number,
     endTime: number
   ) => {
-    const scene = project.scenes.find(s => s.id === sceneId);
+    const scene = scenes.find(s => s.id === sceneId);
     if (!scene?.captions) return;
 
     const updatedCaptions = scene.captions.map(caption =>
@@ -203,7 +205,7 @@ export function useTimelineEditor(project: Project): UseTimelineEditorReturn {
     );
 
     updateScene(project.id, sceneId, { captions: updatedCaptions });
-  }, [project.scenes, project.id, updateScene]);
+  }, [scenes, project.id, updateScene]);
 
   // Music operations
   const trimMusic = useCallback((startOffset: number, endOffset: number) => {
@@ -229,8 +231,8 @@ export function useTimelineEditor(project: Project): UseTimelineEditorReturn {
 
   const getSceneAtTime = useCallback((time: number): Scene | null => {
     const sceneIndex = Math.floor(time / SCENE_DURATION);
-    return project.scenes[sceneIndex] || null;
-  }, [project.scenes]);
+    return scenes[sceneIndex] || null;
+  }, [scenes]);
 
   return {
     state,

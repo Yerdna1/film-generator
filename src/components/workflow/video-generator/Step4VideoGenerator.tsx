@@ -28,6 +28,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
   const {
     // Project data
     project,
+    scenes,
     scenesWithImages,
     scenesWithVideos,
     scenesNeedingGeneration,
@@ -200,7 +201,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
 
   // Get selected scenes data for the dialog
   const selectedScenesData = useMemo(() => {
-    return project.scenes
+    return scenes
       .filter(s => selectedScenes.has(s.id))
       .map(s => ({
         id: s.id,
@@ -208,13 +209,13 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         number: s.number,
         imageUrl: s.imageUrl,
       }));
-  }, [project.scenes, selectedScenes]);
+  }, [scenes, selectedScenes]);
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 px-4">
       {/* Header & Progress */}
       <VideoHeader
-        totalScenes={project.scenes.length}
+        totalScenes={scenes.length}
         scenesWithVideos={scenesWithVideos.length}
       />
 
@@ -248,7 +249,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         totalPages={totalPages}
         startIndex={startIndex}
         endIndex={endIndex}
-        totalItems={project.scenes.length}
+        totalItems={scenes.length}
         onPageChange={setCurrentPage}
         variant="full"
       />
@@ -264,7 +265,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
             : undefined;
 
           // Find the index of this scene among scenes that have videos (for auth restriction)
-          const scenesWithVideosSorted = project.scenes
+          const scenesWithVideosSorted = scenes
             .filter(s => s.videoUrl)
             .sort((a, b) => (a.number || 0) - (b.number || 0));
           const videoIndex = scenesWithVideosSorted.findIndex(s => s.id === scene.id);
@@ -307,7 +308,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         totalPages={totalPages}
         startIndex={startIndex}
         endIndex={endIndex}
-        totalItems={project.scenes.length}
+        totalItems={scenes.length}
         onPageChange={setCurrentPage}
         variant="compact"
       />

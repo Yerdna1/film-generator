@@ -30,8 +30,14 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const t = useTranslations();
   const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects } = useProjectStore();
 
-  // Get live project data from store
-  const project = projects.find(p => p.id === initialProject.id) || initialProject;
+  // Get live project data from store, but prefer initialProject for full data (characters array)
+  // Store may contain summary data without characters
+  const storeProject = projects.find(p => p.id === initialProject.id);
+  const project = storeProject?.characters ? storeProject : initialProject;
+
+  // Safe accessors for arrays that may be undefined in summary data
+  const characters = project.characters || [];
+  const settings = project.settings || { imageResolution: '2k' };
 
   // State
   const [isAddingCharacter, setIsAddingCharacter] = useState(false);
@@ -160,7 +166,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     }
   }, [project.id, updateCharacter]);
 
-  const charactersWithImages = project.characters.filter((c) => c.imageUrl).length;
+  const charactersWithImages = characters.filter((c) => c.imageUrl).length;
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 px-4">
@@ -179,7 +185,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
       {/* Image Generation Settings */}
       <ImageGenerationSettings
-        imageResolution={project.settings?.imageResolution || '2k'}
+        imageResolution={settings.imageResolution || '2k'}
         aspectRatio={characterAspectRatio}
         onResolutionChange={(resolution) => updateSettings(project.id, { imageResolution: resolution })}
         onAspectRatioChange={setCharacterAspectRatio}
@@ -187,7 +193,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
       {/* Characters Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {project.characters.map((character, index) => (
+        {characters.map((character, index) => (
           <motion.div
             key={character.id}
             initial={{ opacity: 0, y: 20 }}
@@ -215,13 +221,13 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: project.characters.length * 0.1 }}
+            transition={{ delay: characters.length * 0.1 }}
           >
             <AddCharacterDialog
               open={isAddingCharacter}
               onOpenChange={setIsAddingCharacter}
               onAddCharacter={handleAddCharacter}
-              currentCount={project.characters.length}
+              currentCount={characters.length}
               maxCount={MAX_CHARACTERS}
             />
           </motion.div>
@@ -231,10 +237,10 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
       {/* Progress & Quick Actions - only for editors */}
       {!isReadOnly && (
         <CharacterProgress
-          characters={project.characters}
+          characters={characters}
           charactersWithImages={charactersWithImages}
           isGeneratingAll={isGeneratingAll}
-          imageResolution={project.settings?.imageResolution || '2k'}
+          imageResolution={settings.imageResolution || '2k'}
           onGenerateAll={handleGenerateAll}
           onShowPromptsDialog={() => setShowPromptsDialog(true)}
         />
@@ -260,7 +266,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
       <CopyPromptsDialog
         open={showPromptsDialog}
         onOpenChange={setShowPromptsDialog}
-        characters={project.characters}
+        characters={characters}
       />
     </div>
   );

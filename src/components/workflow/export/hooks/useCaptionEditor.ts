@@ -49,13 +49,16 @@ function createDefaultCaption(sceneIndex: number): Caption {
 export function useCaptionEditor(project: Project): UseCaptionEditorReturn {
   const { updateScene } = useProjectStore();
 
+  // Safe accessor for scenes array
+  const scenes = project.scenes || [];
+
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
   const [editingCaption, setEditingCaption] = useState<Caption | null>(null);
   const [originalCaption, setOriginalCaption] = useState<Caption | null>(null);
 
   const currentScene = useMemo(() => {
-    return project.scenes[selectedSceneIndex] || null;
-  }, [project.scenes, selectedSceneIndex]);
+    return scenes[selectedSceneIndex] || null;
+  }, [scenes, selectedSceneIndex]);
 
   const sceneCaptions = useMemo(() => {
     return currentScene?.captions || [];
@@ -168,7 +171,7 @@ export function useCaptionEditor(project: Project): UseCaptionEditorReturn {
 
   const autoGenerateAllCaptions = useCallback(() => {
     // Generate captions for ALL scenes that have dialogue
-    project.scenes.forEach((scene) => {
+    scenes.forEach((scene) => {
       const dialogueLines = scene.dialogue || [];
       if (dialogueLines.length === 0) return;
 
@@ -186,7 +189,7 @@ export function useCaptionEditor(project: Project): UseCaptionEditorReturn {
 
       updateScene(project.id, scene.id, { captions: generatedCaptions });
     });
-  }, [project.scenes, project.id, updateScene]);
+  }, [scenes, project.id, updateScene]);
 
   const clearAllCaptions = useCallback(() => {
     if (!currentScene) return;
@@ -197,12 +200,12 @@ export function useCaptionEditor(project: Project): UseCaptionEditorReturn {
 
   const clearAllScenesCaptions = useCallback(() => {
     // Clear captions from ALL scenes
-    project.scenes.forEach((scene) => {
+    scenes.forEach((scene) => {
       updateScene(project.id, scene.id, { captions: [] });
     });
     setEditingCaption(null);
     setOriginalCaption(null);
-  }, [project.scenes, project.id, updateScene]);
+  }, [scenes, project.id, updateScene]);
 
   return {
     // State

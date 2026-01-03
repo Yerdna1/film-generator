@@ -38,7 +38,9 @@ interface UsePreviewPlayerReturn {
 
 export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
   const { updateProject } = useProjectStore();
-  const totalScenes = project.scenes.length;
+  // Safe accessor for scenes array
+  const scenes = project.scenes || [];
+  const totalScenes = scenes.length;
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -153,10 +155,10 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
     setCurrentIndex(Math.min(sceneIndex, totalScenes - 1));
     setProgress(progressInScene);
 
-    if (videoRef.current && project.scenes[sceneIndex]?.videoUrl) {
+    if (videoRef.current && scenes[sceneIndex]?.videoUrl) {
       videoRef.current.currentTime = timeInScene;
     }
-  }, [clearTimers, totalScenes, project.scenes]);
+  }, [clearTimers, totalScenes, scenes]);
 
   // Handle volume change
   const handleVolumeChange = useCallback((value: number[]) => {
@@ -231,7 +233,7 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
 
   // Update caption based on playback time
   useEffect(() => {
-    const scene = project.scenes[currentIndex];
+    const scene = scenes[currentIndex];
     if (!scene?.captions || scene.captions.length === 0) {
       setCurrentCaption(null);
       return;
@@ -242,7 +244,7 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
       cap => timeInScene >= cap.startTime && timeInScene <= cap.endTime
     );
     setCurrentCaption(activeCaption || null);
-  }, [currentIndex, progress, project.scenes]);
+  }, [currentIndex, progress, scenes]);
 
   // Sync background music with playback
   useEffect(() => {
@@ -269,7 +271,7 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
   // Prefetch video blobs (use proxy for S3 URLs)
   useEffect(() => {
     const prefetchVideos = async () => {
-      for (const scene of project.scenes) {
+      for (const scene of scenes) {
         if (scene.videoUrl && !videoBlobCache.current.has(scene.videoUrl)) {
           try {
             // Use proxy for S3 URLs to avoid CORS
@@ -297,7 +299,7 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
       });
       videoBlobCache.current.clear();
     };
-  }, [project.scenes]);
+  }, [scenes]);
 
   // Handle scene transitions and playback
   useEffect(() => {
@@ -318,7 +320,7 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
       return;
     }
 
-    const scene = project.scenes[currentIndex];
+    const scene = scenes[currentIndex];
     if (!scene) return;
 
     if (scene.videoUrl && videoRef.current) {
@@ -364,7 +366,7 @@ export function usePreviewPlayer(project: Project): UsePreviewPlayerReturn {
     return () => {
       clearTimers();
     };
-  }, [isPlaying, currentIndex, project.scenes, clearTimers, goToNext]);
+  }, [isPlaying, currentIndex, scenes, clearTimers, goToNext]);
 
   // Cleanup on unmount
   useEffect(() => {

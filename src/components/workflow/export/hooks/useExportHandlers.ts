@@ -12,6 +12,10 @@ import type { ExportHandlers } from '../types';
 export function useExportHandlers(project: Project): ExportHandlers {
   const { exportProject } = useProjectStore();
 
+  // Safe accessors for arrays
+  const scenes = project.scenes || [];
+  const characters = project.characters || [];
+
   const handleExportJSON = useCallback(() => {
     const json = exportProject(project.id);
     if (json) {
@@ -23,39 +27,39 @@ export function useExportHandlers(project: Project): ExportHandlers {
   const handleExportMarkdown = useCallback(() => {
     const markdown = exportProjectAsMarkdown(
       project.story,
-      project.characters,
-      project.scenes,
+      characters,
+      scenes,
       project.style
     );
     const blob = new Blob([markdown], { type: 'text/markdown' });
     downloadBlob(blob, `${sanitizeFilename(project.name)}_prompts.md`);
-  }, [project.story, project.characters, project.scenes, project.style, project.name]);
+  }, [project.story, characters, scenes, project.style, project.name]);
 
   const handleExportText = useCallback(() => {
-    let text = `# ${project.story.title}\n\n`;
+    let text = `# ${project.story?.title || project.name}\n\n`;
     text += `## Characters\n\n`;
-    project.characters.forEach((c) => {
+    characters.forEach((c) => {
       text += formatCharacterForExport(c) + '\n\n';
     });
     text += `## Scenes\n\n`;
-    project.scenes.forEach((s) => {
+    scenes.forEach((s) => {
       text += formatSceneForExport(s) + '\n\n';
     });
 
     const blob = new Blob([text], { type: 'text/plain' });
     downloadBlob(blob, `${sanitizeFilename(project.name)}_prompts.txt`);
-  }, [project.story.title, project.characters, project.scenes, project.name]);
+  }, [project.story?.title, characters, scenes, project.name]);
 
   const handleExportCapCut = useCallback(() => {
     const fps = 30;
     const sceneDuration = 6;
     const framesPerScene = fps * sceneDuration;
-    const totalDuration = project.scenes.length * sceneDuration;
-    const totalFrames = project.scenes.length * framesPerScene;
+    const totalDuration = scenes.length * sceneDuration;
+    const totalFrames = scenes.length * framesPerScene;
 
     const capcutProject = {
       meta: {
-        name: project.story.title || project.name,
+        name: project.story?.title || project.name,
         duration: totalDuration,
         fps: fps,
         width: 1920,
@@ -64,7 +68,7 @@ export function useExportHandlers(project: Project): ExportHandlers {
         generator: 'Film Generator AI Studio',
       },
       tracks: {
-        video: project.scenes.map((scene, index) => ({
+        video: scenes.map((scene, index) => ({
           id: scene.id,
           name: `Scene ${scene.number || index + 1}: ${scene.title}`,
           start: index * sceneDuration,
@@ -76,8 +80,8 @@ export function useExportHandlers(project: Project): ExportHandlers {
           hasImage: !!scene.imageUrl,
           prompt: scene.imageToVideoPrompt,
         })),
-        audio: project.scenes.flatMap((scene, sceneIndex) =>
-          scene.dialogue.map((line, lineIndex) => ({
+        audio: scenes.flatMap((scene, sceneIndex) =>
+          (scene.dialogue || []).map((line, lineIndex) => ({
             id: `audio_${scene.id}_${lineIndex}`,
             sceneId: scene.id,
             character: line.characterName,
@@ -88,21 +92,21 @@ export function useExportHandlers(project: Project): ExportHandlers {
         ),
       },
       assets: {
-        videos: project.scenes
+        videos: scenes
           .filter((s) => s.videoUrl)
           .map((s) => ({
             id: s.id,
             title: s.title,
             duration: s.duration || 6,
           })),
-        images: project.scenes
+        images: scenes
           .filter((s) => s.imageUrl && !s.videoUrl)
           .map((s) => ({
             id: s.id,
             title: s.title,
           })),
-        audio: project.scenes.flatMap((s) =>
-          s.dialogue
+        audio: scenes.flatMap((s) =>
+          (s.dialogue || [])
             .filter((d) => d.audioUrl)
             .map((d) => ({
               character: d.characterName,
@@ -113,23 +117,23 @@ export function useExportHandlers(project: Project): ExportHandlers {
       timeline: {
         totalDuration,
         totalFrames,
-        scenes: project.scenes.map((scene, index) => ({
+        scenes: scenes.map((scene, index) => ({
           number: scene.number || index + 1,
           title: scene.title,
           timeStart: `${Math.floor((index * sceneDuration) / 60)}:${String((index * sceneDuration) % 60).padStart(2, '0')}`,
           timeEnd: `${Math.floor(((index + 1) * sceneDuration) / 60)}:${String(((index + 1) * sceneDuration) % 60).padStart(2, '0')}`,
-          dialogueLines: scene.dialogue.length,
+          dialogueLines: (scene.dialogue || []).length,
         })),
       },
     };
 
     const blob = new Blob([JSON.stringify(capcutProject, null, 2)], { type: 'application/json' });
     downloadBlob(blob, `${sanitizeFilename(project.name)}_capcut_project.json`);
-  }, [project.scenes, project.story.title, project.name]);
+  }, [scenes, project.story?.title, project.name]);
 
   const getFullMarkdown = useCallback(() => {
-    return exportProjectAsMarkdown(project.story, project.characters, project.scenes, project.style);
-  }, [project.story, project.characters, project.scenes, project.style]);
+    return exportProjectAsMarkdown(project.story, characters, scenes, project.style);
+  }, [project.story, characters, scenes, project.style]);
 
   return {
     handleExportJSON,

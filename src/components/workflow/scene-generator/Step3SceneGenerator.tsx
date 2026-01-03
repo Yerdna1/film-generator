@@ -66,6 +66,9 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   const {
     // Project data
     project,
+    scenes,
+    characters,
+    projectSettings,
     scenesWithImages,
     imageResolution,
 
@@ -134,13 +137,13 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(project.scenes.length / SCENES_PER_PAGE);
+  const totalPages = Math.ceil(scenes.length / SCENES_PER_PAGE);
   const startIndex = (currentPage - 1) * SCENES_PER_PAGE;
   const endIndex = startIndex + SCENES_PER_PAGE;
 
   const paginatedScenes = useMemo(() => {
-    return project.scenes.slice(startIndex, endIndex);
-  }, [project.scenes, startIndex, endIndex]);
+    return scenes.slice(startIndex, endIndex);
+  }, [scenes, startIndex, endIndex]);
 
   // Use SWR hooks for collaboration data with deduplication
   const {
@@ -249,7 +252,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
   // Get selected scenes data for the dialog
   const selectedScenesData = useMemo(() => {
-    return project.scenes
+    return scenes
       .filter(s => selectedScenes.has(s.id))
       .map(s => ({
         id: s.id,
@@ -257,7 +260,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         number: s.number,
         imageUrl: s.imageUrl,
       }));
-  }, [project.scenes, selectedScenes]);
+  }, [scenes, selectedScenes]);
 
   // Reset to page 1 if current page is out of bounds
   useEffect(() => {
@@ -270,13 +273,13 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     <div className="max-w-[1600px] mx-auto space-y-8 px-4">
       {/* Header & Progress */}
       <SceneHeader
-        sceneCount={project.settings.sceneCount}
-        totalScenes={project.scenes.length}
+        sceneCount={projectSettings.sceneCount}
+        totalScenes={scenes.length}
         scenesWithImages={scenesWithImages}
         imageResolution={imageResolution}
         aspectRatio={sceneAspectRatio}
         imageProvider={imageProvider}
-        hasCharacters={project.characters.length > 0}
+        hasCharacters={characters.length > 0}
         isGeneratingScenes={isGeneratingScenes}
         sceneJobProgress={sceneJobProgress}
         sceneJobStatus={sceneJobStatus}
@@ -293,7 +296,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         totalPages={totalPages}
         startIndex={startIndex}
         endIndex={endIndex}
-        totalItems={project.scenes.length}
+        totalItems={scenes.length}
         onPageChange={setCurrentPage}
         variant="full"
       />
@@ -302,7 +305,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         {paginatedScenes.map((scene, idx) => {
           // Find the index of this scene among scenes that have images (for auth restriction)
-          const scenesWithImagesSorted = project.scenes
+          const scenesWithImagesSorted = scenes
             .filter(s => s.imageUrl)
             .sort((a, b) => (a.number || 0) - (b.number || 0));
           const imageIndex = scenesWithImagesSorted.findIndex(s => s.id === scene.id);
@@ -318,7 +321,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
               isGeneratingImage={generatingImageForScene === scene.id}
               isGeneratingAllImages={isGeneratingAllImages}
               imageResolution={imageResolution}
-              characters={project.characters}
+              characters={characters}
               isSelected={selectedScenes.has(scene.id)}
               hasPendingRegeneration={pendingImageRegenSceneIds.has(scene.id)}
               hasPendingDeletion={pendingDeletionSceneIds.has(scene.id)}
@@ -343,11 +346,11 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       </div>
 
       {/* Add Scene Button - only for editors */}
-      {!isReadOnly && project.scenes.length < project.settings.sceneCount && (
+      {!isReadOnly && scenes.length < projectSettings.sceneCount && (
         <AddSceneDialog
           open={isAddingScene}
           onOpenChange={setIsAddingScene}
-          characters={project.characters}
+          characters={characters}
           onAddScene={handleAddScene}
         />
       )}
@@ -358,7 +361,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         totalPages={totalPages}
         startIndex={startIndex}
         endIndex={endIndex}
-        totalItems={project.scenes.length}
+        totalItems={scenes.length}
         onPageChange={setCurrentPage}
         variant="compact"
       />
@@ -366,7 +369,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       {/* Quick Actions - only for editors */}
       {!isReadOnly && (
         <QuickActions
-          totalScenes={project.scenes.length}
+          totalScenes={scenes.length}
           scenesWithImages={scenesWithImages}
           imageResolution={imageResolution}
           isGeneratingAllImages={isGenerating}
@@ -388,7 +391,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       <EditSceneDialog
         open={editingScene !== null}
         editSceneData={editSceneData}
-        characters={project.characters}
+        characters={characters}
         onEditSceneDataChange={setEditSceneData}
         onSave={saveEditScene}
         onCancel={cancelEditScene}
@@ -404,7 +407,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       <PromptsDialog
         open={showPromptsDialog}
         onOpenChange={setShowPromptsDialog}
-        scenes={project.scenes}
+        scenes={scenes}
       />
 
       {/* Request Regeneration Dialog */}

@@ -11,8 +11,13 @@ export function useVideoGenerator(initialProject: Project) {
   const { updateScene, projects } = useProjectStore();
   const { handleApiResponse, handleBulkApiResponse } = useCredits();
 
-  // Get live project data from store
-  const project = projects.find(p => p.id === initialProject.id) || initialProject;
+  // Get live project data from store, but prefer initialProject for full data (scenes array)
+  // Store may contain summary data without scenes
+  const storeProject = projects.find(p => p.id === initialProject.id);
+  const project = storeProject?.scenes ? storeProject : initialProject;
+
+  // Safe accessor for scenes array
+  const scenes = project.scenes || [];
 
   // State
   const [videoStates, setVideoStates] = useState<SceneVideoState>({});
@@ -27,14 +32,14 @@ export function useVideoGenerator(initialProject: Project) {
   const videoBlobCache = useRef<Map<string, string>>(new Map());
 
   // Computed values
-  const scenesWithImages = project.scenes.filter((s) => s.imageUrl);
-  const scenesWithVideos = project.scenes.filter((s) => s.videoUrl);
+  const scenesWithImages = scenes.filter((s) => s.imageUrl);
+  const scenesWithVideos = scenes.filter((s) => s.videoUrl);
 
   // Pagination
-  const totalPages = Math.ceil(project.scenes.length / SCENES_PER_PAGE);
+  const totalPages = Math.ceil(scenes.length / SCENES_PER_PAGE);
   const startIndex = (currentPage - 1) * SCENES_PER_PAGE;
   const endIndex = startIndex + SCENES_PER_PAGE;
-  const paginatedScenes = project.scenes.slice(startIndex, endIndex);
+  const paginatedScenes = scenes.slice(startIndex, endIndex);
 
   // Scenes needing generation
   const scenesNeedingGeneration = scenesWithImages.filter((s) => {
@@ -94,10 +99,10 @@ export function useVideoGenerator(initialProject: Project) {
 
   // Get scene status
   const getSceneStatus = useCallback((sceneId: string): VideoStatus => {
-    const scene = project.scenes.find((s) => s.id === sceneId);
+    const scene = scenes.find((s) => s.id === sceneId);
     if (scene?.videoUrl) return 'complete';
     return (videoStates[sceneId]?.status as VideoStatus) || 'idle';
-  }, [project.scenes, videoStates]);
+  }, [scenes, videoStates]);
 
   // Build full I2V prompt with dialogue
   const buildFullI2VPrompt = useCallback((scene: Scene): string => {
@@ -401,6 +406,7 @@ export function useVideoGenerator(initialProject: Project) {
   return {
     // Project data
     project,
+    scenes,  // Safe accessor for project.scenes
     scenesWithImages,
     scenesWithVideos,
     scenesNeedingGeneration,

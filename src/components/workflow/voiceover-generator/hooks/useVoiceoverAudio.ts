@@ -15,8 +15,9 @@ export function useVoiceoverAudio(project: Project) {
 
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
-  const allDialogueLines: DialogueLineWithScene[] = project.scenes.flatMap((scene) =>
-    scene.dialogue.map((line) => ({
+  // Safety check for scenes array (may be undefined in summary data)
+  const allDialogueLines: DialogueLineWithScene[] = (project.scenes || []).flatMap((scene) =>
+    (scene.dialogue || []).map((line) => ({
       ...line,
       sceneId: scene.id,
       sceneTitle: scene.title,
@@ -25,11 +26,11 @@ export function useVoiceoverAudio(project: Project) {
   );
 
   const generateAudioForLine = useCallback(async (lineId: string, sceneId: string) => {
-    const scene = project.scenes.find((s) => s.id === sceneId);
-    const line = scene?.dialogue.find((l) => l.id === lineId);
+    const scene = (project.scenes || []).find((s) => s.id === sceneId);
+    const line = scene?.dialogue?.find((l) => l.id === lineId);
     if (!line) return;
 
-    const character = project.characters.find((c) => c.id === line.characterId);
+    const character = (project.characters || []).find((c) => c.id === line.characterId);
 
     setAudioStates((prev) => ({
       ...prev,

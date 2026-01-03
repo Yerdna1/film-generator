@@ -24,12 +24,14 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
   const t = useTranslations();
   const { updateVoiceSettings, updateCharacter, projects } = useProjectStore();
 
-  // Get live project data from store
-  const project = projects.find(p => p.id === initialProject.id) || initialProject;
+  // Get live project data from store, but prefer initialProject for full data (scenes array)
+  // Store may contain summary data without scenes
+  const storeProject = projects.find(p => p.id === initialProject.id);
+  const project = storeProject?.scenes ? storeProject : initialProject;
 
   // Find the first dialogue line overall (for unauthenticated user restriction)
   // Only the first dialogue line is accessible to unauthenticated users
-  const allDialogues = project.scenes.flatMap(s => s.dialogue);
+  const allDialogues = (project.scenes || []).flatMap(s => s.dialogue || []);
   const firstDialogueLineId = allDialogues.length > 0 ? allDialogues[0].id : null;
 
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
@@ -172,7 +174,9 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     handleAudioEnded,
   } = useVoiceoverAudio(project);
 
-  const voices = getVoicesForProvider(project.voiceSettings.provider);
+  // Safety check for voiceSettings (may be undefined in some data states)
+  const voiceSettings = project.voiceSettings || { provider: 'gemini-tts', language: 'sk', characterVoices: {} };
+  const voices = getVoicesForProvider(voiceSettings.provider);
   const generatedCount = allDialogueLines.filter((line) => line.audioUrl).length;
 
   const handleVoiceChange = (characterId: string, voiceId: string) => {
@@ -181,7 +185,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
     updateVoiceSettings(project.id, {
       characterVoices: {
-        ...project.voiceSettings.characterVoices,
+        ...voiceSettings.characterVoices,
         [characterId]: { voiceId, voiceName: voice.name },
       },
     });
@@ -223,11 +227,11 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             <span className="text-sm text-muted-foreground mr-2">TTS Provider:</span>
             {!isReadOnly ? (
               <ProviderSelector
-                provider={project.voiceSettings.provider}
+                provider={voiceSettings.provider}
                 onProviderChange={handleProviderChange}
               />
             ) : (
-              <span className="text-sm font-medium">{project.voiceSettings.provider}</span>
+              <span className="text-sm font-medium">{voiceSettings.provider}</span>
             )}
           </div>
 
@@ -236,7 +240,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
               <VoiceSettingsDialog
                 open={showVoiceSettings}
                 onOpenChange={setShowVoiceSettings}
-                characters={project.characters}
+                characters={project.characters || []}
                 voices={voices}
                 onVoiceChange={handleVoiceChange}
               />
@@ -266,7 +270,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             generatedCount={generatedCount}
             totalCount={allDialogueLines.length}
             isGeneratingAll={isGeneratingAll}
-            provider={project.voiceSettings.provider}
+            provider={voiceSettings.provider}
             onGenerateAll={handleGenerateAll}
             onDownloadAll={handleDownloadAll}
           />
@@ -286,18 +290,18 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
       {/* Dialogue Lines by Scene - 3 column grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {project.scenes
-          .filter((scene) => scene.dialogue.length > 0)
+        {(project.scenes || [])
+          .filter((scene) => (scene.dialogue || []).length > 0)
           .map((scene, sceneIndex) => (
             <SceneDialogueCard
               key={scene.id}
               scene={scene}
               sceneIndex={sceneIndex}
               projectId={project.id}
-              characters={project.characters}
+              characters={project.characters || []}
               audioStates={audioStates}
               playingAudio={playingAudio}
-              provider={project.voiceSettings.provider}
+              provider={voiceSettings.provider}
               isReadOnly={isReadOnly}
               isAuthenticated={isAuthenticated}
               firstDialogueLineId={firstDialogueLineId}

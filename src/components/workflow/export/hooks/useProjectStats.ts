@@ -4,15 +4,19 @@ import type { Project } from '@/types/project';
 import type { ProjectStats, CreditsSpent } from '../types';
 
 export function useProjectStats(project: Project): { stats: ProjectStats; credits: CreditsSpent } {
+  // Safe accessors for arrays that may be undefined
+  const characters = project.characters || [];
+  const scenes = project.scenes || [];
+
   const stats = useMemo<ProjectStats>(() => {
-    const totalCharacters = project.characters.length;
-    const charactersWithImages = project.characters.filter((c) => c.imageUrl).length;
-    const totalScenes = project.scenes.length;
-    const scenesWithImages = project.scenes.filter((s) => s.imageUrl).length;
-    const scenesWithVideos = project.scenes.filter((s) => s.videoUrl).length;
-    const totalDialogueLines = project.scenes.reduce((acc, s) => acc + s.dialogue.length, 0);
-    const dialogueLinesWithAudio = project.scenes.reduce(
-      (acc, s) => acc + s.dialogue.filter((d) => d.audioUrl).length,
+    const totalCharacters = characters.length;
+    const charactersWithImages = characters.filter((c) => c.imageUrl).length;
+    const totalScenes = scenes.length;
+    const scenesWithImages = scenes.filter((s) => s.imageUrl).length;
+    const scenesWithVideos = scenes.filter((s) => s.videoUrl).length;
+    const totalDialogueLines = scenes.reduce((acc, s) => acc + (s.dialogue?.length || 0), 0);
+    const dialogueLinesWithAudio = scenes.reduce(
+      (acc, s) => acc + (s.dialogue || []).filter((d) => d.audioUrl).length,
       0
     );
 
@@ -42,7 +46,7 @@ export function useProjectStats(project: Project): { stats: ProjectStats; credit
       totalMinutes,
       totalSeconds,
     };
-  }, [project.characters, project.scenes]);
+  }, [characters, scenes]);
 
   const credits = useMemo<CreditsSpent>(() => {
     const images = stats.scenesWithImages * COSTS.IMAGE_GENERATION + stats.charactersWithImages * COSTS.IMAGE_GENERATION;

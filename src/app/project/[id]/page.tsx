@@ -39,16 +39,21 @@ function hasProjectChanged(prev: ReturnType<typeof useProjectStore.getState>['pr
   if (prev.id !== next.id) return true;
   if (prev.currentStep !== next.currentStep) return true;
   if (prev.name !== next.name) return true;
-  if (prev.scenes.length !== next.scenes.length) return true;
-  if (prev.characters.length !== next.characters.length) return true;
+  // Safety check for scenes/characters arrays (may be undefined in summary data)
+  const prevScenes = prev.scenes || [];
+  const nextScenes = next.scenes || [];
+  const prevChars = prev.characters || [];
+  const nextChars = next.characters || [];
+  if (prevScenes.length !== nextScenes.length) return true;
+  if (prevChars.length !== nextChars.length) return true;
   // Check rendered video URLs
   if (prev.renderedVideoUrl !== next.renderedVideoUrl) return true;
   if (prev.renderedDraftUrl !== next.renderedDraftUrl) return true;
   // Deep check scene image URLs (important for image generation updates)
-  for (let i = 0; i < prev.scenes.length; i++) {
-    if (prev.scenes[i]?.imageUrl !== next.scenes[i]?.imageUrl) return true;
-    if (prev.scenes[i]?.videoUrl !== next.scenes[i]?.videoUrl) return true;
-    if (prev.scenes[i]?.audioUrl !== next.scenes[i]?.audioUrl) return true;
+  for (let i = 0; i < prevScenes.length; i++) {
+    if (prevScenes[i]?.imageUrl !== nextScenes[i]?.imageUrl) return true;
+    if (prevScenes[i]?.videoUrl !== nextScenes[i]?.videoUrl) return true;
+    if (prevScenes[i]?.audioUrl !== nextScenes[i]?.audioUrl) return true;
   }
   return false;
 }

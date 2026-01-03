@@ -52,8 +52,10 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
   const { projects } = useProjectStore();
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
 
-  // Get live project data from store
-  const project = projects.find((p) => p.id === initialProject.id) || initialProject;
+  // Get live project data from store, but prefer initialProject for full data (scenes array)
+  // Store may contain summary data without scenes
+  const storeProject = projects.find((p) => p.id === initialProject.id);
+  const project = storeProject?.scenes ? storeProject : initialProject;
 
   // Custom hooks
   const { stats } = useProjectStats(project);
