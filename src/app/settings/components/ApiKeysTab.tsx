@@ -87,7 +87,7 @@ export function ApiKeysTab({
       className="space-y-6"
     >
       {/* LLM Provider Selection */}
-      <Card className="glass border-white/10 border-l-4 border-l-emerald-500">
+      <Card className="glass border-border border-l-4 border-l-emerald-500">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Cpu className="w-5 h-5 text-emerald-400" />
@@ -105,16 +105,16 @@ export function ApiKeysTab({
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                   llmProvider === option.id
                     ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-white/10 hover:border-white/20 bg-white/5'
+                    : 'border-border hover:border-border bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-white text-sm">{option.name}</span>
+                    <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {llmProvider === option.id && <Check className="w-4 h-4 text-emerald-400" />}
                   </div>
                   <div className={`w-3 h-3 rounded-full border-2 ${
-                    llmProvider === option.id ? 'border-emerald-500 bg-emerald-500' : 'border-white/30'
+                    llmProvider === option.id ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30'
                   }`} />
                 </div>
               </motion.div>
@@ -127,7 +127,7 @@ export function ApiKeysTab({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="p-3 rounded-lg bg-white/5 border border-white/10"
+              className="p-3 rounded-lg bg-muted/50 border border-border"
             >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 text-emerald-400" />
@@ -137,7 +137,7 @@ export function ApiKeysTab({
                 value={openRouterModel || DEFAULT_OPENROUTER_MODEL}
                 onValueChange={onOpenRouterModelChange}
               >
-                <SelectTrigger className="w-full bg-white/5 border-white/10">
+                <SelectTrigger className="w-full bg-muted/50 border-border">
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
@@ -177,7 +177,7 @@ export function ApiKeysTab({
       {/* Provider Selection Grid - responsive columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* TTS Provider Selection */}
-        <Card className="glass border-white/10 border-l-4 border-l-violet-500">
+        <Card className="glass border-border border-l-4 border-l-violet-500">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Mic className="w-5 h-5 text-violet-400" />
@@ -194,16 +194,16 @@ export function ApiKeysTab({
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                   ttsProvider === option.id
                     ? 'border-violet-500 bg-violet-500/10'
-                    : 'border-white/10 hover:border-white/20 bg-white/5'
+                    : 'border-border hover:border-border bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-white text-sm">{option.name}</span>
+                    <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {ttsProvider === option.id && <Check className="w-4 h-4 text-violet-400" />}
                   </div>
                   <div className={`w-3 h-3 rounded-full border-2 ${
-                    ttsProvider === option.id ? 'border-violet-500 bg-violet-500' : 'border-white/30'
+                    ttsProvider === option.id ? 'border-violet-500 bg-violet-500' : 'border-muted-foreground/30'
                   }`} />
                 </div>
               </motion.div>
@@ -212,7 +212,7 @@ export function ApiKeysTab({
         </Card>
 
         {/* Image Provider Selection */}
-        <Card className="glass border-white/10 border-l-4 border-l-blue-500">
+        <Card className="glass border-border border-l-4 border-l-blue-500">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <ImageIcon className="w-5 h-5 text-blue-400" />
@@ -229,16 +229,16 @@ export function ApiKeysTab({
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                   imageProvider === option.id
                     ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-white/10 hover:border-white/20 bg-white/5'
+                    : 'border-border hover:border-border bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-white text-sm">{option.name}</span>
+                    <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {imageProvider === option.id && <Check className="w-4 h-4 text-blue-400" />}
                   </div>
                   <div className={`w-3 h-3 rounded-full border-2 ${
-                    imageProvider === option.id ? 'border-blue-500 bg-blue-500' : 'border-white/30'
+                    imageProvider === option.id ? 'border-blue-500 bg-blue-500' : 'border-muted-foreground/30'
                   }`} />
                 </div>
               </motion.div>
@@ -247,7 +247,7 @@ export function ApiKeysTab({
         </Card>
 
         {/* Video Provider Selection */}
-        <Card className="glass border-white/10 border-l-4 border-l-orange-500">
+        <Card className="glass border-border border-l-4 border-l-orange-500">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Video className="w-5 h-5 text-orange-400" />
@@ -264,16 +264,16 @@ export function ApiKeysTab({
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                   videoProvider === option.id
                     ? 'border-orange-500 bg-orange-500/10'
-                    : 'border-white/10 hover:border-white/20 bg-white/5'
+                    : 'border-border hover:border-border bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-white text-sm">{option.name}</span>
+                    <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {videoProvider === option.id && <Check className="w-4 h-4 text-orange-400" />}
                   </div>
                   <div className={`w-3 h-3 rounded-full border-2 ${
-                    videoProvider === option.id ? 'border-orange-500 bg-orange-500' : 'border-white/30'
+                    videoProvider === option.id ? 'border-orange-500 bg-orange-500' : 'border-muted-foreground/30'
                   }`} />
                 </div>
               </motion.div>
@@ -282,7 +282,7 @@ export function ApiKeysTab({
         </Card>
 
         {/* Music Provider Selection */}
-        <Card className="glass border-white/10 border-l-4 border-l-pink-500">
+        <Card className="glass border-border border-l-4 border-l-pink-500">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Music className="w-5 h-5 text-pink-400" />
@@ -299,16 +299,16 @@ export function ApiKeysTab({
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                   musicProvider === option.id
                     ? 'border-pink-500 bg-pink-500/10'
-                    : 'border-white/10 hover:border-white/20 bg-white/5'
+                    : 'border-border hover:border-border bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-white text-sm">{option.name}</span>
+                    <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {musicProvider === option.id && <Check className="w-4 h-4 text-pink-400" />}
                   </div>
                   <div className={`w-3 h-3 rounded-full border-2 ${
-                    musicProvider === option.id ? 'border-pink-500 bg-pink-500' : 'border-white/30'
+                    musicProvider === option.id ? 'border-pink-500 bg-pink-500' : 'border-muted-foreground/30'
                   }`} />
                 </div>
               </motion.div>
@@ -319,7 +319,7 @@ export function ApiKeysTab({
 
       {/* Modal.com Endpoints - Show when Modal provider is selected or for VectCut video composition */}
       {showModalEndpoints && (
-      <Card className="glass border-white/10 border-l-4 border-l-cyan-500">
+      <Card className="glass border-border border-l-4 border-l-cyan-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Server className="w-5 h-5 text-cyan-400" />
@@ -347,7 +347,7 @@ export function ApiKeysTab({
                 return (
                   <div key={endpoint.id} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-white">
+                      <label className="text-sm font-medium text-foreground">
                         {endpoint.name}
                       </label>
                       <a
@@ -364,7 +364,7 @@ export function ApiKeysTab({
                       placeholder={endpoint.placeholder}
                       value={modalEndpoints[endpointKey] || ''}
                       onChange={(e) => onModalEndpointChange(endpointKey, e.target.value)}
-                      className="bg-white/5 border-white/10"
+                      className="bg-muted/50 border-border"
                     />
                   </div>
                 );
@@ -382,7 +382,7 @@ export function ApiKeysTab({
       )}
 
       {/* API Keys */}
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Key className="w-5 h-5 text-purple-400" />
@@ -414,7 +414,7 @@ export function ApiKeysTab({
       </Card>
 
       {/* Info Card */}
-      <Card className="glass border-white/10 border-l-4 border-l-cyan-500">
+      <Card className="glass border-border border-l-4 border-l-cyan-500">
         <CardContent className="p-4">
           <p className="text-sm text-muted-foreground">
             {tPage('apiKeysNote')}

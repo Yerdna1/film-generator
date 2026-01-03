@@ -28,7 +28,7 @@ export function PricingTab({ actionCosts, costsLoading }: PricingTabProps) {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-green-400" />
@@ -118,7 +118,7 @@ export function PricingTab({ actionCosts, costsLoading }: PricingTabProps) {
       </Card>
 
       {/* Info Card */}
-      <Card className="glass border-white/10 border-l-4 border-l-green-500">
+      <Card className="glass border-border border-l-4 border-l-green-500">
         <CardContent className="p-4">
           <p className="text-sm text-muted-foreground">
             These costs reflect the actual API pricing from providers. Costs are managed by the system administrator and stored in the database.

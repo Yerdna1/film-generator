@@ -70,7 +70,7 @@ export function ApiProviderCard({
             placeholder={`Enter ${provider.name} API key...`}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="pr-10 glass border-white/10 focus:border-purple-500/50"
+            className="pr-10 glass border-border focus:border-purple-500/50"
           />
           <button
             type="button"

@@ -10,7 +10,7 @@ export function SettingsHeader() {
   const tPage = useTranslations('settingsPage');
 
   return (
-    <div className="sticky top-0 z-40 glass-strong border-b border-white/5">
+    <div className="sticky top-0 z-40 glass-strong border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-4 h-16">
           <Link href="/">

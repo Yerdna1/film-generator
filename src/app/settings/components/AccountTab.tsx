@@ -54,7 +54,7 @@ export function AccountTab({
       animate={{ opacity: 1, y: 0 }}
       className="grid grid-cols-1 md:grid-cols-2 gap-4"
     >
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <User className="w-5 h-5 text-purple-400" />
@@ -82,7 +82,7 @@ export function AccountTab({
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/10 w-full"
+                className="border-border w-full"
                 onClick={() => signOut({ callbackUrl: '/' })}
               >
                 <LogOut className="w-4 h-4 mr-2" />
@@ -108,7 +108,7 @@ export function AccountTab({
               </p>
               <div className="flex gap-2">
                 <Link href="/auth/login" className="flex-1">
-                  <Button variant="outline" size="sm" className="border-white/10 w-full">
+                  <Button variant="outline" size="sm" className="border-border w-full">
                     {tAuth('signIn')}
                   </Button>
                 </Link>
@@ -123,7 +123,7 @@ export function AccountTab({
         </CardContent>
       </Card>
 
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Shield className="w-5 h-5 text-purple-400" />
@@ -142,7 +142,7 @@ export function AccountTab({
             <Button
               variant="outline"
               size="sm"
-              className="border-white/10"
+              className="border-border"
               onClick={onExportData}
               disabled={isExporting}
             >
@@ -166,7 +166,7 @@ export function AccountTab({
                   {tCommon('delete')}
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="glass-strong border-white/10">
+              <AlertDialogContent className="glass-strong border-border">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="flex items-center gap-2 text-red-400">
                     <AlertTriangle className="w-5 h-5" />
@@ -177,7 +177,7 @@ export function AccountTab({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="border-white/10">{tCommon('cancel')}</AlertDialogCancel>
+                  <AlertDialogCancel className="border-border">{tCommon('cancel')}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={onDeleteAllData}
                     className="bg-red-600 hover:bg-red-500 text-white"
@@ -192,7 +192,7 @@ export function AccountTab({
       </Card>
 
       {/* Links to legal pages - spans full width */}
-      <Card className="glass border-white/10 md:col-span-2">
+      <Card className="glass border-border md:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <ExternalLink className="w-5 h-5 text-purple-400" />

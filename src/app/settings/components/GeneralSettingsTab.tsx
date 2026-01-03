@@ -53,7 +53,7 @@ export function GeneralSettingsTab({
       animate={{ opacity: 1, y: 0 }}
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
     >
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Globe className="w-5 h-5 text-purple-400" />
@@ -62,10 +62,10 @@ export function GeneralSettingsTab({
         </CardHeader>
         <CardContent>
           <Select value={language} onValueChange={onLanguageChange}>
-            <SelectTrigger className="w-full glass border-white/10">
+            <SelectTrigger className="w-full glass border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="glass-strong border-white/10">
+            <SelectContent className="glass-strong border-border">
               <SelectItem value="en">English</SelectItem>
               <SelectItem value="sk">Slovensky</SelectItem>
             </SelectContent>
@@ -73,7 +73,7 @@ export function GeneralSettingsTab({
         </CardContent>
       </Card>
 
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Coins className="w-5 h-5 text-green-400" />
@@ -82,10 +82,10 @@ export function GeneralSettingsTab({
         </CardHeader>
         <CardContent>
           <Select value={currency} onValueChange={(value) => onCurrencyChange(value as Currency)}>
-            <SelectTrigger className="w-full glass border-white/10">
+            <SelectTrigger className="w-full glass border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="glass-strong border-white/10">
+            <SelectContent className="glass-strong border-border">
               {Object.entries(CURRENCIES).map(([code, config]) => (
                 <SelectItem key={code} value={code}>
                   {config.symbol} {code}
@@ -96,7 +96,7 @@ export function GeneralSettingsTab({
         </CardContent>
       </Card>
 
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Palette className="w-5 h-5 text-purple-400" />
@@ -115,7 +115,7 @@ export function GeneralSettingsTab({
         </CardContent>
       </Card>
 
-      <Card className="glass border-white/10">
+      <Card className="glass border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Bell className="w-5 h-5 text-purple-400" />

@@ -36,7 +36,7 @@ export function CostCategoryCard({
       </div>
       <div className="grid gap-2">
         {costs.map((cost) => (
-          <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5">
+          <div key={cost.provider} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
             <div>
               <span className="font-medium capitalize">{cost.provider}</span>
               {cost.description && (
