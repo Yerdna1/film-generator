@@ -94,7 +94,15 @@ export async function GET(
       scene: sceneMap.get(request.targetId) || null,
     }));
 
-    return NextResponse.json({ requests: enrichedRequests });
+    // Add cache headers for SWR deduplication (private, short cache, stale-while-revalidate)
+    return NextResponse.json(
+      { requests: enrichedRequests },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (error) {
     console.error('Get regeneration requests error:', error);
     return NextResponse.json(

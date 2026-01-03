@@ -120,17 +120,15 @@ export async function checkPermission(
  * Get project with user's role and permissions
  * Returns null if user has no access
  * userId can be null for public project access
+ *
+ * OPTIMIZED: Single query fetches project + membership together,
+ * avoiding N+1 query pattern (previously 3 queries, now 1)
  */
 export async function getProjectWithPermissions(
   userId: string | null,
   projectId: string
 ) {
-  const role = await getUserProjectRole(userId, projectId);
-
-  if (!role) {
-    return null;
-  }
-
+  // Single query to get project with optional membership data
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
@@ -145,6 +143,14 @@ export async function getProjectWithPermissions(
           image: true,
         },
       },
+      // Include membership for the current user (if logged in)
+      ...(userId && {
+        members: {
+          where: { userId },
+          select: { role: true },
+          take: 1,
+        },
+      }),
     },
   });
 
@@ -152,8 +158,31 @@ export async function getProjectWithPermissions(
     return null;
   }
 
+  // Determine role from single query result
+  let role: ProjectRole | null = null;
+
+  // Owner is always admin
+  if (userId && project.userId === userId) {
+    role = 'admin';
+  }
+  // Check membership from included data
+  else if (userId && 'members' in project && Array.isArray(project.members) && project.members.length > 0) {
+    role = project.members[0].role as ProjectRole;
+  }
+  // Public projects grant reader access to anyone
+  else if (project.visibility === 'public') {
+    role = 'reader';
+  }
+
+  if (!role) {
+    return null;
+  }
+
+  // Remove members from project object before returning (internal use only)
+  const { members: _members, ...projectWithoutMembers } = project as typeof project & { members?: { role: string }[] };
+
   return {
-    project,
+    project: projectWithoutMembers,
     role,
     permissions: ROLE_PERMISSIONS[role],
     isPublic: project.visibility === 'public',
@@ -259,36 +288,32 @@ export async function verifyPermission(
 
 /**
  * Get project admins for notification purposes
+ *
+ * OPTIMIZED: Single query fetches owner + admin members together
  */
 export async function getProjectAdmins(projectId: string): Promise<string[]> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true },
+    select: {
+      userId: true,
+      members: {
+        where: { role: 'admin' },
+        select: { userId: true },
+      },
+    },
   });
 
   if (!project) {
     return [];
   }
 
-  // Owner is always an admin
-  const adminIds = [project.userId];
-
-  // Get additional admins from ProjectMember
-  const adminMembers = await prisma.projectMember.findMany({
-    where: {
-      projectId,
-      role: 'admin',
-    },
-    select: { userId: true },
-  });
-
-  for (const member of adminMembers) {
-    if (!adminIds.includes(member.userId)) {
-      adminIds.push(member.userId);
-    }
+  // Owner is always an admin, add any additional admin members
+  const adminIds = new Set([project.userId]);
+  for (const member of project.members) {
+    adminIds.add(member.userId);
   }
 
-  return adminIds;
+  return Array.from(adminIds);
 }
 
 /**

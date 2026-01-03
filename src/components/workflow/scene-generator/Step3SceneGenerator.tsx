@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
-import type { RegenerationRequest, DeletionRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
+import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks/useSceneGenerator';
 import {
@@ -18,6 +18,12 @@ import {
 import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
 import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
+import {
+  useApiKeys,
+  usePendingRegenerationRequests,
+  useApprovedRegenerationRequests,
+  usePendingDeletionRequests,
+} from '@/hooks';
 
 interface Step3Props {
   project: Project;
@@ -31,37 +37,31 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   // Determine if user can delete directly (admin) or must request (collaborator)
   const canDeleteDirectly = permissions?.canDelete ?? true;
   const { apiConfig, setApiConfig } = useProjectStore();
-  const imageProvider: ImageProvider = apiConfig.imageProvider || 'gemini';
 
-  // Load provider settings from database on mount (always load to ensure fresh data)
+  // Use SWR hook for API keys with deduplication (eliminates redundant fetches across components)
+  const { imageProvider: apiKeysImageProvider, data: apiKeysData } = useApiKeys();
+
+  // Sync provider settings to store when API keys data is loaded
   useEffect(() => {
-    const loadProviderSettings = async () => {
-      try {
-        const response = await fetch('/api/user/api-keys');
-        if (response.ok) {
-          const data = await response.json();
-          // Update store with provider settings from DB
-          if (data.imageProvider || data.llmProvider || data.ttsProvider || data.musicProvider || data.videoProvider) {
-            setApiConfig({
-              imageProvider: data.imageProvider,
-              llmProvider: data.llmProvider,
-              ttsProvider: data.ttsProvider,
-              musicProvider: data.musicProvider,
-              videoProvider: data.videoProvider,
-              modalEndpoints: {
-                imageEndpoint: data.modalImageEndpoint,
-                imageEditEndpoint: data.modalImageEditEndpoint,
-              },
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error loading provider settings:', error);
+    if (apiKeysData) {
+      const { imageProvider, llmProvider, ttsProvider, musicProvider, videoProvider, modalImageEndpoint, modalImageEditEndpoint } = apiKeysData;
+      if (imageProvider || llmProvider || ttsProvider || musicProvider || videoProvider) {
+        setApiConfig({
+          imageProvider,
+          llmProvider,
+          ttsProvider,
+          musicProvider,
+          videoProvider,
+          modalEndpoints: {
+            imageEndpoint: modalImageEndpoint,
+            imageEditEndpoint: modalImageEditEndpoint,
+          },
+        });
       }
-    };
+    }
+  }, [apiKeysData, setApiConfig]);
 
-    loadProviderSettings();
-  }, [setApiConfig]);
+  const imageProvider: ImageProvider = apiConfig.imageProvider || apiKeysImageProvider || 'gemini';
 
   const {
     // Project data
@@ -142,59 +142,37 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     return project.scenes.slice(startIndex, endIndex);
   }, [project.scenes, startIndex, endIndex]);
 
-  // Regeneration requests state
-  const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequest[]>([]);
-  const [approvedRegenerationRequests, setApprovedRegenerationRequests] = useState<RegenerationRequest[]>([]);
+  // Use SWR hooks for collaboration data with deduplication
+  const {
+    requests: regenerationRequests,
+    refresh: refreshPendingRegenRequests,
+  } = usePendingRegenerationRequests(project.id);
+
+  const {
+    requests: approvedRegenerationRequests,
+    refresh: refreshApprovedRegenRequests,
+  } = useApprovedRegenerationRequests(project.id);
+
+  const {
+    requests: deletionRequests,
+    refresh: refreshDeletionRequests,
+  } = usePendingDeletionRequests(project.id);
+
   const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
 
-  // Deletion requests state
-  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
+  // Combined refresh function for regeneration requests
+  const fetchApprovedRegenerationRequests = useCallback(() => {
+    refreshApprovedRegenRequests();
+  }, [refreshApprovedRegenRequests]);
 
-  // Fetch regeneration requests for this project
-  const fetchRegenerationRequests = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/projects/${project.id}/regeneration-requests?status=pending`);
-      if (response.ok) {
-        const data = await response.json();
-        setRegenerationRequests(data.requests || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch regeneration requests:', error);
-    }
-  }, [project.id]);
+  // Refresh functions for callbacks
+  const fetchDeletionRequests = useCallback(() => {
+    refreshDeletionRequests();
+  }, [refreshDeletionRequests]);
 
-  // Fetch approved/active regeneration requests for collaborators
-  const fetchApprovedRegenerationRequests = useCallback(async () => {
-    try {
-      // Fetch requests in 'approved', 'generating', 'selecting', or 'awaiting_final' status
-      const response = await fetch(`/api/projects/${project.id}/regeneration-requests?status=approved,generating,selecting,awaiting_final`);
-      if (response.ok) {
-        const data = await response.json();
-        setApprovedRegenerationRequests(data.requests || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch approved regeneration requests:', error);
-    }
-  }, [project.id]);
-
-  // Fetch deletion requests for this project
-  const fetchDeletionRequests = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/projects/${project.id}/deletion-requests?status=pending`);
-      if (response.ok) {
-        const data = await response.json();
-        setDeletionRequests(data.requests || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch deletion requests:', error);
-    }
-  }, [project.id]);
-
-  useEffect(() => {
-    fetchRegenerationRequests();
-    fetchApprovedRegenerationRequests();
-    fetchDeletionRequests();
-  }, [fetchRegenerationRequests, fetchApprovedRegenerationRequests, fetchDeletionRequests]);
+  const fetchRegenerationRequests = useCallback(() => {
+    refreshPendingRegenRequests();
+  }, [refreshPendingRegenRequests]);
 
   // Create a set of scene IDs with pending image regeneration requests
   const pendingImageRegenSceneIds = useMemo(() => {

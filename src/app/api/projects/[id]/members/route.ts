@@ -82,18 +82,26 @@ export async function GET(
           ...members,
         ];
 
-    return NextResponse.json({
-      members: allMembers.map((m) => ({
-        id: m.id,
-        projectId: m.projectId,
-        userId: m.userId,
-        role: m.role,
-        joinedAt: m.joinedAt,
-        invitedBy: m.invitedBy,
-        isOwner: 'isOwner' in m ? m.isOwner : m.userId === project.userId,
-        user: m.user,
-      })),
-    });
+    // Add cache headers for SWR deduplication (private, short cache, stale-while-revalidate)
+    return NextResponse.json(
+      {
+        members: allMembers.map((m) => ({
+          id: m.id,
+          projectId: m.projectId,
+          userId: m.userId,
+          role: m.role,
+          joinedAt: m.joinedAt,
+          invitedBy: m.invitedBy,
+          isOwner: 'isOwner' in m ? m.isOwner : m.userId === project.userId,
+          user: m.user,
+        })),
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error) {
     console.error('Get members error:', error);
     return NextResponse.json(

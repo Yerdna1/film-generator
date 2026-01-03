@@ -59,7 +59,15 @@ export async function GET(
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ requests });
+    // Add cache headers for SWR deduplication (private, short cache, stale-while-revalidate)
+    return NextResponse.json(
+      { requests },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (error) {
     console.error('Get deletion requests error:', error);
     return NextResponse.json(

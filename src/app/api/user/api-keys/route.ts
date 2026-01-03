@@ -28,72 +28,88 @@ export async function GET() {
     });
 
     if (!apiKeys) {
-      return NextResponse.json({
-        geminiApiKey: '',
-        grokApiKey: '',
-        elevenLabsApiKey: '',
-        claudeApiKey: '',
-        openaiApiKey: '',
-        nanoBananaApiKey: '',
-        sunoApiKey: '',
-        openRouterApiKey: '',
-        openRouterModel: 'anthropic/claude-4.5-sonnet', // Default model
-        piapiApiKey: '',
-        llmProvider: 'openrouter', // Default to OpenRouter
-        musicProvider: 'piapi', // Default to PiAPI
-        ttsProvider: 'gemini-tts', // Default to Gemini TTS
-        imageProvider: 'gemini', // Default to Gemini
-        videoProvider: 'kie', // Default to Kie.ai
-        // Modal endpoints (empty by default)
-        modalLlmEndpoint: '',
-        modalTtsEndpoint: '',
-        modalImageEndpoint: '',
-        modalImageEditEndpoint: '',
-        modalVideoEndpoint: '',
-        modalMusicEndpoint: '',
-        modalVectcutEndpoint: '',
-      });
+      // Add cache headers for SWR deduplication (private, longer cache for stable data)
+      return NextResponse.json(
+        {
+          geminiApiKey: '',
+          grokApiKey: '',
+          elevenLabsApiKey: '',
+          claudeApiKey: '',
+          openaiApiKey: '',
+          nanoBananaApiKey: '',
+          sunoApiKey: '',
+          openRouterApiKey: '',
+          openRouterModel: 'anthropic/claude-4.5-sonnet', // Default model
+          piapiApiKey: '',
+          llmProvider: 'openrouter', // Default to OpenRouter
+          musicProvider: 'piapi', // Default to PiAPI
+          ttsProvider: 'gemini-tts', // Default to Gemini TTS
+          imageProvider: 'gemini', // Default to Gemini
+          videoProvider: 'kie', // Default to Kie.ai
+          // Modal endpoints (empty by default)
+          modalLlmEndpoint: '',
+          modalTtsEndpoint: '',
+          modalImageEndpoint: '',
+          modalImageEditEndpoint: '',
+          modalVideoEndpoint: '',
+          modalMusicEndpoint: '',
+          modalVectcutEndpoint: '',
+        },
+        {
+          headers: {
+            'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+          },
+        }
+      );
     }
 
     // SECURITY: Return masked keys - only show last 4 chars to confirm key is set
     // Full keys are never sent to client to prevent XSS/extension theft
-    return NextResponse.json({
-      // Masked API keys (shows ••••xxxx format)
-      geminiApiKey: maskApiKey(apiKeys.geminiApiKey),
-      grokApiKey: maskApiKey(apiKeys.grokApiKey),
-      elevenLabsApiKey: maskApiKey(apiKeys.elevenLabsApiKey),
-      claudeApiKey: maskApiKey(apiKeys.claudeApiKey),
-      openaiApiKey: maskApiKey(apiKeys.openaiApiKey),
-      nanoBananaApiKey: maskApiKey(apiKeys.nanoBananaApiKey),
-      sunoApiKey: maskApiKey(apiKeys.sunoApiKey),
-      openRouterApiKey: maskApiKey(apiKeys.openRouterApiKey),
-      piapiApiKey: maskApiKey(apiKeys.piapiApiKey),
-      // Boolean flags to indicate if key is set (for UI logic)
-      hasGeminiKey: !!apiKeys.geminiApiKey,
-      hasGrokKey: !!apiKeys.grokApiKey,
-      hasElevenLabsKey: !!apiKeys.elevenLabsApiKey,
-      hasClaudeKey: !!apiKeys.claudeApiKey,
-      hasOpenaiKey: !!apiKeys.openaiApiKey,
-      hasNanoBananaKey: !!apiKeys.nanoBananaApiKey,
-      hasSunoKey: !!apiKeys.sunoApiKey,
-      hasOpenRouterKey: !!apiKeys.openRouterApiKey,
-      hasPiapiKey: !!apiKeys.piapiApiKey,
-      // Non-sensitive settings (can be sent in full)
-      openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
-      llmProvider: apiKeys.llmProvider || 'openrouter',
-      musicProvider: apiKeys.musicProvider || 'piapi',
-      ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
-      imageProvider: apiKeys.imageProvider || 'gemini',
-      videoProvider: apiKeys.videoProvider || 'kie',
-      // Modal endpoints (URLs, not secrets)
-      modalLlmEndpoint: apiKeys.modalLlmEndpoint || '',
-      modalTtsEndpoint: apiKeys.modalTtsEndpoint || '',
-      modalImageEndpoint: apiKeys.modalImageEndpoint || '',
-      modalImageEditEndpoint: apiKeys.modalImageEditEndpoint || '',
-      modalVideoEndpoint: apiKeys.modalVideoEndpoint || '',
-      modalMusicEndpoint: apiKeys.modalMusicEndpoint || '',
-      modalVectcutEndpoint: apiKeys.modalVectcutEndpoint || '',
-    });
+    // Add cache headers for SWR deduplication (private, longer cache for stable data)
+    return NextResponse.json(
+      {
+        // Masked API keys (shows ••••xxxx format)
+        geminiApiKey: maskApiKey(apiKeys.geminiApiKey),
+        grokApiKey: maskApiKey(apiKeys.grokApiKey),
+        elevenLabsApiKey: maskApiKey(apiKeys.elevenLabsApiKey),
+        claudeApiKey: maskApiKey(apiKeys.claudeApiKey),
+        openaiApiKey: maskApiKey(apiKeys.openaiApiKey),
+        nanoBananaApiKey: maskApiKey(apiKeys.nanoBananaApiKey),
+        sunoApiKey: maskApiKey(apiKeys.sunoApiKey),
+        openRouterApiKey: maskApiKey(apiKeys.openRouterApiKey),
+        piapiApiKey: maskApiKey(apiKeys.piapiApiKey),
+        // Boolean flags to indicate if key is set (for UI logic)
+        hasGeminiKey: !!apiKeys.geminiApiKey,
+        hasGrokKey: !!apiKeys.grokApiKey,
+        hasElevenLabsKey: !!apiKeys.elevenLabsApiKey,
+        hasClaudeKey: !!apiKeys.claudeApiKey,
+        hasOpenaiKey: !!apiKeys.openaiApiKey,
+        hasNanoBananaKey: !!apiKeys.nanoBananaApiKey,
+        hasSunoKey: !!apiKeys.sunoApiKey,
+        hasOpenRouterKey: !!apiKeys.openRouterApiKey,
+        hasPiapiKey: !!apiKeys.piapiApiKey,
+        // Non-sensitive settings (can be sent in full)
+        openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
+        llmProvider: apiKeys.llmProvider || 'openrouter',
+        musicProvider: apiKeys.musicProvider || 'piapi',
+        ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
+        imageProvider: apiKeys.imageProvider || 'gemini',
+        videoProvider: apiKeys.videoProvider || 'kie',
+        // Modal endpoints (URLs, not secrets)
+        modalLlmEndpoint: apiKeys.modalLlmEndpoint || '',
+        modalTtsEndpoint: apiKeys.modalTtsEndpoint || '',
+        modalImageEndpoint: apiKeys.modalImageEndpoint || '',
+        modalImageEditEndpoint: apiKeys.modalImageEditEndpoint || '',
+        modalVideoEndpoint: apiKeys.modalVideoEndpoint || '',
+        modalMusicEndpoint: apiKeys.modalMusicEndpoint || '',
+        modalVectcutEndpoint: apiKeys.modalVectcutEndpoint || '',
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching API keys:', error);
     return NextResponse.json(

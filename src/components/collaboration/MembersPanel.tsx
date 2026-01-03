@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,7 +23,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -34,7 +33,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { InviteMemberDialog } from './InviteMemberDialog';
-import type { ProjectRole, ProjectMember, ProjectInvitation } from '@/types/collaboration';
+import type { ProjectRole } from '@/types/collaboration';
+import { useProjectMembers, useProjectInvitations } from '@/hooks';
 
 interface MembersPanelProps {
   projectId: string;
@@ -74,47 +74,27 @@ export function MembersPanel({
     return labels[role] || role;
   };
 
-  const [members, setMembers] = useState<ProjectMember[]>([]);
-  const [invitations, setInvitations] = useState<ProjectInvitation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use SWR hooks for data fetching with deduplication
+  const {
+    members,
+    isLoading: isMembersLoading,
+    error: membersError,
+    updateMember,
+    removeMember,
+    refresh: refreshMembers,
+  } = useProjectMembers(projectId);
+
+  const {
+    pendingInvitations: invitations,
+    isLoading: isInvitationsLoading,
+    removeInvitation,
+    refresh: refreshInvitations,
+  } = useProjectInvitations(projectId, { enabled: canManageMembers });
+
+  const isLoading = isMembersLoading || isInvitationsLoading;
+  const [error, setError] = useState<string | null>(membersError?.message || null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
-
-  const fetchMembers = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}/members`);
-      if (response.ok) {
-        const data = await response.json();
-        setMembers(data.members);
-      }
-    } catch (e) {
-      console.error('Failed to fetch members:', e);
-      setError('Failed to load members');
-    }
-  }, [projectId]);
-
-  const fetchInvitations = useCallback(async () => {
-    if (!canManageMembers) return;
-    try {
-      const response = await fetch(`/api/projects/${projectId}/invitations`);
-      if (response.ok) {
-        const data = await response.json();
-        setInvitations(data.invitations.filter((i: ProjectInvitation) => i.status === 'pending'));
-      }
-    } catch (e) {
-      console.error('Failed to fetch invitations:', e);
-    }
-  }, [projectId, canManageMembers]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await Promise.all([fetchMembers(), fetchInvitations()]);
-      setIsLoading(false);
-    };
-    loadData();
-  }, [fetchMembers, fetchInvitations]);
 
   const handleRoleChange = async (memberId: string, newRole: ProjectRole) => {
     setUpdatingMemberId(memberId);
@@ -126,9 +106,8 @@ export function MembersPanel({
       });
 
       if (response.ok) {
-        setMembers((prev) =>
-          prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
-        );
+        // Use SWR optimistic update
+        updateMember(memberId, { role: newRole });
       } else {
         const data = await response.json();
         setError(data.error || 'Failed to update role');
@@ -149,7 +128,8 @@ export function MembersPanel({
       });
 
       if (response.ok) {
-        setMembers((prev) => prev.filter((m) => m.id !== memberId));
+        // Use SWR optimistic update
+        removeMember(memberId);
       } else {
         const data = await response.json();
         setError(data.error || 'Failed to remove member');
@@ -166,7 +146,8 @@ export function MembersPanel({
       });
 
       if (response.ok) {
-        setInvitations((prev) => prev.filter((i) => i.id !== inviteId));
+        // Use SWR optimistic update
+        removeInvitation(inviteId);
       }
     } catch (e) {
       console.error('Failed to revoke invitation:', e);
@@ -366,7 +347,7 @@ export function MembersPanel({
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
         onInviteSent={() => {
-          fetchInvitations();
+          refreshInvitations();
         }}
       />
     </div>

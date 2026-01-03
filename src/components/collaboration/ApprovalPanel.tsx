@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import NextImage from 'next/image';
@@ -26,7 +26,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { DeletionRequest, RegenerationRequest, PromptEditRequest } from '@/types/collaboration';
+import type { RegenerationRequest } from '@/types/collaboration';
+import {
+  usePendingRegenerationRequests,
+  usePendingDeletionRequests,
+  usePendingPromptEditRequests,
+} from '@/hooks';
 
 // Extended type for RegenerationRequest with batchId
 interface RegenerationRequestWithBatch extends RegenerationRequest {
@@ -69,10 +74,30 @@ const fieldLabels: Record<string, string> = {
 
 export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
   const t = useTranslations();
-  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
-  const [regenerationRequests, setRegenerationRequests] = useState<RegenerationRequestWithBatch[]>([]);
-  const [promptEditRequests, setPromptEditRequests] = useState<PromptEditRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Use SWR hooks for data fetching with deduplication
+  const {
+    requests: deletionRequests,
+    isLoading: isDeletionLoading,
+    mutate: mutateDeletionRequests,
+  } = usePendingDeletionRequests(projectId, { enabled: canApprove });
+
+  const {
+    requests: regenerationRequestsRaw,
+    isLoading: isRegenerationLoading,
+    mutate: mutateRegenerationRequests,
+  } = usePendingRegenerationRequests(projectId, { enabled: canApprove });
+
+  const {
+    requests: promptEditRequests,
+    isLoading: isPromptEditLoading,
+    mutate: mutatePromptEditRequests,
+  } = usePendingPromptEditRequests(projectId, { enabled: canApprove });
+
+  // Cast to extended type with batchId
+  const regenerationRequests = regenerationRequestsRaw as RegenerationRequestWithBatch[];
+  const isLoading = isDeletionLoading || isRegenerationLoading || isPromptEditLoading;
+
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [processingBatchId, setProcessingBatchId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
@@ -128,39 +153,6 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
     });
   };
 
-  const fetchRequests = useCallback(async () => {
-    try {
-      const [deletionRes, regenerationRes, promptEditRes] = await Promise.all([
-        fetch(`/api/projects/${projectId}/deletion-requests`),
-        fetch(`/api/projects/${projectId}/regeneration-requests?status=pending`),
-        fetch(`/api/projects/${projectId}/prompt-edits?status=pending`),
-      ]);
-
-      if (deletionRes.ok) {
-        const data = await deletionRes.json();
-        setDeletionRequests(data.requests);
-      }
-
-      if (regenerationRes.ok) {
-        const data = await regenerationRes.json();
-        setRegenerationRequests(data.requests);
-      }
-
-      if (promptEditRes.ok) {
-        const data = await promptEditRes.json();
-        setPromptEditRequests(data.requests);
-      }
-    } catch (e) {
-      console.error('Failed to fetch requests:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
-
   const handleDeletionAction = async (requestId: string, action: 'approved' | 'rejected') => {
     setProcessingId(requestId);
     try {
@@ -174,7 +166,11 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
       });
 
       if (response.ok) {
-        setDeletionRequests((prev) => prev.filter((r) => r.id !== requestId));
+        // Optimistically remove from cache and revalidate
+        mutateDeletionRequests(
+          (current) => current ? { requests: current.requests.filter((r) => r.id !== requestId) } : current,
+          false
+        );
         setShowNoteInput(null);
       }
     } catch (e) {
@@ -197,7 +193,11 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
       });
 
       if (response.ok) {
-        setRegenerationRequests((prev) => prev.filter((r) => r.id !== requestId));
+        // Optimistically remove from cache and revalidate
+        mutateRegenerationRequests(
+          (current) => current ? { requests: current.requests.filter((r) => r.id !== requestId) } : current,
+          false
+        );
         setShowNoteInput(null);
       }
     } catch (e) {
@@ -221,8 +221,11 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
       });
 
       if (response.ok) {
-        // Remove all requests with this batchId
-        setRegenerationRequests((prev) => prev.filter((r) => r.batchId !== batchId));
+        // Remove all requests with this batchId via optimistic update
+        mutateRegenerationRequests(
+          (current) => current ? { requests: current.requests.filter((r) => (r as RegenerationRequestWithBatch).batchId !== batchId) } : current,
+          false
+        );
         setShowNoteInput(null);
         setExpandedBatches(prev => {
           const next = new Set(prev);
@@ -250,7 +253,11 @@ export function ApprovalPanel({ projectId, canApprove }: ApprovalPanelProps) {
       });
 
       if (response.ok) {
-        setPromptEditRequests((prev) => prev.filter((r) => r.id !== requestId));
+        // Optimistically remove from cache and revalidate
+        mutatePromptEditRequests(
+          (current) => current ? { requests: current.requests.filter((r) => r.id !== requestId) } : current,
+          false
+        );
         setShowNoteInput(null);
         setExpandedDiff(null);
       }

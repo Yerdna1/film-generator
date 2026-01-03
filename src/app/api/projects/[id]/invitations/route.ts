@@ -52,7 +52,15 @@ export async function GET(
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ invitations });
+    // Add cache headers for SWR deduplication (private, short cache, stale-while-revalidate)
+    return NextResponse.json(
+      { invitations },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error) {
     console.error('Get invitations error:', error);
     return NextResponse.json(
