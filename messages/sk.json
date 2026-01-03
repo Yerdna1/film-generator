@@ -1146,7 +1146,30 @@
     "noActivity": "Zatiaľ žiadna aktivita",
     "recentActivity": "Posledná aktivita",
     "viewDetails": "Zobraziť detaily →",
-    "calls": "volaní"
+    "calls": "volaní",
+    "transactionTypes": {
+      "image": "Obrázok",
+      "video": "Video",
+      "voiceover": "Hlasový komentár",
+      "scene": "Scéna",
+      "character": "Postava",
+      "prompt": "Prompt",
+      "admin_bonus": "Admin bonus",
+      "admin_deduction": "Admin odpočet",
+      "subscription": "Predplatné"
+    },
+    "providers": {
+      "gemini": "Google Gemini",
+      "gemini-tts": "Gemini TTS",
+      "elevenlabs": "ElevenLabs",
+      "grok": "Grok AI",
+      "kie": "Kie.ai",
+      "nanoBanana": "Nano Banana",
+      "claude": "Claude",
+      "modal": "Modal",
+      "modal-edit": "Modal Edit",
+      "unknown": "Iné"
+    }
   },
   "billing": {
     "title": "Fakturácia a predplatné",
@@ -1216,29 +1239,5 @@
     "collaborator": "Spolupracovník",
     "viewer": "Zobrazovateľ",
     "reader": "Zobrazovateľ"
-  },
-  "statistics": {
-    "transactionTypes": {
-      "image": "Obrázok",
-      "video": "Video",
-      "voiceover": "Hlasový komentár",
-      "scene": "Scéna",
-      "character": "Postava",
-      "prompt": "Prompt",
-      "admin_bonus": "Admin bonus",
-      "admin_deduction": "Admin odpočet",
-      "subscription": "Predplatné"
-    },
-    "providers": {
-      "gemini": "Google Gemini",
-      "gemini-tts": "Gemini TTS",
-      "elevenlabs": "ElevenLabs",
-      "grok": "Grok AI",
-      "kie": "Kie.ai",
-      "nanoBanana": "Nano Banana",
-      "claude": "Claude",
-      "modal": "Modal",
-      "unknown": "Iné"
-    }
   }
 }

@@ -1146,7 +1146,30 @@
     "noActivity": "No activity yet",
     "recentActivity": "Recent Activity",
     "viewDetails": "View details →",
-    "calls": "calls"
+    "calls": "calls",
+    "transactionTypes": {
+      "image": "Image",
+      "video": "Video",
+      "voiceover": "Voiceover",
+      "scene": "Scene",
+      "character": "Character",
+      "prompt": "Prompt",
+      "admin_bonus": "Admin Bonus",
+      "admin_deduction": "Admin Deduction",
+      "subscription": "Subscription"
+    },
+    "providers": {
+      "gemini": "Google Gemini",
+      "gemini-tts": "Gemini TTS",
+      "elevenlabs": "ElevenLabs",
+      "grok": "Grok AI",
+      "kie": "Kie.ai",
+      "nanoBanana": "Nano Banana",
+      "claude": "Claude",
+      "modal": "Modal",
+      "modal-edit": "Modal Edit",
+      "unknown": "Other"
+    }
   },
   "billing": {
     "title": "Billing & Subscription",
@@ -1216,29 +1239,5 @@
     "collaborator": "Collaborator",
     "viewer": "Viewer",
     "reader": "Viewer"
-  },
-  "statistics": {
-    "transactionTypes": {
-      "image": "Image",
-      "video": "Video",
-      "voiceover": "Voiceover",
-      "scene": "Scene",
-      "character": "Character",
-      "prompt": "Prompt",
-      "admin_bonus": "Admin Bonus",
-      "admin_deduction": "Admin Deduction",
-      "subscription": "Subscription"
-    },
-    "providers": {
-      "gemini": "Google Gemini",
-      "gemini-tts": "Gemini TTS",
-      "elevenlabs": "ElevenLabs",
-      "grok": "Grok AI",
-      "kie": "Kie.ai",
-      "nanoBanana": "Nano Banana",
-      "claude": "Claude",
-      "modal": "Modal",
-      "unknown": "Other"
-    }
   }
 }
