@@ -103,8 +103,11 @@ export function InsufficientCreditsModal({
         const response = await fetch(`/api/projects/${projectId}/permissions`);
         if (response.ok) {
           const data = await response.json();
-          // If user can regenerate directly, they're an admin and can't request from themselves
-          setIsProjectAdmin(data.permissions?.canRegenerate === true);
+          // Check canRequestRegeneration - only collaborators have this permission
+          // Admins have canRegenerate but NOT canRequestRegeneration
+          const canRequestRegeneration = data.permissions?.canRequestRegeneration === true;
+          // If they CAN'T request regeneration, they must be an admin (or reader)
+          setIsProjectAdmin(!canRequestRegeneration);
         } else {
           // On error, assume they can try to request
           setIsProjectAdmin(false);
@@ -158,10 +161,21 @@ export function InsufficientCreditsModal({
         }),
       });
 
-      const data = await response.json();
+      // Clone response to read body twice if needed
+      const responseClone = response.clone();
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        // If JSON parsing fails, try to get text
+        const text = await responseClone.text();
+        console.error('Failed to parse response as JSON. Status:', response.status, 'Body:', text);
+        setApprovalError(`Request failed: ${response.status} - Invalid response`);
+        return;
+      }
 
       if (!response.ok) {
-        console.error('Regeneration request failed:', data);
+        console.error('Regeneration request failed:', { status: response.status, data });
         setApprovalError(data.error || `Request failed: ${response.status}`);
         return;
       }

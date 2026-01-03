@@ -116,7 +116,24 @@ export async function POST(
     const userId = session.user.id;
 
     const { id: projectId } = await params;
-    const { targetType, sceneIds, reason } = await request.json();
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+
+    const { targetType, sceneIds, reason } = body;
+
+    console.log('[Regeneration Request] Creating request:', {
+      userId,
+      projectId,
+      targetType,
+      sceneIds: sceneIds?.length,
+      reason: reason?.substring(0, 50),
+    });
 
     // Validate target type
     const validTypes: RegenerationTargetType[] = ['image', 'video'];
@@ -292,13 +309,19 @@ export async function POST(
       }
     }
 
+    console.log('[Regeneration Request] Success:', {
+      created: newSceneIds.length,
+      skipped: existingSceneIds.size,
+      batchId,
+    });
+
     return NextResponse.json({
       requests: createdRequests,
       created: newSceneIds.length,
       skipped: existingSceneIds.size,
     });
   } catch (error) {
-    console.error('Create regeneration request error:', error);
+    console.error('[Regeneration Request] Error:', error);
     return NextResponse.json(
       { error: 'Failed to create regeneration request' },
       { status: 500 }
