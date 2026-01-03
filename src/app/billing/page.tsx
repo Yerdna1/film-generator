@@ -9,13 +9,12 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   CreditCard,
-  Sparkles,
   CheckCircle,
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { SubscriptionPlans, CurrentPlan } from '@/components/billing';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SubscriptionPlans } from '@/components/billing';
 
 interface SubscriptionInfo {
   status: string;
@@ -44,12 +43,6 @@ interface SubscriptionData {
   plans: Record<string, PlanInfo>;
 }
 
-interface CreditsData {
-  balance: number;
-  totalSpent: number;
-  totalEarned: number;
-}
-
 export default function BillingPage() {
   const t = useTranslations();
   const router = useRouter();
@@ -58,7 +51,6 @@ export default function BillingPage() {
 
   const [loading, setLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
-  const [credits, setCredits] = useState<CreditsData | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Check for success redirect
@@ -76,20 +68,10 @@ export default function BillingPage() {
       if (status === 'loading') return;
 
       try {
-        // Always fetch plans (visible to all users)
         const subRes = await fetch('/api/polar');
         if (subRes.ok) {
           const subData = await subRes.json();
           setSubscriptionData(subData);
-        }
-
-        // Only fetch credits for authenticated users
-        if (session?.user) {
-          const creditsRes = await fetch('/api/credits');
-          if (creditsRes.ok) {
-            const creditsData = await creditsRes.json();
-            setCredits(creditsData);
-          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -127,26 +109,6 @@ export default function BillingPage() {
     }
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      const response = await fetch('/api/polar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'portal' }),
-      });
-
-      const data = await response.json();
-
-      if (data.portalUrl) {
-        window.location.href = data.portalUrl;
-      } else if (data.error) {
-        console.error('Portal error:', data.error);
-      }
-    } catch (error) {
-      console.error('Portal error:', error);
-    }
-  };
-
   if (loading || status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -159,21 +121,40 @@ export default function BillingPage() {
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={session?.user ? '/settings' : '/'}>
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <CreditCard className="w-6 h-6" />
-              {t('billing.title')}
-            </h1>
-            <p className="text-muted-foreground">
-              {t('billing.subtitle')}
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href={session?.user ? '/settings' : '/'}>
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <CreditCard className="w-6 h-6" />
+                {t('billing.title')}
+              </h1>
+              <p className="text-muted-foreground">
+                {t('billing.subtitle')}
+              </p>
+            </div>
           </div>
+
+          {/* Current Plan Badge */}
+          {session?.user && subscriptionData?.subscription && (
+            <div className="flex items-center gap-3 px-4 py-2 rounded-lg glass">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">{t('billing.currentPlan')}</p>
+                <p className="font-semibold">{subscriptionData.subscription.planDetails.name}</p>
+              </div>
+              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                subscriptionData.subscription.status === 'active'
+                  ? 'bg-green-500/20 text-green-400'
+                  : 'bg-muted text-muted-foreground'
+              }`}>
+                {subscriptionData.subscription.status === 'active' ? t('billing.active') : t('billing.free')}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Success Message */}
@@ -193,56 +174,6 @@ export default function BillingPage() {
           </motion.div>
         )}
 
-        {/* Credit Balance - Only for authenticated users */}
-        {session?.user && credits && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                {t('billing.creditBalance')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-primary/10">
-                  <div className="text-sm text-muted-foreground">{t('billing.available')}</div>
-                  <div className="text-2xl font-bold text-primary">
-                    {(credits.balance ?? 0).toLocaleString()}
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="text-sm text-muted-foreground">{t('billing.totalSpent')}</div>
-                  <div className="text-2xl font-bold">
-                    {(credits.totalSpent ?? 0).toLocaleString()}
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="text-sm text-muted-foreground">{t('billing.totalEarned')}</div>
-                  <div className="text-2xl font-bold">
-                    {(credits.totalEarned ?? 0).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Current Plan - Only for authenticated users with subscription */}
-        {session?.user && subscriptionData?.subscription && (
-          <CurrentPlan
-            plan={subscriptionData.subscription.plan}
-            planName={subscriptionData.subscription.planDetails.name}
-            status={subscriptionData.subscription.status}
-            currentPeriodEnd={
-              subscriptionData.subscription.currentPeriodEnd
-                ? new Date(subscriptionData.subscription.currentPeriodEnd)
-                : null
-            }
-            cancelAtPeriodEnd={subscriptionData.subscription.cancelAtPeriodEnd}
-            credits={subscriptionData.subscription.planDetails.credits}
-            onManageSubscription={handleManageSubscription}
-          />
-        )}
 
         {/* Available Plans - Visible to everyone */}
         {subscriptionData && (
