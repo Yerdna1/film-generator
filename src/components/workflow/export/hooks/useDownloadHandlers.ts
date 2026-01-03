@@ -8,6 +8,11 @@ import type { DownloadState, DownloadHandlers } from '../types';
 
 export function useDownloadHandlers(project: Project): DownloadState & DownloadHandlers {
   const { exportProject } = useProjectStore();
+
+  // Safe accessors for arrays
+  const scenes = project.scenes || [];
+  const characters = project.characters || [];
+
   const [downloadingImages, setDownloadingImages] = useState(false);
   const [downloadingVideos, setDownloadingVideos] = useState(false);
   const [downloadingAudio, setDownloadingAudio] = useState(false);
@@ -21,7 +26,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       const charactersFolder = imagesFolder?.folder('characters');
       const scenesFolder = imagesFolder?.folder('scenes');
 
-      for (const char of project.characters) {
+      for (const char of characters) {
         if (char.imageUrl) {
           const blob = await fetchAsBlob(char.imageUrl);
           if (blob) {
@@ -31,12 +36,12 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
         }
       }
 
-      for (const scene of project.scenes) {
+      for (const scene of scenes) {
         if (scene.imageUrl) {
           const blob = await fetchAsBlob(scene.imageUrl);
           if (blob) {
             const ext = getExtension(scene.imageUrl, blob.type);
-            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            const sceneNum = scene.number || scenes.indexOf(scene) + 1;
             scenesFolder?.file(
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
@@ -52,7 +57,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
     } finally {
       setDownloadingImages(false);
     }
-  }, [project.characters, project.scenes, project.name]);
+  }, [characters, scenes, project.name]);
 
   const handleDownloadVideos = useCallback(async () => {
     setDownloadingVideos(true);
@@ -60,12 +65,12 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       const zip = new JSZip();
       const videosFolder = zip.folder('videos');
 
-      for (const scene of project.scenes) {
+      for (const scene of scenes) {
         if (scene.videoUrl) {
           const blob = await fetchAsBlob(scene.videoUrl);
           if (blob) {
             const ext = getExtension(scene.videoUrl, blob.type);
-            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            const sceneNum = scene.number || scenes.indexOf(scene) + 1;
             videosFolder?.file(
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
@@ -81,7 +86,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
     } finally {
       setDownloadingVideos(false);
     }
-  }, [project.scenes, project.name]);
+  }, [scenes, project.name]);
 
   const handleDownloadAudio = useCallback(async () => {
     setDownloadingAudio(true);
@@ -89,12 +94,13 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       const zip = new JSZip();
       const audioFolder = zip.folder('audio');
 
-      for (const scene of project.scenes) {
-        const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+      for (const scene of scenes) {
+        const sceneNum = scene.number || scenes.indexOf(scene) + 1;
         const sceneFolder = audioFolder?.folder(`scene_${String(sceneNum).padStart(2, '0')}`);
 
-        for (let i = 0; i < scene.dialogue.length; i++) {
-          const line = scene.dialogue[i];
+        const dialogueLines = scene.dialogue || [];
+        for (let i = 0; i < dialogueLines.length; i++) {
+          const line = dialogueLines[i];
           if (line.audioUrl) {
             const blob = await fetchAsBlob(line.audioUrl);
             if (blob) {
@@ -115,7 +121,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
     } finally {
       setDownloadingAudio(false);
     }
-  }, [project.scenes, project.name]);
+  }, [scenes, project.name]);
 
   const handleDownloadAll = useCallback(async () => {
     setDownloadingAll(true);
@@ -127,7 +133,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       const charactersFolder = imagesFolder?.folder('characters');
       const scenesFolder = imagesFolder?.folder('scenes');
 
-      for (const char of project.characters) {
+      for (const char of characters) {
         if (char.imageUrl) {
           const blob = await fetchAsBlob(char.imageUrl);
           if (blob) {
@@ -137,12 +143,12 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
         }
       }
 
-      for (const scene of project.scenes) {
+      for (const scene of scenes) {
         if (scene.imageUrl) {
           const blob = await fetchAsBlob(scene.imageUrl);
           if (blob) {
             const ext = getExtension(scene.imageUrl, blob.type);
-            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            const sceneNum = scene.number || scenes.indexOf(scene) + 1;
             scenesFolder?.file(
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
@@ -153,12 +159,12 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
 
       // Videos folder
       const videosFolder = zip.folder('videos');
-      for (const scene of project.scenes) {
+      for (const scene of scenes) {
         if (scene.videoUrl) {
           const blob = await fetchAsBlob(scene.videoUrl);
           if (blob) {
             const ext = getExtension(scene.videoUrl, blob.type);
-            const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+            const sceneNum = scene.number || scenes.indexOf(scene) + 1;
             videosFolder?.file(
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
@@ -169,12 +175,13 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
 
       // Audio folder
       const audioFolder = zip.folder('audio');
-      for (const scene of project.scenes) {
-        const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+      for (const scene of scenes) {
+        const sceneNum = scene.number || scenes.indexOf(scene) + 1;
         const sceneAudioFolder = audioFolder?.folder(`scene_${String(sceneNum).padStart(2, '0')}`);
 
-        for (let i = 0; i < scene.dialogue.length; i++) {
-          const line = scene.dialogue[i];
+        const dialogueLines = scene.dialogue || [];
+        for (let i = 0; i < dialogueLines.length; i++) {
+          const line = dialogueLines[i];
           if (line.audioUrl) {
             const blob = await fetchAsBlob(line.audioUrl);
             if (blob) {
@@ -189,11 +196,11 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       }
 
       // Add dialogues.txt
-      let dialoguesText = `# ${project.story.title || project.name}\n# Dialogues\n\n`;
-      for (const scene of project.scenes) {
-        const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+      let dialoguesText = `# ${project.story?.title || project.name}\n# Dialogues\n\n`;
+      for (const scene of scenes) {
+        const sceneNum = scene.number || scenes.indexOf(scene) + 1;
         dialoguesText += `## Scene ${sceneNum}: ${scene.title}\n\n`;
-        for (const line of scene.dialogue) {
+        for (const line of (scene.dialogue || [])) {
           dialoguesText += `${line.characterName}: "${line.text}"\n`;
         }
         dialoguesText += '\n';
@@ -209,8 +216,8 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       // Add prompts.md
       const markdown = exportProjectAsMarkdown(
         project.story,
-        project.characters,
-        project.scenes,
+        characters,
+        scenes,
         project.style
       );
       zip.file('prompts.md', markdown);
@@ -222,21 +229,22 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
     } finally {
       setDownloadingAll(false);
     }
-  }, [project, exportProject]);
+  }, [project, characters, scenes, exportProject]);
 
   const handleDownloadDialogues = useCallback(() => {
-    let dialoguesText = `# ${project.story.title || project.name}\n# Complete Dialogues\n\n`;
+    let dialoguesText = `# ${project.story?.title || project.name}\n# Complete Dialogues\n\n`;
 
-    for (const scene of project.scenes) {
-      const sceneNum = scene.number || project.scenes.indexOf(scene) + 1;
+    for (const scene of scenes) {
+      const sceneNum = scene.number || scenes.indexOf(scene) + 1;
       dialoguesText += `═══════════════════════════════════════════════════════════════\n`;
       dialoguesText += `SCENE ${sceneNum}: ${scene.title}\n`;
       dialoguesText += `═══════════════════════════════════════════════════════════════\n\n`;
 
-      if (scene.dialogue.length === 0) {
+      const dialogueLines = scene.dialogue || [];
+      if (dialogueLines.length === 0) {
         dialoguesText += `(No dialogue)\n\n`;
       } else {
-        for (const line of scene.dialogue) {
+        for (const line of dialogueLines) {
           dialoguesText += `${line.characterName}:\n"${line.text}"\n\n`;
         }
       }
@@ -244,7 +252,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
 
     const blob = new Blob([dialoguesText], { type: 'text/plain' });
     downloadBlob(blob, `${sanitizeFilename(project.name)}_dialogues.txt`);
-  }, [project.scenes, project.story.title, project.name]);
+  }, [scenes, project.story?.title, project.name]);
 
   return {
     downloadingImages,

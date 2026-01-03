@@ -136,6 +136,9 @@ const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
 };
 
 export function useVideoComposer(project: Project): UseVideoComposerReturn {
+  // Safe accessor for scenes array
+  const scenes = project.scenes || [];
+
   // Options state
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('both');
   const [resolution, setResolution] = useState<Resolution>('hd');
@@ -272,8 +275,8 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     },
   };
 
-  const sceneCount = project.scenes.length;
-  const captionCount = project.scenes.reduce((sum, s) => sum + (s.captions?.length || 0), 0);
+  const sceneCount = scenes.length;
+  const captionCount = scenes.reduce((sum, s) => sum + (s.captions?.length || 0), 0);
   const hasMusic = !!project.backgroundMusic;
 
   // Base cost per scene
@@ -304,7 +307,7 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
 
   // Check if composition is possible
   const canCompose = sceneCount > 0 &&
-    project.scenes.some(s => s.videoUrl || s.imageUrl) &&
+    scenes.some(s => s.videoUrl || s.imageUrl) &&
     hasEndpoint;
 
   // Suggest AI transitions
@@ -318,7 +321,7 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: project.id,
-          scenes: project.scenes.map(s => ({
+          scenes: scenes.map(s => ({
             id: s.id,
             title: s.title,
             description: s.description,
@@ -340,7 +343,7 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
     } finally {
       setIsLoadingTransitions(false);
     }
-  }, [project.id, project.scenes, sceneCount]);
+  }, [project.id, scenes, sceneCount]);
 
   // Apply transitions to scenes
   const applyTransitions = useCallback((transitions: Record<string, TransitionType>) => {
