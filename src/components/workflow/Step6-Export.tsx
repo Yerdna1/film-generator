@@ -57,6 +57,9 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
   const storeProject = projects.find((p) => p.id === initialProject.id);
   const project = storeProject?.scenes ? storeProject : initialProject;
 
+  // Safe accessor for scenes array
+  const scenes = project.scenes || [];
+
   // Custom hooks
   const { stats } = useProjectStats(project);
   const previewPlayer = usePreviewPlayer(project);
@@ -157,7 +160,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                   <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-2">
                     <Clapperboard className="w-4 h-4 text-cyan-500" />
                     <span className="text-sm font-medium">{t('steps.export.renderVideo')}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{project.scenes.length} {t('steps.export.scenes').toLowerCase()}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{scenes.length} {t('steps.export.scenes').toLowerCase()}</span>
                   </div>
 
                   <div className="max-h-[650px] overflow-y-auto p-4 space-y-4">
@@ -646,7 +649,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
                     )}
 
                     {/* No scenes message */}
-                    {project.scenes.length === 0 && (
+                    {scenes.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground">
                         <Clapperboard className="w-8 h-8 mx-auto mb-2 opacity-40" />
                         <p className="text-sm">No scenes to render</p>
