@@ -942,7 +942,9 @@
     },
     "types": {
       "image": "image",
+      "images": "images",
       "video": "video",
+      "videos": "videos",
       "audio": "audio"
     }
   },

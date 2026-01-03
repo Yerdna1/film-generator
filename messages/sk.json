@@ -942,7 +942,9 @@
     },
     "types": {
       "image": "obrázok",
+      "images": "obrázky",
       "video": "video",
+      "videos": "videá",
       "audio": "zvuk"
     }
   },
