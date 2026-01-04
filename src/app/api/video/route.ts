@@ -2,10 +2,9 @@
 // Supports: Kie.ai (Grok Imagine), Modal (self-hosted)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { uploadBase64ToS3, uploadVideoToS3, isS3Configured } from '@/lib/services/s3-upload';
-import { spendCredits, COSTS, checkBalance, trackRealCostOnly } from '@/lib/services/credits';
+import { optionalAuth, requireCredits, uploadMediaToS3, uploadBase64ToS3, isS3Configured } from '@/lib/api';
+import { spendCredits, COSTS, trackRealCostOnly } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { VideoProvider } from '@/types/project';
@@ -161,16 +160,7 @@ async function checkKieTaskStatus(
     const base64Video = await downloadVideoAsBase64(externalVideoUrl);
 
     if (base64Video) {
-      if (isS3Configured()) {
-        const uploadResult = await uploadVideoToS3(base64Video, projectId);
-        if (uploadResult.success && uploadResult.url) {
-          videoUrl = uploadResult.url;
-        } else {
-          videoUrl = base64Video;
-        }
-      } else {
-        videoUrl = base64Video;
-      }
+      videoUrl = await uploadMediaToS3(base64Video, 'video', projectId);
     } else {
       videoUrl = externalVideoUrl;
     }
@@ -293,12 +283,7 @@ async function generateWithModal(
     );
   }
 
-  if (isS3Configured() && videoUrl.startsWith('data:')) {
-    const uploadResult = await uploadVideoToS3(videoUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      videoUrl = uploadResult.url;
-    }
-  }
+  videoUrl = await uploadMediaToS3(videoUrl, 'video', projectId);
 
   return {
     videoUrl,
@@ -321,15 +306,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Image URL and prompt are required' }, { status: 400 });
     }
 
-    const session = await auth();
+    const authCtx = await optionalAuth();
+    const sessionUserId = authCtx?.userId;
     let videoProvider: VideoProvider = 'kie';
     let kieApiKey = process.env.KIE_API_KEY;
     let modalVideoEndpoint: string | null = null;
 
     // When ownerId is provided (collaborator regeneration), use owner's settings
     // Otherwise use session user's settings
-    const settingsUserId = ownerId || session?.user?.id;
-    const costTrackingUserId = ownerId || session?.user?.id; // Track costs to owner for regenerations
+    const settingsUserId = ownerId || sessionUserId;
 
     if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
@@ -343,16 +328,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Pre-check credit balance (skip if credits were prepaid by admin for collaborator regeneration)
-      if (!skipCreditCheck && session?.user?.id) {
-        const balanceCheck = await checkBalance(session.user.id, COSTS.VIDEO_GENERATION);
-        if (!balanceCheck.hasEnough) {
-          return NextResponse.json({
-            error: 'Insufficient credits',
-            required: balanceCheck.required,
-            balance: balanceCheck.balance,
-            needsPurchase: true,
-          }, { status: 402 });
-        }
+      if (!skipCreditCheck && sessionUserId) {
+        const insufficientCredits = await requireCredits(sessionUserId, COSTS.VIDEO_GENERATION);
+        if (insufficientCredits) return insufficientCredits;
       }
     }
 
@@ -362,8 +340,8 @@ export async function POST(request: NextRequest) {
     // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
     //   but we still want to track real API costs to the owner
     // - When skipCreditCheck is false (normal generation): track to session user
-    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id; // For credit deduction
-    const realCostUserId = ownerId || session?.user?.id; // For real cost tracking (always track to owner)
+    const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
+    const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
 
     if (videoProvider === 'modal') {
       if (!modalVideoEndpoint) {
@@ -421,11 +399,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
 
-    const session = await auth();
+    const authCtx = await optionalAuth();
+    const sessionUserId = authCtx?.userId;
     let kieApiKey = process.env.KIE_API_KEY;
 
     // When ownerId is provided, use owner's settings
-    const settingsUserId = ownerId || session?.user?.id;
+    const settingsUserId = ownerId || sessionUserId;
 
     if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
@@ -444,8 +423,8 @@ export async function GET(request: NextRequest) {
     // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
     //   but we still want to track real API costs to the owner
     // - When skipCreditCheck is false (normal generation): track to session user
-    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id; // For credit deduction
-    const realCostUserId = ownerId || session?.user?.id; // For real cost tracking (always track to owner)
+    const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
+    const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
 
     const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, effectiveUserId, realCostUserId, download, isRegeneration, sceneId);
     return NextResponse.json({ taskId, ...result });

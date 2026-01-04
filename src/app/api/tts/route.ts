@@ -2,11 +2,10 @@
 // Supports: Gemini TTS, ElevenLabs, Modal (self-hosted), OpenAI TTS
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
+import { optionalAuth, requireCredits, uploadMediaToS3 } from '@/lib/api';
+import { spendCredits, COSTS } from '@/lib/services/credits';
 import { calculateVoiceCost } from '@/lib/services/real-costs';
-import { uploadAudioToS3, isS3Configured } from '@/lib/services/s3-upload';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { TTSProvider } from '@/types/project';
 
@@ -117,15 +116,9 @@ async function generateWithGemini(
     await spendCredits(userId, COSTS.VOICEOVER_LINE, 'voiceover', `Gemini TTS (${text.length} chars)`, projectId, 'gemini-tts', { characterCount: text.length }, realCost);
   }
 
-  let audioUrl = base64AudioUrl;
-  if (isS3Configured()) {
-    const uploadResult = await uploadAudioToS3(base64AudioUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      audioUrl = uploadResult.url;
-    }
-  }
+  const audioUrl = await uploadMediaToS3(base64AudioUrl, 'audio', projectId);
 
-  return { audioUrl, cost: realCost, storage: isS3Configured() && !audioUrl.startsWith('data:') ? 's3' : 'base64' };
+  return { audioUrl, cost: realCost, storage: !audioUrl.startsWith('data:') ? 's3' : 'base64' };
 }
 
 // Generate audio using ElevenLabs
@@ -176,15 +169,9 @@ async function generateWithElevenLabs(
     await spendCredits(userId, COSTS.VOICEOVER_LINE, 'voiceover', `ElevenLabs TTS (${text.length} chars)`, projectId, 'elevenlabs', { characterCount: text.length }, realCost);
   }
 
-  let audioUrl = base64AudioUrl;
-  if (isS3Configured()) {
-    const uploadResult = await uploadAudioToS3(base64AudioUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      audioUrl = uploadResult.url;
-    }
-  }
+  const audioUrl = await uploadMediaToS3(base64AudioUrl, 'audio', projectId);
 
-  return { audioUrl, cost: realCost, storage: isS3Configured() && !audioUrl.startsWith('data:') ? 's3' : 'base64' };
+  return { audioUrl, cost: realCost, storage: !audioUrl.startsWith('data:') ? 's3' : 'base64' };
 }
 
 // Generate audio using OpenAI TTS (gpt-4o-mini-tts)
@@ -240,15 +227,9 @@ async function generateWithOpenAI(
     await spendCredits(userId, COSTS.VOICEOVER_LINE, 'voiceover', `OpenAI TTS (${text.length} chars)`, projectId, 'openai-tts', { characterCount: text.length }, realCost);
   }
 
-  let audioUrl = base64AudioUrl;
-  if (isS3Configured()) {
-    const uploadResult = await uploadAudioToS3(base64AudioUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      audioUrl = uploadResult.url;
-    }
-  }
+  const audioUrl = await uploadMediaToS3(base64AudioUrl, 'audio', projectId);
 
-  return { audioUrl, cost: realCost, storage: isS3Configured() && !audioUrl.startsWith('data:') ? 's3' : 'base64' };
+  return { audioUrl, cost: realCost, storage: !audioUrl.startsWith('data:') ? 's3' : 'base64' };
 }
 
 // Generate audio using Modal (self-hosted)
@@ -294,12 +275,7 @@ async function generateWithModal(
     await spendCredits(userId, COSTS.VOICEOVER_LINE, 'voiceover', `Modal TTS (${text.length} chars)`, projectId, 'modal', { characterCount: text.length }, realCost);
   }
 
-  if (isS3Configured() && audioUrl.startsWith('data:')) {
-    const uploadResult = await uploadAudioToS3(audioUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      audioUrl = uploadResult.url;
-    }
-  }
+  audioUrl = await uploadMediaToS3(audioUrl, 'audio', projectId);
 
   return { audioUrl, cost: realCost, storage: audioUrl.startsWith('data:') ? 'base64' : 's3' };
 }
@@ -327,16 +303,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    const session = await auth();
+    const authCtx = await optionalAuth();
+    const sessionUserId = authCtx?.userId;
     let ttsProvider: TTSProvider = requestedProvider || 'gemini-tts';  // Use UI provider first
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     let openaiApiKey = process.env.OPENAI_API_KEY;
     let modalTtsEndpoint: string | null = null;
 
-    if (session?.user?.id) {
+    if (sessionUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: sessionUserId },
       });
 
       if (userApiKeys) {
@@ -350,15 +327,8 @@ export async function POST(request: NextRequest) {
         modalTtsEndpoint = userApiKeys.modalTtsEndpoint;
       }
 
-      const balanceCheck = await checkBalance(session.user.id, COSTS.VOICEOVER_LINE);
-      if (!balanceCheck.hasEnough) {
-        return NextResponse.json({
-          error: 'Insufficient credits',
-          required: balanceCheck.required,
-          balance: balanceCheck.balance,
-          needsPurchase: true,
-        }, { status: 402 });
-      }
+      const insufficientCredits = await requireCredits(sessionUserId, COSTS.VOICEOVER_LINE);
+      if (insufficientCredits) return insufficientCredits;
     }
 
     console.log(`[TTS] Using provider: ${ttsProvider}`);
@@ -370,7 +340,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const result = await generateWithModal(text, voiceId, language, projectId, modalTtsEndpoint, session?.user?.id);
+      const result = await generateWithModal(text, voiceId, language, projectId, modalTtsEndpoint, sessionUserId);
       return NextResponse.json(result);
     }
 
@@ -381,7 +351,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      const result = await generateWithElevenLabs(text, voiceId, projectId, elevenLabsApiKey, session?.user?.id, voiceStability, voiceSimilarityBoost, voiceStyle);
+      const result = await generateWithElevenLabs(text, voiceId, projectId, elevenLabsApiKey, sessionUserId, voiceStability, voiceSimilarityBoost, voiceStyle);
       return NextResponse.json(result);
     }
 
@@ -392,7 +362,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, session?.user?.id, voiceInstructions);
+      const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, sessionUserId, voiceInstructions);
       return NextResponse.json(result);
     }
 
@@ -403,7 +373,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    const result = await generateWithGemini(text, voiceName, language, projectId, geminiApiKey, session?.user?.id);
+    const result = await generateWithGemini(text, voiceName, language, projectId, geminiApiKey, sessionUserId);
     return NextResponse.json(result);
 
   } catch (error) {

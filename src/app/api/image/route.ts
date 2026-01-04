@@ -4,11 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { spendCredits, getImageCreditCost, checkBalance, trackRealCostOnly } from '@/lib/services/credits';
+import { optionalAuth, requireCredits, uploadMediaToS3 } from '@/lib/api';
+import { spendCredits, getImageCreditCost, trackRealCostOnly } from '@/lib/services/credits';
 import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
-import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { ImageProvider } from '@/types/project';
 
@@ -143,15 +142,9 @@ async function generateWithGemini(
     );
   }
 
-  let imageUrl = base64DataUrl;
-  if (isS3Configured()) {
-    const uploadResult = await uploadImageToS3(base64DataUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      imageUrl = uploadResult.url;
-    }
-  }
+  const imageUrl = await uploadMediaToS3(base64DataUrl, 'image', projectId);
 
-  return { imageUrl, cost: realCost, storage: isS3Configured() && !imageUrl.startsWith('data:') ? 's3' : 'base64' };
+  return { imageUrl, cost: realCost, storage: !imageUrl.startsWith('data:') ? 's3' : 'base64' };
 }
 
 // Generate image using Modal (self-hosted)
@@ -251,19 +244,8 @@ async function generateWithModal(
   }
 
   // Upload to S3 if configured and we got base64
-  if (isS3Configured() && imageUrl.startsWith('data:')) {
-    console.log('[Modal] Uploading to S3...');
-    try {
-      const uploadResult = await uploadImageToS3(imageUrl, projectId);
-      console.log('[Modal] S3 upload result:', uploadResult.success, uploadResult.url?.slice(0, 50));
-      if (uploadResult.success && uploadResult.url) {
-        imageUrl = uploadResult.url;
-      }
-    } catch (s3Error) {
-      console.error('[Modal] S3 upload error:', s3Error);
-      // Continue with base64 if S3 fails
-    }
-  }
+  console.log('[Modal] Uploading to S3...');
+  imageUrl = await uploadMediaToS3(imageUrl, 'image', projectId);
 
   console.log('[Modal] Returning imageUrl length:', imageUrl.length);
   return { imageUrl, cost: realCost, storage: imageUrl.startsWith('data:') ? 'base64' : 's3' };
@@ -375,19 +357,8 @@ async function generateWithModalEdit(
   }
 
   // Upload to S3 if configured and we got base64
-  if (isS3Configured() && imageUrl.startsWith('data:')) {
-    console.log('[Modal-Edit] Uploading to S3...');
-    try {
-      const uploadResult = await uploadImageToS3(imageUrl, projectId);
-      console.log('[Modal-Edit] S3 upload result:', uploadResult.success, uploadResult.url?.slice(0, 50));
-      if (uploadResult.success && uploadResult.url) {
-        imageUrl = uploadResult.url;
-      }
-    } catch (s3Error) {
-      console.error('[Modal-Edit] S3 upload error:', s3Error);
-      // Continue with base64 if S3 fails
-    }
-  }
+  console.log('[Modal-Edit] Uploading to S3...');
+  imageUrl = await uploadMediaToS3(imageUrl, 'image', projectId);
 
   console.log('[Modal-Edit] Returning imageUrl length:', imageUrl.length);
   return { imageUrl, cost: realCost, storage: imageUrl.startsWith('data:') ? 'base64' : 's3' };
@@ -405,7 +376,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    const session = await auth();
+    const authCtx = await optionalAuth();
+    const sessionUserId = authCtx?.userId;
     let imageProvider: ImageProvider = 'gemini';
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let modalImageEndpoint: string | null = null;
@@ -413,8 +385,7 @@ export async function POST(request: NextRequest) {
 
     // When ownerId is provided (collaborator regeneration), use owner's settings
     // Otherwise use session user's settings
-    const settingsUserId = ownerId || session?.user?.id;
-    const costTrackingUserId = ownerId || session?.user?.id; // Track costs to owner for regenerations
+    const settingsUserId = ownerId || sessionUserId;
 
     if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
@@ -434,17 +405,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Pre-check credit balance (skip if credits were prepaid by admin for collaborator regeneration)
-      if (!skipCreditCheck && session?.user?.id) {
+      if (!skipCreditCheck && sessionUserId) {
         const creditCost = getImageCreditCost(resolution);
-        const balanceCheck = await checkBalance(session.user.id, creditCost);
-        if (!balanceCheck.hasEnough) {
-          return NextResponse.json({
-            error: 'Insufficient credits',
-            required: balanceCheck.required,
-            balance: balanceCheck.balance,
-            needsPurchase: true,
-          }, { status: 402 });
-        }
+        const insufficientCredits = await requireCredits(sessionUserId, creditCost);
+        if (insufficientCredits) return insufficientCredits;
       }
     }
 
@@ -454,8 +418,8 @@ export async function POST(request: NextRequest) {
     // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
     //   but we still want to track real API costs to the owner
     // - When skipCreditCheck is false (normal generation): track to session user
-    const effectiveUserId = skipCreditCheck ? undefined : session?.user?.id; // For credit deduction
-    const realCostUserId = ownerId || session?.user?.id; // For real cost tracking (always track to owner)
+    const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
+    const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
 
     // Route to appropriate provider
     if (imageProvider === 'modal-edit') {

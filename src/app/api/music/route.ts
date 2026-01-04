@@ -6,10 +6,9 @@
 // Modal: Self-hosted music generation (e.g., ACE-Step)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { uploadAudioToS3, isS3Configured } from '@/lib/services/s3-upload';
-import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
+import { requireAuth, isErrorResponse, requireCredits, uploadMediaToS3 } from '@/lib/api';
+import { spendCredits, COSTS } from '@/lib/services/credits';
 import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/services/piapi';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { Provider } from '@/lib/services/real-costs';
@@ -74,12 +73,7 @@ async function generateWithModal(
   }
 
   // Upload to S3 if configured
-  if (isS3Configured() && audioUrl.startsWith('data:')) {
-    const uploadResult = await uploadAudioToS3(audioUrl, projectId);
-    if (uploadResult.success && uploadResult.url) {
-      audioUrl = uploadResult.url;
-    }
-  }
+  audioUrl = await uploadMediaToS3(audioUrl, 'audio', projectId);
 
   return {
     audioUrl,
@@ -127,17 +121,13 @@ export async function POST(request: NextRequest) {
       provider: requestProvider,
     }: MusicGenerationRequest = await request.json();
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const authResult = await requireAuth();
+    if (isErrorResponse(authResult)) return authResult;
+    const { userId } = authResult;
 
     // Get user's API keys and provider preference
     const userApiKeys = await prisma.apiKeys.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
     });
 
     // Determine which provider to use
@@ -165,7 +155,7 @@ export async function POST(request: NextRequest) {
         title,
         undefined,
         modalMusicEndpoint,
-        session.user.id
+        userId
       );
       return NextResponse.json(result);
     }
@@ -187,15 +177,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Pre-check credit balance
-    const balanceCheck = await checkBalance(session.user.id, COSTS.MUSIC_GENERATION);
-    if (!balanceCheck.hasEnough) {
-      return NextResponse.json({
-        error: 'Insufficient credits',
-        required: balanceCheck.required,
-        balance: balanceCheck.balance,
-        needsPurchase: true,
-      }, { status: 402 });
-    }
+    const insufficientCredits = await requireCredits(userId, COSTS.MUSIC_GENERATION);
+    if (insufficientCredits) return insufficientCredits;
 
     if (!prompt) {
       return NextResponse.json(
@@ -278,17 +261,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const authResult = await requireAuth();
+    if (isErrorResponse(authResult)) return authResult;
+    const { userId } = authResult;
 
     // Get user's API keys and provider preference
     const userApiKeys = await prisma.apiKeys.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
     });
 
     const provider = requestProvider || userApiKeys?.musicProvider || 'piapi';
@@ -391,19 +370,7 @@ export async function GET(request: NextRequest) {
       const base64Audio = await downloadAudioAsBase64(externalAudioUrl);
 
       if (base64Audio) {
-        if (isS3Configured()) {
-          console.log('[S3] Uploading audio to S3...');
-          const uploadResult = await uploadAudioToS3(base64Audio, projectId || undefined);
-          if (uploadResult.success && uploadResult.url) {
-            audioUrl = uploadResult.url;
-            console.log('[S3] Audio uploaded successfully');
-          } else {
-            console.warn('[S3] Upload failed, falling back to base64');
-            audioUrl = base64Audio;
-          }
-        } else {
-          audioUrl = base64Audio;
-        }
+        audioUrl = await uploadMediaToS3(base64Audio, 'audio', projectId || undefined);
       } else {
         audioUrl = externalAudioUrl;
         console.warn('Failed to download audio, using external URL');
@@ -416,7 +383,7 @@ export async function GET(request: NextRequest) {
     const realCost = provider === 'piapi' ? PIAPI_MUSIC_COST : 0.05;
     if (status === 'complete') {
       await spendCredits(
-        session.user.id,
+        userId,
         COSTS.MUSIC_GENERATION || 10,
         'music',
         `${provider === 'piapi' ? 'PiAPI' : 'Suno'} music generation`,
