@@ -44,6 +44,20 @@ export function VoiceSettingsDialog({
   const isElevenLabs = provider === 'elevenlabs';
   const hasVibeSettings = isOpenAI || isElevenLabs;
 
+  // Gender color helper
+  const getGenderStyle = (gender?: 'male' | 'female' | 'neutral' | 'child') => {
+    switch (gender) {
+      case 'female':
+        return { dot: 'bg-pink-500', text: 'text-pink-400', bg: 'bg-pink-500/10' };
+      case 'male':
+        return { dot: 'bg-blue-500', text: 'text-blue-400', bg: 'bg-blue-500/10' };
+      case 'child':
+        return { dot: 'bg-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10' };
+      default:
+        return { dot: 'bg-violet-500', text: 'text-violet-400', bg: 'bg-violet-500/10' };
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
@@ -67,6 +81,8 @@ export function VoiceSettingsDialog({
         <div className="space-y-3 py-4">
           {characters.map((character) => {
             const isExpanded = expandedCharacter === character.id;
+            const selectedVoice = voices.find(v => v.id === character.voiceId);
+            const selectedGenderStyle = getGenderStyle(selectedVoice?.gender);
 
             return (
               <div key={character.id} className="glass rounded-lg p-3 border border-white/10">
@@ -85,9 +101,14 @@ export function VoiceSettingsDialog({
                     )}
                     <div>
                       <p className="font-medium">{character.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {character.voiceName || t('steps.voiceover.noVoice')}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        {character.voiceName && (
+                          <div className={`w-1.5 h-1.5 rounded-full ${selectedGenderStyle.dot}`} />
+                        )}
+                        <p className={`text-xs ${character.voiceName ? selectedGenderStyle.text : 'text-muted-foreground'}`}>
+                          {character.voiceName || t('steps.voiceover.noVoice')}
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -98,15 +119,21 @@ export function VoiceSettingsDialog({
                       <SelectTrigger className="w-32 glass border-white/10">
                         <SelectValue placeholder={t('steps.voiceover.selectVoice')} />
                       </SelectTrigger>
-                      <SelectContent className="glass-strong border-white/10">
-                        {voices.map((voice) => (
-                          <SelectItem key={voice.id} value={voice.id}>
-                            <div>
-                              <p className="font-medium">{voice.name}</p>
-                              <p className="text-xs text-muted-foreground">{voice.description}</p>
-                            </div>
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="glass-strong border-white/10 max-h-[300px]">
+                        {voices.map((voice) => {
+                          const genderStyle = getGenderStyle(voice.gender);
+                          return (
+                            <SelectItem key={voice.id} value={voice.id} className={`${genderStyle.bg} mb-0.5`}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${genderStyle.dot}`} />
+                                <div>
+                                  <p className={`font-medium ${genderStyle.text}`}>{voice.name}</p>
+                                  <p className="text-xs text-muted-foreground">{voice.description}</p>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     {hasVibeSettings && (

@@ -16,52 +16,53 @@ export interface VoiceOption {
   id: string;
   name: string;
   description: string;
+  gender?: 'male' | 'female' | 'neutral' | 'child';
 }
 
 // ElevenLabs voices with real API IDs
 export const ELEVENLABS_VOICES: VoiceOption[] = [
-  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm, young, American female' },
-  { id: '29vD33N1CtxCmqQRPOHJ', name: 'Drew', description: 'Well-rounded, American male' },
-  { id: '2EiwWnXFnvU5JabPnv8n', name: 'Clyde', description: 'War veteran, American male' },
-  { id: '5Q0t7uMcjvnagumLfvZi', name: 'Paul', description: 'Ground reporter, American male' },
-  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', description: 'Strong, young, American female' },
-  { id: 'CYw3kZ02Hs0563khs1Fj', name: 'Dave', description: 'British, conversational male' },
-  { id: 'D38z5RcWu1voky8WS1ja', name: 'Fin', description: 'Irish, sailing male' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Soft, young, American female' },
-  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', description: 'Well-rounded, young, American male' },
-  { id: 'GBv7mTt0atIp3Br8iCZE', name: 'Thomas', description: 'Calm, young, American male' },
-  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', description: 'Casual, Australian male' },
-  { id: 'LcfcDJNUP1GQjkzn1xUU', name: 'Emily', description: 'Calm, young, American female' },
-  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep, American male' },
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'British, authoritative male' },
-  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'Seductive, Swedish female' },
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm, young, American female', gender: 'female' },
+  { id: '29vD33N1CtxCmqQRPOHJ', name: 'Drew', description: 'Well-rounded, American male', gender: 'male' },
+  { id: '2EiwWnXFnvU5JabPnv8n', name: 'Clyde', description: 'War veteran, American male', gender: 'male' },
+  { id: '5Q0t7uMcjvnagumLfvZi', name: 'Paul', description: 'Ground reporter, American male', gender: 'male' },
+  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', description: 'Strong, young, American female', gender: 'female' },
+  { id: 'CYw3kZ02Hs0563khs1Fj', name: 'Dave', description: 'British, conversational male', gender: 'male' },
+  { id: 'D38z5RcWu1voky8WS1ja', name: 'Fin', description: 'Irish, sailing male', gender: 'male' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Soft, young, American female', gender: 'female' },
+  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', description: 'Well-rounded, young, American male', gender: 'male' },
+  { id: 'GBv7mTt0atIp3Br8iCZE', name: 'Thomas', description: 'Calm, young, American male', gender: 'male' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', description: 'Casual, Australian male', gender: 'male' },
+  { id: 'LcfcDJNUP1GQjkzn1xUU', name: 'Emily', description: 'Calm, young, American female', gender: 'female' },
+  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep, American male', gender: 'male' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'British, authoritative male', gender: 'male' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'Seductive, Swedish female', gender: 'female' },
 ];
 
 // Gemini TTS voices (supports Slovak and other languages)
 export const GEMINI_VOICES: VoiceOption[] = [
-  { id: 'Aoede', name: 'Aoede', description: 'Natural female voice' },
-  { id: 'Charon', name: 'Charon', description: 'Deep male voice' },
-  { id: 'Fenrir', name: 'Fenrir', description: 'Young male voice' },
-  { id: 'Kore', name: 'Kore', description: 'Soft female voice' },
-  { id: 'Puck', name: 'Puck', description: 'Playful voice' },
-  { id: 'Zephyr', name: 'Zephyr', description: 'Gentle voice' },
-  { id: 'Enceladus', name: 'Enceladus', description: 'Clear male voice' },
-  { id: 'Iapetus', name: 'Iapetus', description: 'Warm male voice' },
+  { id: 'Aoede', name: 'Aoede', description: 'Natural female voice', gender: 'female' },
+  { id: 'Charon', name: 'Charon', description: 'Deep male voice', gender: 'male' },
+  { id: 'Fenrir', name: 'Fenrir', description: 'Young male voice', gender: 'male' },
+  { id: 'Kore', name: 'Kore', description: 'Soft female voice', gender: 'female' },
+  { id: 'Puck', name: 'Puck', description: 'Playful voice', gender: 'child' },
+  { id: 'Zephyr', name: 'Zephyr', description: 'Gentle voice', gender: 'neutral' },
+  { id: 'Enceladus', name: 'Enceladus', description: 'Clear male voice', gender: 'male' },
+  { id: 'Iapetus', name: 'Iapetus', description: 'Warm male voice', gender: 'male' },
 ];
 
 // OpenAI TTS voices (gpt-4o-mini-tts model with voice instructions support)
 export const OPENAI_VOICES: VoiceOption[] = [
-  { id: 'alloy', name: 'Alloy', description: 'Neutral, balanced voice' },
-  { id: 'ash', name: 'Ash', description: 'Warm, expressive voice' },
-  { id: 'ballad', name: 'Ballad', description: 'Storytelling voice' },
-  { id: 'coral', name: 'Coral', description: 'Friendly, energetic voice' },
-  { id: 'echo', name: 'Echo', description: 'Clear, refined voice' },
-  { id: 'fable', name: 'Fable', description: 'British, expressive voice' },
-  { id: 'onyx', name: 'Onyx', description: 'Deep, authoritative voice' },
-  { id: 'nova', name: 'Nova', description: 'Warm, conversational voice' },
-  { id: 'sage', name: 'Sage', description: 'Calm, reassuring voice' },
-  { id: 'shimmer', name: 'Shimmer', description: 'Light, theatrical voice' },
-  { id: 'verse', name: 'Verse', description: 'Mellow, laid-back voice' },
+  { id: 'alloy', name: 'Alloy', description: 'Neutral, balanced voice', gender: 'neutral' },
+  { id: 'ash', name: 'Ash', description: 'Warm, expressive male', gender: 'male' },
+  { id: 'ballad', name: 'Ballad', description: 'Storytelling male', gender: 'male' },
+  { id: 'coral', name: 'Coral', description: 'Friendly, energetic female', gender: 'female' },
+  { id: 'echo', name: 'Echo', description: 'Clear, refined male', gender: 'male' },
+  { id: 'fable', name: 'Fable', description: 'British, expressive female', gender: 'female' },
+  { id: 'onyx', name: 'Onyx', description: 'Deep, authoritative male', gender: 'male' },
+  { id: 'nova', name: 'Nova', description: 'Warm, conversational female', gender: 'female' },
+  { id: 'sage', name: 'Sage', description: 'Calm, reassuring female', gender: 'female' },
+  { id: 'shimmer', name: 'Shimmer', description: 'Light, theatrical female', gender: 'female' },
+  { id: 'verse', name: 'Verse', description: 'Mellow, laid-back male', gender: 'male' },
 ];
 
 // Helper to get a valid voice ID for the current provider
