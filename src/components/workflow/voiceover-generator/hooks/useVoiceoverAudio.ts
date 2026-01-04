@@ -218,6 +218,7 @@ export function useVoiceoverAudio(project: Project) {
       );
 
       if (!hasThisVersion) {
+        console.log(`[TTS] Generating ${i + 1}/${allDialogueLines.length}: ${line.id}`);
         const result = await generateAudioForLine(line.id, line.sceneId);
         // Stop batch generation if insufficient credits
         if (result === 'insufficient_credits') {
@@ -227,8 +228,11 @@ export function useVoiceoverAudio(project: Project) {
         // Add delay between requests to avoid rate limits (Gemini: 10 req/min)
         // Wait 7 seconds between requests to stay under limit
         if (i < allDialogueLines.length - 1 && !abortRef.current) {
+          console.log(`[TTS] Waiting 7s before next request (rate limit)...`);
           await new Promise(resolve => setTimeout(resolve, 7000));
         }
+      } else {
+        console.log(`[TTS] Skipping ${i + 1}/${allDialogueLines.length}: already has ${versionKey} version`);
       }
     }
     setIsGeneratingAll(false);
