@@ -528,7 +528,7 @@ describe('Service Function Unit Tests', () => {
     })
 
     it('has elevenlabs costs', () => {
-      expect(PROVIDER_COSTS.elevenlabs.voicePer1K).toBe(0.30)
+      expect(PROVIDER_COSTS.elevenlabs.voicePer1K).toBe(1.10)
     })
 
     it('has modal costs', () => {

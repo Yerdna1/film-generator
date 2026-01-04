@@ -21,6 +21,7 @@ interface TTSRequest {
   voiceName?: string;
   language?: string;
   projectId?: string;
+  provider?: TTSProvider;  // Allow overriding provider from UI
   stability?: number;
   similarityBoost?: number;
   style?: number;
@@ -248,6 +249,7 @@ export async function POST(request: NextRequest) {
       voiceName = 'Aoede',
       language = 'en',
       projectId,
+      provider: requestedProvider,  // Provider from UI
       stability = 0.5,
       similarityBoost = 0.75,
       style = 0.5,
@@ -258,7 +260,7 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await auth();
-    let ttsProvider: TTSProvider = 'gemini-tts';
+    let ttsProvider: TTSProvider = requestedProvider || 'gemini-tts';  // Use UI provider first
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     let modalTtsEndpoint: string | null = null;
@@ -269,7 +271,10 @@ export async function POST(request: NextRequest) {
       });
 
       if (userApiKeys) {
-        ttsProvider = (userApiKeys.ttsProvider as TTSProvider) || 'gemini-tts';
+        // Only use DB provider if not specified in request
+        if (!requestedProvider) {
+          ttsProvider = (userApiKeys.ttsProvider as TTSProvider) || 'gemini-tts';
+        }
         if (userApiKeys.geminiApiKey) geminiApiKey = userApiKeys.geminiApiKey;
         if (userApiKeys.elevenLabsApiKey) elevenLabsApiKey = userApiKeys.elevenLabsApiKey;
         modalTtsEndpoint = userApiKeys.modalTtsEndpoint;

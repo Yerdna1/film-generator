@@ -2,6 +2,9 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import { PlayCircle, Square, Volume2, VolumeX } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { DialogueLineCard } from './DialogueLineCard';
 import type { SceneDialogueCardProps } from '../types';
 
@@ -12,6 +15,7 @@ export function SceneDialogueCard({
   characters,
   audioStates,
   playingAudio,
+  playingSceneId,
   provider,
   isReadOnly = false,
   isAuthenticated = true,
@@ -24,11 +28,19 @@ export function SceneDialogueCard({
   onGenerateAudio,
   onAudioRef,
   onAudioEnded,
+  onDownloadLine,
+  onPlayAllScene,
+  onStopScenePlayback,
+  onToggleUseTts,
   onDeletionRequested,
   onUseRegenerationAttempt,
   onSelectRegeneration,
 }: SceneDialogueCardProps) {
   const t = useTranslations();
+
+  const isPlayingThisScene = playingSceneId === scene.id;
+  const hasAnyAudio = scene.dialogue.some(l => l.audioUrl);
+  const useTtsInVideo = scene.useTtsInVideo ?? true;
 
   return (
     <motion.div
@@ -37,12 +49,45 @@ export function SceneDialogueCard({
       transition={{ delay: sceneIndex * 0.1 }}
     >
       <div className="glass border border-white/10 rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-1.5 py-px">
+        <div className="flex items-center justify-between px-1.5 py-0.5">
           <div className="flex items-center gap-1 min-w-0">
             <span className="text-violet-400 font-bold text-base shrink-0">#{scene.number || sceneIndex + 1}</span>
             <span className="truncate text-muted-foreground text-[11px]">{scene.title}</span>
           </div>
-          <span className="text-[10px] text-muted-foreground shrink-0">{scene.dialogue.length}</span>
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Play All Scene Voices Button */}
+            {hasAnyAudio && onPlayAllScene && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => isPlayingThisScene ? onStopScenePlayback?.() : onPlayAllScene(scene.id)}
+                title={isPlayingThisScene ? t('steps.voiceover.stopPlayback') : t('steps.voiceover.playAll')}
+              >
+                {isPlayingThisScene ? (
+                  <Square className="w-3 h-3 text-amber-400" />
+                ) : (
+                  <PlayCircle className="w-3 h-3 text-violet-400" />
+                )}
+              </Button>
+            )}
+            {/* TTS in Video Toggle */}
+            {!isReadOnly && hasAnyAudio && onToggleUseTts && (
+              <div className="flex items-center gap-0.5" title={useTtsInVideo ? t('steps.voiceover.usingTts') : t('steps.voiceover.usingOriginal')}>
+                <Switch
+                  checked={useTtsInVideo}
+                  onCheckedChange={() => onToggleUseTts(scene.id)}
+                  className="scale-50"
+                />
+                {useTtsInVideo ? (
+                  <Volume2 className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <VolumeX className="w-3 h-3 text-muted-foreground" />
+                )}
+              </div>
+            )}
+            <span className="text-[10px] text-muted-foreground ml-1">{scene.dialogue.length}</span>
+          </div>
         </div>
         <div className="px-1 pb-1 space-y-0.5">
           {scene.dialogue.map((line, lineIndex) => {
@@ -74,6 +119,7 @@ export function SceneDialogueCard({
                 onGenerate={() => onGenerateAudio(line.id, scene.id)}
                 onAudioRef={(el) => onAudioRef(line.id, el)}
                 onAudioEnded={onAudioEnded}
+                onDownload={onDownloadLine ? () => onDownloadLine(line.id) : undefined}
                 onDeletionRequested={onDeletionRequested}
                 onUseRegenerationAttempt={onUseRegenerationAttempt}
                 onSelectRegeneration={onSelectRegeneration}

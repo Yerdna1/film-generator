@@ -23,7 +23,7 @@ import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
-  const { updateVoiceSettings, updateCharacter, projects } = useProjectStore();
+  const { updateVoiceSettings, updateCharacter, updateScene, projects } = useProjectStore();
 
   // Get live project data from store, but prefer initialProject for full data (scenes array)
   // Store may contain summary data without scenes
@@ -189,19 +189,41 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
   const {
     audioStates,
     playingAudio,
+    playingSceneId,
     isGeneratingAll,
     allDialogueLines,
+    totalCharacters,
     generateAudioForLine,
     handleGenerateAll,
+    stopGeneratingAll,
+    deleteAllAudio,
     togglePlay,
     setAudioRef,
     handleAudioEnded,
+    playAllSceneVoices,
+    stopScenePlayback,
+    downloadLine,
   } = useVoiceoverAudio(project);
+
+  // Handler for toggling TTS usage in video composition per scene
+  const handleToggleUseTts = useCallback((sceneId: string) => {
+    const scene = (project.scenes || []).find(s => s.id === sceneId);
+    if (scene) {
+      updateScene(project.id, sceneId, { useTtsInVideo: !(scene.useTtsInVideo ?? true) });
+    }
+  }, [project.id, project.scenes, updateScene]);
 
   // Safety check for voiceSettings (may be undefined in some data states)
   const voiceSettings = project.voiceSettings || { provider: 'gemini-tts', language: 'sk', characterVoices: {} };
   const voices = getVoicesForProvider(voiceSettings.provider);
-  const generatedCount = allDialogueLines.filter((line) => line.audioUrl).length;
+
+  // Calculate counts directly from project.scenes (live from store)
+  const liveDialogueLines = useMemo(() =>
+    (project.scenes || []).flatMap(s => s.dialogue || []),
+    [project.scenes]
+  );
+  const generatedCount = liveDialogueLines.filter((line) => line.audioUrl).length;
+  const remainingCount = liveDialogueLines.length - generatedCount;
 
   const handleVoiceChange = (characterId: string, voiceId: string) => {
     const voice = voices.find((v) => v.id === voiceId);
@@ -220,8 +242,12 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     });
   };
 
-  const handleProviderChange = (provider: VoiceProvider, language: VoiceLanguage) => {
-    updateVoiceSettings(project.id, { language, provider });
+  const handleProviderChange = (provider: VoiceProvider) => {
+    updateVoiceSettings(project.id, { provider });
+  };
+
+  const handleLanguageChange = (language: VoiceLanguage) => {
+    updateVoiceSettings(project.id, { language });
   };
 
   const handleDownloadAll = () => {
@@ -249,6 +275,8 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         endIndex={endIndex}
         totalItems={scenesWithDialogue.length}
         onPageChange={setCurrentPage}
+        isProcessing={isGeneratingAll}
+        onStop={stopGeneratingAll}
       />
 
       {/* Dialogue Lines by Scene - 3 column grid */}
@@ -265,6 +293,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
               characters={project.characters || []}
               audioStates={audioStates}
               playingAudio={playingAudio}
+              playingSceneId={playingSceneId}
               provider={voiceSettings.provider}
               isReadOnly={isReadOnly}
               isAuthenticated={isAuthenticated}
@@ -277,6 +306,10 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
               onGenerateAudio={generateAudioForLine}
               onAudioRef={setAudioRef}
               onAudioEnded={handleAudioEnded}
+              onDownloadLine={downloadLine}
+              onPlayAllScene={playAllSceneVoices}
+              onStopScenePlayback={stopScenePlayback}
+              onToggleUseTts={handleToggleUseTts}
               onDeletionRequested={fetchDeletionRequests}
               onUseRegenerationAttempt={handleUseRegenerationAttempt}
               onSelectRegeneration={handleSelectRegeneration}
@@ -293,6 +326,8 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         endIndex={endIndex}
         totalItems={scenesWithDialogue.length}
         onPageChange={setCurrentPage}
+        isProcessing={isGeneratingAll}
+        onStop={stopGeneratingAll}
       />
 
       {/* Provider Selection & Controls */}
@@ -300,14 +335,15 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <Mic className="w-5 h-5 text-violet-400" />
-            <span className="text-sm text-muted-foreground mr-2">TTS Provider:</span>
             {!isReadOnly ? (
               <ProviderSelector
                 provider={voiceSettings.provider}
+                language={voiceSettings.language}
                 onProviderChange={handleProviderChange}
+                onLanguageChange={handleLanguageChange}
               />
             ) : (
-              <span className="text-sm font-medium">{voiceSettings.provider}</span>
+              <span className="text-sm font-medium">{voiceSettings.provider} ({voiceSettings.language})</span>
             )}
           </div>
 
@@ -344,11 +380,14 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         {!isReadOnly && (
           <VoiceoverProgress
             generatedCount={generatedCount}
-            totalCount={allDialogueLines.length}
+            totalCount={liveDialogueLines.length}
+            remainingCount={remainingCount}
+            totalCharacters={totalCharacters}
             isGeneratingAll={isGeneratingAll}
             provider={voiceSettings.provider}
             onGenerateAll={handleGenerateAll}
             onDownloadAll={handleDownloadAll}
+            onDeleteAll={deleteAllAudio}
           />
         )}
       </div>

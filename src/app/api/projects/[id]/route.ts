@@ -66,6 +66,7 @@ export async function GET(
         duration: s.duration,
         dialogue: s.dialogue as object[],
         locked: s.locked,
+        useTtsInVideo: s.useTtsInVideo,
       })),
       // Rendered video export URLs
       renderedVideoUrl: project.renderedVideoUrl,
@@ -213,6 +214,7 @@ export async function PUT(
         duration: s.duration,
         dialogue: s.dialogue as object[],
         locked: s.locked,
+        useTtsInVideo: s.useTtsInVideo,
       })),
     };
 

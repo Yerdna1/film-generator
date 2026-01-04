@@ -59,19 +59,25 @@ export async function PUT(
       },
     });
 
-    // Check if scene is locked - nobody can modify locked scenes through the UI
-    if (currentScene?.locked) {
-      return NextResponse.json(
-        {
-          error: 'Scene is locked',
-          locked: true,
-          message: 'This scene is locked and cannot be modified through the UI. Direct database access is required.'
-        },
-        { status: 423 }  // 423 Locked status code
-      );
-    }
-
     const body = await request.json();
+
+    // Check if scene is locked - only allow dialogue/audio updates on locked scenes
+    if (currentScene?.locked) {
+      const allowedFields = ['dialogue', 'audioUrl', 'useTtsInVideo'];
+      const updateFields = Object.keys(body).filter(k => body[k] !== undefined);
+      const hasDisallowedFields = updateFields.some(f => !allowedFields.includes(f));
+
+      if (hasDisallowedFields) {
+        return NextResponse.json(
+          {
+            error: 'Scene is locked',
+            locked: true,
+            message: 'This scene is locked. Only voiceover/dialogue changes are allowed.'
+          },
+          { status: 423 }  // 423 Locked status code
+        );
+      }
+    }
     const {
       number,
       title,
@@ -84,6 +90,7 @@ export async function PUT(
       audioUrl,
       duration,
       dialogue,
+      useTtsInVideo,
     } = body;
 
     const scene = await prisma.scene.update({
@@ -100,6 +107,7 @@ export async function PUT(
         ...(audioUrl !== undefined && { audioUrl }),
         ...(duration !== undefined && { duration }),
         ...(dialogue !== undefined && { dialogue }),
+        ...(useTtsInVideo !== undefined && { useTtsInVideo }),
       },
     });
 
@@ -206,6 +214,7 @@ export async function PUT(
       duration: scene.duration,
       dialogue: scene.dialogue as object[],
       locked: scene.locked,
+      useTtsInVideo: scene.useTtsInVideo,
       imageUpdatedAt: scene.imageUpdatedAt?.toISOString(),
       videoGeneratedFromImageAt: scene.videoGeneratedFromImageAt?.toISOString(),
     });

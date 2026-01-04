@@ -62,7 +62,7 @@ export type ImageResolution = '1k' | '2k' | '4k';
 
 export type VoiceLanguage = 'sk' | 'en';
 
-export type VoiceProvider = 'gemini-tts' | 'elevenlabs';
+export type VoiceProvider = 'gemini-tts' | 'elevenlabs' | 'modal';
 
 // Project settings
 export interface ProjectSettings {
@@ -84,15 +84,29 @@ export interface StoryConfig {
   setting: string;
 }
 
-// Dialogue line with optional audio
+// Audio version for a specific provider + language combination
+export interface AudioVersion {
+  audioUrl: string;
+  provider: 'gemini-tts' | 'elevenlabs' | 'modal';
+  language: VoiceLanguage;
+  voiceId?: string;
+  voiceName?: string;
+  duration?: number;
+  createdAt: string;
+}
+
+// Dialogue line with optional audio (supports multiple versions)
 export interface DialogueLine {
   id: string;
   characterId: string;
   characterName: string;
   text: string;
+  // Primary audio (for backwards compatibility and current selection)
   audioUrl?: string;
   audioDuration?: number;
-  ttsProvider?: 'elevenlabs' | 'gemini-tts';  // Track which TTS was used
+  ttsProvider?: 'elevenlabs' | 'gemini-tts' | 'modal';
+  // All generated audio versions (provider + language combinations)
+  audioVersions?: AudioVersion[];
 }
 
 // Character definition
@@ -128,6 +142,8 @@ export interface Scene {
   locked?: boolean;
   imageUpdatedAt?: string; // ISO string
   videoGeneratedFromImageAt?: string; // ISO string
+  // TTS audio preference - when true, use generated TTS voices in video composition
+  useTtsInVideo?: boolean;
 }
 
 // Voice settings per character

@@ -18,20 +18,23 @@ export interface VoiceOption {
   description: string;
 }
 
-// ElevenLabs voices (English)
+// ElevenLabs voices with real API IDs
 export const ELEVENLABS_VOICES: VoiceOption[] = [
-  { id: 'rachel', name: 'Rachel', description: 'Calm, young, American female' },
-  { id: 'drew', name: 'Drew', description: 'Well-rounded, American male' },
-  { id: 'clyde', name: 'Clyde', description: 'War veteran, American male' },
-  { id: 'paul', name: 'Paul', description: 'Ground reporter, American male' },
-  { id: 'domi', name: 'Domi', description: 'Strong, young, American female' },
-  { id: 'dave', name: 'Dave', description: 'British, conversational male' },
-  { id: 'fin', name: 'Fin', description: 'Irish, sailing male' },
-  { id: 'sarah', name: 'Sarah', description: 'Soft, young, American female' },
-  { id: 'antoni', name: 'Antoni', description: 'Well-rounded, young, American male' },
-  { id: 'thomas', name: 'Thomas', description: 'Calm, young, American male' },
-  { id: 'charlie', name: 'Charlie', description: 'Casual, Australian male' },
-  { id: 'emily', name: 'Emily', description: 'Calm, young, American female' },
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm, young, American female' },
+  { id: '29vD33N1CtxCmqQRPOHJ', name: 'Drew', description: 'Well-rounded, American male' },
+  { id: '2EiwWnXFnvU5JabPnv8n', name: 'Clyde', description: 'War veteran, American male' },
+  { id: '5Q0t7uMcjvnagumLfvZi', name: 'Paul', description: 'Ground reporter, American male' },
+  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', description: 'Strong, young, American female' },
+  { id: 'CYw3kZ02Hs0563khs1Fj', name: 'Dave', description: 'British, conversational male' },
+  { id: 'D38z5RcWu1voky8WS1ja', name: 'Fin', description: 'Irish, sailing male' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Soft, young, American female' },
+  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', description: 'Well-rounded, young, American male' },
+  { id: 'GBv7mTt0atIp3Br8iCZE', name: 'Thomas', description: 'Calm, young, American male' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', description: 'Casual, Australian male' },
+  { id: 'LcfcDJNUP1GQjkzn1xUU', name: 'Emily', description: 'Calm, young, American female' },
+  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep, American male' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'British, authoritative male' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'Seductive, Swedish female' },
 ];
 
 // Gemini TTS voices (supports Slovak and other languages)
@@ -91,10 +94,13 @@ export interface ProviderSelectorProps {
 export interface VoiceoverProgressProps {
   generatedCount: number;
   totalCount: number;
+  remainingCount: number;
+  totalCharacters: number;
   isGeneratingAll: boolean;
   provider: VoiceProvider;
   onGenerateAll: () => void;
   onDownloadAll: () => void;
+  onDeleteAll: () => void;
 }
 
 export interface DialogueLineCardProps {
@@ -117,6 +123,7 @@ export interface DialogueLineCardProps {
   onGenerate: () => void;
   onAudioRef: (el: HTMLAudioElement | null) => void;
   onAudioEnded: () => void;
+  onDownload?: () => void;
   onDeletionRequested?: () => void;
   onUseRegenerationAttempt?: (requestId: string) => Promise<void>;
   onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>;
@@ -128,12 +135,14 @@ export interface SceneDialogueCardProps {
     title: string;
     number: number;
     dialogue: DialogueLine[];
+    useTtsInVideo?: boolean;
   };
   sceneIndex: number;
   projectId: string;
   characters: Character[];
   audioStates: AudioState;
   playingAudio: string | null;
+  playingSceneId: string | null;
   provider: VoiceProvider;
   isReadOnly?: boolean;
   isAuthenticated?: boolean;
@@ -146,6 +155,10 @@ export interface SceneDialogueCardProps {
   onGenerateAudio: (lineId: string, sceneId: string) => void;
   onAudioRef: (lineId: string, el: HTMLAudioElement | null) => void;
   onAudioEnded: () => void;
+  onDownloadLine?: (lineId: string) => void;
+  onPlayAllScene?: (sceneId: string) => void;
+  onStopScenePlayback?: () => void;
+  onToggleUseTts?: (sceneId: string) => void;
   onDeletionRequested?: () => void;
   onUseRegenerationAttempt?: (requestId: string) => Promise<void>;
   onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>;

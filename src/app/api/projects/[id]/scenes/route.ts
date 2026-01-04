@@ -96,6 +96,7 @@ export async function POST(
       audioUrl: scene.audioUrl,
       duration: scene.duration,
       dialogue: scene.dialogue as object[],
+      useTtsInVideo: scene.useTtsInVideo,
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating scene:', error);
@@ -215,6 +216,7 @@ export async function PUT(
       audioUrl: scene.audioUrl,
       duration: scene.duration,
       dialogue: scene.dialogue as object[],
+      useTtsInVideo: scene.useTtsInVideo,
     }));
 
     // Update project's updatedAt

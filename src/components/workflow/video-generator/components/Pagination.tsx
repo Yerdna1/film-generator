@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -18,6 +18,8 @@ interface PaginationProps {
   totalItems: number;
   onPageChange: (page: number) => void;
   variant?: 'full' | 'compact';
+  isProcessing?: boolean;
+  onStop?: () => void;
 }
 
 export function Pagination({
@@ -28,14 +30,29 @@ export function Pagination({
   totalItems,
   onPageChange,
   variant = 'full',
+  isProcessing = false,
+  onStop,
 }: PaginationProps) {
   const t = useTranslations();
 
-  if (totalPages <= 1) return null;
+  // Show stop button even if only 1 page when processing
+  if (totalPages <= 1 && !isProcessing) return null;
 
   if (variant === 'compact') {
     return (
-      <div className="flex items-center justify-center glass rounded-xl p-4">
+      <div className="flex items-center justify-center glass rounded-xl p-4 gap-4">
+        {/* Stop button when processing */}
+        {isProcessing && onStop && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-8 px-3 bg-red-600 hover:bg-red-500"
+            onClick={onStop}
+          >
+            <Square className="w-3 h-3 mr-1 fill-current" />
+            {t('common.stop')}
+          </Button>
+        )}
         <div className="flex items-center gap-1">
           <Button
             variant="outline"
@@ -85,18 +102,32 @@ export function Pagination({
 
   return (
     <div className="flex items-center justify-between glass rounded-xl p-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>
-          {t('common.page')} {currentPage} / {totalPages}
-        </span>
-        <span className="text-white/30">|</span>
-        <span>
-          {t('steps.videos.scenesOnPage', {
-            start: startIndex + 1,
-            end: Math.min(endIndex, totalItems),
-            total: totalItems
-          })}
-        </span>
+      <div className="flex items-center gap-3">
+        {/* Stop button when processing */}
+        {isProcessing && onStop && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-8 px-3 bg-red-600 hover:bg-red-500"
+            onClick={onStop}
+          >
+            <Square className="w-3 h-3 mr-1 fill-current" />
+            {t('common.stop')}
+          </Button>
+        )}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            {t('common.page')} {currentPage} / {totalPages}
+          </span>
+          <span className="text-white/30">|</span>
+          <span>
+            {t('steps.videos.scenesOnPage', {
+              start: startIndex + 1,
+              end: Math.min(endIndex, totalItems),
+              total: totalItems
+            })}
+          </span>
+        </div>
       </div>
       <div className="flex items-center gap-1">
         <TooltipProvider>

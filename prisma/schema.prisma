@@ -253,6 +253,7 @@ model Scene {
   locked                    Boolean   @default(false)
   imageUpdatedAt            DateTime?
   videoGeneratedFromImageAt DateTime?
+  useTtsInVideo             Boolean   @default(true)  // Use TTS audio in video composition
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 

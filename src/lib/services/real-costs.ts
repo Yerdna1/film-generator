@@ -57,10 +57,8 @@ export const PROVIDER_COSTS = {
 
   // ElevenLabs Voice
   elevenlabs: {
-    // Per 1K characters (Creator plan pricing)
-    voicePer1K: 0.30,
-    // Minimum charge per request
-    minCharge: 0.01,
+    // Per 1K characters (~€1/1K = $1.10/1K)
+    voicePer1K: 1.10,
   },
 
   // Grok / Kie.ai (Video generation)
@@ -319,8 +317,7 @@ export function calculateVoiceCost(
   provider: 'elevenlabs' | 'geminiTts'
 ): number {
   if (provider === 'elevenlabs') {
-    const cost = (characterCount / 1000) * PROVIDER_COSTS.elevenlabs.voicePer1K;
-    return Math.max(cost, PROVIDER_COSTS.elevenlabs.minCharge);
+    return (characterCount / 1000) * PROVIDER_COSTS.elevenlabs.voicePer1K;
   }
 
   if (provider === 'geminiTts') {

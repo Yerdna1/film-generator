@@ -14,6 +14,7 @@ import {
   Lock,
   Clock,
   Trash2,
+  Volume2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ export function DialogueLineCard({
   onGenerate,
   onAudioRef,
   onAudioEnded,
+  onDownload,
   onDeletionRequested,
   onUseRegenerationAttempt,
   onSelectRegeneration,
@@ -206,6 +208,32 @@ export function DialogueLineCard({
             </div>
           )}
 
+          {/* Audio Versions - show all available provider+language combinations */}
+          {line.audioVersions && line.audioVersions.length > 0 && !isRestricted && (
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <Volume2 className="w-3 h-3 text-muted-foreground" />
+              {line.audioVersions.map((version) => {
+                const isActive = line.audioUrl === version.audioUrl;
+                const flag = version.language === 'sk' ? '🇸🇰' : '🇬🇧';
+                const providerShort = version.provider === 'gemini-tts' ? 'G' : version.provider === 'elevenlabs' ? 'E' : 'M';
+                return (
+                  <Badge
+                    key={`${version.provider}_${version.language}`}
+                    variant={isActive ? 'default' : 'outline'}
+                    className={`text-[9px] px-1 py-0 cursor-pointer transition-all ${
+                      isActive
+                        ? 'bg-violet-500 text-white'
+                        : 'hover:bg-white/10'
+                    }`}
+                    title={`${version.provider} (${version.language})`}
+                  >
+                    {flag}{providerShort}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+
           {/* Only load audio for non-restricted content */}
           {line.audioUrl && !isRestricted && (
             <audio
@@ -242,6 +270,17 @@ export function DialogueLineCard({
                   <Play className="w-3 h-3 ml-0.5" />
                 )}
               </Button>
+              {onDownload && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-emerald-400"
+                  onClick={onDownload}
+                  title="Download audio"
+                >
+                  <Download className="w-3 h-3" />
+                </Button>
+              )}
               {!isReadOnly && (
                 <Button
                   variant="ghost"
