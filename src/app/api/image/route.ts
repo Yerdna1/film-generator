@@ -53,8 +53,10 @@ async function generateWithGemini(
       text: `REFERENCE IMAGES FOR VISUAL CONSISTENCY - Use these exact character appearances in the generated scene:\n${referenceImages.map(r => `- ${r.name}`).join('\n')}\n\n`,
     });
 
-    for (const ref of referenceImages) {
-      if (ref.imageUrl) {
+    // Process reference images in parallel for better performance
+    const imagePromises = referenceImages
+      .filter(ref => ref.imageUrl)
+      .map(async (ref) => {
         try {
           let base64Data: string;
           let mimeType: string;
@@ -63,24 +65,30 @@ async function generateWithGemini(
             const matches = ref.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
             if (matches) {
               [, mimeType, base64Data] = matches;
-            } else {
-              continue;
+              return { name: ref.name, base64Data, mimeType };
             }
+            return null;
           } else if (ref.imageUrl.startsWith('http')) {
             const imageResponse = await fetch(ref.imageUrl);
-            if (!imageResponse.ok) continue;
+            if (!imageResponse.ok) return null;
             const arrayBuffer = await imageResponse.arrayBuffer();
             base64Data = Buffer.from(arrayBuffer).toString('base64');
             mimeType = imageResponse.headers.get('content-type') || 'image/png';
-          } else {
-            continue;
+            return { name: ref.name, base64Data, mimeType };
           }
-
-          messageContent.push({ type: 'image', image: base64Data, mimeType });
-          messageContent.push({ type: 'text', text: `(Above: ${ref.name} - use this EXACT character appearance)` });
+          return null;
         } catch (error) {
           console.error(`[Reference] Error processing image for ${ref.name}:`, error);
+          return null;
         }
+      });
+
+    const processedImages = (await Promise.all(imagePromises)).filter(Boolean);
+
+    for (const img of processedImages) {
+      if (img) {
+        messageContent.push({ type: 'image', image: img.base64Data, mimeType: img.mimeType });
+        messageContent.push({ type: 'text', text: `(Above: ${img.name} - use this EXACT character appearance)` });
       }
     }
   }

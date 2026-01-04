@@ -100,13 +100,37 @@ class MemoryCache {
 // Singleton instance
 export const cache = new MemoryCache();
 
-// Cache key generators
+/**
+ * Normalize cache key options to ensure consistent cache hits
+ * Sorts query params alphabetically and normalizes boolean values
+ */
+function normalizeOptions(options?: Record<string, unknown>): string {
+  if (!options || Object.keys(options).length === 0) return '';
+
+  const sorted = Object.keys(options)
+    .sort()
+    .map(key => {
+      const value = options[key];
+      // Normalize booleans to strings
+      const normalizedValue = typeof value === 'boolean' ? String(value) : value;
+      return `${key}=${normalizedValue}`;
+    })
+    .join('&');
+
+  return sorted ? `:${sorted}` : '';
+}
+
+// Cache key generators with optional query param normalization
 export const cacheKeys = {
-  userProjects: (userId: string) => `user:${userId}:projects`,
+  userProjects: (userId: string, options?: { includeDialogue?: boolean }) =>
+    `user:${userId}:projects${normalizeOptions(options)}`,
   userCredits: (userId: string) => `user:${userId}:credits`,
   userStatistics: (userId: string) => `user:${userId}:statistics`,
-  project: (projectId: string) => `project:${projectId}`,
+  project: (projectId: string, options?: { includeDialogue?: boolean; includeCharacters?: boolean }) =>
+    `project:${projectId}${normalizeOptions(options)}`,
   projectCosts: (userId: string) => `user:${userId}:projectCosts`,
+  projectScenes: (projectId: string, options?: { includeDialogue?: boolean }) =>
+    `project:${projectId}:scenes${normalizeOptions(options)}`,
 };
 
 // Cache TTL presets (in milliseconds)

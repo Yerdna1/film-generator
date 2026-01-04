@@ -1,10 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './prisma/generated/prisma/index.js';
+import { PrismaPg } from '@prisma/adapter-pg';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import http from 'http';
+import 'dotenv/config';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
 const VIDEOS_DIR = '/Users/andrejpt/Desktop/VIDEOS';
 

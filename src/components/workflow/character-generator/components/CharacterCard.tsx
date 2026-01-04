@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
@@ -22,7 +22,7 @@ import { CopyButton } from '@/components/shared/CopyButton';
 import { getImageCost, formatCostCompact } from '@/lib/services/real-costs';
 import type { CharacterCardProps } from '../types';
 
-export function CharacterCard({
+function CharacterCardComponent({
   character,
   project,
   imageState,
@@ -249,3 +249,20 @@ export function CharacterCard({
     </>
   );
 }
+
+// Memoize to prevent re-renders when parent updates unrelated state
+export const CharacterCard = memo(CharacterCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.character.id === nextProps.character.id &&
+    prevProps.character.name === nextProps.character.name &&
+    prevProps.character.imageUrl === nextProps.character.imageUrl &&
+    prevProps.character.description === nextProps.character.description &&
+    prevProps.character.masterPrompt === nextProps.character.masterPrompt &&
+    prevProps.character.personality === nextProps.character.personality &&
+    prevProps.imageState?.status === nextProps.imageState?.status &&
+    prevProps.imageState?.progress === nextProps.imageState?.progress &&
+    prevProps.isReadOnly === nextProps.isReadOnly &&
+    prevProps.project.settings?.imageResolution === nextProps.project.settings?.imageResolution
+  );
+});
