@@ -205,6 +205,8 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     playAllSceneVoices,
     stopScenePlayback,
     playAllDialogues,
+    switchAllToProvider,
+    getAvailableVersions,
     downloadLine,
   } = useVoiceoverAudio(project);
 
@@ -225,7 +227,12 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     (project.scenes || []).flatMap(s => s.dialogue || []),
     [project.scenes]
   );
-  const generatedCount = liveDialogueLines.filter((line) => line.audioUrl).length;
+
+  // Count versions for CURRENT provider+language (not just any audio)
+  const currentVersionKey = `${voiceSettings.provider}_${voiceSettings.language}`;
+  const generatedCount = liveDialogueLines.filter((line) =>
+    line.audioVersions?.some(v => `${v.provider}_${v.language}` === currentVersionKey)
+  ).length;
   const remainingCount = liveDialogueLines.length - generatedCount;
 
   const handleVoiceChange = (characterId: string, voiceId: string) => {
@@ -391,11 +398,14 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             isGeneratingAll={isGeneratingAll}
             isPlayingAll={playingSceneId === '__all__'}
             provider={voiceSettings.provider}
+            language={voiceSettings.language}
+            availableVersions={getAvailableVersions()}
             onGenerateAll={handleGenerateAll}
             onDownloadAll={handleDownloadAll}
             onDeleteAll={deleteAllAudio}
             onPlayAll={playAllDialogues}
             onStopPlayback={stopScenePlayback}
+            onSwitchAllToProvider={switchAllToProvider}
           />
         )}
       </div>

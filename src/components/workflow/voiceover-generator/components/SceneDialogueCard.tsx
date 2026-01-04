@@ -94,10 +94,12 @@ export function SceneDialogueCard({
         <div className="px-1 pb-1 space-y-0.5">
           {scene.dialogue.map((line, lineIndex) => {
             const character = characters.find((c) => c.id === line.characterId);
+            const audioState = audioStates[line.id];
             const status = line.audioUrl
               ? 'complete'
-              : audioStates[line.id]?.status || 'idle';
-            const progress = audioStates[line.id]?.progress || 0;
+              : audioState?.status || 'idle';
+            const progress = audioState?.progress || 0;
+            const error = audioState?.error;
 
             return (
               <DialogueLineCard
@@ -106,6 +108,7 @@ export function SceneDialogueCard({
                 character={character}
                 status={status}
                 progress={progress}
+                error={error}
                 isPlaying={playingAudio === line.id}
                 provider={provider}
                 projectId={projectId}

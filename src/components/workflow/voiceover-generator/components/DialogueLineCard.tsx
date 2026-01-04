@@ -15,10 +15,10 @@ import {
   Clock,
   Trash2,
   Volume2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
 import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
 import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
 import { RegenerationSelectionModal } from '@/components/collaboration/RegenerationSelectionModal';
@@ -29,6 +29,7 @@ export function DialogueLineCard({
   character,
   status,
   progress,
+  error,
   isPlaying,
   provider,
   projectId,
@@ -267,6 +268,11 @@ export function DialogueLineCard({
                 <RefreshCw className="w-3 h-3" />
               </motion.div>
               <span className="text-[10px]">{progress}%</span>
+            </div>
+          ) : status === 'error' ? (
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 text-red-400" title={error}>
+              <AlertCircle className="w-3 h-3" />
+              <span className="text-[10px] max-w-[120px] truncate">{error || 'Error'}</span>
             </div>
           ) : status === 'complete' || line.audioUrl ? (
             <>

@@ -64,6 +64,43 @@ export const OPENAI_VOICES: VoiceOption[] = [
   { id: 'verse', name: 'Verse', description: 'Mellow, laid-back voice' },
 ];
 
+// Helper to get a valid voice ID for the current provider
+// Returns null if no valid voice is configured for this provider
+export const getVoiceForProvider = (
+  voiceId: string | undefined,
+  provider: 'gemini-tts' | 'elevenlabs' | 'openai-tts' | 'modal'
+): string | null => {
+  if (!voiceId) return null;
+
+  // Check if voiceId is valid for the current provider
+  if (provider === 'gemini-tts' && GEMINI_VOICES.some(v => v.id.toLowerCase() === voiceId.toLowerCase())) {
+    return GEMINI_VOICES.find(v => v.id.toLowerCase() === voiceId.toLowerCase())?.id || null;
+  }
+  if (provider === 'elevenlabs' && ELEVENLABS_VOICES.some(v => v.id === voiceId)) {
+    return voiceId;
+  }
+  if (provider === 'openai-tts' && OPENAI_VOICES.some(v => v.id === voiceId)) {
+    return voiceId;
+  }
+  if (provider === 'modal') {
+    // Modal accepts any voice name
+    return voiceId;
+  }
+
+  return null;
+};
+
+// Get provider display name for error messages
+export const getProviderDisplayName = (provider: string): string => {
+  const names: Record<string, string> = {
+    'gemini-tts': 'Gemini TTS',
+    'elevenlabs': 'ElevenLabs',
+    'openai-tts': 'OpenAI TTS',
+    'modal': 'Modal TTS',
+  };
+  return names[provider] || provider;
+};
+
 // Helper to migrate old placeholder voice IDs to valid Gemini TTS voices
 export const getValidGeminiVoice = (voiceId: string | undefined): string => {
   if (voiceId && GEMINI_VOICES.some(v => v.id.toLowerCase() === voiceId.toLowerCase())) {
@@ -115,6 +152,12 @@ export interface ProviderSelectorProps {
   onProviderChange: (provider: VoiceProvider, language: VoiceLanguage) => void;
 }
 
+export interface VersionInfo {
+  provider: string;
+  language: string;
+  count: number;
+}
+
 export interface VoiceoverProgressProps {
   generatedCount: number;
   totalCount: number;
@@ -123,11 +166,14 @@ export interface VoiceoverProgressProps {
   isGeneratingAll: boolean;
   isPlayingAll: boolean;
   provider: VoiceProvider;
+  language: VoiceLanguage;
+  availableVersions: VersionInfo[];
   onGenerateAll: () => void;
   onDownloadAll: () => void;
   onDeleteAll: () => void;
   onPlayAll: () => void;
   onStopPlayback: () => void;
+  onSwitchAllToProvider: (provider: string, language: string) => void;
 }
 
 export interface DialogueLineCardProps {
@@ -135,6 +181,7 @@ export interface DialogueLineCardProps {
   character: Character | undefined;
   status: 'idle' | 'generating' | 'complete' | 'error';
   progress: number;
+  error?: string;
   isPlaying: boolean;
   provider: VoiceProvider;
   projectId: string;

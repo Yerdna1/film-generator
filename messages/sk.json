@@ -305,6 +305,8 @@
       "cheapest": "Najlacnejšie",
       "playAll": "Prehrať všetky hlasy",
       "stopPlayback": "Zastaviť prehrávanie",
+      "compareVersions": "Porovnať TTS verzie",
+      "clickToSwitch": "Kliknite pre prepnutie a prehratie",
       "usingTts": "Použiť TTS hlasy vo videu",
       "usingOriginal": "Použiť pôvodný zvuk videa"
     },

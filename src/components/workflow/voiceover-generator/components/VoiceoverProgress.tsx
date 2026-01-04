@@ -18,11 +18,14 @@ export function VoiceoverProgress({
   isGeneratingAll,
   isPlayingAll,
   provider,
+  language,
+  availableVersions,
   onGenerateAll,
   onDownloadAll,
   onDeleteAll,
   onPlayAll,
   onStopPlayback,
+  onSwitchAllToProvider,
 }: VoiceoverProgressProps) {
   const t = useTranslations();
 
@@ -31,7 +34,22 @@ export function VoiceoverProgress({
     ? ACTION_COSTS.voiceover.geminiTts
     : provider === 'modal'
       ? ACTION_COSTS.voiceover.modal
-      : ACTION_COSTS.voiceover.elevenlabs;
+      : provider === 'openai-tts'
+        ? ACTION_COSTS.voiceover.openaiTts
+        : ACTION_COSTS.voiceover.elevenlabs;
+
+  // Helper to get provider display info
+  const getProviderInfo = (p: string) => {
+    const map: Record<string, { short: string; color: string }> = {
+      'gemini-tts': { short: 'Gemini', color: 'bg-green-500' },
+      'openai-tts': { short: 'OpenAI', color: 'bg-emerald-500' },
+      'elevenlabs': { short: 'ElevenLabs', color: 'bg-blue-500' },
+      'modal': { short: 'Modal', color: 'bg-violet-500' },
+    };
+    return map[p] || { short: p, color: 'bg-gray-500' };
+  };
+
+  const currentVersionKey = `${provider}_${language}`;
 
   return (
     <>
@@ -131,6 +149,48 @@ export function VoiceoverProgress({
           {t('steps.voiceover.deleteAll')}
         </Button>
       </div>
+
+      {/* Available Versions - Switch & Play by Provider */}
+      {availableVersions.length > 1 && (
+        <div className="glass rounded-xl p-4 mt-4 border border-white/10">
+          <div className="flex items-center gap-2 mb-3">
+            <PlayCircle className="w-4 h-4 text-violet-400" />
+            <span className="text-sm font-medium">{t('steps.voiceover.compareVersions')}</span>
+            <span className="text-xs text-muted-foreground ml-auto">
+              {t('steps.voiceover.clickToSwitch')}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableVersions.map((v) => {
+              const info = getProviderInfo(v.provider);
+              const flag = v.language === 'sk' ? '🇸🇰' : '🇬🇧';
+              const versionKey = `${v.provider}_${v.language}`;
+              const isActive = versionKey === currentVersionKey;
+
+              return (
+                <Button
+                  key={versionKey}
+                  variant={isActive ? 'default' : 'outline'}
+                  size="sm"
+                  className={isActive
+                    ? `${info.color} text-white border-0`
+                    : 'border-white/20 hover:bg-white/10'}
+                  onClick={() => {
+                    onSwitchAllToProvider(v.provider, v.language);
+                    onPlayAll();
+                  }}
+                >
+                  <PlayCircle className="w-3 h-3 mr-1.5" />
+                  {flag} {info.short}
+                  <Badge className="ml-1.5 bg-white/20 text-white text-[9px] px-1 py-0 border-0">
+                    {v.count}
+                  </Badge>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </>
   );
 }

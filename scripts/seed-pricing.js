@@ -24,6 +24,7 @@ const pricingData = [
   // Voiceover providers
   { actionType: 'voiceover', provider: 'elevenlabs', cost: 0.03, description: 'ElevenLabs TTS (per line ~100 chars)' },
   { actionType: 'voiceover', provider: 'gemini-tts', cost: 0.002, description: 'Gemini TTS (per line)' },
+  { actionType: 'voiceover', provider: 'openai-tts', cost: 0.0015, description: 'OpenAI TTS gpt-4o-mini (per line ~100 chars)' },
   { actionType: 'voiceover', provider: 'modal', cost: 0.01, description: 'Modal Chatterbox TTS (per line)' },
 
   // Scene generation

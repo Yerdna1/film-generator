@@ -3,7 +3,7 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import type { Project, Character, AudioVersion, VoiceProvider } from '@/types/project';
 import type { AudioState, DialogueLineWithScene } from '../types';
-import { getValidGeminiVoice } from '../types';
+import { getValidGeminiVoice, getVoiceForProvider, getProviderDisplayName } from '../types';
 
 export function useVoiceoverAudio(project: Project) {
   const { updateScene } = useProjectStore();
@@ -52,11 +52,25 @@ export function useVoiceoverAudio(project: Project) {
       }));
 
       // Use unified TTS endpoint - pass provider from UI selection
-      const provider = project.voiceSettings.provider;
+      const provider = project.voiceSettings?.provider || 'gemini-tts';
 
-      // Use the character's assigned voice (set in Voice Settings dialog)
-      // The voiceId stored on character matches the current provider
-      const voiceId = character?.voiceId || (provider === 'elevenlabs' ? 'pNInz6obpgDQGcFmaJgB' : 'Aoede');
+      // Get valid voice for the current provider
+      // Returns null if character doesn't have a voice configured for this provider
+      const voiceId = getVoiceForProvider(character?.voiceId, provider);
+
+      if (!voiceId) {
+        const characterName = character?.name || line.characterName || 'Unknown';
+        const providerName = getProviderDisplayName(provider);
+        setAudioStates((prev) => ({
+          ...prev,
+          [lineId]: {
+            status: 'error',
+            progress: 0,
+            error: `${characterName} has no voice for ${providerName}. Open Voice Settings to assign voices.`
+          },
+        }));
+        return false;
+      }
 
       const response = await fetch('/api/tts', {
         method: 'POST',
@@ -65,7 +79,7 @@ export function useVoiceoverAudio(project: Project) {
           text: line.text,
           voiceName: getValidGeminiVoice(voiceId),
           voiceId,
-          language: project.voiceSettings.language,
+          language: project.voiceSettings?.language || 'sk',
           provider,
           projectId: project.id,
         }),
@@ -98,8 +112,8 @@ export function useVoiceoverAudio(project: Project) {
             return false;
           }
 
-          const usedProvider = project.voiceSettings.provider;
-          const usedLanguage = project.voiceSettings.language;
+          const usedProvider = project.voiceSettings?.provider || 'gemini-tts';
+          const usedLanguage = project.voiceSettings?.language || 'sk';
 
           // Create new audio version entry
           const newVersion: AudioVersion = {
@@ -171,13 +185,25 @@ export function useVoiceoverAudio(project: Project) {
   const handleGenerateAll = useCallback(async () => {
     abortRef.current = false;  // Reset abort flag
     setIsGeneratingAll(true);
+
+    // Get current provider+language to check for existing versions
+    const currentProvider = project.voiceSettings?.provider || 'gemini-tts';
+    const currentLanguage = project.voiceSettings?.language || 'sk';
+    const versionKey = `${currentProvider}_${currentLanguage}`;
+
     for (let i = 0; i < allDialogueLines.length; i++) {
       if (abortRef.current) {
         console.log('TTS generation stopped by user');
         break;
       }
       const line = allDialogueLines[i];
-      if (!line.audioUrl) {
+
+      // Check if THIS provider+language version already exists (not just any audio)
+      const hasThisVersion = line.audioVersions?.some(
+        v => `${v.provider}_${v.language}` === versionKey
+      );
+
+      if (!hasThisVersion) {
         const result = await generateAudioForLine(line.id, line.sceneId);
         // Stop batch generation if insufficient credits
         if (result === 'insufficient_credits') {
@@ -192,7 +218,7 @@ export function useVoiceoverAudio(project: Project) {
       }
     }
     setIsGeneratingAll(false);
-  }, [allDialogueLines, generateAudioForLine]);
+  }, [allDialogueLines, generateAudioForLine, project.voiceSettings?.provider, project.voiceSettings?.language]);
 
   // Stop batch TTS generation
   const stopGeneratingAll = useCallback(() => {
@@ -399,6 +425,53 @@ export function useVoiceoverAudio(project: Project) {
     updateScene(project.id, sceneId, { dialogue: updatedDialogue });
   }, [project.id, project.scenes, updateScene]);
 
+  // Switch all dialogue lines to a specific provider+language version
+  const switchAllToProvider = useCallback((provider: string, language: string) => {
+    const versionKey = `${provider}_${language}`;
+
+    for (const scene of (project.scenes || [])) {
+      if (!scene.dialogue?.length) continue;
+
+      let hasChanges = false;
+      const updatedDialogue = scene.dialogue.map(d => {
+        // Find version for this provider+language
+        const version = d.audioVersions?.find(v => `${v.provider}_${v.language}` === versionKey);
+        if (!version || d.audioUrl === version.audioUrl) return d;
+
+        hasChanges = true;
+        return {
+          ...d,
+          audioUrl: version.audioUrl,
+          audioDuration: version.duration,
+          ttsProvider: provider as 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts',
+        };
+      });
+
+      if (hasChanges) {
+        updateScene(project.id, scene.id, { dialogue: updatedDialogue });
+      }
+    }
+  }, [project.id, project.scenes, updateScene]);
+
+  // Get unique provider+language combinations that have audio versions
+  const getAvailableVersions = useCallback(() => {
+    const versions = new Map<string, { provider: string; language: string; count: number }>();
+
+    for (const line of allDialogueLines) {
+      for (const v of (line.audioVersions || [])) {
+        const key = `${v.provider}_${v.language}`;
+        const existing = versions.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          versions.set(key, { provider: v.provider, language: v.language, count: 1 });
+        }
+      }
+    }
+
+    return Array.from(versions.values());
+  }, [allDialogueLines]);
+
   // Calculate total characters for cost estimation
   const totalCharacters = allDialogueLines.reduce((sum, line) => sum + line.text.length, 0);
 
@@ -415,6 +488,8 @@ export function useVoiceoverAudio(project: Project) {
     deleteAudioForLine,
     deleteAllAudio,
     selectVersion,
+    switchAllToProvider,
+    getAvailableVersions,
     togglePlay,
     setAudioRef,
     handleAudioEnded,
