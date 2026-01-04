@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ExternalLink, Zap, Square, CheckSquare, XSquare, RefreshCw, Clock } from 'lucide-react';
+import { ExternalLink, Zap, Square, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
 import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
 import type { VideoMode } from '../types';
 
@@ -30,7 +31,7 @@ interface VideoQuickActionsProps {
   onSelectAllWithoutVideos?: () => void;
   onClearSelection?: () => void;
   onGenerateSelected?: () => void;
-  onRequestRegeneration?: () => void; // For collaborators to request regeneration
+  onRequestRegeneration?: () => void;
 }
 
 export function VideoQuickActions({
@@ -52,135 +53,101 @@ export function VideoQuickActions({
 }: VideoQuickActionsProps) {
   const t = useTranslations();
 
+  // Build selection options for the shared component
+  const selectionOptions = [];
+  if (onSelectAll) {
+    selectionOptions.push({
+      label: 'Select All',
+      count: scenesWithImages,
+      onClick: onSelectAll,
+      variant: 'orange' as const,
+    });
+  }
+  if (scenesWithVideos > 0 && onSelectAllWithVideos) {
+    selectionOptions.push({
+      label: 'With Videos',
+      count: scenesWithVideos,
+      onClick: onSelectAllWithVideos,
+      variant: 'emerald' as const,
+    });
+  }
+  if (scenesNeedingGeneration > 0 && onSelectAllWithoutVideos) {
+    selectionOptions.push({
+      label: 'Without Videos',
+      count: scenesNeedingGeneration,
+      onClick: onSelectAllWithoutVideos,
+      variant: 'amber' as const,
+    });
+  }
+
   return (
     <div className="space-y-4">
-      {/* Selection Controls */}
+      {/* Selection Controls - using shared component */}
       {scenesWithImages > 0 && onSelectAll && onClearSelection && (
-        <div className="flex flex-wrap gap-3 justify-center items-center glass rounded-xl p-3">
-          <span className="text-sm text-muted-foreground">Selection:</span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-            onClick={onSelectAll}
-            disabled={isGeneratingAll}
-          >
-            <CheckSquare className="w-4 h-4 mr-2" />
-            Select All ({scenesWithImages})
-          </Button>
-          {scenesWithVideos > 0 && onSelectAllWithVideos && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-              onClick={onSelectAllWithVideos}
-              disabled={isGeneratingAll}
-            >
-              <CheckSquare className="w-4 h-4 mr-2" />
-              With Videos ({scenesWithVideos})
-            </Button>
-          )}
-          {scenesNeedingGeneration > 0 && onSelectAllWithoutVideos && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-              onClick={onSelectAllWithoutVideos}
-              disabled={isGeneratingAll}
-            >
-              <CheckSquare className="w-4 h-4 mr-2" />
-              Without Videos ({scenesNeedingGeneration})
-            </Button>
-          )}
-          {selectedCount > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/10 hover:bg-white/5"
-                onClick={onClearSelection}
-                disabled={isGeneratingAll}
-              >
-                <XSquare className="w-4 h-4 mr-2" />
-                Clear
-              </Button>
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
-                onClick={onGenerateSelected}
-                disabled={isGeneratingAll}
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Generate Selected ({selectedCount})
-                <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-                  ~{formatCostCompact(ACTION_COSTS.video.grok * selectedCount)}
-                </Badge>
-              </Button>
-              {onRequestRegeneration && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
-                  onClick={onRequestRegeneration}
-                  disabled={isGeneratingAll}
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Request Approval
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+        <SelectionQuickActions
+          selectedCount={selectedCount}
+          isDisabled={isGeneratingAll}
+          selectionOptions={selectionOptions}
+          onClearSelection={onClearSelection}
+          primaryAction={onGenerateSelected ? {
+            label: 'Generate Selected',
+            onClick: onGenerateSelected,
+            costPerItem: ACTION_COSTS.video.grok,
+            icon: <RefreshCw className="w-4 h-4 mr-2" />,
+          } : undefined}
+          onRequestApproval={onRequestRegeneration}
+        />
       )}
 
       {/* Main Actions */}
       <div className="flex flex-wrap gap-4 justify-center items-center">
-      {/* Mode Selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">{t('steps.videos.mode')}:</span>
-        <Select value={videoMode} onValueChange={(v) => onVideoModeChange(v as VideoMode)}>
-          <SelectTrigger className="w-32 border-white/10 bg-white/5">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="normal">{t('steps.videos.modeNormal')}</SelectItem>
-            <SelectItem value="fun">{t('steps.videos.modeFun')}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        {/* Mode Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{t('steps.videos.mode')}:</span>
+          <Select value={videoMode} onValueChange={(v) => onVideoModeChange(v as VideoMode)}>
+            <SelectTrigger className="w-32 border-white/10 bg-white/5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">{t('steps.videos.modeNormal')}</SelectItem>
+              <SelectItem value="fun">{t('steps.videos.modeFun')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      <Button
-        variant="outline"
-        className="border-white/10 hover:bg-white/5"
-        disabled={scenesWithImages === 0}
-        onClick={() => window.open('https://grok.x.ai', '_blank')}
-      >
-        <ExternalLink className="w-4 h-4 mr-2" />
-        {t('steps.videos.openGrok')}
-      </Button>
-      {isGeneratingAll ? (
         <Button
-          className="bg-red-600 hover:bg-red-500 text-white border-0"
-          onClick={onStopGeneration}
-        >
-          <Square className="w-4 h-4 mr-2" />
-          Stop
-        </Button>
-      ) : (
-        <Button
-          className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
+          variant="outline"
+          className="border-white/10 hover:bg-white/5"
           disabled={scenesWithImages === 0}
-          onClick={onGenerateAll}
+          onClick={() => window.open('https://grok.x.ai', '_blank')}
         >
-          <Zap className="w-4 h-4 mr-2" />
-          {t('steps.videos.generateAll')}
-          <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
-            {scenesNeedingGeneration > 0
-              ? formatCostCompact(scenesNeedingGeneration * ACTION_COSTS.video.grok)
-              : `${formatCostCompact(ACTION_COSTS.video.grok)}/ea`}
-          </Badge>
+          <ExternalLink className="w-4 h-4 mr-2" />
+          {t('steps.videos.openGrok')}
         </Button>
-      )}
+
+        {isGeneratingAll ? (
+          <Button
+            className="bg-red-600 hover:bg-red-500 text-white border-0"
+            onClick={onStopGeneration}
+          >
+            <Square className="w-4 h-4 mr-2" />
+            Stop
+          </Button>
+        ) : (
+          <Button
+            className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-0"
+            disabled={scenesWithImages === 0}
+            onClick={onGenerateAll}
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            {t('steps.videos.generateAll')}
+            <Badge variant="outline" className="ml-2 border-white/30 text-white text-[10px] px-1.5 py-0">
+              {scenesNeedingGeneration > 0
+                ? formatCostCompact(scenesNeedingGeneration * ACTION_COSTS.video.grok)
+                : `${formatCostCompact(ACTION_COSTS.video.grok)}/ea`}
+            </Badge>
+          </Button>
+        )}
       </div>
     </div>
   );

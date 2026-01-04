@@ -1,26 +1,25 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import {
+  useCardActions,
+  CardActionModals,
+  StatusBadges,
+} from '@/components/shared/card-actions';
 import {
   Play,
   Pause,
   RefreshCw,
   Download,
   User,
-  Sparkles,
   Lock,
-  Clock,
-  Trash2,
   Volume2,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
-import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
-import { RegenerationSelectionModal } from '@/components/collaboration/RegenerationSelectionModal';
 import type { DialogueLineCardProps } from '../types';
 
 export function DialogueLineCard({
@@ -52,12 +51,16 @@ export function DialogueLineCard({
   onSelectRegeneration,
 }: DialogueLineCardProps) {
   const t = useTranslations();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDeletionRequest, setShowDeletionRequest] = useState(false);
-  const [showRegenerationModal, setShowRegenerationModal] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
-  // Determine if this dialogue is restricted (non-first dialogue for unauthenticated users)
+  // Use shared card actions hook
+  const cardActions = useCardActions({
+    canDeleteDirectly,
+    approvedRegeneration,
+    onUseRegenerationAttempt,
+    onSelectRegeneration,
+  });
+
+  // Determine if this dialogue is restricted
   const isRestricted = !isAuthenticated && !isFirstDialogue;
 
   // Determine card background based on status
@@ -85,47 +88,34 @@ export function DialogueLineCard({
 
   return (
     <>
-      {/* Admin: Direct delete confirmation */}
-      <ConfirmDeleteDialog
-        open={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        onConfirm={() => {
-          if (onDeleteAudio) {
-            onDeleteAudio();
-          }
-        }}
-        itemName={`Audio for ${character?.name || line.characterName}`}
-      />
-      {/* Collaborator: Request deletion dialog */}
-      <DeletionRequestDialog
+      {/* Shared modals */}
+      <CardActionModals
         projectId={projectId}
         targetType="audio"
         targetId={line.id}
         targetName={`Audio: "${line.text.substring(0, 30)}..."`}
-        open={showDeletionRequest}
-        onOpenChange={setShowDeletionRequest}
-        onRequestSent={onDeletionRequested}
+        showDeleteConfirm={cardActions.showDeleteConfirm}
+        showDeletionRequest={cardActions.showDeletionRequest}
+        showRegenerationModal={cardActions.showRegenerationModal}
+        showLockedModal={cardActions.showLockedModal}
+        setShowDeleteConfirm={cardActions.setShowDeleteConfirm}
+        setShowDeletionRequest={cardActions.setShowDeletionRequest}
+        setShowRegenerationModal={cardActions.setShowRegenerationModal}
+        setShowLockedModal={cardActions.setShowLockedModal}
+        approvedRegeneration={approvedRegeneration}
+        onDelete={onDeleteAudio}
+        onDeletionRequested={onDeletionRequested}
+        onRegenerationAttempt={async () => {
+          if (approvedRegeneration) {
+            await cardActions.handleRegenerationAttempt(approvedRegeneration.id);
+          }
+        }}
+        onRegenerationSelect={async (selectedUrl) => {
+          if (approvedRegeneration) {
+            await cardActions.handleRegenerationSelect(approvedRegeneration.id, selectedUrl);
+          }
+        }}
       />
-      {/* Regeneration Selection Modal */}
-      {approvedRegeneration && onUseRegenerationAttempt && onSelectRegeneration && (
-        <RegenerationSelectionModal
-          open={showRegenerationModal}
-          onOpenChange={setShowRegenerationModal}
-          request={approvedRegeneration}
-          onRegenerate={async () => {
-            setIsRegenerating(true);
-            try {
-              await onUseRegenerationAttempt(approvedRegeneration.id);
-            } finally {
-              setIsRegenerating(false);
-            }
-          }}
-          onSelect={async (selectedUrl) => {
-            await onSelectRegeneration(approvedRegeneration.id, selectedUrl);
-            setShowRegenerationModal(false);
-          }}
-        />
-      )}
 
       <div className={`rounded-lg p-2 flex items-center gap-2 relative overflow-hidden border ${getCardBackground()} ${isRestricted ? 'select-none' : ''}`}>
         {/* Blur overlay for restricted content */}
@@ -164,66 +154,32 @@ export function DialogueLineCard({
             </span>
             <span className="text-muted-foreground ml-1">"{line.text}"</span>
           </p>
-          {/* Status badges - only show if there are any */}
+
+          {/* Status badges using shared component */}
           {(hasPendingRegeneration || hasPendingDeletion || approvedRegeneration) && (
             <div className="flex items-center gap-1 mt-1 flex-wrap">
-              {hasPendingRegeneration && (
-                <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
-                  <Clock className="w-2 h-2" />
-                  Pending
-                </Badge>
-              )}
-              {approvedRegeneration?.status === 'approved' && (
-                <Badge
-                  className="bg-emerald-500 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5 cursor-pointer hover:bg-emerald-400"
-                  onClick={() => setShowRegenerationModal(true)}
-                >
-                  <Sparkles className="w-2 h-2" />
-                  Regen ({approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x)
-                </Badge>
-              )}
-              {approvedRegeneration?.status === 'generating' && (
-                <Badge className="bg-blue-500/90 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
-                  <RefreshCw className="w-2 h-2 animate-spin" />
-                  Gen...
-                </Badge>
-              )}
-              {approvedRegeneration?.status === 'selecting' && (
-                <Badge
-                  className="bg-amber-500 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5 cursor-pointer hover:bg-amber-400"
-                  onClick={() => setShowRegenerationModal(true)}
-                >
-                  <Play className="w-2 h-2" />
-                  Select
-                </Badge>
-              )}
-              {approvedRegeneration?.status === 'awaiting_final' && (
-                <Badge className="bg-purple-500/90 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
-                  <Clock className="w-2 h-2" />
-                  Awaiting
-                </Badge>
-              )}
-              {hasPendingDeletion && (
-                <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1 py-0 flex items-center gap-0.5">
-                  <Trash2 className="w-2 h-2" />
-                  Delete
-                </Badge>
-              )}
+              <StatusBadges
+                hasPendingRegeneration={hasPendingRegeneration}
+                hasPendingDeletion={hasPendingDeletion}
+                approvedRegeneration={approvedRegeneration}
+                onRegenerationClick={() => cardActions.setShowRegenerationModal(true)}
+                pendingLabel="Pending"
+                deletePendingLabel="Delete"
+              />
             </div>
           )}
 
-          {/* Audio Versions - show all available provider+language combinations */}
+          {/* Audio Versions */}
           {line.audioVersions && line.audioVersions.length > 1 && !isRestricted && (
             <div className="flex items-center gap-1 mt-1 flex-wrap">
               <Volume2 className="w-3 h-3 text-muted-foreground" />
               {line.audioVersions.map((version) => {
                 const isActive = line.audioUrl === version.audioUrl;
-                const flag = version.language === 'sk' ? '🇸🇰' : '🇬🇧';
+                const flag = version.language === 'sk' ? '\u{1F1F8}\u{1F1F0}' : '\u{1F1EC}\u{1F1E7}';
                 const providerShort =
                   version.provider === 'gemini-tts' ? 'Gem' :
                   version.provider === 'openai-tts' ? 'OAI' :
                   version.provider === 'elevenlabs' ? 'Elev' : 'Mod';
-                // Distinct colors: Gemini=green, OpenAI=teal, ElevenLabs=blue, Modal=violet
                 const providerColor =
                   version.provider === 'gemini-tts' ? 'bg-green-500' :
                   version.provider === 'openai-tts' ? 'bg-teal-500' :
@@ -251,7 +207,7 @@ export function DialogueLineCard({
             </div>
           )}
 
-          {/* Only load audio for non-restricted content */}
+          {/* Audio element */}
           {line.audioUrl && !isRestricted && (
             <audio
               ref={onAudioRef}
@@ -308,7 +264,7 @@ export function DialogueLineCard({
                   variant="ghost"
                   size="icon"
                   className={`h-6 w-6 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
-                  onClick={() => canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true)}
+                  onClick={cardActions.handleDeleteClick}
                   disabled={hasPendingDeletion}
                   title="Delete audio"
                 >

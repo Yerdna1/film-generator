@@ -1,8 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import {
+  useCardActions,
+  CardActionModals,
+  StatusBadges,
+  getCardStatusBackground,
+} from '@/components/shared/card-actions';
 import {
   Video,
   Play,
@@ -11,10 +16,8 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  Upload,
   Image as ImageIcon,
   MessageSquare,
-  Clock,
   Lock,
   Unlock,
   Trash2,
@@ -32,14 +35,11 @@ import {
 } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyButton } from '@/components/shared/CopyButton';
-import { ConfirmDeleteDialog } from '@/components/shared/ConfirmDeleteDialog';
-import { LockedSceneModal } from '@/components/shared/LockedSceneModal';
 import { StaleVideoWarningModal } from '@/components/shared/StaleVideoWarningModal';
-import { DeletionRequestDialog } from '@/components/collaboration/DeletionRequestDialog';
-import { RegenerationSelectionModal } from '@/components/collaboration/RegenerationSelectionModal';
 import type { Scene } from '@/types/project';
 import type { RegenerationRequest } from '@/types/collaboration';
 import type { VideoStatus } from '../types';
+import { useState } from 'react';
 
 interface SceneVideoCardProps {
   scene: Scene;
@@ -130,18 +130,22 @@ export function SceneVideoCard({
   onToggleLock,
 }: SceneVideoCardProps) {
   const t = useTranslations();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDeletionRequest, setShowDeletionRequest] = useState(false);
-  const [showRegenerationModal, setShowRegenerationModal] = useState(false);
-  const [showLockedModal, setShowLockedModal] = useState(false);
   const [showStaleWarning, setShowStaleWarning] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [isTogglingLock, setIsTogglingLock] = useState(false);
 
-  // Determine if this video is restricted (non-first video for unauthenticated users)
+  // Use shared card actions hook
+  const cardActions = useCardActions({
+    isLocked: scene.locked,
+    canDeleteDirectly,
+    approvedRegeneration,
+    onToggleLock,
+    onUseRegenerationAttempt,
+    onSelectRegeneration,
+  });
+
+  // Determine if this video is restricted
   const isRestricted = !isAuthenticated && scene.videoUrl && !isFirstVideo;
 
-  // Determine if video is stale (image was updated after video was generated)
+  // Determine if video is stale
   const isVideoStale = !!(
     scene.videoUrl &&
     scene.imageUpdatedAt &&
@@ -149,18 +153,9 @@ export function SceneVideoCard({
     new Date(scene.imageUpdatedAt) > new Date(scene.videoGeneratedFromImageAt)
   );
 
-  // Handler for locked actions - shows modal instead of performing action
-  const handleLockedAction = () => {
-    if (scene.locked) {
-      setShowLockedModal(true);
-      return true;
-    }
-    return false;
-  };
-
   // Handle generate video with stale check
   const handleGenerateVideo = () => {
-    if (handleLockedAction()) return;
+    if (cardActions.handleLockedAction()) return;
     if (isVideoStale) {
       setShowStaleWarning(true);
     } else {
@@ -168,428 +163,327 @@ export function SceneVideoCard({
     }
   };
 
-  // Handle lock toggle
-  const handleToggleLock = async () => {
-    if (!onToggleLock) return;
-    setIsTogglingLock(true);
-    try {
-      await onToggleLock();
-    } finally {
-      setIsTogglingLock(false);
-    }
-  };
+  // Get card background based on status
+  const cardBackground = getCardStatusBackground({
+    isLocked: scene.locked,
+    approvedRegeneration,
+    hasPendingRegeneration,
+    hasPendingDeletion,
+  });
 
   return (
     <>
-      {/* Admin: Direct delete confirmation */}
-      <ConfirmDeleteDialog
-        open={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        onConfirm={() => {
-          // For video deletion, we'd need a delete handler
-          // For now this shows the pattern - video deletion may need separate implementation
-        }}
-        itemName={`${scene.title} video`}
-      />
-      {/* Collaborator: Request deletion dialog */}
-      <DeletionRequestDialog
+      {/* Shared modals */}
+      <CardActionModals
         projectId={projectId}
         targetType="video"
         targetId={scene.id}
         targetName={`${scene.title} video`}
-        open={showDeletionRequest}
-        onOpenChange={setShowDeletionRequest}
-        onRequestSent={onDeletionRequested}
+        showDeleteConfirm={cardActions.showDeleteConfirm}
+        showDeletionRequest={cardActions.showDeletionRequest}
+        showRegenerationModal={cardActions.showRegenerationModal}
+        showLockedModal={cardActions.showLockedModal}
+        setShowDeleteConfirm={cardActions.setShowDeleteConfirm}
+        setShowDeletionRequest={cardActions.setShowDeletionRequest}
+        setShowRegenerationModal={cardActions.setShowRegenerationModal}
+        setShowLockedModal={cardActions.setShowLockedModal}
+        approvedRegeneration={approvedRegeneration}
+        onDeletionRequested={onDeletionRequested}
+        onRegenerationAttempt={async () => {
+          if (approvedRegeneration) {
+            await cardActions.handleRegenerationAttempt(approvedRegeneration.id);
+          }
+        }}
+        onRegenerationSelect={async (selectedUrl) => {
+          if (approvedRegeneration) {
+            await cardActions.handleRegenerationSelect(approvedRegeneration.id, selectedUrl);
+          }
+        }}
       />
-      {/* Regeneration Selection Modal for approved requests */}
-      {approvedRegeneration && onUseRegenerationAttempt && onSelectRegeneration && (
-        <RegenerationSelectionModal
-          open={showRegenerationModal}
-          onOpenChange={setShowRegenerationModal}
-          request={approvedRegeneration}
-          onRegenerate={async () => {
-            setIsRegenerating(true);
-            try {
-              await onUseRegenerationAttempt(approvedRegeneration.id);
-            } finally {
-              setIsRegenerating(false);
-            }
-          }}
-          onSelect={async (selectedUrl) => {
-            await onSelectRegeneration(approvedRegeneration.id, selectedUrl);
-            setShowRegenerationModal(false);
-          }}
-        />
-      )}
-      {/* Locked Scene Modal */}
-      <LockedSceneModal
-        isOpen={showLockedModal}
-        onClose={() => setShowLockedModal(false)}
-        sceneName={scene.title}
-      />
+
       {/* Stale Video Warning Modal */}
       <StaleVideoWarningModal
         isOpen={showStaleWarning}
         onClose={() => setShowStaleWarning(false)}
-        onConfirm={() => {
-          onGenerateVideo();
-        }}
+        onConfirm={onGenerateVideo}
         sceneName={scene.title}
         imageUpdatedAt={scene.imageUpdatedAt}
         videoGeneratedAt={scene.videoGeneratedFromImageAt}
       />
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: (index % 12) * 0.05 }}
-    >
-      <Card className={`overflow-hidden ${
-        // Background colors based on regeneration status
-        scene.locked
-          ? 'bg-amber-900/40 border-amber-500/50 ring-1 ring-amber-500/30'
-          : approvedRegeneration?.status === 'approved'
-          ? 'bg-emerald-900/60 border-emerald-400 ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20'
-          : approvedRegeneration?.status === 'generating'
-          ? 'bg-blue-900/60 border-blue-400 ring-2 ring-blue-400/50 shadow-lg shadow-blue-500/20'
-          : approvedRegeneration?.status === 'selecting'
-          ? 'bg-amber-900/60 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/20'
-          : approvedRegeneration?.status === 'awaiting_final'
-          ? 'bg-purple-900/60 border-purple-400 ring-2 ring-purple-400/50 shadow-lg shadow-purple-500/20'
-          : hasPendingRegeneration
-          ? 'bg-cyan-900/50 border-cyan-400 ring-2 ring-cyan-400/40 shadow-lg shadow-cyan-500/20'
-          : hasPendingDeletion
-          ? 'bg-orange-900/50 border-orange-400 ring-2 ring-orange-400/40 shadow-lg shadow-orange-500/20'
-          : 'glass border-white/10'
-      }`}>
-        {/* Video/Image Preview */}
-        <div className="relative aspect-video bg-black/30">
-          {scene.videoUrl && !isRestricted ? (
-            <video
-              src={cachedVideoUrl || scene.videoUrl}
-              className="w-full h-full object-cover"
-              poster={scene.imageUrl}
-              controls={isPlaying}
-              preload="metadata"
-              onPlay={onPlay}
-              onPause={onPause}
-            />
-          ) : scene.imageUrl ? (
-            /* For restricted videos, show only the thumbnail image */
-            <img
-              key={scene.imageUrl}
-              src={scene.imageUrl}
-              alt={scene.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImageIcon className="w-12 h-12 text-muted-foreground/30" />
-            </div>
-          )}
 
-          {/* Status Overlay */}
-          {status === 'generating' && (
-            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="w-12 h-12 mb-3"
-              >
-                <Sparkles className="w-full h-full text-orange-400" />
-              </motion.div>
-              <p className="text-sm text-white mb-2">{t('steps.videos.generatingVideo')}</p>
-              <div className="w-32">
-                <Progress value={progress} className="h-1" />
-              </div>
-              <span className="text-xs text-white/60 mt-1">{progress}%</span>
-            </div>
-          )}
-
-          {/* Play Button Overlay (for completed videos) */}
-          {scene.videoUrl && !isPlaying && (
-            isRestricted ? (
-              /* Sign-in required overlay for restricted videos */
-              <a
-                href="/auth/register"
-                className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer hover:bg-black/70 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2">
-                  <Lock className="w-5 h-5 text-white/70" />
-                </div>
-                <p className="text-xs text-white/80 text-center px-2">
-                  You need to sign in to see more
-                </p>
-                <span className="text-xs text-orange-400 mt-1 underline">
-                  Sign up free
-                </span>
-              </a>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: (index % 12) * 0.05 }}
+      >
+        <Card className={`overflow-hidden ${cardBackground}`}>
+          {/* Video/Image Preview */}
+          <div className="relative aspect-video bg-black/30">
+            {scene.videoUrl && !isRestricted ? (
+              <video
+                src={cachedVideoUrl || scene.videoUrl}
+                className="w-full h-full object-cover"
+                poster={scene.imageUrl}
+                controls={isPlaying}
+                preload="metadata"
+                onPlay={onPlay}
+                onPause={onPause}
+              />
+            ) : scene.imageUrl ? (
+              <img
+                key={scene.imageUrl}
+                src={scene.imageUrl}
+                alt={scene.title}
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <button
-                onClick={onPlay}
-                className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
-              >
-                <div className="w-14 h-14 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors backdrop-blur-sm">
-                  <Play className="w-6 h-6 text-white ml-1" />
-                </div>
-              </button>
-            )
-          )}
-
-          {/* Scene Number Badge */}
-          <div className="absolute top-2 left-2 flex items-center gap-1">
-            <Badge className="bg-black/60 text-white border-0">
-              {t('steps.scenes.sceneLabel')} {scene.number || index + 1}
-            </Badge>
-            {scene.locked && (
-              <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <Lock className="w-2.5 h-2.5" />
-                {t('steps.scenes.status.locked')}
-              </Badge>
-            )}
-            {isVideoStale && !scene.locked && (
-              <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title={t('steps.videos.staleWarning.badge')}>
-                <AlertTriangle className="w-2.5 h-2.5" />
-                {t('steps.videos.staleWarning.badge')}
-              </Badge>
-            )}
-            {hasPendingRegeneration && (
-              <Badge className="bg-cyan-500/80 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <Clock className="w-2.5 h-2.5" />
-                Pending
-              </Badge>
-            )}
-            {approvedRegeneration && approvedRegeneration.status === 'approved' && (
-              <motion.div
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Badge
-                  className="bg-emerald-500 text-white border-2 border-emerald-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-emerald-400 hover:scale-110 transition-all shadow-lg shadow-emerald-500/50"
-                  title={`Click to regenerate!`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowRegenerationModal(true);
-                  }}
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span className="font-bold">CLICK TO REGENERATE</span>
-                  <span className="bg-white/20 px-1 rounded">{approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x</span>
-                </Badge>
-              </motion.div>
-            )}
-            {approvedRegeneration && approvedRegeneration.status === 'generating' && (
-              <Badge className="bg-blue-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                Generating...
-              </Badge>
-            )}
-            {approvedRegeneration && approvedRegeneration.status === 'selecting' && (
-              <motion.div
-                animate={{ scale: [1, 1.08, 1] }}
-                transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Badge
-                  className="bg-amber-500 text-white border-2 border-amber-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-amber-400 hover:scale-110 transition-all shadow-lg shadow-amber-500/50"
-                  title="Click to select your preferred video"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowRegenerationModal(true);
-                  }}
-                >
-                  <Play className="w-3 h-3" />
-                  <span className="font-bold">CLICK TO SELECT BEST</span>
-                </Badge>
-              </motion.div>
-            )}
-            {approvedRegeneration && approvedRegeneration.status === 'awaiting_final' && (
-              <Badge className="bg-purple-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5">
-                <Clock className="w-2.5 h-2.5" />
-                Awaiting Approval
-              </Badge>
-            )}
-            {hasPendingDeletion && (
-              <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title="Deletion request pending admin approval">
-                <Trash2 className="w-2.5 h-2.5" />
-                Delete Pending
-              </Badge>
-            )}
-          </div>
-
-          {/* Status Badge */}
-          <div className="absolute top-2 right-2 flex items-center gap-2">
-            {onToggleSelect && scene.imageUrl && (
-              <div onClick={(e) => e.stopPropagation()}>
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={onToggleSelect}
-                  className="h-5 w-5 border-2 border-white/50 bg-black/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-                />
+              <div className="w-full h-full flex items-center justify-center">
+                <ImageIcon className="w-12 h-12 text-muted-foreground/30" />
               </div>
             )}
-            <Badge variant="outline" className={`${getStatusColor(status)} bg-black/60`}>
-              {getStatusIcon(status)}
-              <span className="ml-1 capitalize">{status}</span>
-            </Badge>
-          </div>
-        </div>
 
-        <CardContent className="p-2 space-y-1.5">
-          {/* Title row with copy button */}
-          <div className="flex items-center justify-between gap-1">
-            <h3 className="font-medium text-sm truncate flex-1">{scene.title}</h3>
-            <CopyButton text={buildFullI2VPrompt(scene)} size="icon" className="h-5 w-5 shrink-0" />
-          </div>
+            {/* Status Overlay */}
+            {status === 'generating' && (
+              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  className="w-12 h-12 mb-3"
+                >
+                  <Sparkles className="w-full h-full text-orange-400" />
+                </motion.div>
+                <p className="text-sm text-white mb-2">{t('steps.videos.generatingVideo')}</p>
+                <div className="w-32">
+                  <Progress value={progress} className="h-1" />
+                </div>
+                <span className="text-xs text-white/60 mt-1">{progress}%</span>
+              </div>
+            )}
 
-          {/* Meta info */}
-          <p className="text-[10px] text-muted-foreground">
-            {scene.duration || 6}s • {scene.cameraShot}
-          </p>
+            {/* Play Button Overlay */}
+            {scene.videoUrl && !isPlaying && (
+              isRestricted ? (
+                <a
+                  href="/auth/register"
+                  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer hover:bg-black/70 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2">
+                    <Lock className="w-5 h-5 text-white/70" />
+                  </div>
+                  <p className="text-xs text-white/80 text-center px-2">
+                    You need to sign in to see more
+                  </p>
+                  <span className="text-xs text-orange-400 mt-1 underline">
+                    Sign up free
+                  </span>
+                </a>
+              ) : (
+                <button
+                  onClick={onPlay}
+                  className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+                >
+                  <div className="w-14 h-14 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors backdrop-blur-sm">
+                    <Play className="w-6 h-6 text-white ml-1" />
+                  </div>
+                </button>
+              )
+            )}
 
-          {/* I2V Prompt - single line with ellipsis */}
-          <p className="text-[10px] text-muted-foreground/70 truncate" title={scene.imageToVideoPrompt}>
-            {scene.imageToVideoPrompt}
-          </p>
-
-          {/* Dialogue - compact inline */}
-          {scene.dialogue && scene.dialogue.length > 0 && (
-            <div className="flex items-center gap-1 text-[10px]">
-              <MessageSquare className="w-3 h-3 text-purple-400 shrink-0" />
-              <span className="text-purple-300 truncate">
-                {scene.dialogue.map(d => d.characterName).join(', ')}
-              </span>
+            {/* Scene Number Badge + Status Badges */}
+            <div className="absolute top-2 left-2 flex items-center gap-1">
+              <Badge className="bg-black/60 text-white border-0">
+                {t('steps.scenes.sceneLabel')} {scene.number || index + 1}
+              </Badge>
+              <StatusBadges
+                isLocked={scene.locked}
+                hasPendingRegeneration={hasPendingRegeneration}
+                hasPendingDeletion={hasPendingDeletion}
+                approvedRegeneration={approvedRegeneration}
+                onRegenerationClick={() => cardActions.setShowRegenerationModal(true)}
+                lockedLabel={t('steps.scenes.status.locked')}
+              />
+              {isVideoStale && !scene.locked && (
+                <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title={t('steps.videos.staleWarning.badge')}>
+                  <AlertTriangle className="w-2.5 h-2.5" />
+                  {t('steps.videos.staleWarning.badge')}
+                </Badge>
+              )}
             </div>
-          )}
 
-          {/* Actions - compact */}
-          <div className="flex gap-1.5 pt-0.5">
-            {scene.imageUrl ? (
-              <>
-                {/* Generate button - only for editors */}
-                {!isReadOnly && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={`flex-1 h-7 ${
-                            scene.locked
-                              ? 'border-amber-500/30 text-amber-400'
-                              : isVideoStale
-                              ? 'border-orange-500/30 text-orange-400'
-                              : 'border-white/10 hover:bg-white/5'
-                          }`}
-                          onClick={handleGenerateVideo}
-                          disabled={status === 'generating'}
-                        >
-                          {status === 'generating' ? (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" />
-                            </motion.div>
-                          ) : scene.locked ? (
-                            <Lock className="w-3.5 h-3.5" />
-                          ) : isVideoStale ? (
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                          ) : (
-                            <Sparkles className="w-3.5 h-3.5" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{scene.locked ? t('steps.scenes.status.locked') : isVideoStale ? t('steps.videos.staleWarning.badge') : t('steps.videos.generateVideo')}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-
-                {/* Lock/Unlock button - admin only */}
-                {isAdmin && onToggleLock && !isReadOnly && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleToggleLock}
-                          disabled={isTogglingLock}
-                          className={`h-7 ${scene.locked ? 'text-amber-400 hover:text-amber-300' : 'text-muted-foreground hover:text-amber-400'}`}
-                        >
-                          {isTogglingLock ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : scene.locked ? (
-                            <Unlock className="w-3.5 h-3.5" />
-                          ) : (
-                            <Lock className="w-3.5 h-3.5" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{scene.locked ? t('steps.scenes.unlock') : t('steps.scenes.lock')}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-
-                {/* Download button - only visible for authenticated users or first video */}
-                {scene.videoUrl && !isRestricted && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-white/10 hover:bg-white/5"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{t('common.download')}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-
-                {/* Delete video button - only for editors with video */}
-                {!isReadOnly && scene.videoUrl && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true)}
-                          className={`h-7 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
-                          disabled={hasPendingDeletion}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete video' : 'Request deletion'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </>
-            ) : !isReadOnly ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-7 border-amber-500/30 text-amber-400 text-xs"
-                disabled
-              >
-                <Upload className="w-3 h-3 mr-1" />
-                {t('steps.videos.needsImage')}
-              </Button>
-            ) : null}
+            {/* Status Badge */}
+            <div className="absolute top-2 right-2 flex items-center gap-2">
+              {onToggleSelect && scene.imageUrl && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={onToggleSelect}
+                    className="h-5 w-5 border-2 border-white/50 bg-black/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                  />
+                </div>
+              )}
+              <Badge variant="outline" className={`${getStatusColor(status)} bg-black/60`}>
+                {getStatusIcon(status)}
+                <span className="ml-1 capitalize">{status}</span>
+              </Badge>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+
+          <CardContent className="p-2 space-y-1.5">
+            {/* Title row with copy button */}
+            <div className="flex items-center justify-between gap-1">
+              <h3 className="font-medium text-sm truncate flex-1">{scene.title}</h3>
+              <CopyButton text={buildFullI2VPrompt(scene)} size="icon" className="h-5 w-5 shrink-0" />
+            </div>
+
+            {/* Meta info */}
+            <p className="text-[10px] text-muted-foreground">
+              {scene.duration || 6}s • {scene.cameraShot}
+            </p>
+
+            {/* I2V Prompt */}
+            <p className="text-[10px] text-muted-foreground/70 truncate" title={scene.imageToVideoPrompt}>
+              {scene.imageToVideoPrompt}
+            </p>
+
+            {/* Dialogue */}
+            {scene.dialogue && scene.dialogue.length > 0 && (
+              <div className="flex items-center gap-1 text-[10px]">
+                <MessageSquare className="w-3 h-3 text-purple-400 shrink-0" />
+                <span className="text-purple-300 truncate">
+                  {scene.dialogue.map(d => d.characterName).join(', ')}
+                </span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-1.5 pt-0.5">
+              {scene.imageUrl ? (
+                <>
+                  {!isReadOnly && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={`flex-1 h-7 ${
+                              scene.locked
+                                ? 'border-amber-500/30 text-amber-400'
+                                : isVideoStale
+                                ? 'border-orange-500/30 text-orange-400'
+                                : 'border-white/10 hover:bg-white/5'
+                            }`}
+                            onClick={handleGenerateVideo}
+                            disabled={status === 'generating'}
+                          >
+                            {status === 'generating' ? (
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </motion.div>
+                            ) : scene.locked ? (
+                              <Lock className="w-3.5 h-3.5" />
+                            ) : isVideoStale ? (
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                            ) : (
+                              <Sparkles className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{scene.locked ? t('steps.scenes.status.locked') : isVideoStale ? t('steps.videos.staleWarning.badge') : t('steps.videos.generateVideo')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+
+                  {/* Lock/Unlock button - admin only */}
+                  {isAdmin && onToggleLock && !isReadOnly && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cardActions.handleToggleLock}
+                            disabled={cardActions.isTogglingLock}
+                            className={`h-7 ${scene.locked ? 'text-amber-400 hover:text-amber-300' : 'text-muted-foreground hover:text-amber-400'}`}
+                          >
+                            {cardActions.isTogglingLock ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : scene.locked ? (
+                              <Unlock className="w-3.5 h-3.5" />
+                            ) : (
+                              <Lock className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{scene.locked ? t('steps.scenes.unlock') : t('steps.scenes.lock')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+
+                  {/* Download button */}
+                  {scene.videoUrl && !isRestricted && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-white/10 hover:bg-white/5"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t('common.download')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+
+                  {/* Delete video button */}
+                  {!isReadOnly && scene.videoUrl && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cardActions.handleDeleteClick}
+                            className={`h-7 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
+                            disabled={hasPendingDeletion}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete video' : 'Request deletion'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </>
+              ) : !isReadOnly ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-7 border-amber-500/30 text-amber-400 text-xs"
+                  disabled
+                >
+                  <ImageIcon className="w-3 h-3 mr-1" />
+                  {t('steps.videos.needsImage')}
+                </Button>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </>
   );
 }
