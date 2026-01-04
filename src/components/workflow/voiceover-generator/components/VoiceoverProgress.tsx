@@ -42,7 +42,7 @@ export function VoiceoverProgress({
   const getProviderInfo = (p: string) => {
     const map: Record<string, { short: string; color: string }> = {
       'gemini-tts': { short: 'Gemini', color: 'bg-green-500' },
-      'openai-tts': { short: 'OpenAI', color: 'bg-emerald-500' },
+      'openai-tts': { short: 'OpenAI', color: 'bg-teal-500' },
       'elevenlabs': { short: 'ElevenLabs', color: 'bg-blue-500' },
       'modal': { short: 'Modal', color: 'bg-violet-500' },
     };
@@ -76,28 +76,6 @@ export function VoiceoverProgress({
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-4 justify-center pt-4">
-        {/* Play All Dialogues */}
-        <Button
-          variant="outline"
-          className={isPlayingAll
-            ? "border-amber-500/50 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
-            : "border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-400"}
-          disabled={generatedCount === 0}
-          onClick={isPlayingAll ? onStopPlayback : onPlayAll}
-        >
-          {isPlayingAll ? (
-            <>
-              <Square className="w-4 h-4 mr-2" />
-              {t('steps.voiceover.stopPlayback')}
-            </>
-          ) : (
-            <>
-              <PlayCircle className="w-4 h-4 mr-2" />
-              {t('steps.voiceover.playAll')}
-            </>
-          )}
-        </Button>
-
         <Button
           className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0"
           disabled={totalCount === 0 || remaining === 0 || isGeneratingAll}
@@ -156,16 +134,54 @@ export function VoiceoverProgress({
           <div className="flex items-center gap-2 mb-3">
             <PlayCircle className="w-4 h-4 text-violet-400" />
             <span className="text-sm font-medium">{t('steps.voiceover.compareVersions')}</span>
+            {/* Playing indicator */}
+            {isPlayingAll && (
+              <div className="flex items-center gap-2 ml-2">
+                <div className="flex items-center gap-1">
+                  <motion.div
+                    className="w-1.5 h-3 bg-emerald-400 rounded-full"
+                    animate={{ scaleY: [1, 1.5, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity, delay: 0 }}
+                  />
+                  <motion.div
+                    className="w-1.5 h-3 bg-emerald-400 rounded-full"
+                    animate={{ scaleY: [1, 1.8, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity, delay: 0.1 }}
+                  />
+                  <motion.div
+                    className="w-1.5 h-3 bg-emerald-400 rounded-full"
+                    animate={{ scaleY: [1, 1.4, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity, delay: 0.2 }}
+                  />
+                </div>
+                <span className="text-xs text-emerald-400 font-medium">
+                  {t('steps.voiceover.playingProvider', { provider: getProviderInfo(provider).short })}
+                </span>
+              </div>
+            )}
             <span className="text-xs text-muted-foreground ml-auto">
               {t('steps.voiceover.clickToSwitch')}
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
+            {/* Stop button when playing */}
+            {isPlayingAll && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-amber-500/50 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                onClick={onStopPlayback}
+              >
+                <Square className="w-3 h-3 mr-1.5" />
+                {t('steps.voiceover.stopPlayback')}
+              </Button>
+            )}
             {availableVersions.map((v) => {
               const info = getProviderInfo(v.provider);
               const flag = v.language === 'sk' ? '🇸🇰' : '🇬🇧';
               const versionKey = `${v.provider}_${v.language}`;
               const isActive = versionKey === currentVersionKey;
+              const isCurrentlyPlaying = isPlayingAll && isActive;
 
               return (
                 <Button
@@ -180,7 +196,17 @@ export function VoiceoverProgress({
                     onPlayAll();
                   }}
                 >
-                  <PlayCircle className="w-3 h-3 mr-1.5" />
+                  {isCurrentlyPlaying ? (
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.8, repeat: Infinity }}
+                      className="mr-1.5"
+                    >
+                      <PlayCircle className="w-3 h-3" />
+                    </motion.div>
+                  ) : (
+                    <PlayCircle className="w-3 h-3 mr-1.5" />
+                  )}
                   {flag} {info.short}
                   <Badge className="ml-1.5 bg-white/20 text-white text-[9px] px-1 py-0 border-0">
                     {v.count}

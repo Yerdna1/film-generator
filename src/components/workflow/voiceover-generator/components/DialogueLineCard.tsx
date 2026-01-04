@@ -224,10 +224,15 @@ export function DialogueLineCard({
                   version.provider === 'gemini-tts' ? 'G' :
                   version.provider === 'openai-tts' ? 'O' :
                   version.provider === 'elevenlabs' ? 'E' : 'M';
+                // Distinct colors: Gemini=green, OpenAI=teal, ElevenLabs=blue, Modal=violet
                 const providerColor =
                   version.provider === 'gemini-tts' ? 'bg-green-500' :
-                  version.provider === 'openai-tts' ? 'bg-emerald-500' :
+                  version.provider === 'openai-tts' ? 'bg-teal-500' :
                   version.provider === 'elevenlabs' ? 'bg-blue-500' : 'bg-violet-500';
+                const providerBorder =
+                  version.provider === 'gemini-tts' ? 'border-green-500/50 text-green-400' :
+                  version.provider === 'openai-tts' ? 'border-teal-500/50 text-teal-400' :
+                  version.provider === 'elevenlabs' ? 'border-blue-500/50 text-blue-400' : 'border-violet-500/50 text-violet-400';
                 return (
                   <Badge
                     key={`${version.provider}_${version.language}`}
@@ -235,7 +240,7 @@ export function DialogueLineCard({
                     className={`text-[9px] px-1.5 py-0 cursor-pointer transition-all ${
                       isActive
                         ? `${providerColor} text-white`
-                        : 'hover:bg-white/10'
+                        : `${providerBorder} hover:bg-white/10`
                     }`}
                     title={`Play ${version.provider} (${version.language}) - Click to switch`}
                     onClick={() => onSelectVersion?.(version.audioUrl, version.provider)}

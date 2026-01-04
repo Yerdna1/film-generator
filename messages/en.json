@@ -307,6 +307,7 @@
       "stopPlayback": "Stop playback",
       "compareVersions": "Compare TTS Versions",
       "clickToSwitch": "Click to switch & play",
+      "playingProvider": "Playing {provider}...",
       "usingTts": "Using TTS voices in video",
       "usingOriginal": "Using original video audio"
     },

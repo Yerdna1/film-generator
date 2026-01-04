@@ -20,6 +20,15 @@ export function useVoiceoverAudio(project: Project) {
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
   const abortRef = useRef(false);  // For stopping batch generation
 
+  // Safe play helper - catches AbortError which is harmless (audio source changed)
+  const safePlay = (lineId: string) => {
+    audioRefs.current[lineId]?.play()?.catch((e: Error) => {
+      if (e.name !== 'AbortError') {
+        console.error('Audio playback error:', e);
+      }
+    });
+  };
+
   // Safety check for scenes array (may be undefined in summary data)
   const allDialogueLines: DialogueLineWithScene[] = (project.scenes || []).flatMap((scene) =>
     (scene.dialogue || []).map((line) => ({
@@ -239,7 +248,7 @@ export function useVoiceoverAudio(project: Project) {
       if (playingAudio) {
         audioRefs.current[playingAudio]?.pause();
       }
-      audioRefs.current[lineId]?.play();
+      safePlay(lineId);
       setPlayingAudio(lineId);
     }
   }, [playingAudio]);
@@ -261,7 +270,7 @@ export function useVoiceoverAudio(project: Project) {
         setScenePlaybackIndex(nextIndex);
         const nextLineId = linesWithAudio[nextIndex].id;
         setPlayingAudio(nextLineId);
-        audioRefs.current[nextLineId]?.play();
+        safePlay(nextLineId);
       } else {
         // All lines played
         setPlayingSceneId(null);
@@ -279,7 +288,7 @@ export function useVoiceoverAudio(project: Project) {
         setScenePlaybackIndex(nextIndex);
         const nextLineId = linesWithAudio[nextIndex].id;
         setPlayingAudio(nextLineId);
-        audioRefs.current[nextLineId]?.play();
+        safePlay(nextLineId);
       } else {
         // All lines played - stop scene playback
         setPlayingSceneId(null);
@@ -308,7 +317,7 @@ export function useVoiceoverAudio(project: Project) {
     setScenePlaybackIndex(0);
     const firstLineId = linesWithAudio[0].id;
     setPlayingAudio(firstLineId);
-    audioRefs.current[firstLineId]?.play();
+    safePlay(firstLineId);
   }, [project.scenes, playingAudio]);
 
   // Stop scene playback
@@ -336,7 +345,7 @@ export function useVoiceoverAudio(project: Project) {
     setScenePlaybackIndex(0);
     const firstLineId = linesWithAudio[0].id;
     setPlayingAudio(firstLineId);
-    audioRefs.current[firstLineId]?.play();
+    safePlay(firstLineId);
   }, [allDialogueLines, playingAudio]);
 
   // Download a single dialogue line audio
@@ -410,10 +419,15 @@ export function useVoiceoverAudio(project: Project) {
     setAudioStates({});
   }, [project.id, project.scenes, updateScene]);
 
-  // Select a specific audio version for a dialogue line
+  // Select a specific audio version for a dialogue line and play it
   const selectVersion = useCallback((lineId: string, sceneId: string, audioUrl: string, provider: string) => {
     const scene = (project.scenes || []).find(s => s.id === sceneId);
     if (!scene?.dialogue) return;
+
+    // Stop any current playback first
+    if (playingAudio) {
+      audioRefs.current[playingAudio]?.pause();
+    }
 
     const updatedDialogue = scene.dialogue.map(d => {
       if (d.id !== lineId) return d;
@@ -428,7 +442,20 @@ export function useVoiceoverAudio(project: Project) {
     });
 
     updateScene(project.id, sceneId, { dialogue: updatedDialogue });
-  }, [project.id, project.scenes, updateScene]);
+
+    // Play the new version after a short delay to allow audio element to update
+    setPlayingAudio(lineId);
+    setTimeout(() => {
+      const audioEl = audioRefs.current[lineId];
+      if (audioEl) {
+        audioEl.load(); // Force reload with new src
+        audioEl.oncanplay = () => {
+          safePlay(lineId);
+          audioEl.oncanplay = null; // Clean up listener
+        };
+      }
+    }, 50);
+  }, [project.id, project.scenes, updateScene, playingAudio]);
 
   // Switch all dialogue lines to a specific provider+language version
   const switchAllToProvider = useCallback((provider: string, language: string) => {

@@ -307,6 +307,7 @@
       "stopPlayback": "Zastaviť prehrávanie",
       "compareVersions": "Porovnať TTS verzie",
       "clickToSwitch": "Kliknite pre prepnutie a prehratie",
+      "playingProvider": "Prehráva sa {provider}...",
       "usingTts": "Použiť TTS hlasy vo videu",
       "usingOriginal": "Použiť pôvodný zvuk videa"
     },
