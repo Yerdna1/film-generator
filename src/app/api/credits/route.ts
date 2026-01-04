@@ -1,6 +1,6 @@
 // Credits API - Get and manage user credits
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireAuth, isErrorResponse } from '@/lib/api';
 import {
   getOrCreateCredits,
   spendCredits,
@@ -13,12 +13,9 @@ import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
 // GET - Get user's credits and optionally transaction history (with 30-min cache)
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    const authResult = await requireAuth();
+    if (isErrorResponse(authResult)) return authResult;
+    const { userId } = authResult;
     const { searchParams } = new URL(request.url);
     const includeHistory = searchParams.get('history') === 'true';
     const historyLimit = parseInt(searchParams.get('limit') || '20');
@@ -92,10 +89,9 @@ export async function GET(request: NextRequest) {
 // POST - Spend or add credits
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAuth();
+    if (isErrorResponse(authResult)) return authResult;
+    const { userId } = authResult;
 
     const { action, amount, type, description, projectId } = await request.json();
 
@@ -108,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'spend') {
       const result = await spendCredits(
-        session.user.id,
+        userId,
         amount,
         type,
         description,
@@ -123,8 +119,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Invalidate all credit-related caches for this user
-      cache.invalidateUser(session.user.id);
-      console.log(`[Cache INVALIDATED] All caches for user ${session.user.id} after spending credits`);
+      cache.invalidateUser(userId);
+      console.log(`[Cache INVALIDATED] All caches for user ${userId} after spending credits`);
 
       return NextResponse.json({
         success: true,
@@ -134,15 +130,15 @@ export async function POST(request: NextRequest) {
 
     if (action === 'add') {
       const result = await addCredits(
-        session.user.id,
+        userId,
         amount,
         type,
         description
       );
 
       // Invalidate all credit-related caches for this user
-      cache.invalidateUser(session.user.id);
-      console.log(`[Cache INVALIDATED] All caches for user ${session.user.id} after adding credits`);
+      cache.invalidateUser(userId);
+      console.log(`[Cache INVALIDATED] All caches for user ${userId} after adding credits`);
 
       return NextResponse.json({
         success: result.success,
