@@ -45,11 +45,17 @@ export function useCredits(options?: { enabled?: boolean }) {
     }
   );
 
+  // Force refresh bypasses server cache by fetching with refresh=true
+  const forceRefresh = async () => {
+    const freshData = await fetcher('/api/credits?history=true&limit=10&refresh=true');
+    mutate(freshData, false); // Update SWR cache without revalidation
+  };
+
   return {
     data,
     isLoading,
     error,
-    refresh: () => mutate(),
+    refresh: forceRefresh,
   };
 }
 
