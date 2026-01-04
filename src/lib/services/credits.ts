@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/db/prisma';
 import { getActionCost, type Provider, type ActionType } from './real-costs';
 import { getStartingCredits } from './app-config';
+import { cache } from '@/lib/cache';
 
 // Cost configuration (in credits)
 // Based on real API costs: 1 credit ≈ $0.005 (video baseline: 20 credits = $0.10)
@@ -210,6 +211,11 @@ export async function spendCredits(
       };
     });
 
+    // Invalidate cache after successful credit spend
+    if (result.success) {
+      cache.invalidateUser(userId);
+    }
+
     return result;
   } catch (error) {
     console.error('Error spending credits:', error);
@@ -318,6 +324,9 @@ export async function addCredits(
 
       return updatedCredits;
     });
+
+    // Invalidate cache after adding credits
+    cache.invalidateUser(userId);
 
     return {
       success: true,
