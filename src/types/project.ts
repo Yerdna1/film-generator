@@ -62,7 +62,10 @@ export type ImageResolution = '1k' | '2k' | '4k';
 
 export type VoiceLanguage = 'sk' | 'en';
 
-export type VoiceProvider = 'gemini-tts' | 'elevenlabs' | 'modal';
+export type VoiceProvider = 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
+
+// Type alias for TTS provider stored in database
+export type TTSProvider = VoiceProvider;
 
 // Project settings
 export interface ProjectSettings {
@@ -87,7 +90,7 @@ export interface StoryConfig {
 // Audio version for a specific provider + language combination
 export interface AudioVersion {
   audioUrl: string;
-  provider: 'gemini-tts' | 'elevenlabs' | 'modal';
+  provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
   language: VoiceLanguage;
   voiceId?: string;
   voiceName?: string;
@@ -104,7 +107,7 @@ export interface DialogueLine {
   // Primary audio (for backwards compatibility and current selection)
   audioUrl?: string;
   audioDuration?: number;
-  ttsProvider?: 'elevenlabs' | 'gemini-tts' | 'modal';
+  ttsProvider?: 'elevenlabs' | 'gemini-tts' | 'modal' | 'openai-tts';
   // All generated audio versions (provider + language combinations)
   audioVersions?: AudioVersion[];
 }
@@ -185,8 +188,8 @@ export type LLMProvider = 'openrouter' | 'claude-sdk' | 'modal';
 // Music Provider selection - PiAPI is default (unified API for Suno/Udio)
 export type MusicProvider = 'piapi' | 'suno' | 'modal';
 
-// TTS Provider selection for voiceover generation
-export type TTSProvider = 'gemini-tts' | 'elevenlabs' | 'modal';
+// TTS Provider selection for voiceover generation (re-export from VoiceProvider)
+// Note: Already defined as VoiceProvider above, this is for backwards compatibility
 
 // Image Provider selection for image generation
 export type ImageProvider = 'gemini' | 'modal' | 'modal-edit';
@@ -211,6 +214,7 @@ export interface ApiConfig {
   grokApiKey?: string;
   kieApiKey?: string;  // Kie.ai API key for Grok Imagine
   elevenLabsApiKey?: string;
+  openaiApiKey?: string;  // OpenAI API key for TTS
   claudeApiKey?: string;
   openRouterApiKey?: string;  // OpenRouter API key for LLM access
   openRouterModel?: string;  // OpenRouter model ID (e.g., 'anthropic/claude-sonnet-4')

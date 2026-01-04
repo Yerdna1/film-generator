@@ -14,6 +14,7 @@ interface ProviderSelectorProps {
 
 const PROVIDERS: { id: VoiceProvider; name: string; color: string; activeColor: string }[] = [
   { id: 'gemini-tts', name: 'Gemini TTS', color: 'border-white/10 hover:bg-white/5', activeColor: 'bg-green-600 hover:bg-green-500 text-white border-0' },
+  { id: 'openai-tts', name: 'OpenAI TTS', color: 'border-white/10 hover:bg-white/5', activeColor: 'bg-emerald-600 hover:bg-emerald-500 text-white border-0' },
   { id: 'elevenlabs', name: 'ElevenLabs', color: 'border-white/10 hover:bg-white/5', activeColor: 'bg-blue-600 hover:bg-blue-500 text-white border-0' },
   { id: 'modal', name: 'Modal', color: 'border-white/10 hover:bg-white/5', activeColor: 'bg-violet-600 hover:bg-violet-500 text-white border-0' },
 ];

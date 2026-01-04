@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { RefreshCw, Download, Zap, Trash2 } from 'lucide-react';
+import { RefreshCw, Download, Zap, Trash2, PlayCircle, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -16,10 +16,13 @@ export function VoiceoverProgress({
   remainingCount,
   totalCharacters,
   isGeneratingAll,
+  isPlayingAll,
   provider,
   onGenerateAll,
   onDownloadAll,
   onDeleteAll,
+  onPlayAll,
+  onStopPlayback,
 }: VoiceoverProgressProps) {
   const t = useTranslations();
 
@@ -55,6 +58,28 @@ export function VoiceoverProgress({
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-4 justify-center pt-4">
+        {/* Play All Dialogues */}
+        <Button
+          variant="outline"
+          className={isPlayingAll
+            ? "border-amber-500/50 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+            : "border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-400"}
+          disabled={generatedCount === 0}
+          onClick={isPlayingAll ? onStopPlayback : onPlayAll}
+        >
+          {isPlayingAll ? (
+            <>
+              <Square className="w-4 h-4 mr-2" />
+              {t('steps.voiceover.stopPlayback')}
+            </>
+          ) : (
+            <>
+              <PlayCircle className="w-4 h-4 mr-2" />
+              {t('steps.voiceover.playAll')}
+            </>
+          )}
+        </Button>
+
         <Button
           className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0"
           disabled={totalCount === 0 || remaining === 0 || isGeneratingAll}

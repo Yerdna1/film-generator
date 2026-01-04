@@ -45,6 +45,8 @@ export function DialogueLineCard({
   onAudioRef,
   onAudioEnded,
   onDownload,
+  onDeleteAudio,
+  onSelectVersion,
   onDeletionRequested,
   onUseRegenerationAttempt,
   onSelectRegeneration,
@@ -88,7 +90,9 @@ export function DialogueLineCard({
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         onConfirm={() => {
-          // Audio deletion would need implementation
+          if (onDeleteAudio) {
+            onDeleteAudio();
+          }
         }}
         itemName={`Audio for ${character?.name || line.characterName}`}
       />
@@ -209,23 +213,31 @@ export function DialogueLineCard({
           )}
 
           {/* Audio Versions - show all available provider+language combinations */}
-          {line.audioVersions && line.audioVersions.length > 0 && !isRestricted && (
+          {line.audioVersions && line.audioVersions.length > 1 && !isRestricted && (
             <div className="flex items-center gap-1 mt-1 flex-wrap">
               <Volume2 className="w-3 h-3 text-muted-foreground" />
               {line.audioVersions.map((version) => {
                 const isActive = line.audioUrl === version.audioUrl;
                 const flag = version.language === 'sk' ? '🇸🇰' : '🇬🇧';
-                const providerShort = version.provider === 'gemini-tts' ? 'G' : version.provider === 'elevenlabs' ? 'E' : 'M';
+                const providerShort =
+                  version.provider === 'gemini-tts' ? 'G' :
+                  version.provider === 'openai-tts' ? 'O' :
+                  version.provider === 'elevenlabs' ? 'E' : 'M';
+                const providerColor =
+                  version.provider === 'gemini-tts' ? 'bg-green-500' :
+                  version.provider === 'openai-tts' ? 'bg-emerald-500' :
+                  version.provider === 'elevenlabs' ? 'bg-blue-500' : 'bg-violet-500';
                 return (
                   <Badge
                     key={`${version.provider}_${version.language}`}
                     variant={isActive ? 'default' : 'outline'}
-                    className={`text-[9px] px-1 py-0 cursor-pointer transition-all ${
+                    className={`text-[9px] px-1.5 py-0 cursor-pointer transition-all ${
                       isActive
-                        ? 'bg-violet-500 text-white'
+                        ? `${providerColor} text-white`
                         : 'hover:bg-white/10'
                     }`}
-                    title={`${version.provider} (${version.language})`}
+                    title={`Play ${version.provider} (${version.language}) - Click to switch`}
+                    onClick={() => onSelectVersion?.(version.audioUrl, version.provider)}
                   >
                     {flag}{providerShort}
                   </Badge>

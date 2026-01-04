@@ -302,6 +302,7 @@ export function useSettings() {
       'gemini-tts': tPage('toasts.ttsProviderGemini') || 'Using Gemini TTS for voiceovers',
       'elevenlabs': tPage('toasts.ttsProviderElevenLabs') || 'Using ElevenLabs for voiceovers',
       'modal': tPage('toasts.ttsProviderModal') || 'Using self-hosted TTS on Modal.com',
+      'openai-tts': tPage('toasts.ttsProviderOpenAI') || 'Using OpenAI TTS for voiceovers',
     };
     toast.success(
       tPage('toasts.ttsProviderChanged') || 'TTS provider updated',

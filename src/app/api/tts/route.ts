@@ -1,5 +1,5 @@
 // Unified TTS API Route - Routes to appropriate provider based on user settings
-// Supports: Gemini TTS, ElevenLabs, Modal (self-hosted)
+// Supports: Gemini TTS, ElevenLabs, Modal (self-hosted), OpenAI TTS
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
@@ -12,6 +12,7 @@ import type { TTSProvider } from '@/types/project';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
+const OPENAI_API_URL = 'https://api.openai.com/v1/audio/speech';
 
 export const maxDuration = 60;
 
@@ -184,6 +185,67 @@ async function generateWithElevenLabs(
   return { audioUrl, cost: realCost, storage: isS3Configured() && !audioUrl.startsWith('data:') ? 's3' : 'base64' };
 }
 
+// Generate audio using OpenAI TTS (gpt-4o-mini-tts)
+async function generateWithOpenAI(
+  text: string,
+  voiceId: string,
+  language: string,
+  projectId: string | undefined,
+  apiKey: string,
+  userId: string | undefined
+): Promise<{ audioUrl: string; cost: number; storage: string }> {
+  console.log('[OpenAI TTS] Generating with voice:', voiceId);
+
+  // OpenAI supports instructions for voice styling
+  // For Slovak, we can add instructions
+  const instructions = language === 'sk'
+    ? 'Speak in Slovak with natural pronunciation and intonation.'
+    : undefined;
+
+  const response = await fetch(OPENAI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini-tts',
+      input: text,
+      voice: voiceId,
+      response_format: 'mp3',
+      ...(instructions && { instructions }),
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI TTS generation failed: ${errorText}`);
+  }
+
+  // Get audio as blob
+  const audioBlob = await response.blob();
+  const audioBuffer = await audioBlob.arrayBuffer();
+  const base64 = Buffer.from(audioBuffer).toString('base64');
+  const base64AudioUrl = `data:audio/mpeg;base64,${base64}`;
+
+  // OpenAI TTS pricing: $15 per 1M characters = $0.015 per 1K chars
+  const realCost = calculateVoiceCost(text.length, 'openaiTts');
+
+  if (userId) {
+    await spendCredits(userId, COSTS.VOICEOVER_LINE, 'voiceover', `OpenAI TTS (${text.length} chars)`, projectId, 'openai-tts', { characterCount: text.length }, realCost);
+  }
+
+  let audioUrl = base64AudioUrl;
+  if (isS3Configured()) {
+    const uploadResult = await uploadAudioToS3(base64AudioUrl, projectId);
+    if (uploadResult.success && uploadResult.url) {
+      audioUrl = uploadResult.url;
+    }
+  }
+
+  return { audioUrl, cost: realCost, storage: isS3Configured() && !audioUrl.startsWith('data:') ? 's3' : 'base64' };
+}
+
 // Generate audio using Modal (self-hosted)
 async function generateWithModal(
   text: string,
@@ -263,6 +325,7 @@ export async function POST(request: NextRequest) {
     let ttsProvider: TTSProvider = requestedProvider || 'gemini-tts';  // Use UI provider first
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+    let openaiApiKey = process.env.OPENAI_API_KEY;
     let modalTtsEndpoint: string | null = null;
 
     if (session?.user?.id) {
@@ -277,6 +340,7 @@ export async function POST(request: NextRequest) {
         }
         if (userApiKeys.geminiApiKey) geminiApiKey = userApiKeys.geminiApiKey;
         if (userApiKeys.elevenLabsApiKey) elevenLabsApiKey = userApiKeys.elevenLabsApiKey;
+        if (userApiKeys.openaiApiKey) openaiApiKey = userApiKeys.openaiApiKey;
         modalTtsEndpoint = userApiKeys.modalTtsEndpoint;
       }
 
@@ -312,6 +376,17 @@ export async function POST(request: NextRequest) {
         );
       }
       const result = await generateWithElevenLabs(text, voiceId, projectId, elevenLabsApiKey, session?.user?.id, stability, similarityBoost, style);
+      return NextResponse.json(result);
+    }
+
+    if (ttsProvider === 'openai-tts') {
+      if (!openaiApiKey) {
+        return NextResponse.json(
+          { error: 'OpenAI API key not configured. Please add your API key in Settings.' },
+          { status: 500 }
+        );
+      }
+      const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, session?.user?.id);
       return NextResponse.json(result);
     }
 

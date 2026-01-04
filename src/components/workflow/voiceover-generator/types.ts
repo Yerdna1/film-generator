@@ -49,6 +49,21 @@ export const GEMINI_VOICES: VoiceOption[] = [
   { id: 'Iapetus', name: 'Iapetus', description: 'Warm male voice' },
 ];
 
+// OpenAI TTS voices (gpt-4o-mini-tts model with voice instructions support)
+export const OPENAI_VOICES: VoiceOption[] = [
+  { id: 'alloy', name: 'Alloy', description: 'Neutral, balanced voice' },
+  { id: 'ash', name: 'Ash', description: 'Warm, expressive voice' },
+  { id: 'ballad', name: 'Ballad', description: 'Storytelling voice' },
+  { id: 'coral', name: 'Coral', description: 'Friendly, energetic voice' },
+  { id: 'echo', name: 'Echo', description: 'Clear, refined voice' },
+  { id: 'fable', name: 'Fable', description: 'British, expressive voice' },
+  { id: 'onyx', name: 'Onyx', description: 'Deep, authoritative voice' },
+  { id: 'nova', name: 'Nova', description: 'Warm, conversational voice' },
+  { id: 'sage', name: 'Sage', description: 'Calm, reassuring voice' },
+  { id: 'shimmer', name: 'Shimmer', description: 'Light, theatrical voice' },
+  { id: 'verse', name: 'Verse', description: 'Mellow, laid-back voice' },
+];
+
 // Helper to migrate old placeholder voice IDs to valid Gemini TTS voices
 export const getValidGeminiVoice = (voiceId: string | undefined): string => {
   if (voiceId && GEMINI_VOICES.some(v => v.id.toLowerCase() === voiceId.toLowerCase())) {
@@ -69,7 +84,16 @@ export const getValidGeminiVoice = (voiceId: string | undefined): string => {
 };
 
 export const getVoicesForProvider = (provider: VoiceProvider): VoiceOption[] => {
-  return provider === 'gemini-tts' ? GEMINI_VOICES : ELEVENLABS_VOICES;
+  switch (provider) {
+    case 'gemini-tts':
+      return GEMINI_VOICES;
+    case 'elevenlabs':
+      return ELEVENLABS_VOICES;
+    case 'openai-tts':
+      return OPENAI_VOICES;
+    default:
+      return GEMINI_VOICES;
+  }
 };
 
 export interface DialogueLineWithScene extends DialogueLine {
@@ -97,10 +121,13 @@ export interface VoiceoverProgressProps {
   remainingCount: number;
   totalCharacters: number;
   isGeneratingAll: boolean;
+  isPlayingAll: boolean;
   provider: VoiceProvider;
   onGenerateAll: () => void;
   onDownloadAll: () => void;
   onDeleteAll: () => void;
+  onPlayAll: () => void;
+  onStopPlayback: () => void;
 }
 
 export interface DialogueLineCardProps {
@@ -124,6 +151,8 @@ export interface DialogueLineCardProps {
   onAudioRef: (el: HTMLAudioElement | null) => void;
   onAudioEnded: () => void;
   onDownload?: () => void;
+  onDeleteAudio?: () => void;
+  onSelectVersion?: (audioUrl: string, provider: string) => void;
   onDeletionRequested?: () => void;
   onUseRegenerationAttempt?: (requestId: string) => Promise<void>;
   onSelectRegeneration?: (requestId: string, selectedUrl: string) => Promise<void>;
@@ -156,6 +185,8 @@ export interface SceneDialogueCardProps {
   onAudioRef: (lineId: string, el: HTMLAudioElement | null) => void;
   onAudioEnded: () => void;
   onDownloadLine?: (lineId: string) => void;
+  onDeleteAudio?: (lineId: string, sceneId: string) => void;
+  onSelectVersion?: (lineId: string, sceneId: string, audioUrl: string, provider: string) => void;
   onPlayAllScene?: (sceneId: string) => void;
   onStopScenePlayback?: () => void;
   onToggleUseTts?: (sceneId: string) => void;

@@ -23,6 +23,7 @@ interface ProviderCost {
 
 // Pricing constants (from real-costs.ts)
 const GEMINI_PER_1K_CHARS = 0.016;
+const OPENAI_PER_1K_CHARS = 0.015; // $15/1M chars = $0.015/1K chars
 const ELEVENLABS_PER_1K_CHARS = 1.10; // ~€1/1K chars
 const MODAL_PER_LINE = 0.01;
 
@@ -35,6 +36,7 @@ export function TTSPriceComparison({
 
   const providerCosts = useMemo<ProviderCost[]>(() => {
     const geminiTotal = (totalCharacters / 1000) * GEMINI_PER_1K_CHARS;
+    const openaiTotal = (totalCharacters / 1000) * OPENAI_PER_1K_CHARS;
     const elevenLabsTotal = (totalCharacters / 1000) * ELEVENLABS_PER_1K_CHARS;
     const modalTotal = lineCount * MODAL_PER_LINE;
 
@@ -45,6 +47,13 @@ export function TTSPriceComparison({
         pricingModel: '$0.016/1K chars',
         totalCost: geminiTotal,
         perLineCost: lineCount > 0 ? geminiTotal / lineCount : 0,
+      },
+      {
+        id: 'openai-tts' as VoiceProvider,
+        name: 'OpenAI TTS',
+        pricingModel: '$0.015/1K chars',
+        totalCost: openaiTotal,
+        perLineCost: lineCount > 0 ? openaiTotal / lineCount : 0,
       },
       {
         id: 'elevenlabs' as VoiceProvider,
@@ -81,7 +90,7 @@ export function TTSPriceComparison({
         </Badge>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {providerCosts.map((provider) => {
           const isSelected = provider.id === currentProvider;
           const isCheapest = provider.id === cheapestProvider.id;

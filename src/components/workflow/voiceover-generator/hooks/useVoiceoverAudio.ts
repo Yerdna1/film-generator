@@ -30,12 +30,13 @@ export function useVoiceoverAudio(project: Project) {
     }))
   );
 
-  const generateAudioForLine = useCallback(async (lineId: string, sceneId: string) => {
+  // Return type indicates: true = success, false = failed, 'insufficient_credits' = stop batch
+  const generateAudioForLine = useCallback(async (lineId: string, sceneId: string): Promise<boolean | 'insufficient_credits'> => {
     // Read fresh data from store to avoid race conditions when generating multiple lines
     const freshProject = useProjectStore.getState().projects.find(p => p.id === project.id);
     const scene = (freshProject?.scenes || project.scenes || []).find((s) => s.id === sceneId);
     const line = scene?.dialogue?.find((l) => l.id === lineId);
-    if (!line) return;
+    if (!line) return false;
 
     const character = (freshProject?.characters || project.characters || []).find((c) => c.id === line.characterId);
 
@@ -76,7 +77,7 @@ export function useVoiceoverAudio(project: Project) {
           ...prev,
           [lineId]: { status: 'idle', progress: 0 },
         }));
-        return;
+        return 'insufficient_credits';
       }
 
       setAudioStates((prev) => ({
@@ -94,7 +95,7 @@ export function useVoiceoverAudio(project: Project) {
 
           if (!currentScene?.dialogue) {
             console.error('Scene not found for audio update:', sceneId);
-            return;
+            return false;
           }
 
           const usedProvider = project.voiceSettings.provider;
@@ -138,7 +139,7 @@ export function useVoiceoverAudio(project: Project) {
             [lineId]: { status: 'complete', progress: 100 },
           }));
           window.dispatchEvent(new CustomEvent('credits-updated'));
-          return;
+          return true;
         }
       }
 
@@ -152,6 +153,7 @@ export function useVoiceoverAudio(project: Project) {
           error: errorData.error || 'TTS API not configured - check Settings'
         },
       }));
+      return false;
     } catch (error) {
       console.error('Error generating audio:', error);
       setAudioStates((prev) => ({
@@ -162,6 +164,7 @@ export function useVoiceoverAudio(project: Project) {
           error: error instanceof Error ? error.message : 'Generation failed'
         },
       }));
+      return false;
     }
   }, [project, updateScene, handleApiResponse]);
 
@@ -175,7 +178,12 @@ export function useVoiceoverAudio(project: Project) {
       }
       const line = allDialogueLines[i];
       if (!line.audioUrl) {
-        await generateAudioForLine(line.id, line.sceneId);
+        const result = await generateAudioForLine(line.id, line.sceneId);
+        // Stop batch generation if insufficient credits
+        if (result === 'insufficient_credits') {
+          console.log('TTS generation stopped: insufficient credits');
+          break;
+        }
         // Add delay between requests to avoid rate limits (Gemini: 10 req/min)
         // Wait 7 seconds between requests to stay under limit
         if (i < allDialogueLines.length - 1 && !abortRef.current) {
@@ -211,9 +219,26 @@ export function useVoiceoverAudio(project: Project) {
     }
   }, []);
 
-  // Handle audio ended - supports sequential scene playback
+  // Handle audio ended - supports sequential scene and global playback
   const handleAudioEnded = useCallback(() => {
-    if (playingSceneId) {
+    if (playingSceneId === '__all__') {
+      // Global playback - all dialogues across all scenes
+      const linesWithAudio = allDialogueLines.filter(l => l.audioUrl);
+      const nextIndex = scenePlaybackIndex + 1;
+
+      if (nextIndex < linesWithAudio.length) {
+        setScenePlaybackIndex(nextIndex);
+        const nextLineId = linesWithAudio[nextIndex].id;
+        setPlayingAudio(nextLineId);
+        audioRefs.current[nextLineId]?.play();
+      } else {
+        // All lines played
+        setPlayingSceneId(null);
+        setScenePlaybackIndex(0);
+        setPlayingAudio(null);
+      }
+    } else if (playingSceneId) {
+      // Scene-specific playback
       const scene = (project.scenes || []).find(s => s.id === playingSceneId);
       const linesWithAudio = scene?.dialogue?.filter(l => l.audioUrl) || [];
       const nextIndex = scenePlaybackIndex + 1;
@@ -233,7 +258,7 @@ export function useVoiceoverAudio(project: Project) {
     } else {
       setPlayingAudio(null);
     }
-  }, [playingSceneId, scenePlaybackIndex, project.scenes]);
+  }, [playingSceneId, scenePlaybackIndex, project.scenes, allDialogueLines]);
 
   // Play all voices in a scene sequentially
   const playAllSceneVoices = useCallback((sceneId: string) => {
@@ -265,6 +290,24 @@ export function useVoiceoverAudio(project: Project) {
     setPlayingAudio(null);
   }, [playingAudio]);
 
+  // Play all dialogues across all scenes sequentially
+  const playAllDialogues = useCallback(() => {
+    const linesWithAudio = allDialogueLines.filter(l => l.audioUrl);
+    if (linesWithAudio.length === 0) return;
+
+    // Stop any current playback
+    if (playingAudio) {
+      audioRefs.current[playingAudio]?.pause();
+    }
+
+    // Use first scene's ID to track that we're doing global playback
+    setPlayingSceneId('__all__');
+    setScenePlaybackIndex(0);
+    const firstLineId = linesWithAudio[0].id;
+    setPlayingAudio(firstLineId);
+    audioRefs.current[firstLineId]?.play();
+  }, [allDialogueLines, playingAudio]);
+
   // Download a single dialogue line audio
   const downloadLine = useCallback(async (lineId: string) => {
     const line = allDialogueLines.find(l => l.id === lineId);
@@ -286,6 +329,33 @@ export function useVoiceoverAudio(project: Project) {
       console.error('Error downloading audio:', error);
     }
   }, [allDialogueLines]);
+
+  // Delete audio for a single dialogue line
+  const deleteAudioForLine = useCallback(async (lineId: string, sceneId: string) => {
+    const scene = (project.scenes || []).find(s => s.id === sceneId);
+    if (!scene?.dialogue) return;
+
+    const updatedDialogue = scene.dialogue.map(d => {
+      if (d.id !== lineId) return d;
+      return {
+        ...d,
+        audioUrl: undefined,
+        audioDuration: undefined,
+        ttsProvider: undefined,
+        audioVersions: [],
+      };
+    });
+
+    // Update the scene in the store
+    updateScene(project.id, sceneId, { dialogue: updatedDialogue });
+
+    // Reset audio state for this line
+    setAudioStates((prev) => {
+      const newStates = { ...prev };
+      delete newStates[lineId];
+      return newStates;
+    });
+  }, [project.id, project.scenes, updateScene]);
 
   // Delete all audio from all dialogue lines
   const deleteAllAudio = useCallback(async () => {
@@ -309,6 +379,26 @@ export function useVoiceoverAudio(project: Project) {
     setAudioStates({});
   }, [project.id, project.scenes, updateScene]);
 
+  // Select a specific audio version for a dialogue line
+  const selectVersion = useCallback((lineId: string, sceneId: string, audioUrl: string, provider: string) => {
+    const scene = (project.scenes || []).find(s => s.id === sceneId);
+    if (!scene?.dialogue) return;
+
+    const updatedDialogue = scene.dialogue.map(d => {
+      if (d.id !== lineId) return d;
+      // Find the version to get duration
+      const version = d.audioVersions?.find(v => v.audioUrl === audioUrl);
+      return {
+        ...d,
+        audioUrl,
+        audioDuration: version?.duration,
+        ttsProvider: provider as 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts',
+      };
+    });
+
+    updateScene(project.id, sceneId, { dialogue: updatedDialogue });
+  }, [project.id, project.scenes, updateScene]);
+
   // Calculate total characters for cost estimation
   const totalCharacters = allDialogueLines.reduce((sum, line) => sum + line.text.length, 0);
 
@@ -322,11 +412,14 @@ export function useVoiceoverAudio(project: Project) {
     generateAudioForLine,
     handleGenerateAll,
     stopGeneratingAll,
+    deleteAudioForLine,
     deleteAllAudio,
+    selectVersion,
     togglePlay,
     setAudioRef,
     handleAudioEnded,
     playAllSceneVoices,
+    playAllDialogues,
     stopScenePlayback,
     downloadLine,
   };

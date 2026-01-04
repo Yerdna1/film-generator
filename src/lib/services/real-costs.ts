@@ -61,6 +61,13 @@ export const PROVIDER_COSTS = {
     voicePer1K: 1.10,
   },
 
+  // OpenAI TTS (gpt-4o-mini-tts)
+  // Source: https://openai.com/api/pricing/
+  // $15 per 1M characters = $0.015 per 1K characters
+  openai: {
+    ttsPer1K: 0.015,
+  },
+
   // Grok / Kie.ai (Video generation)
   grok: {
     // Per 6-second video clip
@@ -156,6 +163,7 @@ export const ACTION_COSTS = {
   voiceover: {
     elevenlabs: 0.03,
     geminiTts: 0.002,
+    openaiTts: 0.0015,        // OpenAI TTS: ~$0.0015 per 100 chars ($0.015/1K chars)
     modal: 0.01,              // Modal Chatterbox TTS: ~$0.01 per line
   },
 
@@ -202,7 +210,7 @@ export const ACTION_COSTS = {
 } as const;
 
 // Type definitions
-export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'claude' | 'claude-sdk' | 'suno' | 'piapi' | 'modal' | 'modal-edit' | 'modal-vectcut' | 'openrouter';
+export type Provider = 'gemini' | 'gemini-tts' | 'elevenlabs' | 'grok' | 'kie' | 'claude' | 'claude-sdk' | 'suno' | 'piapi' | 'modal' | 'modal-edit' | 'modal-vectcut' | 'openrouter' | 'openai-tts';
 export type ActionType = 'image' | 'video' | 'voiceover' | 'scene' | 'character' | 'prompt' | 'music' | 'videoComposition';
 
 export interface CostEstimate {
@@ -314,7 +322,7 @@ export function formatCostCompact(cost: number): string {
  */
 export function calculateVoiceCost(
   characterCount: number,
-  provider: 'elevenlabs' | 'geminiTts'
+  provider: 'elevenlabs' | 'geminiTts' | 'openaiTts'
 ): number {
   if (provider === 'elevenlabs') {
     return (characterCount / 1000) * PROVIDER_COSTS.elevenlabs.voicePer1K;
@@ -322,6 +330,10 @@ export function calculateVoiceCost(
 
   if (provider === 'geminiTts') {
     return (characterCount / 1000) * PROVIDER_COSTS.gemini.ttsPer1K;
+  }
+
+  if (provider === 'openaiTts') {
+    return (characterCount / 1000) * PROVIDER_COSTS.openai.ttsPer1K;
   }
 
   return 0;
@@ -362,15 +374,21 @@ export function estimateVideosCost(
  */
 export function estimateVoiceoversCost(
   lineCount: number,
-  provider: 'elevenlabs' | 'geminiTts' = 'elevenlabs',
+  provider: 'elevenlabs' | 'geminiTts' | 'openaiTts' = 'elevenlabs',
   avgCharsPerLine: number = 100
 ): CostEstimate {
   const totalChars = lineCount * avgCharsPerLine;
   const totalCost = calculateVoiceCost(totalChars, provider);
 
+  const providerMap: Record<string, Provider> = {
+    geminiTts: 'gemini-tts',
+    elevenlabs: 'elevenlabs',
+    openaiTts: 'openai-tts',
+  };
+
   return {
     action: 'voiceover',
-    provider: provider === 'geminiTts' ? 'gemini' : 'elevenlabs',
+    provider: providerMap[provider] || 'elevenlabs',
     cost: totalCost / lineCount,
     quantity: lineCount,
     totalCost,

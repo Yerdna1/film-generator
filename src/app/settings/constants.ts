@@ -199,7 +199,7 @@ export const musicProviderOptions: MusicProviderOption[] = [
 
 // TTS Provider options for voiceover generation
 export interface TTSProviderOption {
-  id: 'gemini-tts' | 'elevenlabs' | 'modal';
+  id: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
   name: string;
   description: string;
   requiresApiKey: boolean;
@@ -215,6 +215,13 @@ export const ttsProviderOptions: TTSProviderOption[] = [
     description: 'Google Gemini TTS with excellent Slovak language support.',
     requiresApiKey: true,
     apiKeyField: 'geminiApiKey',
+  },
+  {
+    id: 'openai-tts',
+    name: 'OpenAI TTS',
+    description: 'OpenAI gpt-4o-mini-tts with voice instructions support. High quality.',
+    requiresApiKey: true,
+    apiKeyField: 'openaiApiKey',
   },
   {
     id: 'elevenlabs',
@@ -379,6 +386,15 @@ export const apiProviders: ApiProvider[] = [
     color: 'text-blue-400',
     bgColor: 'bg-blue-500/20',
     link: 'https://makersuite.google.com/app/apikey',
+  },
+  {
+    key: 'openaiApiKey',
+    name: 'OpenAI',
+    description: 'OpenAI TTS with gpt-4o-mini-tts voice model',
+    icon: Sparkles,
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    link: 'https://platform.openai.com/api-keys',
   },
   {
     key: 'elevenLabsApiKey',

@@ -29,9 +29,11 @@ export function SceneDialogueCard({
   onAudioRef,
   onAudioEnded,
   onDownloadLine,
+  onDeleteAudio,
   onPlayAllScene,
   onStopScenePlayback,
   onToggleUseTts,
+  onSelectVersion,
   onDeletionRequested,
   onUseRegenerationAttempt,
   onSelectRegeneration,
@@ -120,6 +122,8 @@ export function SceneDialogueCard({
                 onAudioRef={(el) => onAudioRef(line.id, el)}
                 onAudioEnded={onAudioEnded}
                 onDownload={onDownloadLine ? () => onDownloadLine(line.id) : undefined}
+                onDeleteAudio={onDeleteAudio ? () => onDeleteAudio(line.id, scene.id) : undefined}
+                onSelectVersion={onSelectVersion ? (audioUrl, provider) => onSelectVersion(line.id, scene.id, audioUrl, provider) : undefined}
                 onDeletionRequested={onDeletionRequested}
                 onUseRegenerationAttempt={onUseRegenerationAttempt}
                 onSelectRegeneration={onSelectRegeneration}

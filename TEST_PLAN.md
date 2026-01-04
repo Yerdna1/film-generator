@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines a multi-phase testing strategy covering all critical aspects of the Film Generator application. The plan includes approximately **815 test cases** organized across 16 phases.
+This document outlines a multi-phase testing strategy covering all critical aspects of the Film Generator application. The plan includes approximately **830 test cases** organized across 16 phases.
 
 **Application Inventory:**
 - 62 API route files with ~90 HTTP methods
@@ -927,7 +927,7 @@ npm run test:watch
 
 ---
 
-### 8.5 Step 5 - Voiceover Generator Tests (10 tests)
+### 8.5 Step 5 - Voiceover Generator Tests (20 tests)
 
 **File:** `src/components/workflow/__tests__/step5-voiceover-generator.test.tsx`
 
@@ -943,6 +943,16 @@ npm run test:watch
 | 453 | `dialogue line card` | Shows dialogue |
 | 454 | `voiceover progress` | Shows completion % |
 | 455 | `download all button` | Batch download |
+| 456 | `delete single voiceover - admin confirm dialog` | Admin sees confirm delete dialog |
+| 457 | `delete single voiceover - admin executes delete` | Confirms and deletes audio |
+| 458 | `delete single voiceover - clears audioUrl` | audioUrl, audioDuration, audioVersions cleared |
+| 459 | `delete single voiceover - collaborator requests` | Collaborator sees request deletion dialog |
+| 460 | `generate all voiceovers - deducts credits per line` | Each line deducts 6 credits |
+| 461 | `generate all voiceovers - tracks real cost per line` | Real cost tracked for each generation |
+| 462 | `generate all voiceovers - stops on insufficient credits` | Loop breaks when 402 received |
+| 463 | `generate all voiceovers - shows insufficient credits modal` | Modal displayed on 402 |
+| 464 | `generate all voiceovers - partial success on low credits` | Generates what it can before stopping |
+| 465 | `generate all voiceovers - respects 7s delay between calls` | Rate limit compliance |
 
 ---
 
@@ -1036,7 +1046,7 @@ npm run test:watch
 
 ---
 
-### 10.3 TTS Generation Costs (10 tests)
+### 10.3 TTS Generation Costs (15 tests)
 
 **File:** `src/app/api/tts/__tests__/tts-costs.test.ts`
 
@@ -1052,6 +1062,11 @@ npm run test:watch
 | 513 | `tts gen - voice recorded` | Voice in metadata |
 | 514 | `tts gen - character count tracked` | Count in metadata |
 | 515 | `tts gen - projectId associated` | Project linked |
+| 516 | `tts batch - deducts credits N times for N lines` | Each API call deducts independently |
+| 517 | `tts batch - tracks real cost N times for N lines` | Each API call tracks cost |
+| 518 | `tts batch - returns 402 when credits exhausted` | Proper insufficient credits response |
+| 519 | `tts batch - stops loop on 402 response` | Batch generation halts on insufficient credits |
+| 520 | `tts batch - partial generation creates N transactions` | N successful = N transactions |
 
 ---
 
@@ -1241,12 +1256,12 @@ npm run test:watch
 | 5 | 25 | Statistics & Reporting Tests |
 | 6 | 25 | Edge Cases & Security Tests |
 | 7 | 90 | Complete API Route Tests |
-| 8 | 70 | Workflow Step Tests |
+| 8 | 80 | Workflow Step Tests |
 | 9 | 30 | Admin Panel Tests |
-| 10 | 40 | Complete Cost Deduction Tests |
+| 10 | 45 | Complete Cost Deduction Tests |
 | 11 | 30 | End-to-End Integration Tests |
 | 12 | 50 | Service Function Unit Tests |
-| **Total** | **590** | **Comprehensive Coverage** |
+| **Total** | **605** | **Comprehensive Coverage** |
 
 ---
 
@@ -1441,14 +1456,14 @@ npm run test:watch
 | 5 | 25 | Statistics & Reporting Tests |
 | 6 | 25 | Edge Cases & Security Tests |
 | 7 | 90 | Complete API Route Tests |
-| 8 | 70 | Workflow Step Tests |
+| 8 | 80 | Workflow Step Tests |
 | 9 | 30 | Admin Panel Tests |
-| 10 | 40 | Complete Cost Deduction Tests |
+| 10 | 45 | Complete Cost Deduction Tests |
 | 11 | 30 | End-to-End Integration Tests |
 | 12 | 50 | Service Function Unit Tests |
 | 13 | 55 | Security Attack Simulation Tests |
 | 14 | 40 | Database & S3 Load Monitoring Tests |
-| **Total** | **685** | **Comprehensive Coverage** |
+| **Total** | **700** | **Comprehensive Coverage** |
 
 ---
 
@@ -1532,15 +1547,15 @@ npm run test -- --grep "SWR|deduplication"
 | 5 | 25 | Statistics & Reporting Tests |
 | 6 | 25 | Edge Cases & Security Tests |
 | 7 | 90 | Complete API Route Tests |
-| 8 | 70 | Workflow Step Tests |
+| 8 | 80 | Workflow Step Tests |
 | 9 | 30 | Admin Panel Tests |
-| 10 | 40 | Complete Cost Deduction Tests |
+| 10 | 45 | Complete Cost Deduction Tests |
 | 11 | 30 | End-to-End Integration Tests |
 | 12 | 50 | Service Function Unit Tests |
 | 13 | 55 | Security Attack Simulation Tests |
 | 14 | 40 | Database & S3 Load Monitoring Tests |
 | 15 | 25 | Performance & Request Deduplication Tests |
-| **Total** | **710** | **Comprehensive Coverage** |
+| **Total** | **725** | **Comprehensive Coverage** |
 
 ---
 
@@ -1788,16 +1803,16 @@ npm run test -- --grep "bulk.*role|Role.*bulk"
 | 5 | 25 | Statistics & Reporting Tests |
 | 6 | 25 | Edge Cases & Security Tests |
 | 7 | 90 | Complete API Route Tests |
-| 8 | 70 | Workflow Step Tests |
+| 8 | 80 | Workflow Step Tests |
 | 9 | 30 | Admin Panel Tests |
-| 10 | 40 | Complete Cost Deduction Tests |
+| 10 | 45 | Complete Cost Deduction Tests |
 | 11 | 30 | End-to-End Integration Tests |
 | 12 | 50 | Service Function Unit Tests |
 | 13 | 55 | Security Attack Simulation Tests |
 | 14 | 40 | Database & S3 Load Monitoring Tests |
 | 15 | 25 | Performance & Request Deduplication Tests |
 | 16 | 105 | Bulk Regeneration Request Tests |
-| **Total** | **815** | **Comprehensive Coverage** |
+| **Total** | **830** | **Comprehensive Coverage** |
 
 ---
 

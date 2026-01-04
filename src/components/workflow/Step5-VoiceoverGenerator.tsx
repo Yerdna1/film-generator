@@ -196,12 +196,15 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     generateAudioForLine,
     handleGenerateAll,
     stopGeneratingAll,
+    deleteAudioForLine,
     deleteAllAudio,
+    selectVersion,
     togglePlay,
     setAudioRef,
     handleAudioEnded,
     playAllSceneVoices,
     stopScenePlayback,
+    playAllDialogues,
     downloadLine,
   } = useVoiceoverAudio(project);
 
@@ -309,6 +312,8 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
               onDownloadLine={downloadLine}
               onPlayAllScene={playAllSceneVoices}
               onStopScenePlayback={stopScenePlayback}
+              onDeleteAudio={deleteAudioForLine}
+              onSelectVersion={selectVersion}
               onToggleUseTts={handleToggleUseTts}
               onDeletionRequested={fetchDeletionRequests}
               onUseRegenerationAttempt={handleUseRegenerationAttempt}
@@ -384,10 +389,13 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             remainingCount={remainingCount}
             totalCharacters={totalCharacters}
             isGeneratingAll={isGeneratingAll}
+            isPlayingAll={playingSceneId === '__all__'}
             provider={voiceSettings.provider}
             onGenerateAll={handleGenerateAll}
             onDownloadAll={handleDownloadAll}
             onDeleteAll={deleteAllAudio}
+            onPlayAll={playAllDialogues}
+            onStopPlayback={stopScenePlayback}
           />
         )}
       </div>
