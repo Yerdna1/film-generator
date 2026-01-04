@@ -225,11 +225,15 @@ export function useVoiceoverAudio(project: Project) {
           console.log('TTS generation stopped: insufficient credits');
           break;
         }
-        // Add delay between requests to avoid rate limits (Gemini: 10 req/min)
-        // Wait 7 seconds between requests to stay under limit
+        // Add delay between requests to avoid rate limits
+        // Gemini: ~10 req/min (6s), OpenAI: generous (2s), ElevenLabs: moderate (3s)
         if (i < allDialogueLines.length - 1 && !abortRef.current) {
-          console.log(`[TTS] Waiting 7s before next request (rate limit)...`);
-          await new Promise(resolve => setTimeout(resolve, 7000));
+          const delay = currentProvider === 'gemini-tts' ? 5000
+            : currentProvider === 'elevenlabs' ? 3000
+            : currentProvider === 'openai-tts' ? 2000
+            : 3000; // Modal or other
+          console.log(`[TTS] Waiting ${delay/1000}s before next request...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
       } else {
         console.log(`[TTS] Skipping ${i + 1}/${allDialogueLines.length}: already has ${versionKey} version`);
@@ -374,13 +378,31 @@ export function useVoiceoverAudio(project: Project) {
     }
   }, [allDialogueLines]);
 
-  // Delete audio for a single dialogue line
+  // Delete ONLY the currently selected audio version for a dialogue line
   const deleteAudioForLine = useCallback(async (lineId: string, sceneId: string) => {
     const scene = (project.scenes || []).find(s => s.id === sceneId);
     if (!scene?.dialogue) return;
 
     const updatedDialogue = scene.dialogue.map(d => {
       if (d.id !== lineId) return d;
+
+      // Remove the currently selected version from audioVersions
+      const currentAudioUrl = d.audioUrl;
+      const remainingVersions = (d.audioVersions || []).filter(v => v.audioUrl !== currentAudioUrl);
+
+      // If there are remaining versions, switch to the first one
+      if (remainingVersions.length > 0) {
+        const nextVersion = remainingVersions[0];
+        return {
+          ...d,
+          audioUrl: nextVersion.audioUrl,
+          audioDuration: nextVersion.duration,
+          ttsProvider: nextVersion.provider as 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts',
+          audioVersions: remainingVersions,
+        };
+      }
+
+      // No versions left - clear everything
       return {
         ...d,
         audioUrl: undefined,

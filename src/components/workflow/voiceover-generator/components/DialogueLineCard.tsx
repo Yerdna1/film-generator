@@ -10,7 +10,6 @@ import {
   Download,
   User,
   Sparkles,
-  CheckCircle2,
   Lock,
   Clock,
   Trash2,
@@ -221,9 +220,9 @@ export function DialogueLineCard({
                 const isActive = line.audioUrl === version.audioUrl;
                 const flag = version.language === 'sk' ? '🇸🇰' : '🇬🇧';
                 const providerShort =
-                  version.provider === 'gemini-tts' ? 'G' :
-                  version.provider === 'openai-tts' ? 'O' :
-                  version.provider === 'elevenlabs' ? 'E' : 'M';
+                  version.provider === 'gemini-tts' ? 'Gem' :
+                  version.provider === 'openai-tts' ? 'OAI' :
+                  version.provider === 'elevenlabs' ? 'Elev' : 'Mod';
                 // Distinct colors: Gemini=green, OpenAI=teal, ElevenLabs=blue, Modal=violet
                 const providerColor =
                   version.provider === 'gemini-tts' ? 'bg-green-500' :
@@ -237,7 +236,7 @@ export function DialogueLineCard({
                   <Badge
                     key={`${version.provider}_${version.language}`}
                     variant={isActive ? 'default' : 'outline'}
-                    className={`text-[9px] px-1.5 py-0 cursor-pointer transition-all ${
+                    className={`text-[10px] px-2 py-0.5 cursor-pointer transition-all ${
                       isActive
                         ? `${providerColor} text-white`
                         : `${providerBorder} hover:bg-white/10`
@@ -245,7 +244,7 @@ export function DialogueLineCard({
                     title={`Play ${version.provider} (${version.language}) - Click to switch`}
                     onClick={() => onSelectVersion?.(version.audioUrl, version.provider)}
                   >
-                    {flag}{providerShort}
+                    {flag} {providerShort}
                   </Badge>
                 );
               })}
@@ -311,11 +310,11 @@ export function DialogueLineCard({
                   className={`h-6 w-6 ${hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
                   onClick={() => canDeleteDirectly ? setShowDeleteConfirm(true) : setShowDeletionRequest(true)}
                   disabled={hasPendingDeletion}
+                  title="Delete audio"
                 >
                   <Trash2 className="w-3 h-3" />
                 </Button>
               )}
-              <CheckCircle2 className="w-4 h-4 text-green-400" />
             </>
           ) : (
             <span className="text-[10px] text-muted-foreground/50">—</span>
