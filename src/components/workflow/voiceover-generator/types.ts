@@ -139,12 +139,21 @@ export interface DialogueLineWithScene extends DialogueLine {
   sceneNumber: number;
 }
 
+export interface VoiceSettings {
+  voiceInstructions?: string;
+  voiceStability?: number;
+  voiceSimilarityBoost?: number;
+  voiceStyle?: number;
+}
+
 export interface VoiceSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   characters: Character[];
   voices: VoiceOption[];
+  provider: VoiceProvider;
   onVoiceChange: (characterId: string, voiceId: string) => void;
+  onVoiceSettingsChange: (characterId: string, settings: VoiceSettings) => void;
 }
 
 export interface ProviderSelectorProps {

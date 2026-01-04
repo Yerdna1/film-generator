@@ -252,6 +252,15 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     });
   };
 
+  const handleVoiceSettingsChange = (characterId: string, settings: {
+    voiceInstructions?: string;
+    voiceStability?: number;
+    voiceSimilarityBoost?: number;
+    voiceStyle?: number;
+  }) => {
+    updateCharacter(project.id, characterId, settings);
+  };
+
   const handleProviderChange = (provider: VoiceProvider) => {
     updateVoiceSettings(project.id, { provider });
   };
@@ -366,7 +375,9 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
                 onOpenChange={setShowVoiceSettings}
                 characters={project.characters || []}
                 voices={voices}
+                provider={voiceSettings.provider}
                 onVoiceChange={handleVoiceChange}
+                onVoiceSettingsChange={handleVoiceSettingsChange}
               />
             )}
 

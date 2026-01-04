@@ -23,9 +23,11 @@ interface TTSRequest {
   language?: string;
   projectId?: string;
   provider?: TTSProvider;  // Allow overriding provider from UI
-  stability?: number;
-  similarityBoost?: number;
-  style?: number;
+  // Voice customization settings
+  voiceInstructions?: string;      // OpenAI: speaking style instructions
+  voiceStability?: number;         // ElevenLabs: 0-1
+  voiceSimilarityBoost?: number;   // ElevenLabs: 0-1
+  voiceStyle?: number;             // ElevenLabs: 0-1
 }
 
 // Add WAV headers to raw PCM audio data
@@ -192,15 +194,18 @@ async function generateWithOpenAI(
   language: string,
   projectId: string | undefined,
   apiKey: string,
-  userId: string | undefined
+  userId: string | undefined,
+  voiceInstructions?: string
 ): Promise<{ audioUrl: string; cost: number; storage: string }> {
   console.log('[OpenAI TTS] Generating with voice:', voiceId);
 
-  // OpenAI supports instructions for voice styling
-  // For Slovak, we can add instructions
-  const instructions = language === 'sk'
+  // Combine language instructions with user-provided voice instructions
+  const languageInstruction = language === 'sk'
     ? 'Speak in Slovak with natural pronunciation and intonation.'
-    : undefined;
+    : '';
+
+  // Merge language and custom instructions
+  const instructions = [languageInstruction, voiceInstructions].filter(Boolean).join(' ') || undefined;
 
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
@@ -312,9 +317,10 @@ export async function POST(request: NextRequest) {
       language = 'en',
       projectId,
       provider: requestedProvider,  // Provider from UI
-      stability = 0.5,
-      similarityBoost = 0.75,
-      style = 0.5,
+      voiceInstructions,             // OpenAI voice instructions
+      voiceStability = 0.5,          // ElevenLabs stability
+      voiceSimilarityBoost = 0.75,   // ElevenLabs similarity boost
+      voiceStyle = 0.5,              // ElevenLabs style
     }: TTSRequest = await request.json();
 
     if (!text) {
@@ -375,7 +381,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      const result = await generateWithElevenLabs(text, voiceId, projectId, elevenLabsApiKey, session?.user?.id, stability, similarityBoost, style);
+      const result = await generateWithElevenLabs(text, voiceId, projectId, elevenLabsApiKey, session?.user?.id, voiceStability, voiceSimilarityBoost, voiceStyle);
       return NextResponse.json(result);
     }
 
@@ -386,7 +392,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, session?.user?.id);
+      const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, session?.user?.id, voiceInstructions);
       return NextResponse.json(result);
     }
 

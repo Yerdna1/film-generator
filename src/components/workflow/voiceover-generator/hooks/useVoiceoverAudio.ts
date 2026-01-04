@@ -82,6 +82,11 @@ export function useVoiceoverAudio(project: Project) {
           language: project.voiceSettings?.language || 'sk',
           provider,
           projectId: project.id,
+          // Voice customization settings
+          voiceInstructions: character?.voiceInstructions,
+          voiceStability: character?.voiceStability,
+          voiceSimilarityBoost: character?.voiceSimilarityBoost,
+          voiceStyle: character?.voiceStyle,
         }),
       });
 

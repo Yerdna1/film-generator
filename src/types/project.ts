@@ -123,6 +123,11 @@ export interface Character {
   imageUrl?: string;
   voiceId?: string;
   voiceName?: string;
+  // Voice customization settings
+  voiceInstructions?: string;      // OpenAI TTS: style instructions (e.g., "speak cheerfully")
+  voiceStability?: number;         // ElevenLabs: 0-1, higher = more consistent
+  voiceSimilarityBoost?: number;   // ElevenLabs: 0-1, higher = closer to original
+  voiceStyle?: number;             // ElevenLabs: 0-1, style exaggeration
 }
 
 // Scene definition
