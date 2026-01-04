@@ -258,6 +258,8 @@ model Scene {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+  // OPTIMIZATION: Composite index for ordered scene fetching
+  @@index([projectId, number])
 }
 
 // Action costs - stored in database for admin control

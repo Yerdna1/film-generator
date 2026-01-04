@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     ],
     // Allow data URLs and blob URLs
     dangerouslyAllowSVG: true,
-    unoptimized: true,
+    // Image optimization enabled for better performance
   },
 };
 
