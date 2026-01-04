@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Mic, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { Mic, Volume2, VolumeX, AlertCircle, Loader2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { VoiceProvider, VoiceLanguage } from '@/types/project';
@@ -23,12 +23,48 @@ import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
-  const { updateVoiceSettings, updateCharacter, updateScene, projects } = useProjectStore();
+  const { updateVoiceSettings, updateCharacter, updateScene, updateProject, projects } = useProjectStore();
 
   // Get live project data from store, but prefer initialProject for full data (scenes array)
   // Store may contain summary data without scenes
   const storeProject = projects.find(p => p.id === initialProject.id);
   const project = storeProject?.scenes ? storeProject : initialProject;
+
+  // Track if dialogue data has been loaded
+  const [dialogueLoaded, setDialogueLoaded] = useState(false);
+  const [isLoadingDialogue, setIsLoadingDialogue] = useState(false);
+
+  // Load dialogue data on mount if not already present
+  useEffect(() => {
+    const hasDialogue = project.scenes?.some(s => s.dialogue && s.dialogue.length > 0);
+
+    // If we already have dialogue data or it's already loaded, skip
+    if (hasDialogue || dialogueLoaded) return;
+
+    const loadDialogue = async () => {
+      setIsLoadingDialogue(true);
+      try {
+        // Fetch all scenes with dialogue in one call
+        const response = await fetch(
+          `/api/projects/${project.id}/scenes?withDialogue=true&limit=1000`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          // Update project in store with dialogue data
+          updateProject(project.id, {
+            scenes: data.scenes || [],
+          });
+          setDialogueLoaded(true);
+        }
+      } catch (error) {
+        console.error('Failed to load dialogue data:', error);
+      } finally {
+        setIsLoadingDialogue(false);
+      }
+    };
+
+    loadDialogue();
+  }, [project.id, project.scenes, dialogueLoaded, updateProject]);
 
   // Find the first dialogue line overall (for unauthenticated user restriction)
   // Only the first dialogue line is accessible to unauthenticated users
@@ -275,8 +311,16 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 px-4">
+      {/* Loading dialogue indicator */}
+      {isLoadingDialogue && (
+        <div className="glass rounded-xl p-6 text-center">
+          <Loader2 className="w-8 h-8 text-violet-400 mx-auto mb-3 animate-spin" />
+          <h3 className="font-semibold mb-2">{t('steps.voiceover.loadingDialogue')}</h3>
+        </div>
+      )}
+
       {/* No dialogue warning */}
-      {allDialogueLines.length === 0 && (
+      {!isLoadingDialogue && allDialogueLines.length === 0 && (
         <div className="glass rounded-xl p-6 border-l-4 border-amber-500 text-center">
           <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
           <h3 className="font-semibold mb-2">{t('steps.voiceover.noDialogue')}</h3>
