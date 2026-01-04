@@ -30,8 +30,6 @@ export function SceneDialogueCard({
   onUseRegenerationAttempt,
   onSelectRegeneration,
 }: SceneDialogueCardProps) {
-  const t = useTranslations();
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -42,7 +40,7 @@ export function SceneDialogueCard({
         <div className="flex items-center justify-between px-1.5 py-0.5">
           <div className="flex items-center gap-1 min-w-0">
             <span className="text-violet-400 font-bold text-base shrink-0">#{scene.number || sceneIndex + 1}</span>
-            <span className="truncate text-muted-foreground text-[11px]">{scene.title}</span>
+            <span className="truncate text-muted-foreground text-sm font-medium">{scene.title}</span>
           </div>
           <span className="text-[10px] text-muted-foreground shrink-0">{scene.dialogue.length}</span>
         </div>
