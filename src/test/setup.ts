@@ -6,12 +6,14 @@ const TEST_DB_URL = 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterf
 // Use vi.hoisted to create a SINGLE shared client that's available to vi.mock
 // vi.hoisted runs before vi.mock, ensuring the client exists when the mock factory runs
 const { testPrisma } = vi.hoisted(() => {
-  const { PrismaClient } = require('../../prisma/generated/prisma/client')
-  const { PrismaPg } = require('@prisma/adapter-pg')
-  const adapter = new PrismaPg({
-    connectionString: 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterfly-agblumty.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
+  const { PrismaClient } = require('@prisma/client')
+  const client = new PrismaClient({
+    datasources: {
+      db: {
+        url: 'postgresql://neondb_owner:npg_9XMixI8ElAJa@ep-rough-butterfly-agblumty.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
+      }
+    }
   })
-  const client = new PrismaClient({ adapter })
   return { testPrisma: client }
 })
 
