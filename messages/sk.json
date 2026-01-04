@@ -297,6 +297,7 @@
       "characters": "znakov",
       "noDialogue": "Žiadne dialógy",
       "noDialogueDescription": "Pridajte dialógy do scén v kroku 3 pre generovanie hlasov",
+      "loadingDialogue": "Načítavam dialógy...",
       "providerInfo": "Poskytovatelia hlasov",
       "elevenLabsDescription": "Vysokokvalitné anglické hlasy s prirodzenou intonáciou a emóciami",
       "geminiDescription": "Natívne slovenské hlasy od Google Gemini 2.5 Pro TTS",

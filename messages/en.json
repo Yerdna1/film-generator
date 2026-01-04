@@ -297,6 +297,7 @@
       "characters": "chars",
       "noDialogue": "No Dialogue Lines",
       "noDialogueDescription": "Add dialogue to your scenes in Step 3 to generate voiceovers",
+      "loadingDialogue": "Loading dialogue lines...",
       "providerInfo": "Voice Providers",
       "elevenLabsDescription": "High-quality English voices with natural intonation and emotion",
       "geminiDescription": "Native Slovak voices powered by Google Gemini 2.5 Pro TTS",
