@@ -142,3 +142,63 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// DELETE - Cancel a scene generation job
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const jobId = searchParams.get('jobId');
+
+    if (!jobId) {
+      return NextResponse.json({ error: 'Job ID required' }, { status: 400 });
+    }
+
+    // Find the job
+    const job = await prisma.sceneGenerationJob.findUnique({
+      where: {
+        id: jobId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    // Only allow cancellation of pending or processing jobs
+    if (job.status !== 'pending' && job.status !== 'processing') {
+      return NextResponse.json({
+        error: 'Job cannot be cancelled',
+        status: job.status
+      }, { status: 400 });
+    }
+
+    // Update job status to cancelled
+    const updatedJob = await prisma.sceneGenerationJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'cancelled',
+        completedAt: new Date(),
+        errorDetails: 'Cancelled by user',
+      },
+    });
+
+    console.log(`[Jobs/Scenes] Cancelled job ${jobId}`);
+
+    return NextResponse.json({
+      message: 'Job cancelled successfully',
+      job: updatedJob,
+    });
+  } catch (error) {
+    console.error('[Jobs/Scenes] Error cancelling job:', error);
+    return NextResponse.json(
+      { error: 'Failed to cancel job' },
+      { status: 500 }
+    );
+  }
+}

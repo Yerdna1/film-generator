@@ -118,6 +118,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     handleRegenerateAllImages,
     handleStartBackgroundGeneration,
     handleGenerateBatch,
+    handleCancelSceneGeneration,
     backgroundJobId,
     backgroundJobProgress,
     isBackgroundJobRunning,
@@ -411,6 +412,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
           onImageResolutionChange={(value) => updateSettings({ imageResolution: value })}
           onAspectRatioChange={setSceneAspectRatio}
           onGenerateAllScenes={handleGenerateAllScenes}
+          onStopSceneGeneration={handleCancelSceneGeneration}
         />
       )}
 

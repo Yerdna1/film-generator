@@ -109,6 +109,7 @@ export function useSceneGenerator(initialProject: Project) {
   const [sceneJobProgress, setSceneJobProgress] = useState(0);
   const [sceneJobStatus, setSceneJobStatus] = useState<string | null>(null);
   const sceneJobPollRef = useRef<NodeJS.Timeout | null>(null);
+  const sceneJobStartTime = useRef<number | null>(null);
 
   // Track page visibility
   useEffect(() => {
@@ -247,6 +248,9 @@ export function useSceneGenerator(initialProject: Project) {
       clearInterval(sceneJobPollRef.current);
     }
 
+    // Record start time for timeout tracking
+    sceneJobStartTime.current = Date.now();
+
     const poll = async () => {
       try {
         const response = await fetch(`/api/jobs/generate-scenes?jobId=${jobId}`);
@@ -255,8 +259,19 @@ export function useSceneGenerator(initialProject: Project) {
           setSceneJobProgress(job.progress);
           setSceneJobStatus(job.status);
 
+          // Check for stuck job timeout (30 seconds in pending at 0%)
+          if (
+            job.status === 'pending' &&
+            job.progress === 0 &&
+            sceneJobStartTime.current &&
+            Date.now() - sceneJobStartTime.current > 30000
+          ) {
+            console.warn('[Scenes] Job appears to be stuck in pending state for over 30 seconds');
+            // The UI will show the warning message based on the status and progress
+          }
+
           // If job is complete, stop polling and refresh scenes
-          if (job.status === 'completed' || job.status === 'failed') {
+          if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
             if (sceneJobPollRef.current) {
               clearInterval(sceneJobPollRef.current);
               sceneJobPollRef.current = null;
@@ -271,12 +286,16 @@ export function useSceneGenerator(initialProject: Project) {
             // Show completion message
             if (job.status === 'completed') {
               alert(`All ${job.completedScenes} scenes generated successfully!`);
+            } else if (job.status === 'cancelled') {
+              // Don't show alert for cancelled jobs as user already knows
+              console.log('[Scenes] Job was cancelled');
             } else {
               alert(`Scene generation failed: ${job.errorDetails || 'Unknown error'}`);
             }
 
             setSceneJobId(null);
             setIsGeneratingScenes(false);
+            sceneJobStartTime.current = null;
           }
         }
       } catch (error) {
@@ -822,6 +841,41 @@ export function useSceneGenerator(initialProject: Project) {
     }
   }, [selectedScenes, project, sceneAspectRatio, imageResolution, handleBulkApiResponse, updateScene]);
 
+  // Cancel scene generation job
+  const handleCancelSceneGeneration = useCallback(async () => {
+    if (!sceneJobId) return;
+
+    try {
+      const response = await fetch(`/api/jobs/generate-scenes?jobId=${sceneJobId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to cancel scene generation');
+      }
+
+      // Stop polling
+      if (sceneJobPollRef.current) {
+        clearInterval(sceneJobPollRef.current);
+        sceneJobPollRef.current = null;
+      }
+
+      // Reset state
+      setSceneJobId(null);
+      setSceneJobProgress(0);
+      setSceneJobStatus(null);
+      setIsGeneratingScenes(false);
+      sceneJobStartTime.current = null;
+
+      alert('Scene generation has been cancelled.');
+    } catch (error) {
+      console.error('Error cancelling scene generation:', error);
+      alert(`Failed to cancel scene generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [sceneJobId]);
+
   return {
     // Project data
     project,
@@ -888,6 +942,7 @@ export function useSceneGenerator(initialProject: Project) {
     handleRegenerateAllImages,
     handleStartBackgroundGeneration,
     handleGenerateBatch,
+    handleCancelSceneGeneration,
     deleteScene: (sceneId: string) => deleteScene(project.id, sceneId),
     updateSettings: (settings: Parameters<typeof updateSettings>[1]) => updateSettings(project.id, settings),
   };

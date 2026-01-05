@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -41,6 +41,7 @@ interface SceneHeaderProps {
   onImageResolutionChange: (value: ImageResolution) => void;
   onAspectRatioChange: (value: AspectRatio) => void;
   onGenerateAllScenes: () => void;
+  onStopSceneGeneration?: () => void;
 }
 
 const IMAGE_PROVIDER_LABELS: Record<ImageProvider, string> = {
@@ -65,6 +66,7 @@ export function SceneHeader({
   onImageResolutionChange,
   onAspectRatioChange,
   onGenerateAllScenes,
+  onStopSceneGeneration,
 }: SceneHeaderProps) {
   const t = useTranslations();
 
@@ -174,9 +176,27 @@ export function SceneHeader({
                   </Badge>
                 </div>
                 <Progress value={sceneJobProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground text-center">
-                  Background job running - you can safely close this tab
-                </p>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-xs text-muted-foreground text-center">
+                    Background job running - you can safely close this tab
+                  </p>
+                  {onStopSceneGeneration && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={onStopSceneGeneration}
+                      className="flex items-center gap-2"
+                    >
+                      <StopCircle className="w-4 h-4" />
+                      Stop Generation
+                    </Button>
+                  )}
+                  {sceneJobStatus === 'pending' && sceneJobProgress === 0 && (
+                    <p className="text-xs text-amber-400 text-center mt-2">
+                      If generation doesn't start within 30 seconds, try stopping and restarting.
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               <Button

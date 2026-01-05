@@ -62,7 +62,10 @@
       "Bash(git clone:*)",
       "Bash(source ~/.nvm/nvm.sh)",
       "Bash(nvm list:*)",
-      "Bash(nvm use:*)"
+      "Bash(nvm use:*)",
+      "Bash(ls:*)",
+      "Bash(env:*)",
+      "Bash(/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude -p --output-format text)"
     ]
   }
 }
