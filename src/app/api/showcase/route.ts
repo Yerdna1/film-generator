@@ -11,7 +11,7 @@ const DEFAULT_YOUTUBE_VIDEOS = [
     },
     {
         id: 'yt-fairy-tale',
-        title: 'AI Generated Fairy Tale (Slovak)',
+        title: 'AI Generated Fairy Tale',
         thumbnail: 'https://img.youtube.com/vi/2mFYNUffMdc/maxresdefault.jpg',
         youtubeId: '2mFYNUffMdc',
     },
@@ -74,10 +74,10 @@ export async function GET(request: NextRequest) {
             },
             select: {
                 id: true,
-                order: true,
+                number: true,
                 imageUrl: true,
                 videoUrl: true,
-                prompt: true,
+                description: true,
                 project: {
                     select: {
                         id: true,
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
                 id: scene.id,
                 imageUrl: scene.imageUrl,
                 videoUrl: scene.videoUrl,
-                prompt: scene.prompt,
+                description: scene.description,
                 projectName: scene.project.name,
                 projectStyle: scene.project.style,
             })),
