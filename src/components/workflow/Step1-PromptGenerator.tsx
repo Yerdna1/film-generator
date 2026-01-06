@@ -2,38 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
-import {
-  Wand2,
-  Sparkles,
-  Copy,
-  Check,
-  RefreshCw,
-  ChevronDown,
-  Edit3,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { generateMasterPrompt } from '@/lib/prompts/master-prompt';
-import { CopyButton } from '@/components/shared/CopyButton';
 import type { Project } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
+import { SettingsPanel } from './step1/SettingsPanel';
+import { StoryForm } from './step1/StoryForm';
+import { MasterPromptSection } from './step1/MasterPromptSection';
+import { PresetStories } from './step1/PresetStories';
+import { LoadingModal } from './step1/LoadingModal';
+import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, styleOptions } from './step1/constants';
+import { storyPresets } from './step1/story-presets';
 
 interface Step1Props {
   project: Project;
@@ -42,19 +21,11 @@ interface Step1Props {
   isReadOnly?: boolean;
 }
 
-const genres = [
-  'adventure', 'comedy', 'drama', 'fantasy', 'scifi',
-  'horror', 'romance', 'action', 'mystery', 'family',
-];
-
-const tones = [
-  'heartfelt', 'comedic', 'dramatic', 'suspenseful',
-  'inspiring', 'dark', 'lighthearted', 'emotional',
-];
+const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh'] as const;
 
 export function Step1PromptGenerator({ project: initialProject, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
-  const { updateStory, setMasterPrompt, projects } = useProjectStore();
+  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects } = useProjectStore();
 
   // Get live project data from store, but prefer initialProject for full data
   // Store may contain summary data without settings/story details
@@ -66,6 +37,22 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(project.masterPrompt || '');
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+
+  // New state for additional options - initialize from project settings
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4'>(
+    project.settings?.aspectRatio || '16:9'
+  );
+  const [videoLanguage, setVideoLanguage] = useState(
+    project.settings?.voiceLanguage || 'en'
+  );
+  const [storyModel, setStoryModel] = useState('gpt-4');
+  const [styleModel, setStyleModel] = useState(
+    project.settings?.imageResolution === '4k' ? 'flux' : 'dall-e-3'
+  );
+  const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts'>(
+    project.settings?.voiceProvider || 'gemini-tts'
+  );
 
   // Sync editedPrompt when masterPrompt changes
   useEffect(() => {
@@ -74,19 +61,65 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
     }
   }, [project.masterPrompt]);
 
+  // Update project settings when options change
+  useEffect(() => {
+    if (!isReadOnly && project.id) {
+      updateSettings(project.id, { aspectRatio });
+    }
+  }, [aspectRatio, project.id, updateSettings, isReadOnly]);
+
+  useEffect(() => {
+    if (!isReadOnly && project.id) {
+      updateSettings(project.id, { voiceLanguage: videoLanguage as 'sk' | 'en' });
+    }
+  }, [videoLanguage, project.id, updateSettings, isReadOnly]);
+
+  useEffect(() => {
+    if (!isReadOnly && project.id) {
+      // Map style model to image resolution
+      const imageResolution = styleModel === 'flux' ? '4k' :
+                             styleModel === 'midjourney' ? '2k' : '1k';
+      updateSettings(project.id, { imageResolution });
+    }
+  }, [styleModel, project.id, updateSettings, isReadOnly]);
+
+  useEffect(() => {
+    if (!isReadOnly && project.id) {
+      updateSettings(project.id, { voiceProvider });
+    }
+  }, [voiceProvider, project.id, updateSettings, isReadOnly]);
+
   const handleGeneratePrompt = async () => {
     setIsGenerating(true);
 
     try {
-      // Generate the base master prompt template
-      const basePrompt = generateMasterPrompt(project.story, project.style, project.settings);
+      // Small delay to ensure all settings are saved
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Get current settings from project (they should already be synced via useEffect)
+      const currentSettings = {
+        aspectRatio,
+        voiceLanguage: videoLanguage,
+        sceneCount: project.settings?.sceneCount || 12,
+        characterCount: project.settings?.characterCount || 3,
+        imageResolution: styleModel === 'flux' ? '4k' : '2k',
+        voiceProvider,
+      };
+
+      // Generate the base master prompt template with current settings
+      const projectWithCurrentSettings = {
+        ...project,
+        settings: currentSettings
+      };
+      const basePrompt = generateMasterPrompt(projectWithCurrentSettings.story, projectWithCurrentSettings.style, projectWithCurrentSettings.settings);
 
       // Try to enhance with user's configured LLM provider
       const response = await fetch('/api/llm/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `Based on the following story concept and settings, enhance and expand this prompt for generating a ${project.settings.sceneCount}-scene animated short film.
+          model: storyModel, // Use the model selected in left panel
+          prompt: `Based on the following story concept and settings, enhance and expand this prompt for generating a ${currentSettings.sceneCount}-scene animated short film.
 
 Story Title: ${project.story.title}
 Genre: ${project.story.genre}
@@ -94,8 +127,15 @@ Tone: ${project.story.tone}
 Setting: ${project.story.setting}
 Concept: ${project.story.concept}
 Visual Style: ${project.style}
-Characters: ${project.settings.characterCount}
-Scenes: ${project.settings.sceneCount}
+
+Technical Settings:
+- Aspect Ratio: ${aspectRatio}
+- Video Language: ${videoLanguage}
+- Story Model: ${storyModel}
+- Style Model: ${styleModel}
+- Voice Provider: ${voiceProvider}
+- Characters: ${currentSettings.characterCount}
+- Scenes: ${currentSettings.sceneCount}
 
 Base prompt template:
 ${basePrompt}
@@ -138,10 +178,10 @@ Format the output exactly like the base template but with richer, more detailed 
       setEditedPrompt(basePrompt);
     } catch (error) {
       console.error('Error generating prompt:', error);
-      // Fallback to local generation
-      const basePrompt = generateMasterPrompt(project.story, project.style, project.settings);
-      setMasterPrompt(project.id, basePrompt);
-      setEditedPrompt(basePrompt);
+      // Fallback to local generation with current settings
+      const fallbackPrompt = generateMasterPrompt(projectWithCurrentSettings.story, projectWithCurrentSettings.style, projectWithCurrentSettings.settings);
+      setMasterPrompt(project.id, fallbackPrompt);
+      setEditedPrompt(fallbackPrompt);
     }
 
     setIsGenerating(false);
@@ -152,196 +192,79 @@ Format the output exactly like the base template but with richer, more detailed 
     setIsEditing(false);
   };
 
+  const handleApplyPreset = async (preset: typeof storyPresets[0]) => {
+    setSelectedPresetId(preset.id);
+    updateStory(project.id, preset.story);
+
+    // Sync project name with story title
+    updateProject(project.id, { name: preset.story.title });
+
+    // Auto-generate the master prompt
+    await handleGeneratePrompt();
+  };
+
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
+    <div className="max-w-[1920px] mx-auto">
       {/* 2-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Column - Story Form */}
-        <div className="glass rounded-xl p-4 space-y-4">
-          <h3 className="text-sm font-semibold text-purple-400">Story Details</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Left Sidebar - Settings */}
+        <SettingsPanel
+          project={project}
+          isReadOnly={isReadOnly}
+          aspectRatio={aspectRatio}
+          setAspectRatio={setAspectRatio}
+          videoLanguage={videoLanguage}
+          setVideoLanguage={setVideoLanguage}
+          storyModel={storyModel}
+          setStoryModel={setStoryModel}
+          styleModel={styleModel}
+          setStyleModel={setStyleModel}
+          voiceProvider={voiceProvider}
+          setVoiceProvider={setVoiceProvider}
+          updateProject={updateProject}
+          updateSettings={updateSettings}
+          sceneOptions={sceneOptions}
+          storyModels={storyModels}
+          styleModels={styleModels}
+          videoLanguages={videoLanguages}
+          voiceProviders={voiceProviders}
+          genres={genres}
+          tones={tones}
+        />
 
-          <div className="grid grid-cols-2 gap-3">
-            {/* Story Title */}
-            <div className="space-y-1">
-              <Label htmlFor="story-title" className="text-xs">{t('steps.prompt.storyTitle')}</Label>
-              <Input
-                id="story-title"
-                placeholder={t('steps.prompt.storyTitlePlaceholder')}
-                value={project.story.title}
-                onChange={(e) => updateStory(project.id, { title: e.target.value })}
-                disabled={isReadOnly}
-                className="h-9 glass border-white/10 focus:border-purple-500/50 text-sm"
-              />
-            </div>
+        {/* Right Column - Story Details, Master Prompt & Presets */}
+        <div className="glass rounded-xl p-4 space-y-4 lg:col-span-3">
+          <StoryForm
+            project={project}
+            isReadOnly={isReadOnly}
+            isGenerating={isGenerating}
+            onGeneratePrompt={handleGeneratePrompt}
+            updateStory={updateStory}
+            updateProject={updateProject}
+            genres={genres}
+            tones={tones}
+          />
 
-            {/* Setting */}
-            <div className="space-y-1">
-              <Label htmlFor="setting" className="text-xs">{t('steps.prompt.setting')}</Label>
-              <Input
-                id="setting"
-                placeholder={t('steps.prompt.settingPlaceholder')}
-                value={project.story.setting}
-                onChange={(e) => updateStory(project.id, { setting: e.target.value })}
-                disabled={isReadOnly}
-                className="h-9 glass border-white/10 focus:border-purple-500/50 text-sm"
-              />
-            </div>
+          <MasterPromptSection
+            project={project}
+            isReadOnly={isReadOnly}
+            isEditing={isEditing}
+            editedPrompt={editedPrompt}
+            setIsEditing={setIsEditing}
+            setEditedPrompt={setEditedPrompt}
+            onSaveEditedPrompt={handleSaveEditedPrompt}
+          />
 
-            {/* Genre */}
-            <div className="space-y-1">
-              <Label className="text-xs">{t('steps.prompt.genre')}</Label>
-              <Select
-                value={project.story.genre}
-                onValueChange={(value) => updateStory(project.id, { genre: value })}
-                disabled={isReadOnly}
-              >
-                <SelectTrigger className="h-9 glass border-white/10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="glass-strong border-white/10">
-                  {genres.map((genre) => (
-                    <SelectItem key={genre} value={genre}>
-                      {t(`genres.${genre}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Tone */}
-            <div className="space-y-1">
-              <Label className="text-xs">{t('steps.prompt.tone')}</Label>
-              <Select
-                value={project.story.tone}
-                onValueChange={(value) => updateStory(project.id, { tone: value })}
-                disabled={isReadOnly}
-              >
-                <SelectTrigger className="h-9 glass border-white/10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="glass-strong border-white/10">
-                  {tones.map((tone) => (
-                    <SelectItem key={tone} value={tone}>
-                      {t(`tones.${tone}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Story Concept */}
-          <div className="space-y-1">
-            <Label htmlFor="concept" className="text-xs">{t('steps.prompt.concept')}</Label>
-            <Textarea
-              id="concept"
-              placeholder={t('steps.prompt.conceptPlaceholder')}
-              value={project.story.concept}
-              onChange={(e) => updateStory(project.id, { concept: e.target.value })}
-              disabled={isReadOnly}
-              className="min-h-[100px] glass border-white/10 focus:border-purple-500/50 resize-none text-sm"
-            />
-          </div>
-
-          {/* Generate Button - only show when not read-only */}
-          {!isReadOnly && (
-            <Button
-              onClick={handleGeneratePrompt}
-              disabled={isGenerating || !project.story.title || !project.story.concept}
-              className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 h-10"
-            >
-              {isGenerating ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  </motion.div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  {t('steps.prompt.generatePrompt')}
-                </>
-              )}
-            </Button>
-          )}
-
-        </div>
-
-        {/* Right Column - Generated Prompt */}
-        <div className="glass rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Wand2 className="w-4 h-4 text-purple-400" />
-              {t('steps.prompt.masterPrompt')}
-            </h3>
-            {project.masterPrompt && (
-              <div className="flex items-center gap-1">
-                {!isReadOnly && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="h-7 border-white/10 hover:bg-white/5 text-xs"
-                  >
-                    <Edit3 className="w-3 h-3 mr-1" />
-                    {isEditing ? 'Cancel' : 'Edit'}
-                  </Button>
-                )}
-                <CopyButton text={project.masterPrompt} size="icon" className="h-7 w-7" />
-              </div>
-            )}
-          </div>
-
-          {project.masterPrompt ? (
-            isEditing ? (
-              <div className="space-y-3">
-                <Textarea
-                  value={editedPrompt}
-                  onChange={(e) => setEditedPrompt(e.target.value)}
-                  className="min-h-[400px] glass border-white/10 focus:border-purple-500/50 font-mono text-xs"
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditedPrompt(project.masterPrompt || '');
-                      setIsEditing(false);
-                    }}
-                    className="h-8 border-white/10"
-                  >
-                    {t('common.cancel')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveEditedPrompt}
-                    className="h-8 bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-0"
-                  >
-                    {t('common.save')}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="glass rounded-lg p-3 max-h-[500px] overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-mono leading-relaxed">
-                  {project.masterPrompt}
-                </pre>
-              </div>
-            )
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground/50">
-              <div className="text-center">
-                <Wand2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">Fill in the story details and click Generate</p>
-              </div>
-            </div>
-          )}
+          <PresetStories
+            selectedPresetId={selectedPresetId}
+            onApplyPreset={handleApplyPreset}
+            isReadOnly={isReadOnly}
+          />
         </div>
       </div>
+
+      {/* Loading Modal */}
+      <LoadingModal isOpen={isGenerating} />
     </div>
   );
 }

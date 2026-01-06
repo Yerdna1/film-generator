@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/lib/stores/project-store';
-import { NewProjectDialog } from '@/components/project/NewProjectDialog';
 import { ImportProjectDialog } from '@/components/project/ImportProjectDialog';
 import {
   LandingPage,
@@ -18,9 +17,9 @@ import {
 export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
-  const { projects, isLoading: projectsLoading } = useProjectStore();
-  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const { projects, isLoading: projectsLoading, createProject } = useProjectStore();
   const [importProjectOpen, setImportProjectOpen] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [userStatus, setUserStatus] = useState<{ isApproved: boolean; isBlocked: boolean } | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,6 +46,27 @@ export default function DashboardPage() {
   const { creditsData, projectCosts, creditsBreakdown } = useDashboardData(
     status === 'authenticated'
   );
+
+  // Handle creating a new project
+  const handleNewProject = async () => {
+    if (isCreatingProject) return;
+
+    setIsCreatingProject(true);
+    try {
+      // Create a new project with default settings
+      const project = await createProject(
+        `New Project ${new Date().toLocaleDateString()}`,
+        'disney-pixar',
+        { sceneCount: 12 }
+      );
+
+      // Navigate to the project page
+      router.push(`/project/${project.id}`);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      setIsCreatingProject(false);
+    }
+  };
 
   // Show landing page for unauthenticated users
   if (status === 'unauthenticated') {
@@ -78,7 +98,7 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
       <DashboardHero
-        onNewProject={() => setNewProjectOpen(true)}
+        onNewProject={handleNewProject}
         onImportProject={() => setImportProjectOpen(true)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -89,7 +109,7 @@ export default function DashboardPage() {
       <ProjectsSection
         projects={projects}
         projectCosts={projectCosts}
-        onCreateProject={() => setNewProjectOpen(true)}
+        onCreateProject={handleNewProject}
         searchQuery={searchQuery}
       />
 
@@ -103,7 +123,6 @@ export default function DashboardPage() {
       )}
 
       {/* Dialogs */}
-      <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
       <ImportProjectDialog open={importProjectOpen} onOpenChange={setImportProjectOpen} />
     </div>
   );

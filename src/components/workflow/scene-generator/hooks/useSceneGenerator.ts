@@ -85,7 +85,9 @@ export function useSceneGenerator(initialProject: Project) {
   const [expandedScenes, setExpandedScenes] = useState<string[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPromptsDialog, setShowPromptsDialog] = useState(false);
-  const [sceneAspectRatio, setSceneAspectRatio] = useState<AspectRatio>('16:9');
+  const [sceneAspectRatio, setSceneAspectRatio] = useState<AspectRatio>(
+    projectSettings.aspectRatio || '16:9'
+  );
 
   // Generation State
   const [isGeneratingScenes, setIsGeneratingScenes] = useState(false);

@@ -115,7 +115,7 @@ async function queryGemini(prompt: string, apiKey: string, model: string = 'gemi
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, systemPrompt = '' } = await request.json();
+    const { prompt, systemPrompt = '', model } = await request.json();
 
     // Get session and check authentication
     const session = await auth();
@@ -156,7 +156,8 @@ export async function POST(request: NextRequest) {
     // Default to OpenRouter if no preference set
     const llmProvider = userApiKeys?.llmProvider || 'openrouter';
     const openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
-    const openRouterModel = userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
+    // Use model from request if provided, otherwise use user's default
+    const openRouterModel = model || userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
     const modalLlmEndpoint = userApiKeys?.modalLlmEndpoint;
     const geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
@@ -39,6 +40,7 @@ import { useSubscription } from '@/hooks';
 
 export function Header() {
   const t = useTranslations();
+  const pathname = usePathname();
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -47,6 +49,12 @@ export function Header() {
 
   // Use centralized subscription hook with SWR deduplication
   const { plan: subscriptionPlan } = useSubscription({ enabled: !!user });
+
+  // Hide header on project pages
+  const isProjectPage = pathname?.startsWith('/project/');
+  if (isProjectPage) {
+    return null;
+  }
 
   const navItems = [
     { href: '/projects', label: t('nav.projects'), icon: Film },

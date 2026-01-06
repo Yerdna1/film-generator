@@ -28,6 +28,7 @@
     "confirm": "Potvrdiť",
     "yes": "Áno",
     "no": "Nie",
+    "generating": "Generujem",
     "error": "Chyba",
     "success": "Úspech",
     "warning": "Upozornenie",
@@ -110,6 +111,17 @@
     "deleteConfirm": "Naozaj chcete odstrániť tento projekt?",
     "duplicate": "Duplikovať",
     "open": "Otvoriť projekt",
+    "settings": {
+      "title": "Nastavenia projektu",
+      "aspectRatio": {
+        "16:9": "16:9",
+        "21:9": "21:9",
+        "4:3": "4:3",
+        "1:1": "1:1",
+        "9:16": "9:16",
+        "3:4": "3:4"
+      }
+    },
     "importProject": "Importovať projekt",
     "importDescription": "Importujte projekt z priečinka s obrázkami a videami",
     "dropFolderHere": "Presuňte priečinok sem",
@@ -139,7 +151,7 @@
   },
   "steps": {
     "prompt": {
-      "title": "Príbeh a prompt",
+      "title": "Príbeh",
       "description": "Definujte koncept príbehu a vygenerujte hlavný prompt",
       "storyTitle": "Názov príbehu",
       "storyTitlePlaceholder": "napr. Hľadanie v púšti",
@@ -151,7 +163,11 @@
       "settingPlaceholder": "Kde sa príbeh odohráva?",
       "generatePrompt": "Generovať hlavný prompt",
       "masterPrompt": "Hlavný prompt",
-      "editPrompt": "Upraviť prompt"
+      "editPrompt": "Upraviť prompt",
+      "storyDetails": "Detaily príbehu",
+      "generatingTitle": "Generujem hlavný prompt",
+      "generatingDescription": "Vytváram detailný prompt pre váš film s pomocou AI...",
+      "analyzingStory": "Analyzujem príbeh a generujem scény..."
     },
     "characters": {
       "title": "Postavy",
@@ -173,7 +189,7 @@
       "maxReached": "Maximálny počet postáv dosiahnutý"
     },
     "scenes": {
-      "title": "Obrázky scén",
+      "title": "Obrázky",
       "description": "Vygenerujte obrázky pre každú scénu vášho filmu",
       "sceneCount": "Počet scén",
       "scenesLabel": "scén",
@@ -421,6 +437,20 @@
     "custom": "Vlastný štýl",
     "customDesc": "Definujte si vlastný vizuálny štýl"
   },
+  "languages": {
+    "en": "Angličtina",
+    "sk": "Slovenčina",
+    "cs": "Čeština",
+    "de": "Nemčina",
+    "fr": "Francúzština",
+    "es": "Španielčina",
+    "it": "Taliančina",
+    "pt": "Portugalčina",
+    "ru": "Ruština",
+    "ja": "Japončina",
+    "zh": "Čínština",
+    "ko": "Korejčina"
+  },
   "settings": {
     "title": "Nastavenia",
     "apiKeys": "API kľúče",
@@ -434,7 +464,14 @@
     "theme": "Téma",
     "dark": "Tmavá",
     "light": "Svetlá",
-    "system": "Systémová"
+    "system": "Systémová",
+    "aspectRatio": "Pomer strán",
+    "videoLanguage": "Jazyk videa",
+    "voiceProvider": "Poskytovateľ hlasu",
+    "storyModel": "Model príbehu",
+    "styleModel": "Model štýlu",
+    "allModels": "Všetky modely",
+    "styleExamples": "Príklady štýlov"
   },
   "errors": {
     "generic": "Niečo sa pokazilo. Skúste to znova.",

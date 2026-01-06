@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,20 +16,137 @@ import {
   Lock,
   Loader2,
   X,
+  ChevronDown,
+  LogOut,
+  User,
+  Settings,
+  BarChart3,
+  Shield,
+  CreditCard,
+  Film,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { CreditsDisplay } from '@/components/shared/CreditsDisplay';
+import { useSubscription } from '@/hooks';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { MembersPanel } from '@/components/collaboration/MembersPanel';
 import type { ProjectRole, ProjectPermissions } from '@/types/collaboration';
-import { StepIndicator, StepIndicatorCompact } from '@/components/workflow/StepIndicator';
 import { Step1PromptGenerator } from '@/components/workflow/Step1-PromptGenerator';
 import { Step2CharacterGenerator } from '@/components/workflow/Step2-CharacterGenerator';
 import { Step3SceneGenerator } from '@/components/workflow/Step3-SceneGenerator';
 import { Step4VideoGenerator } from '@/components/workflow/Step4-VideoGenerator';
 import { Step5VoiceoverGenerator } from '@/components/workflow/Step5-VoiceoverGenerator';
 import { Step6Export } from '@/components/workflow/Step6-Export';
+
+// Step Navigation Component
+interface StepNavigationProps {
+  currentStep: number;
+  onStepClick: (step: number) => void;
+  t: (key: string) => string;
+}
+
+function StepNavigation({ currentStep, onStepClick, t }: StepNavigationProps) {
+  const [visibleStartIndex, setVisibleStartIndex] = useState(Math.max(0, Math.min(1, currentStep - 3)));
+
+  const steps = [
+    { number: 1, name: t('help.steps.storyPrompt'), shortName: t('steps.prompt.title') },
+    { number: 2, name: t('help.steps.characters'), shortName: t('steps.characters.title') },
+    { number: 3, name: t('help.steps.sceneImages'), shortName: t('help.steps.sceneImages') },
+    { number: 4, name: t('help.steps.videos'), shortName: t('help.steps.videos') },
+    { number: 5, name: t('help.steps.voiceover'), shortName: t('help.steps.voiceover') },
+    { number: 6, name: t('help.steps.export'), shortName: t('help.steps.export') },
+  ];
+
+  const visibleSteps = steps.slice(visibleStartIndex, visibleStartIndex + 5);
+
+  const canGoLeft = visibleStartIndex > 0;
+  const canGoRight = visibleStartIndex < steps.length - 5;
+
+  const goLeft = () => {
+    if (canGoLeft) {
+      setVisibleStartIndex(visibleStartIndex - 1);
+    }
+  };
+
+  const goRight = () => {
+    if (canGoRight) {
+      setVisibleStartIndex(visibleStartIndex + 1);
+    }
+  };
+
+  // Update visible range when current step changes
+  useEffect(() => {
+    if (currentStep <= visibleStartIndex) {
+      setVisibleStartIndex(Math.max(0, currentStep - 1));
+    } else if (currentStep > visibleStartIndex + 4) {
+      setVisibleStartIndex(Math.min(steps.length - 5, currentStep - 4));
+    }
+  }, [currentStep, visibleStartIndex, steps.length]);
+
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={goLeft}
+        disabled={!canGoLeft}
+        className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </Button>
+
+      <div className="flex items-center gap-1">
+        {visibleSteps.map((step) => (
+          <button
+            key={step.number}
+            onClick={() => onStepClick(step.number)}
+            className={`
+              relative px-2 md:px-3 py-1 md:py-1.5 text-xs font-medium rounded-full transition-all duration-200
+              ${currentStep === step.number
+                ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/25'
+                : currentStep > step.number
+                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                : 'bg-white/10 text-muted-foreground hover:bg-white/20'
+              }
+            `}
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="font-semibold">{step.number}</span>
+              <span className="hidden sm:inline">{step.shortName}</span>
+              {currentStep > step.number && (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={goRight}
+        disabled={!canGoRight}
+        className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
 
 // Shallow compare for project updates - only trigger re-render for meaningful changes
 function hasProjectChanged(prev: ReturnType<typeof useProjectStore.getState>['projects'][0] | undefined, next: ReturnType<typeof useProjectStore.getState>['projects'][0] | undefined): boolean {
@@ -67,12 +184,36 @@ const roleIcons: Record<ProjectRole, React.ComponentType<{ className?: string }>
 export default function ProjectWorkspacePage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const t = useTranslations();
+  const { data: session } = useSession();
   const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject, updateProject } = useProjectStore();
+
+  // Get user from session
+  const user = session?.user;
+  const isAdmin = user?.email === 'andrej.galad@gmail.com';
+
+  // Use subscription hook
+  const { plan: subscriptionPlan } = useSubscription({ enabled: !!user });
 
   // Get translated role label
   const getRoleLabel = (role: ProjectRole) => t(`roles.${role}`);
+
+  // Plan badge colors and labels
+  const getPlanBadge = () => {
+    if (!subscriptionPlan || subscriptionPlan === 'free') {
+      return { label: t('billing.plans.free'), className: 'bg-amber-500/20 text-amber-500 border-amber-500/30' };
+    }
+    if (subscriptionPlan === 'starter') {
+      return { label: t('billing.plans.starter'), className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+    }
+    if (subscriptionPlan === 'pro') {
+      return { label: t('billing.plans.pro'), className: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+    }
+    if (subscriptionPlan === 'studio') {
+      return { label: t('billing.plans.studio'), className: 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-400 border-cyan-500/30' };
+    }
+    return { label: subscriptionPlan, className: 'bg-muted text-muted-foreground' };
+  };
 
   // Track hydration state to prevent SSR mismatch
   const [hasMounted, setHasMounted] = useState(false);
@@ -303,35 +444,53 @@ export default function ProjectWorkspacePage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-hidden flex flex-col">
       {/* Project Header */}
-      <div className="sticky top-16 z-40 glass-strong border-b border-white/5">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
-            {/* Back button and title */}
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="font-semibold truncate max-w-[200px] md:max-w-none">
-                  {project.name}
-                </h1>
-                <p className="text-xs text-muted-foreground hidden md:block">
-                  {project.story.title || 'Untitled Story'}
-                </p>
+      <div className="sticky top-0 z-40 glass-strong border-b border-white/5">
+        <div className="max-w-[1920px] mx-auto px-2 md:px-4 lg:px-6 xl:px-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between py-2 md:py-0 md:h-14 gap-2 md:gap-4">
+            {/* Top Row on Mobile / Left Section on Desktop */}
+            <div className="flex items-center justify-between md:justify-start gap-2 md:gap-4 flex-shrink-0">
+              {/* Back button and title */}
+              <div className="flex items-center gap-2 md:gap-4">
+                <Link href="/">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8 md:h-10 md:w-10">
+                    <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
+                  </Button>
+                </Link>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 md:gap-2">
+                    <h1 className="font-semibold text-xs sm:text-sm md:text-base truncate">
+                      {project.story.title || 'Untitled Story'}
+                    </h1>
+                    <span className="text-muted-foreground hidden sm:inline">•</span>
+                    <span className="text-xs md:text-sm text-muted-foreground truncate max-w-[120px] md:max-w-[200px] hidden sm:inline">
+                      {project.name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Credits Display on Mobile */}
+              <div className="flex md:hidden">
+                {user && <CreditsDisplay className="scale-90" />}
               </div>
             </div>
 
-            {/* Mobile step indicator */}
-            <div className="md:hidden">
-              <StepIndicatorCompact currentStep={project.currentStep} onStepClick={handleStepClick} />
+            {/* Center Section - Step Navigation */}
+            <div className="flex-1 flex justify-center md:px-4">
+              <StepNavigation
+                currentStep={project.currentStep}
+                onStepClick={handleStepClick}
+                t={t}
+              />
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
+            {/* Actions - Right Section */}
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              {/* Credits Display */}
+              {user && <CreditsDisplay className="hidden sm:flex" />}
+
               {/* View Only Badge for readers */}
               {!permissions?.canEdit && userRole && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-medium">
@@ -386,20 +545,127 @@ export default function ProjectWorkspacePage() {
                   )}
                 </Button>
               )}
+
+              {/* User Menu */}
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-2 px-2 hover:bg-black/5 dark:hover:bg-white/5"
+                    >
+                      <Avatar className="w-8 h-8 border border-purple-500/30">
+                        <AvatarImage src={user.image || undefined} />
+                        <AvatarFallback className="bg-gradient-to-br from-purple-600 to-cyan-600 text-white text-sm">
+                          {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56 glass-strong border-black/10 dark:border-white/10"
+                  >
+                    <div className="px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{user.name || 'User'}</p>
+                        {subscriptionPlan && (
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 ${getPlanBadge().className}`}
+                          >
+                            {getPlanBadge().label}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
+
+                    {/* Navigation Items */}
+                    <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                      <Link href="/projects">
+                        <Film className="w-4 h-4 mr-2" />
+                        {t('nav.projects')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                      <Link href="/discover">
+                        <Globe className="w-4 h-4 mr-2" />
+                        {t('nav.discover')}
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
+
+                    {/* User Options */}
+                    <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                      <Link href="/profile">
+                        <User className="w-4 h-4 mr-2" />
+                        {t('nav.profile')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                      <Link href="/statistics">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        {t('nav.statistics')}
+                      </Link>
+                    </DropdownMenuItem>
+                    {(isAdmin || (subscriptionPlan && subscriptionPlan !== 'free')) && (
+                      <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                        <Link href="/settings">
+                          <Settings className="w-4 h-4 mr-2" />
+                          {t('nav.settings')}
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                      <Link href="/billing">
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        {t('nav.billing')}
+                      </Link>
+                    </DropdownMenuItem>
+
+                    {/* Admin Options */}
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
+                        <DropdownMenuItem className="cursor-pointer hover:bg-amber-500/10 text-amber-600 dark:text-amber-400" asChild>
+                          <Link href="/admin">
+                            <Shield className="w-4 h-4 mr-2" />
+                            {t('nav.admin')}
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer hover:bg-amber-500/10 text-amber-600 dark:text-amber-400" asChild>
+                          <Link href="/approvals">
+                            <Shield className="w-4 h-4 mr-2" />
+                            {t('nav.approvals')}
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
+                    <DropdownMenuItem
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                      className="cursor-pointer text-red-500 focus:text-red-500 hover:bg-red-500/10"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {t('auth.signOut')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Desktop Step Indicator */}
-      <div className="hidden md:block border-b border-white/5 bg-black/20">
-        <div className="container mx-auto px-4 py-4">
-          <StepIndicator currentStep={project.currentStep} onStepClick={handleStepClick} />
-        </div>
-      </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[1920px] mx-auto px-2 md:px-4 lg:px-6 xl:px-8 py-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={project.currentStep}
@@ -411,11 +677,12 @@ export default function ProjectWorkspacePage() {
             {renderStep()}
           </motion.div>
         </AnimatePresence>
+        </div>
       </div>
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 glass-strong border-t border-white/5 py-4">
-        <div className="container mx-auto px-4">
+        <div className="max-w-[1920px] mx-auto px-2 md:px-4 lg:px-6 xl:px-8">
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
