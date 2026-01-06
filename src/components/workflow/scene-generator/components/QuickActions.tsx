@@ -128,9 +128,9 @@ export function QuickActions({
           disabled={totalScenes === 0}
           onClick={onCopyPrompts}
         >
-          <Copy className="w-4 h-4 mr-2" />
-          Copy Prompts for Gemini
-          <Badge variant="outline" className="ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
+          <Copy className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Copy Prompts for Gemini</span>
+          <Badge variant="outline" className="hidden sm:inline-flex ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
             FREE
           </Badge>
         </Button>

@@ -95,7 +95,7 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
       )}
 
       {/* Main Editor Layout */}
-      <div className="flex gap-3">
+      <div className="flex flex-col lg:flex-row gap-3">
         {/* Preview Section - Large */}
         <div className="flex-1 min-w-0">
           {stats.totalScenes > 0 && (
@@ -149,21 +149,28 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
           {sidePanelOpen && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 360, opacity: 1 }}
+              animate={{ width: 'auto', opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="flex-shrink-0 overflow-hidden"
+              className="flex-shrink-0 overflow-hidden w-full lg:w-auto"
             >
               <Card className="glass border-black/10 dark:border-white/10 h-full">
                 <CardContent className="p-0">
                   {/* Header */}
-                  <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-2">
-                    <Clapperboard className="w-4 h-4 text-cyan-500" />
-                    <span className="text-sm font-medium">{t('steps.export.renderVideo')}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{scenes.length} {t('steps.export.scenes').toLowerCase()}</span>
+                  <div className="px-3 sm:px-4 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-2">
+                    <Clapperboard className="w-4 h-4 text-cyan-500 shrink-0" />
+                    <span className="text-sm font-medium truncate">{t('steps.export.renderVideo')}</span>
+                    <span className="ml-auto text-xs text-muted-foreground shrink-0 hidden sm:inline">{scenes.length} {t('steps.export.scenes').toLowerCase()}</span>
+                    {/* Mobile close button */}
+                    <button
+                      onClick={() => setSidePanelOpen(false)}
+                      className="lg:hidden ml-auto p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  <div className="max-h-[650px] overflow-y-auto p-4 space-y-4">
+                  <div className="max-h-[500px] sm:max-h-[650px] overflow-y-auto p-3 sm:p-4 space-y-4">
                     {/* Sign-in required message for unauthenticated users */}
                     {!isAuthenticated && (
                       <a
@@ -667,13 +674,26 @@ export function Step6Export({ project: initialProject, isReadOnly = false, isAut
           <Button
             variant="ghost"
             size="icon"
-            className="flex-shrink-0 h-8 w-8 border border-black/10 dark:border-white/10"
+            className="flex-shrink-0 h-8 w-8 border border-black/10 dark:border-white/10 mx-auto lg:mx-0"
             onClick={() => setSidePanelOpen(true)}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </Button>
         )}
       </div>
+
+      {/* Mobile Side Panel Toggle Button */}
+      {sidePanelOpen && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full lg:hidden flex items-center gap-2 border-white/10"
+          onClick={() => setSidePanelOpen(false)}
+        >
+          <span>Hide Render Options</span>
+          <ChevronLeft className="w-4 h-4 rotate-90" />
+        </Button>
+      )}
 
     </div>
   );

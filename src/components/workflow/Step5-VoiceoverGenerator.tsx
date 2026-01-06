@@ -396,10 +396,10 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
       />
 
       {/* Provider Selection & Controls */}
-      <div className="glass rounded-2xl p-6 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <Mic className="w-5 h-5 text-violet-400" />
+      <div className="glass rounded-2xl p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Mic className="w-5 h-5 text-violet-400 shrink-0" />
             {!isReadOnly ? (
               <ProviderSelector
                 provider={voiceSettings.provider}
@@ -412,7 +412,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto justify-start sm:justify-end">
             {!isReadOnly && (
               <VoiceSettingsDialog
                 open={showVoiceSettings}
@@ -428,16 +428,16 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             {/* Volume Control */}
             <div className="flex items-center gap-2">
               {volume[0] === 0 ? (
-                <VolumeX className="w-4 h-4 text-muted-foreground" />
+                <VolumeX className="w-4 h-4 text-muted-foreground shrink-0" />
               ) : (
-                <Volume2 className="w-4 h-4 text-muted-foreground" />
+                <Volume2 className="w-4 h-4 text-muted-foreground shrink-0" />
               )}
               <Slider
                 value={volume}
                 onValueChange={setVolume}
                 max={100}
                 step={1}
-                className="w-24"
+                className="w-20 sm:w-24"
               />
             </div>
           </div>

@@ -231,7 +231,7 @@ function CharacterCardComponent({
 
         {/* Action buttons - only for editors */}
         {!isReadOnly && (
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button
               variant="outline"
               size="sm"

@@ -1,22 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
 import {
   Film,
   Plus,
   Settings,
-  Menu,
-  X,
   ChevronDown,
   LogOut,
   User,
-  Sparkles,
-  LogIn,
   BarChart3,
   Shield,
   Globe,
@@ -42,7 +37,6 @@ export function Header() {
   const t = useTranslations();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const user = session?.user;
   const isAdmin = user?.email === 'andrej.galad@gmail.com';
@@ -270,61 +264,9 @@ export function Header() {
                 </Button>
               </div>
             )}
-
-            {/* Mobile Menu Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`md:hidden ${mutedColor} hover:text-white hover:bg-white/5`}
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className={`md:hidden border-t border-white/5 ${isLandingPage ? 'bg-black/90 backdrop-blur-xl' : 'glass-strong'}`}
-          >
-            <div className="container mx-auto px-4 py-4 space-y-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Button
-                    variant="ghost"
-                    className={`w-full justify-start ${mutedColor} hover:text-white hover:bg-white/5`}
-                  >
-                    <item.icon className="w-4 h-4 mr-3" />
-                    {item.label}
-                  </Button>
-                </Link>
-              ))}
-              <div className="pt-2">
-                <Button
-                  asChild
-                  className="w-full bg-gradient-to-r from-violet-600 to-orange-500 hover:from-violet-500 hover:to-orange-400 text-white border-0"
-                >
-                  <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {t('landing.getStarted')}
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.header>
   );
 }

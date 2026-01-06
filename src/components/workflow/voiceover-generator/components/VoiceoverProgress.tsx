@@ -75,9 +75,9 @@ export function VoiceoverProgress({
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-4 justify-center pt-4">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 justify-center pt-4">
         <Button
-          className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0"
+          className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0 w-full sm:w-auto"
           disabled={totalCount === 0 || remaining === 0 || isGeneratingAll}
           onClick={onGenerateAll}
         >
@@ -94,7 +94,8 @@ export function VoiceoverProgress({
           ) : (
             <>
               <Zap className="w-4 h-4 mr-2" />
-              {t('steps.voiceover.generateAll')}
+              <span className="hidden sm:inline">{t('steps.voiceover.generateAll')}</span>
+              <span className="sm:hidden">Generate</span>
               {remaining > 0 && (
                 <Badge className="ml-2 bg-white/20 text-white text-[10px] px-1.5 py-0 border-0">
                   {remaining}
@@ -110,33 +111,37 @@ export function VoiceoverProgress({
         </Button>
         <Button
           variant="outline"
-          className="border-white/10 hover:bg-white/5"
+          className="border-white/10 hover:bg-white/5 w-full sm:w-auto"
           disabled={generatedCount === 0}
           onClick={onDownloadAll}
         >
           <Download className="w-4 h-4 mr-2" />
-          {t('steps.voiceover.downloadAll')}
+          <span className="hidden sm:inline">{t('steps.voiceover.downloadAll')}</span>
+          <span className="sm:hidden">Download</span>
         </Button>
         <Button
           variant="outline"
-          className="border-red-500/50 hover:bg-red-500/20 text-red-400 hover:text-red-300"
+          className="border-red-500/50 hover:bg-red-500/20 text-red-400 hover:text-red-300 w-full sm:w-auto"
           disabled={generatedCount === 0 || isGeneratingAll}
           onClick={onDeleteAll}
         >
           <Trash2 className="w-4 h-4 mr-2" />
-          {t('steps.voiceover.deleteAll')}
+          <span className="hidden sm:inline">{t('steps.voiceover.deleteAll')}</span>
+          <span className="sm:hidden">Delete</span>
         </Button>
       </div>
 
       {/* Available Versions - Switch & Play by Provider */}
       {availableVersions.length > 1 && (
-        <div className="glass rounded-xl p-4 mt-4 border border-white/10">
-          <div className="flex items-center gap-2 mb-3">
-            <PlayCircle className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-medium">{t('steps.voiceover.compareVersions')}</span>
+        <div className="glass rounded-xl p-3 sm:p-4 mt-4 border border-white/10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <PlayCircle className="w-4 h-4 text-violet-400 shrink-0" />
+              <span className="text-sm font-medium">{t('steps.voiceover.compareVersions')}</span>
+            </div>
             {/* Playing indicator */}
             {isPlayingAll && (
-              <div className="flex items-center gap-2 ml-2">
+              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
                   <motion.div
                     className="w-1.5 h-3 bg-emerald-400 rounded-full"
@@ -159,17 +164,17 @@ export function VoiceoverProgress({
                 </span>
               </div>
             )}
-            <span className="text-xs text-muted-foreground ml-auto">
+            <span className="text-xs text-muted-foreground sm:ml-auto">
               {t('steps.voiceover.clickToSwitch')}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
             {/* Stop button when playing */}
             {isPlayingAll && (
               <Button
                 variant="outline"
                 size="sm"
-                className="border-amber-500/50 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                className="border-amber-500/50 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 w-full sm:w-auto"
                 onClick={onStopPlayback}
               >
                 <Square className="w-3 h-3 mr-1.5" />
@@ -188,9 +193,9 @@ export function VoiceoverProgress({
                   key={versionKey}
                   variant={isActive ? 'default' : 'outline'}
                   size="sm"
-                  className={isActive
+                  className={`${isActive
                     ? `${info.color} text-white border-0`
-                    : 'border-white/20 hover:bg-white/10'}
+                    : 'border-white/20 hover:bg-white/10'} w-full sm:w-auto`}
                   onClick={() => {
                     onSwitchAllToProvider(v.provider, v.language);
                     onPlayAll();

@@ -54,15 +54,15 @@ export function StatusBadges({
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         >
           <Badge
-            className="bg-emerald-500 text-white border-2 border-emerald-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-emerald-400 hover:scale-110 transition-all shadow-lg shadow-emerald-500/50"
+            className="bg-emerald-500 text-white border-2 border-emerald-300 text-[10px] px-1.5 sm:px-2 py-1 flex items-center gap-0.5 sm:gap-1 cursor-pointer hover:bg-emerald-400 hover:scale-110 transition-all shadow-lg shadow-emerald-500/50"
             onClick={(e) => {
               e.stopPropagation();
               onRegenerationClick?.();
             }}
           >
-            <Sparkles className="w-3 h-3" />
-            <span className="font-bold">{clickToRegenerateLabel}</span>
-            <span className="bg-white/20 px-1 rounded">
+            <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+            <span className="font-bold hidden sm:inline">{clickToRegenerateLabel}</span>
+            <span className="bg-white/20 px-0.5 sm:px-1 rounded text-[9px] sm:text-[10px]">
               {approvedRegeneration.maxAttempts - approvedRegeneration.attemptsUsed}x
             </span>
           </Badge>
@@ -82,14 +82,14 @@ export function StatusBadges({
           transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
         >
           <Badge
-            className="bg-amber-500 text-white border-2 border-amber-300 text-[10px] px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-amber-400 hover:scale-110 transition-all shadow-lg shadow-amber-500/50"
+            className="bg-amber-500 text-white border-2 border-amber-300 text-[10px] px-1.5 sm:px-2 py-1 flex items-center gap-0.5 sm:gap-1 cursor-pointer hover:bg-amber-400 hover:scale-110 transition-all shadow-lg shadow-amber-500/50"
             onClick={(e) => {
               e.stopPropagation();
               onRegenerationClick?.();
             }}
           >
-            <Play className="w-3 h-3" />
-            <span className="font-bold">{clickToSelectLabel}</span>
+            <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+            <span className="font-bold hidden sm:inline">{clickToSelectLabel}</span>
           </Badge>
         </motion.div>
       )}

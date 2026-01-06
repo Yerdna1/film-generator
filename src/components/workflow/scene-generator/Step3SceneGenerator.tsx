@@ -7,7 +7,6 @@ import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/typ
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useSceneGenerator } from './hooks';
 import {
-  SceneHeader,
   SceneCard,
   AddSceneDialog,
   EditSceneDialog,
@@ -392,25 +391,6 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         onPageChange={setCurrentPage}
         variant="compact"
       />
-
-      {/* Settings & Progress - only for editors */}
-      {!isReadOnly && (
-        <SceneHeader
-          sceneCount={projectSettings.sceneCount}
-          totalScenes={scenes.length}
-          scenesWithImages={scenesWithImages}
-          imageResolution={imageResolution}
-          aspectRatio={sceneAspectRatio}
-          imageProvider={imageProvider}
-          hasCharacters={characters.length > 0}
-          isGeneratingScenes={isGeneratingScenes}
-          sceneJobProgress={sceneJobProgress}
-          sceneJobStatus={sceneJobStatus}
-          isSceneJobRunning={isSceneJobRunning}
-          onGenerateAllScenes={handleGenerateAllScenes}
-          onStopSceneGeneration={handleCancelSceneGeneration}
-        />
-      )}
 
       {/* Quick Actions - only for editors */}
       {!isReadOnly && (

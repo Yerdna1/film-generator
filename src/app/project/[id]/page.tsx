@@ -681,60 +681,122 @@ export default function ProjectWorkspacePage() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 glass-strong border-t border-white/5 py-4">
-        <div className="max-w-[1920px] mx-auto px-2 md:px-4 lg:px-6 xl:px-8">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={() => previousStep(project.id)}
-              disabled={project.currentStep === 1}
-              className="border-white/10 hover:bg-white/5"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              {t('common.previous')}
-            </Button>
-
-            <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{t('workflow.step')}</span>
-              <span className="font-bold text-foreground">{project.currentStep}</span>
-              <span>{t('workflow.of')}</span>
-              <span>6</span>
-            </div>
-
-            {project.currentStep < 6 ? (
-              <Button
-                onClick={() => nextStep(project.id)}
-                className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
+      <div className="fixed bottom-4 left-4 right-4 z-50">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="glass-strong border border-white/10 rounded-2xl p-3 shadow-2xl shadow-black/30 backdrop-blur-xl"
+          >
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+              {/* Previous Button */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                {t('common.next')}
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            ) : (
-              <Button
-                onClick={async () => {
-                  // Mark project as complete and redirect to projects page
-                  try {
-                    await fetch(`/api/projects/${project.id}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ isComplete: true }),
-                    });
-                    router.push('/projects');
-                  } catch (e) {
-                    console.error('Failed to complete project:', e);
+                <Button
+                  variant="default"
+                  onClick={() => previousStep(project.id)}
+                  disabled={project.currentStep === 1}
+                  className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-purple-500/30 disabled:opacity-30 disabled:from-gray-600 disabled:to-gray-700 disabled:shadow-none transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  <span>{t('common.previous')}</span>
+                </Button>
+              </motion.div>
+
+              {/* Step Indicator - Mobile */}
+              <div className="flex md:hidden items-center gap-2 text-sm text-muted-foreground px-3">
+                <span>{t('workflow.step')}</span>
+                <span className="font-bold text-foreground">{project.currentStep}</span>
+                <span>{t('workflow.of')}</span>
+                <span>6</span>
+              </div>
+
+              {/* Step Indicator - Desktop */}
+              <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{t('workflow.step')}</span>
+                <span className="font-bold text-foreground">{project.currentStep}</span>
+                <span>{t('workflow.of')}</span>
+                <span>6</span>
+              </div>
+
+              {/* Next/Finish Button */}
+              {project.currentStep < 6 ? (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={
+                    project.currentStep > 0
+                      ? {
+                          boxShadow: [
+                            '0 0 0 0px rgba(147, 51, 234, 0.4)',
+                            '0 0 0 8px rgba(147, 51, 234, 0)',
+                            '0 0 0 0px rgba(147, 51, 234, 0)',
+                          ],
+                        }
+                      : {}
                   }
-                }}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-0"
-              >
-                {t('common.finish')}
-              </Button>
-            )}
-          </div>
+                  transition={{
+                    duration: 2,
+                    repeat: project.currentStep > 0 ? Infinity : 0,
+                    repeatDelay: 1,
+                  }}
+                >
+                  <Button
+                    onClick={() => nextStep(project.id)}
+                    className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-purple-500/30"
+                  >
+                    {t('common.next')}
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={{
+                    boxShadow: [
+                      '0 0 0 0px rgba(34, 197, 94, 0.4)',
+                      '0 0 0 8px rgba(34, 197, 94, 0)',
+                      '0 0 0 0px rgba(34, 197, 94, 0)',
+                    ],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatDelay: 1,
+                  }}
+                >
+                  <Button
+                    onClick={async () => {
+                      // Mark project as complete and redirect to projects page
+                      try {
+                        await fetch(`/api/projects/${project.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ isComplete: true }),
+                        });
+                        router.push('/projects');
+                      } catch (e) {
+                        console.error('Failed to complete project:', e);
+                      }
+                    }}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-0 shadow-lg shadow-green-500/30"
+                  >
+                    <span className="hidden sm:inline">{t('common.finish')}</span>
+                    <span className="sm:hidden">Finish</span>
+                  </Button>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
         </div>
       </div>
 
       {/* Spacer for fixed bottom nav */}
-      <div className="h-24" />
+      <div className="h-28" />
 
       {/* Collaboration Slide-out Panel */}
       <AnimatePresence>

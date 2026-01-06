@@ -292,7 +292,7 @@
       "scenesOnPage": "Scény {start}-{end} z {total}"
     },
     "voiceover": {
-      "title": "Hlasový komentár",
+      "title": "Hlas",
       "description": "Vygenerujte hlasový záznam pre dialógy postáv",
       "language": "Jazyk hlasu",
       "provider": "Poskytovateľ hlasu",
@@ -542,11 +542,11 @@
       "storyPromptDesc": "Definujte koncept príbehu, vyberte vizuálny štýl (Disney/Pixar, Realistický, Anime) a vygenerujte hlavný prompt, ktorý bude viesť celú tvorbu obsahu.",
       "characters": "Postavy",
       "charactersDesc": "Vytvorte a prispôsobte postavy vášho filmu. Generujte obrázky postáv pomocou AI alebo nahrajte vlastné. Každá postava má vizuálny popis pre konzistentnosť.",
-      "sceneImages": "Obrázky scén",
+      "sceneImages": "Obrázky",
       "sceneImagesDesc": "Generujte obrázky pre každú scénu pomocou text-to-image promptov. Pridajte dialógy a typy záberov kamery. Použite Claude AI na automatické generovanie rozloženia scén.",
       "videos": "Videá",
       "videosDesc": "Premeňte obrázky scén na 6-sekundové animované videá pomocou Grok Imagine (cez Kie.ai). Každé video obsahuje ambientný zvuk, ale nie dialógy.",
-      "voiceover": "Hlasový komentár",
+      "voiceover": "Hlas",
       "voiceoverDesc": "Generujte hlasový záznam pre dialógy postáv. Vyberte si medzi ElevenLabs (angličtina) alebo Gemini TTS (slovenčina). Priraďte unikátne hlasy každej postave.",
       "export": "Export",
       "exportDesc": "Skontrolujte časovú os projektu, exportujte všetky súbory a stiahnite projekt pripravený pre CapCut. Pozrite si súhrn použitia kreditov."
@@ -1242,7 +1242,7 @@
     "transactionTypes": {
       "image": "Obrázok",
       "video": "Video",
-      "voiceover": "Hlasový komentár",
+      "voiceover": "Hlas",
       "scene": "Scéna",
       "character": "Postava",
       "prompt": "Prompt",

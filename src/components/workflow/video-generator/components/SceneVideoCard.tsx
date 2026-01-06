@@ -323,7 +323,6 @@ export function SceneVideoCard({
               )}
               <Badge variant="outline" className={`${getStatusColor(status)} bg-black/60`}>
                 {getStatusIcon(status)}
-                <span className="ml-1 capitalize">{status}</span>
               </Badge>
             </div>
           </div>
