@@ -4,17 +4,18 @@ import { useCredits } from '@/contexts/CreditsContext';
 import type { Project, AudioVersion, VoiceProvider } from '@/types/project';
 import type { DialogueLineWithScene } from '../types';
 import { getValidGeminiVoice, getVoiceForProvider, getProviderDisplayName } from '../types';
+import type { ItemGenerationState } from '@/lib/constants/workflow';
 
 interface AudioGenerationHookResult {
   generateAudioForLine: (
     lineId: string,
     sceneId: string,
-    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, { status: string; progress: number; error?: string }>>>
+    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>
   ) => Promise<boolean | 'insufficient_credits'>;
   handleGenerateAll: (
     allDialogueLines: DialogueLineWithScene[],
     abortRef: React.MutableRefObject<boolean>,
-    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, { status: string; progress: number; error?: string }>>>,
+    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>,
     setIsGeneratingAll: (value: boolean) => void
   ) => Promise<void>;
   stopGeneratingAll: (
@@ -31,7 +32,7 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
   const generateAudioForLine = useCallback(async (
     lineId: string,
     sceneId: string,
-    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, { status: string; progress: number; error?: string }>>>
+    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>
   ): Promise<boolean | 'insufficient_credits'> => {
     // Read fresh data from store to avoid race conditions when generating multiple lines
     const freshProject = useProjectStore.getState().projects.find(p => p.id === project.id);
@@ -191,7 +192,7 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
   const handleGenerateAll = useCallback(async (
     allDialogueLines: DialogueLineWithScene[],
     abortRef: React.MutableRefObject<boolean>,
-    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, { status: string; progress: number; error?: string }>>>,
+    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>,
     setIsGeneratingAll: (value: boolean) => void
   ) => {
     abortRef.current = false;  // Reset abort flag
@@ -227,9 +228,9 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
         if (i < allDialogueLines.length - 1 && !abortRef.current) {
           const delay = currentProvider === 'gemini-tts' ? 5000
             : currentProvider === 'elevenlabs' ? 3000
-            : currentProvider === 'openai-tts' ? 2000
-            : 3000; // Modal or other
-          console.log(`[TTS] Waiting ${delay/1000}s before next request...`);
+              : currentProvider === 'openai-tts' ? 2000
+                : 3000; // Modal or other
+          console.log(`[TTS] Waiting ${delay / 1000}s before next request...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       } else {

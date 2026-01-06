@@ -62,7 +62,7 @@ export const generateScenesBatch = inngest.createFunction(
     const modalLlmEndpoint = userSettings?.modalLlmEndpoint;
 
     // Map storyModel to actual LLM provider and model
-    const storyModelMapping: Record<string, { provider: 'openrouter' | 'gemini' | 'claude-sdk'; model: string; endpoint?: string }> = {
+    const storyModelMapping: Record<string, { provider: 'openrouter' | 'gemini' | 'claude-sdk' | 'modal'; model: string; endpoint?: string }> = {
       'gpt-4': { provider: 'openrouter', model: 'openai/gpt-4-turbo' },
       'claude-sonnet-4.5': { provider: 'openrouter', model: 'anthropic/claude-sonnet-4.5' },
       'gemini-3-pro': { provider: 'gemini', model: 'gemini-3-pro' },
@@ -253,7 +253,7 @@ Return ONLY the JSON array.`;
             fullResponse = result.stdout;
           } finally {
             // Clean up temp file
-            try { fs.unlinkSync(tmpFile); } catch {}
+            try { fs.unlinkSync(tmpFile); } catch { }
           }
         } else if (openRouterApiKey) {
           fullResponse = await callOpenRouter(
@@ -388,9 +388,9 @@ Return ONLY the JSON array.`;
     await step.run('spend-credits', async () => {
       // Map llmProvider to credit provider name
       const creditProvider = llmProvider === 'gemini' ? 'gemini' :
-                            llmProvider === 'modal' ? 'modal' :
-                            llmProvider === 'claude-sdk' ? 'claude-sdk' :
-                            storyModel; // Use storyModel name for OpenRouter (gpt-4, claude-sonnet-4.5, etc.)
+        llmProvider === 'modal' ? 'modal' :
+          llmProvider === 'claude-sdk' ? 'claude-sdk' :
+            storyModel; // Use storyModel name for OpenRouter (gpt-4, claude-sonnet-4.5, etc.)
 
       // Calculate real cost based on provider (track all costs for accurate statistics)
       let realCost: number;
@@ -399,7 +399,8 @@ Return ONLY the JSON array.`;
       } else if (llmProvider === 'claude-sdk') {
         realCost = ACTION_COSTS.scene.claude * finalSceneCount; // Same as Claude API (~$0.01 per scene)
       } else if (storyModel === 'gpt-4') {
-        realCost = ACTION_COSTS.scene.gpt4 * finalSceneCount;
+        // GPT-4 Turbo via OpenRouter has similar pricing to Claude
+        realCost = ACTION_COSTS.scene.claude * finalSceneCount;
       } else {
         realCost = ACTION_COSTS.scene.claude * finalSceneCount; // Default for Claude Sonnet 4.5
       }

@@ -83,7 +83,7 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
     if (!isReadOnly && project.id) {
       // Map style model to image resolution
       const imageResolution = styleModel === 'flux' ? '4k' :
-                             styleModel === 'midjourney' ? '2k' : '1k';
+        styleModel === 'midjourney' ? '2k' : '1k';
       updateSettings(project.id, { imageResolution });
     }
   }, [styleModel, project.id, updateSettings, isReadOnly]);
@@ -105,11 +105,11 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
 
     // Get current settings from project (they should already be synced via useEffect)
     // Define outside try block for fallback access in catch
-    const currentSettings = {
+    const currentSettings: import('@/types/project').ProjectSettings = {
       aspectRatio,
       resolution: (styleModel === 'flux' ? '4k' : 'hd') as 'hd' | '4k',
       voiceLanguage: videoLanguage as 'sk' | 'en',
-      sceneCount: project.settings?.sceneCount || 12,
+      sceneCount: (project.settings?.sceneCount || 12) as 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360,
       characterCount: project.settings?.characterCount || 3,
       imageResolution: (styleModel === 'flux' ? '4k' : '2k') as '1k' | '2k' | '4k',
       voiceProvider,

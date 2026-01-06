@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
-import type { DialogueLineWithScene } from '../types';
+import type { ItemGenerationState } from '@/lib/constants/workflow';
 
 interface AudioUIStateHookResult {
-  audioStates: Record<string, { status: string; progress: number; error?: string }>;
-  setAudioStates: React.Dispatch<React.SetStateAction<Record<string, { status: string; progress: number; error?: string }>>>;
+  audioStates: Record<string, ItemGenerationState>;
+  setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>;
   playingAudio: string | null;
   playingSceneId: string | null;
   scenePlaybackIndex: number;
@@ -16,7 +16,7 @@ interface AudioUIStateHookResult {
 }
 
 export function useAudioUIState(): AudioUIStateHookResult {
-  const [audioStates, setAudioStates] = useState<Record<string, { status: string; progress: number; error?: string }>>({});
+  const [audioStates, setAudioStates] = useState<Record<string, ItemGenerationState>>({});
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [playingSceneId, setPlayingSceneId] = useState<string | null>(null);
   const [scenePlaybackIndex, setScenePlaybackIndex] = useState(0);
