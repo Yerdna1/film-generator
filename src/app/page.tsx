@@ -9,7 +9,6 @@ import {
   LandingPage,
   LoadingSkeleton,
   DashboardHero,
-  StatsGrid,
   ProjectsSection,
   useDashboardData,
 } from './_components';
@@ -43,7 +42,7 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
-  const { creditsData, projectCosts, creditsBreakdown } = useDashboardData(
+  const { projectCosts } = useDashboardData(
     status === 'authenticated'
   );
 
@@ -83,17 +82,6 @@ export default function DashboardPage() {
     return <LoadingSkeleton />;
   }
 
-  const stats = {
-    total: projects.length,
-    inProgress: projects.filter((p) => !p.isComplete).length,
-    completed: projects.filter((p) => p.isComplete).length,
-    // Support both summary format (scenesCount) and full format (scenes.length)
-    totalScenes: projects.reduce((acc, p) => {
-      const count = 'scenesCount' in p ? (p.scenesCount as number) : p.scenes?.length ?? 0;
-      return acc + count;
-    }, 0),
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
@@ -112,15 +100,6 @@ export default function DashboardPage() {
         onCreateProject={handleNewProject}
         searchQuery={searchQuery}
       />
-
-      {/* Combined Stats Row */}
-      {projects.length > 0 && (
-        <StatsGrid
-          stats={stats}
-          creditsData={creditsData}
-          breakdown={creditsBreakdown}
-        />
-      )}
 
       {/* Dialogs */}
       <ImportProjectDialog open={importProjectOpen} onOpenChange={setImportProjectOpen} />

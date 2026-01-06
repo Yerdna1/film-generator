@@ -44,9 +44,10 @@ export function Header() {
   // Use centralized subscription hook with SWR deduplication
   const { plan: subscriptionPlan } = useSubscription({ enabled: !!user });
 
-  // Hide header on project pages
+  // Hide header on project pages and auth pages
   const isProjectPage = pathname?.startsWith('/project/');
-  if (isProjectPage) {
+  const isAuthPage = pathname?.startsWith('/auth/');
+  if (isProjectPage || isAuthPage) {
     return null;
   }
 

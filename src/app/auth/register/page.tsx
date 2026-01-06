@@ -95,7 +95,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 py-8">
+    <div className="h-screen flex items-center justify-center p-4 overflow-hidden">
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full filter blur-[100px] animate-pulse" />
@@ -105,10 +105,11 @@ export default function RegisterPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md overflow-y-auto"
+        style={{ maxHeight: 'calc(100vh - 2rem)' }}
       >
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <Link href="/" className="inline-flex items-center gap-2 group">
             <motion.div
               initial={{ rotate: -10 }}
@@ -122,8 +123,8 @@ export default function RegisterPage() {
         </div>
 
         {/* Card */}
-        <div className="glass-strong rounded-2xl p-8 border border-white/10">
-          <div className="text-center mb-6">
+        <div className="glass-strong rounded-2xl p-6 border border-white/10">
+          <div className="text-center mb-4">
             <h1 className="text-2xl font-bold mb-2">{t('auth.createAccount')}</h1>
             <p className="text-muted-foreground text-sm">
               {t('auth.signUpDescription')}
@@ -142,8 +143,8 @@ export default function RegisterPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
               <Label htmlFor="name">{t('auth.name')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -153,13 +154,13 @@ export default function RegisterPage() {
                   placeholder="John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="pl-10 h-11 glass border-white/10 focus:border-purple-500/50"
+                  className="pl-10 h-10 glass border-white/10 focus:border-purple-500/50"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -169,13 +170,13 @@ export default function RegisterPage() {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-11 glass border-white/10 focus:border-purple-500/50"
+                  className="pl-10 h-10 glass border-white/10 focus:border-purple-500/50"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -185,7 +186,7 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-11 glass border-white/10 focus:border-purple-500/50"
+                  className="pl-10 pr-10 h-10 glass border-white/10 focus:border-purple-500/50"
                   required
                 />
                 <button
@@ -206,7 +207,7 @@ export default function RegisterPage() {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="space-y-1 pt-2"
+                  className="space-y-1 pt-1.5"
                 >
                   {passwordRequirements.map((req, index) => (
                     <div
@@ -223,7 +224,7 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -233,7 +234,7 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`pl-10 h-11 glass border-white/10 focus:border-purple-500/50 ${
+                  className={`pl-10 h-10 glass border-white/10 focus:border-purple-500/50 ${
                     confirmPassword && password !== confirmPassword
                       ? 'border-red-500/50'
                       : confirmPassword && password === confirmPassword
@@ -248,7 +249,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={isLoading || !passwordRequirements.every((r) => r.met)}
-              className="w-full h-11 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
+              className="w-full h-10 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
             >
               {isLoading ? (
                 <>
@@ -268,7 +269,7 @@ export default function RegisterPage() {
           {isGoogleEnabled && (
             <>
               {/* Divider */}
-              <div className="relative my-6">
+              <div className="relative my-4">
                 <Separator className="bg-white/10" />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-2 bg-[#0a0a0f] text-xs text-muted-foreground">
                   {t('auth.orContinueWith')}
@@ -279,7 +280,7 @@ export default function RegisterPage() {
               <Button
                 variant="outline"
                 onClick={handleGoogleRegister}
-                className="w-full h-11 border-white/10 hover:bg-white/5"
+                className="w-full h-10 border-white/10 hover:bg-white/5"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path
@@ -305,7 +306,7 @@ export default function RegisterPage() {
           )}
 
           {/* Sign In Link */}
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-4">
             {t('auth.hasAccount')}{' '}
             <Link
               href="/auth/login"
