@@ -8,6 +8,7 @@ export const defaultSettings: ProjectSettings = {
   imageResolution: '2k',
   voiceLanguage: 'en',
   voiceProvider: 'elevenlabs',
+  storyModel: 'claude-sonnet-4.5',
 };
 
 export const defaultStory: StoryConfig = {

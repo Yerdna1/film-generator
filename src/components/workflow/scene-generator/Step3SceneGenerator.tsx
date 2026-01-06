@@ -5,7 +5,7 @@ import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
 import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useProjectStore } from '@/lib/stores/project-store';
-import { useSceneGenerator } from './hooks/useSceneGenerator';
+import { useSceneGenerator } from './hooks';
 import {
   SceneHeader,
   SceneCard,
@@ -313,7 +313,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   }, [currentPage, totalPages]);
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
+    <div className="max-w-[1920px] mx-auto space-y-6 px-4">
       {/* Pagination - Top */}
       {scenes.length > 0 && (
         <Pagination
@@ -408,9 +408,6 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
           sceneJobProgress={sceneJobProgress}
           sceneJobStatus={sceneJobStatus}
           isSceneJobRunning={isSceneJobRunning}
-          onSceneCountChange={handleSceneCountChange}
-          onImageResolutionChange={(value) => updateSettings({ imageResolution: value })}
-          onAspectRatioChange={setSceneAspectRatio}
           onGenerateAllScenes={handleGenerateAllScenes}
           onStopSceneGeneration={handleCancelSceneGeneration}
         />

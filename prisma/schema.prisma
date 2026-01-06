@@ -191,7 +191,7 @@ model Project {
   renderedDraftUrl String? @db.Text
 
   // JSON fields for complex data
-  settings      Json @default("{\"sceneCount\": 12, \"characterCount\": 2, \"aspectRatio\": \"16:9\", \"resolution\": \"hd\", \"voiceLanguage\": \"sk\", \"voiceProvider\": \"gemini-tts\"}")
+  settings      Json @default("{\"sceneCount\": 12, \"characterCount\": 2, \"aspectRatio\": \"16:9\", \"resolution\": \"hd\", \"imageResolution\": \"2k\", \"voiceLanguage\": \"sk\", \"voiceProvider\": \"gemini-tts\", \"storyModel\": \"claude-sonnet-4.5\"}")
   story         Json @default("{\"title\": \"\", \"concept\": \"\", \"genre\": \"adventure\", \"tone\": \"heartfelt\", \"setting\": \"\"}")
   voiceSettings Json @default("{\"language\": \"sk\", \"provider\": \"gemini-tts\", \"characterVoices\": {}}")
 

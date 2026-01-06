@@ -46,7 +46,9 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const [videoLanguage, setVideoLanguage] = useState<typeof videoLanguages[number]>(
     project.settings?.voiceLanguage || 'en'
   );
-  const [storyModel, setStoryModel] = useState('gpt-4');
+  const [storyModel, setStoryModel] = useState<'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro'>(
+    project.settings?.storyModel || 'claude-sonnet-4.5'
+  );
   const [styleModel, setStyleModel] = useState(
     project.settings?.imageResolution === '4k' ? 'flux' : 'dall-e-3'
   );
@@ -91,6 +93,12 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
       updateSettings(project.id, { voiceProvider });
     }
   }, [voiceProvider, project.id, updateSettings, isReadOnly]);
+
+  useEffect(() => {
+    if (!isReadOnly && project.id) {
+      updateSettings(project.id, { storyModel });
+    }
+  }, [storyModel, project.id, updateSettings, isReadOnly]);
 
   const handleGeneratePrompt = async () => {
     setIsGenerating(true);

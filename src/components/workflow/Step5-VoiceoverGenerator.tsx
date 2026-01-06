@@ -310,7 +310,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
+    <div className="max-w-[1920px] mx-auto space-y-6 px-4">
       {/* Loading dialogue indicator */}
       {isLoadingDialogue && (
         <div className="glass rounded-xl p-6 text-center">

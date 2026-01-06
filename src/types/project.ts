@@ -76,6 +76,7 @@ export interface ProjectSettings {
   imageResolution: ImageResolution; // For Gemini 3 Pro Image pricing (1K/2K=$0.134, 4K=$0.24)
   voiceLanguage: VoiceLanguage;
   voiceProvider: VoiceProvider;
+  storyModel: 'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro';
 }
 
 // Story configuration

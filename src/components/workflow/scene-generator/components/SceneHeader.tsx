@@ -36,9 +36,6 @@ interface SceneHeaderProps {
   sceneJobProgress?: number;
   sceneJobStatus?: string | null;
   isSceneJobRunning?: boolean;
-  onSceneCountChange: (value: string) => void;
-  onImageResolutionChange: (value: ImageResolution) => void;
-  onAspectRatioChange: (value: AspectRatio) => void;
   onGenerateAllScenes: () => void;
   onStopSceneGeneration?: () => void;
 }
@@ -61,9 +58,6 @@ export function SceneHeader({
   sceneJobProgress = 0,
   sceneJobStatus,
   isSceneJobRunning = false,
-  onSceneCountChange,
-  onImageResolutionChange,
-  onAspectRatioChange,
   onGenerateAllScenes,
   onStopSceneGeneration,
 }: SceneHeaderProps) {
@@ -71,72 +65,35 @@ export function SceneHeader({
 
   return (
     <>
-      {/* Progress & Scene Count */}
+      {/* Progress & Scene Count - Settings from Step1 */}
       <div className="glass rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
+          {/* Display Scene Count (from Step1) */}
           <div className="flex items-center gap-4">
             <Label className="text-sm text-muted-foreground">{t('steps.scenes.sceneCount')}:</Label>
-            <Select
-              value={sceneCount.toString()}
-              onValueChange={onSceneCountChange}
-              disabled={totalScenes > 0}
-            >
-              <SelectTrigger className="w-32 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                {[12, 24, 36, 48, 60, 120, 240, 360].map((count) => (
-                  <SelectItem key={count} value={count.toString()}>
-                    {count} {t('steps.scenes.scenesLabel')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Badge variant="outline" className="border-blue-500/30 text-blue-400">
+              {sceneCount} {t('steps.scenes.scenesLabel')}
+            </Badge>
           </div>
 
-          {/* Image Quality Selector */}
+          {/* Display Image Quality (from Step1) */}
           <div className="flex items-center gap-2">
             <Label className="text-sm text-muted-foreground whitespace-nowrap">Quality:</Label>
-            <Select
-              value={imageResolution}
-              onValueChange={(value) => onImageResolutionChange(value as ImageResolution)}
-            >
-              <SelectTrigger className="w-40 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                {(Object.entries(IMAGE_RESOLUTIONS) as [ImageResolution, { label: string; maxPixels: string; description: string }][]).map(([key, data]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">{data.label}</span>
-                      <span className="text-xs text-muted-foreground">{formatCostCompact(getImageCost(key))}/img</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Badge variant="outline" className="border-green-500/30 text-green-400">
+              {IMAGE_RESOLUTIONS[imageResolution]?.label || imageResolution}
+              <span className="text-xs text-muted-foreground ml-2">({formatCostCompact(getImageCost(imageResolution))}/img)</span>
+            </Badge>
           </div>
 
-          {/* Aspect Ratio Selector */}
+          {/* Display Aspect Ratio (from Step1) */}
           <div className="flex items-center gap-2">
             <Label className="text-sm text-muted-foreground whitespace-nowrap">Aspect:</Label>
-            <Select
-              value={aspectRatio}
-              onValueChange={(value) => onAspectRatioChange(value as AspectRatio)}
-            >
-              <SelectTrigger className="w-44 glass border-white/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass-strong border-white/10">
-                {(Object.entries(ASPECT_RATIOS) as [AspectRatio, { label: string; description: string }][]).map(([key, data]) => (
-                  <SelectItem key={key} value={key}>
-                    <span className="font-medium">{data.label}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Badge variant="outline" className="border-orange-500/30 text-orange-400">
+              {ASPECT_RATIOS[aspectRatio]?.label || aspectRatio}
+            </Badge>
           </div>
 
+          {/* Status Badges */}
           <div className="flex items-center gap-4 flex-wrap">
             <Badge variant="outline" className="border-purple-500/30 text-purple-400">
               {IMAGE_PROVIDER_LABELS[imageProvider]}

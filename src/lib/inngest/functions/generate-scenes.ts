@@ -28,17 +28,51 @@ export const generateScenesBatch = inngest.createFunction(
       });
     });
 
-    // Get user's API keys and LLM provider preference
+    // Get project to retrieve storyModel setting
+    const project = await step.run('get-project', async () => {
+      return prisma.project.findUnique({
+        where: { id: projectId },
+      });
+    });
+
+    if (!project) {
+      await step.run('update-job-failed-no-project', async () => {
+        await prisma.sceneGenerationJob.update({
+          where: { id: jobId },
+          data: { status: 'failed', errorDetails: 'Project not found' },
+        });
+      });
+      return { success: false, error: 'Project not found' };
+    }
+
+    // Get storyModel from project settings (from Step1)
+    const projectSettings = project.settings as any;
+    const storyModel = projectSettings?.storyModel || 'claude-sonnet-4.5';
+
+    console.log(`[Inngest Scenes] Using storyModel from project settings: ${storyModel}`);
+
+    // Get user's API keys for LLM provider
     const userSettings = await step.run('get-user-settings', async () => {
       return prisma.apiKeys.findUnique({
         where: { userId },
       });
     });
 
-    const llmProvider = userSettings?.llmProvider || 'openrouter';
     const openRouterApiKey = userSettings?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
-    const openRouterModel = userSettings?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
     const modalLlmEndpoint = userSettings?.modalLlmEndpoint;
+
+    // Map storyModel to actual LLM provider and model
+    const storyModelMapping: Record<string, { provider: 'openrouter' | 'gemini' | 'claude-sdk'; model: string; endpoint?: string }> = {
+      'gpt-4': { provider: 'openrouter', model: 'openai/gpt-4-turbo' },
+      'claude-sonnet-4.5': { provider: 'openrouter', model: 'anthropic/claude-sonnet-4.5' },
+      'gemini-3-pro': { provider: 'gemini', model: 'gemini-3-pro' },
+    };
+
+    const llmConfig = storyModelMapping[storyModel] || storyModelMapping['claude-sonnet-4.5'];
+    const llmProvider = llmConfig.provider;
+    const llmModel = llmConfig.model;
+
+    console.log(`[Inngest Scenes] LLM config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}`);
 
     // Validate provider settings
     if (llmProvider === 'openrouter' && !openRouterApiKey) {
@@ -226,7 +260,7 @@ Return ONLY the JSON array.`;
             openRouterApiKey,
             systemPrompt,
             prompt,
-            openRouterModel,
+            llmModel,
             16384
           );
         } else {
@@ -352,23 +386,30 @@ Return ONLY the JSON array.`;
 
     // Spend credits
     await step.run('spend-credits', async () => {
-      const provider = llmProvider === 'modal' ? 'modal' : llmProvider === 'claude-sdk' ? 'claude-sdk' : 'openrouter';
+      // Map llmProvider to credit provider name
+      const creditProvider = llmProvider === 'gemini' ? 'gemini' :
+                            llmProvider === 'modal' ? 'modal' :
+                            llmProvider === 'claude-sdk' ? 'claude-sdk' :
+                            storyModel; // Use storyModel name for OpenRouter (gpt-4, claude-sonnet-4.5, etc.)
+
       // Calculate real cost based on provider (track all costs for accurate statistics)
       let realCost: number;
       if (llmProvider === 'modal') {
         realCost = ACTION_COSTS.scene.modal * finalSceneCount; // ~$0.002 per scene
       } else if (llmProvider === 'claude-sdk') {
         realCost = ACTION_COSTS.scene.claude * finalSceneCount; // Same as Claude API (~$0.01 per scene)
+      } else if (storyModel === 'gpt-4') {
+        realCost = ACTION_COSTS.scene.gpt4 * finalSceneCount;
       } else {
-        realCost = ACTION_COSTS.scene.claude * finalSceneCount;
+        realCost = ACTION_COSTS.scene.claude * finalSceneCount; // Default for Claude Sonnet 4.5
       }
       await spendCredits(
         userId,
         COSTS.SCENE_GENERATION * finalSceneCount,
         'scene',
-        `${llmProvider} scene generation (${finalSceneCount} scenes in ${totalBatches} batches)`,
+        `${storyModel} scene generation (${finalSceneCount} scenes in ${totalBatches} batches)`,
         projectId,
-        provider,
+        creditProvider,
         undefined,
         realCost
       );

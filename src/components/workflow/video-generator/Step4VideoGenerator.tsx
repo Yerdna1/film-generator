@@ -212,7 +212,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
   }, [scenes, selectedScenes]);
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6 px-4">
+    <div className="max-w-[1920px] mx-auto space-y-6 px-4">
       {/* Warning if no images */}
       {scenesWithImages.length === 0 && <NoImagesWarning />}
 
