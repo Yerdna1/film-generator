@@ -171,8 +171,6 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     }
   }, [project.id, updateCharacter]);
 
-  const charactersWithImages = characters.filter((c) => c.imageUrl).length;
-
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 px-4">
       {/* Characters Grid */}
@@ -222,11 +220,9 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
       {!isReadOnly && (
         <CharacterProgress
           characters={characters}
-          charactersWithImages={charactersWithImages}
           isGeneratingAll={isGeneratingAll}
           imageResolution={settings.imageResolution || '2k'}
           onGenerateAll={handleGenerateAll}
-          onShowPromptsDialog={() => setShowPromptsDialog(true)}
         />
       )}
 
