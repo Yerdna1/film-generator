@@ -776,36 +776,64 @@
     "title": "Create Amazing Short Films with AI",
     "subtitle": "Transform your story ideas into stunning animated films. Generate characters, scenes, videos, and voiceovers with the power of AI.",
     "getStarted": "Get Started Free",
+    "showcase": {
+      "title": "See what creators are building",
+      "subtitle": "Real AI-generated films made with our platform",
+      "viewMore": "View more on YouTube"
+    },
     "features": {
-      "prompt": {
-        "title": "Story & Prompt",
-        "description": "Define your story concept and generate a master prompt to guide all content creation."
+      "title": "Everything you need to create",
+      "subtitle": "Professional-grade AI tools for every step of film production",
+      "storyGeneration": {
+        "title": "AI Story Generation",
+        "description": "Transform your ideas into complete film scripts with AI-powered storytelling."
       },
-      "characters": {
-        "title": "Character Creation",
-        "description": "Create unique characters with AI-generated images and consistent visual descriptions."
+      "characterDesign": {
+        "title": "Character Design",
+        "description": "Create consistent, expressive characters that maintain their look across scenes."
       },
-      "images": {
-        "title": "Scene Images",
-        "description": "Generate beautiful scene images with text-to-image AI technology."
+      "sceneGeneration": {
+        "title": "Scene Generation",
+        "description": "Generate stunning visuals for every scene with state-of-the-art AI models."
       },
-      "videos": {
-        "title": "Video Generation",
-        "description": "Convert your scene images into animated 6-second video clips."
+      "videoAnimation": {
+        "title": "Video Animation",
+        "description": "Bring your scenes to life with smooth, cinematic video generation."
       },
-      "voiceover": {
-        "title": "Voice Generation",
-        "description": "Add professional voiceovers with AI voices in multiple languages."
+      "voiceovers": {
+        "title": "AI Voiceovers",
+        "description": "Add professional narration and character voices with neural TTS."
       },
       "export": {
-        "title": "Easy Export",
-        "description": "Export all assets ready for editing in CapCut or other video editors."
+        "title": "Export & Share",
+        "description": "Download your complete film or share directly to social platforms."
       }
     },
+    "useCases": {
+      "title": "What do you want to create?",
+      "subtitle": "From kids stories to professional explainers",
+      "animatedShorts": "Animated Shorts",
+      "kidsStories": "Kids Stories",
+      "artFilms": "Art Films",
+      "explainers": "Explainers",
+      "musicVideos": "Music Videos",
+      "socialContent": "Social Content"
+    },
+    "stats": {
+      "title": "Trusted by creators worldwide",
+      "videosGenerated": "Videos Generated",
+      "scenesCreated": "Scenes Created",
+      "happyCreators": "Happy Creators"
+    },
     "cta": {
-      "title": "Ready to Create Your Film?",
-      "description": "Sign up for free and start creating amazing AI-generated films today.",
-      "button": "Create Free Account"
+      "titlePre": "Ready to create your first",
+      "titleAccent": " AI story",
+      "titlePost": "?",
+      "subtitle": "Join thousands of creators already using our platform.\nStart creating for free today.",
+      "button": "Get Started Free",
+      "noCreditCard": "No credit card required",
+      "freeTier": "Free tier included",
+      "cancelAnytime": "Cancel anytime"
     }
   },
   "settingsPage": {

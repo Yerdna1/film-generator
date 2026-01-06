@@ -16,53 +16,47 @@ import {
 export const features = [
     {
         icon: Wand2,
-        title: 'AI Story Generation',
-        description: 'Transform your ideas into complete film scripts with AI-powered storytelling.',
+        id: 'storyGeneration',
         gradient: 'from-violet-500 to-purple-600',
     },
     {
         icon: Users,
-        title: 'Character Design',
-        description: 'Create consistent, expressive characters that maintain their look across scenes.',
+        id: 'characterDesign',
         gradient: 'from-cyan-500 to-blue-600',
     },
     {
         icon: ImageIcon,
-        title: 'Scene Generation',
-        description: 'Generate stunning visuals for every scene with state-of-the-art AI models.',
+        id: 'sceneGeneration',
         gradient: 'from-pink-500 to-rose-600',
     },
     {
         icon: Clapperboard,
-        title: 'Video Animation',
-        description: 'Bring your scenes to life with smooth, cinematic video generation.',
+        id: 'videoAnimation',
         gradient: 'from-orange-500 to-amber-600',
     },
     {
         icon: Volume2,
-        title: 'AI Voiceovers',
-        description: 'Add professional narration and character voices with neural TTS.',
+        id: 'voiceovers',
         gradient: 'from-emerald-500 to-teal-600',
     },
     {
         icon: Download,
-        title: 'Export & Share',
-        description: 'Download your complete film or share directly to social platforms.',
+        id: 'export',
         gradient: 'from-indigo-500 to-violet-600',
     },
 ];
 
 export const useCases = [
-    { icon: Film, label: 'Animated Shorts', color: 'text-purple-400' },
-    { icon: MessageSquare, label: 'Kids Stories', color: 'text-cyan-400' },
-    { icon: Palette, label: 'Art Films', color: 'text-pink-400' },
-    { icon: Globe, label: 'Explainers', color: 'text-orange-400' },
-    { icon: Zap, label: 'Music Videos', color: 'text-yellow-400' },
-    { icon: Play, label: 'Social Content', color: 'text-green-400' },
+    { icon: Film, id: 'animatedShorts', color: 'text-purple-400' },
+    { icon: MessageSquare, id: 'kidsStories', color: 'text-cyan-400' },
+    { icon: Palette, id: 'artFilms', color: 'text-pink-400' },
+    { icon: Globe, id: 'explainers', color: 'text-orange-400' },
+    { icon: Zap, id: 'musicVideos', color: 'text-yellow-400' },
+    { icon: Play, id: 'socialContent', color: 'text-green-400' },
 ];
 
 export const stats = [
-    { value: 590, suffix: '+', label: 'Videos Generated' },
-    { value: 7400, suffix: '+', label: 'Scenes Created' },
-    { value: 160, suffix: '+', label: 'Happy Creators' },
+    { value: 590, suffix: '+', id: 'videosGenerated' },
+    { value: 7400, suffix: '+', id: 'scenesCreated' },
+    { value: 160, suffix: '+', id: 'happyCreators' },
 ];

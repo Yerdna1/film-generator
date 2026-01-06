@@ -776,36 +776,64 @@
     "title": "Vytvorte úžasné krátke filmy s AI",
     "subtitle": "Premeňte svoje nápady na príbehy na ohromujúce animované filmy. Generujte postavy, scény, videá a hlasové komentáre pomocou AI.",
     "getStarted": "Začnite zadarmo",
+    "showcase": {
+      "title": "Pozrite sa, čo tvoria ostatní",
+      "subtitle": "Skutočné AI filmy vytvorené na našej platforme",
+      "viewMore": "Zobraziť viac na YouTube"
+    },
     "features": {
-      "prompt": {
-        "title": "Príbeh a Prompt",
-        "description": "Definujte koncept príbehu a vygenerujte hlavný prompt na vedenie tvorby obsahu."
+      "title": "Všetko, čo potrebujete na tvorbu",
+      "subtitle": "Profesionálne AI nástroje pre každý krok filmovej produkcie",
+      "storyGeneration": {
+        "title": "AI Generovanie príbehu",
+        "description": "Premeňte svoje nápady na kompletné filmové scenáre pomocou AI rozprávania."
       },
-      "characters": {
-        "title": "Tvorba postáv",
-        "description": "Vytvorte unikátne postavy s AI-generovanými obrázkami a konzistentnými vizuálnymi popismi."
+      "characterDesign": {
+        "title": "Dizajn postáv",
+        "description": "Vytvorte konzistentné, výrazné postavy, ktoré si zachovajú svoj vzhľad naprieč scénami."
       },
-      "images": {
-        "title": "Obrázky scén",
-        "description": "Generujte krásne obrázky scén pomocou AI technológie text-to-image."
+      "sceneGeneration": {
+        "title": "Generovanie scén",
+        "description": "Generujte ohromujúce vizuály pre každú scénu pomocou najmodernejších AI modelov."
       },
-      "videos": {
-        "title": "Generovanie videí",
-        "description": "Premeňte obrázky scén na animované 6-sekundové videoklipy."
+      "videoAnimation": {
+        "title": "Video animácia",
+        "description": "Oživte svoje scény plynulým, filmovým generovaním videa."
       },
-      "voiceover": {
-        "title": "Generovanie hlasu",
-        "description": "Pridajte profesionálne hlasové komentáre s AI hlasmi vo viacerých jazykoch."
+      "voiceovers": {
+        "title": "AI Hlasové komentáre",
+        "description": "Pridajte profesionálny komentár a hlasy postáv pomocou neurálneho TTS."
       },
       "export": {
-        "title": "Jednoduchý export",
-        "description": "Exportujte všetky assety pripravené na úpravu v CapCut alebo iných video editoroch."
+        "title": "Export a zdieľanie",
+        "description": "Stiahnite si celý film alebo ho zdieľajte priamo na sociálne siete."
       }
     },
+    "useCases": {
+      "title": "Čo chcete vytvoriť?",
+      "subtitle": "Od detských príbehov po profesionálne videá",
+      "animatedShorts": "Animované kraťasy",
+      "kidsStories": "Detské príbehy",
+      "artFilms": "Umelecké filmy",
+      "explainers": "Vysvetľujúce videá",
+      "musicVideos": "Hudobné videá",
+      "socialContent": "Obsah na sociálne siete"
+    },
+    "stats": {
+      "title": "Dôverujú nám tvorcovia po celom svete",
+      "videosGenerated": "Vygenerovaných videí",
+      "scenesCreated": "Vytvorených scén",
+      "happyCreators": "Spokojných tvorcov"
+    },
     "cta": {
-      "title": "Ste pripravení vytvoriť svoj film?",
-      "description": "Zaregistrujte sa zadarmo a začnite vytvárať úžasné AI-generované filmy ešte dnes.",
-      "button": "Vytvoriť bezplatný účet"
+      "titlePre": "Pripravení vytvoriť svoj prvý",
+      "titleAccent": " AI príbeh",
+      "titlePost": "?",
+      "subtitle": "Pridajte sa k tisíckam tvorcov, ktorí už používajú našu platformu.\nZačnite tvoriť zadarmo ešte dnes.",
+      "button": "Začať zadarmo",
+      "noCreditCard": "Nie je potrebná kreditná karta",
+      "freeTier": "Balíček zadarmo v cene",
+      "cancelAnytime": "Kedykoľvek zrušiť"
     }
   },
   "settingsPage": {

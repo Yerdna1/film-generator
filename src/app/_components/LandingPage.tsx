@@ -126,10 +126,10 @@ export function LandingPage() {
               className="text-center mb-10"
             >
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                See what creators are building
+                {tLanding('showcase.title')}
               </h2>
               <p className="text-white/50">
-                Real AI-generated films made with our platform
+                {tLanding('showcase.subtitle')}
               </p>
             </motion.div>
 
@@ -154,7 +154,7 @@ export function LandingPage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors"
               >
-                View more on YouTube
+                {tLanding('showcase.viewMore')}
                 <ExternalLink className="w-4 h-4" />
               </a>
             </motion.div>
@@ -184,17 +184,17 @@ export function LandingPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                What do you want to create?
+                {tLanding('useCases.title')}
               </h2>
               <p className="text-white/50 text-lg">
-                From kids stories to professional explainers
+                {tLanding('useCases.subtitle')}
               </p>
             </motion.div>
 
             <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
               {useCases.map((useCase, index) => (
                 <motion.div
-                  key={useCase.label}
+                  key={useCase.id}
                   initial={{ opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
@@ -203,7 +203,9 @@ export function LandingPage() {
                   className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-6 py-3 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all duration-300"
                 >
                   <useCase.icon className={`w-5 h-5 ${useCase.color}`} />
-                  <span className="text-white/90 font-medium">{useCase.label}</span>
+                  <span className="text-white/90 font-medium">
+                    {tLanding(`useCases.${useCase.id}`)}
+                  </span>
                 </motion.div>
               ))}
             </div>
@@ -220,17 +222,17 @@ export function LandingPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                Everything you need to create
+                {tLanding('features.title')}
               </h2>
               <p className="text-white/50 text-lg max-w-2xl mx-auto">
-                Professional-grade AI tools for every step of film production
+                {tLanding('features.subtitle')}
               </p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {features.map((feature, index) => (
                 <motion.div
-                  key={feature.title}
+                  key={feature.id}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -244,8 +246,12 @@ export function LandingPage() {
                     <feature.icon className="w-7 h-7 text-white" />
                   </div>
 
-                  <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
-                  <p className="text-white/50 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-xl font-semibold text-white mb-3">
+                    {tLanding(`features.${feature.id}.title`)}
+                  </h3>
+                  <p className="text-white/50 leading-relaxed">
+                    {tLanding(`features.${feature.id}.description`)}
+                  </p>
                 </motion.div>
               ))}
             </div>
@@ -264,14 +270,14 @@ export function LandingPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Trusted by creators worldwide
+                {tLanding('stats.title')}
               </h2>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               {stats.map((stat, index) => (
                 <motion.div
-                  key={stat.label}
+                  key={stat.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -281,7 +287,9 @@ export function LandingPage() {
                   <div className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent mb-2">
                     <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                   </div>
-                  <p className="text-white/50 text-lg">{stat.label}</p>
+                  <p className="text-white/50 text-lg">
+                    {tLanding(`stats.${stat.id}`)}
+                  </p>
                 </motion.div>
               ))}
             </div>
@@ -300,12 +308,14 @@ export function LandingPage() {
               className="max-w-3xl mx-auto text-center"
             >
               <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
-                Ready to create your first
-                <span className="bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent"> AI story</span>?
+                {tLanding('cta.titlePre')}
+                <span className="bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent">
+                  {tLanding('cta.titleAccent')}
+                </span>
+                {tLanding('cta.titlePost')}
               </h2>
-              <p className="text-xl text-white/50 mb-10">
-                Join thousands of creators already using our platform.
-                <br />Start creating for free today.
+              <p className="text-xl text-white/50 mb-10 whitespace-pre-line">
+                {tLanding('cta.subtitle')}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -314,7 +324,7 @@ export function LandingPage() {
                     size="lg"
                     className="relative bg-gradient-to-r from-violet-600 to-orange-500 hover:from-violet-500 hover:to-orange-400 text-white border-0 h-14 px-12 text-lg font-semibold rounded-full shadow-[0_0_60px_rgba(139,92,246,0.5)] hover:shadow-[0_0_80px_rgba(139,92,246,0.7)] transition-all duration-300"
                   >
-                    Get Started Free
+                    {tLanding('cta.button')}
                     <Sparkles className="w-5 h-5 ml-2" />
                   </Button>
                 </Link>
@@ -323,15 +333,15 @@ export function LandingPage() {
               <div className="mt-10 flex flex-wrap justify-center gap-6 text-sm text-white/40">
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-400" />
-                  <span>No credit card required</span>
+                  <span>{tLanding('cta.noCreditCard')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-400" />
-                  <span>Free tier included</span>
+                  <span>{tLanding('cta.freeTier')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-400" />
-                  <span>Cancel anytime</span>
+                  <span>{tLanding('cta.cancelAnytime')}</span>
                 </div>
               </div>
             </motion.div>
