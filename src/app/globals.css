@@ -428,3 +428,70 @@
 
 .letterbox::before { top: 0; }
 .letterbox::after { bottom: 0; }
+
+/* Landing Page Utilities */
+.bg-gradient-radial {
+  background-image: radial-gradient(var(--tw-gradient-stops));
+}
+
+/* Landing page grid pattern */
+.landing-grid {
+  background-image:
+    linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Warm gradient text for landing */
+.gradient-text-warm {
+  background: linear-gradient(135deg, #a855f7 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Enhanced glow button for landing */
+.glow-button {
+  position: relative;
+  z-index: 1;
+}
+
+.glow-button::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #a855f7, #f97316);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.6;
+  filter: blur(15px);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.glow-button:hover::before {
+  opacity: 0.9;
+  filter: blur(25px);
+}
+
+/* Floating animation for cards */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Typewriter cursor effect */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.typewriter-cursor::after {
+  content: '|';
+  animation: blink 1s infinite;
+  margin-left: 2px;
+  color: #a855f7;
+}

@@ -56,6 +56,9 @@ export function Header() {
     return null;
   }
 
+  // Check if we're on the landing page (unauthenticated home)
+  const isLandingPage = pathname === '/' && status === 'unauthenticated';
+
   const navItems = [
     { href: '/projects', label: t('nav.projects'), icon: Film },
     { href: '/discover', label: t('nav.discover'), icon: Globe },
@@ -80,6 +83,14 @@ export function Header() {
     return { label: subscriptionPlan, className: 'bg-muted text-muted-foreground' };
   };
 
+  // Dynamic styles based on page
+  const headerBg = isLandingPage
+    ? 'bg-black/50 backdrop-blur-xl border-b border-white/5'
+    : 'glass-strong';
+
+  const textColor = isLandingPage ? 'text-white' : 'text-foreground';
+  const mutedColor = isLandingPage ? 'text-white/60' : 'text-muted-foreground';
+
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -87,11 +98,11 @@ export function Header() {
       transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
       className="sticky top-0 z-50 w-full"
     >
-      {/* Glass background */}
-      <div className="absolute inset-0 glass-strong" />
+      {/* Background */}
+      <div className={`absolute inset-0 ${headerBg}`} />
 
       {/* Gradient line at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
 
       <div className="relative container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
@@ -102,32 +113,34 @@ export function Header() {
               whileTap={{ scale: 0.95 }}
               className="relative"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 p-[2px]">
-                <div className="w-full h-full rounded-[10px] bg-background/90 flex items-center justify-center">
-                  <Film className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 via-pink-500 to-orange-500 p-[2px]">
+                <div className={`w-full h-full rounded-[10px] ${isLandingPage ? 'bg-black/80' : 'bg-background/90'} flex items-center justify-center`}>
+                  <Film className="w-5 h-5 text-violet-400" />
                 </div>
               </div>
               {/* Glow effect */}
-              <div className="absolute inset-0 rounded-xl bg-purple-500/20 blur-xl group-hover:bg-purple-500/30 transition-all duration-300" />
+              <div className="absolute inset-0 rounded-xl bg-violet-500/20 blur-xl group-hover:bg-violet-500/40 transition-all duration-300" />
             </motion.div>
             <div className="hidden sm:block">
-              <h1 className="text-lg font-bold gradient-text">Film Generator</h1>
-              <p className="text-[10px] text-muted-foreground -mt-1 tracking-wider uppercase">
-                AI Studio
+              <h1 className={`text-lg font-bold ${isLandingPage ? 'bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent' : 'gradient-text'}`}>
+                AI Story
+              </h1>
+              <p className={`text-[10px] ${mutedColor} -mt-1 tracking-wider uppercase`}>
+                Create with AI
               </p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
+            {!isLandingPage && navItems.map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant="ghost"
                   className={
                     'isAdmin' in item && item.isAdmin
                       ? "text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all duration-200"
-                      : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
+                      : `${mutedColor} hover:${textColor} hover:bg-white/5 transition-all duration-200`
                   }
                 >
                   <item.icon className="w-4 h-4 mr-2" />
@@ -145,38 +158,38 @@ export function Header() {
             {/* Language Switcher */}
             <LanguageSwitcher />
 
-            {/* Theme Toggle */}
-            <ThemeToggle />
+            {/* Theme Toggle - hide on landing page */}
+            {!isLandingPage && <ThemeToggle />}
 
             {/* Notifications (for logged-in users) */}
             {user && <NotificationBell />}
 
             {/* User Menu or Login Button */}
             {status === 'loading' ? (
-              <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+              <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center gap-2 px-2 hover:bg-black/5 dark:hover:bg-white/5"
+                    className={`flex items-center gap-2 px-2 hover:bg-white/5`}
                   >
-                    <Avatar className="w-8 h-8 border border-purple-500/30">
+                    <Avatar className="w-8 h-8 border border-violet-500/30">
                       <AvatarImage src={user.image || undefined} />
-                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-cyan-600 text-white text-sm">
+                      <AvatarFallback className="bg-gradient-to-br from-violet-600 to-orange-600 text-white text-sm">
                         {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                    <ChevronDown className={`w-4 h-4 ${mutedColor} hidden sm:block`} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-56 glass-strong border-black/10 dark:border-white/10"
+                  className="w-56 bg-black/90 backdrop-blur-xl border-white/10"
                 >
                   <div className="px-3 py-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{user.name || 'User'}</p>
+                      <p className="text-sm font-medium text-white">{user.name || 'User'}</p>
                       {subscriptionPlan && (
                         <Badge
                           variant="outline"
@@ -186,30 +199,30 @@ export function Header() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <p className="text-xs text-white/50">{user.email}</p>
                   </div>
-                  <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
-                  <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem className="cursor-pointer text-white/80 hover:text-white hover:bg-white/5" asChild>
                     <Link href="/profile">
                       <User className="w-4 h-4 mr-2" />
                       {t('nav.profile')}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                  <DropdownMenuItem className="cursor-pointer text-white/80 hover:text-white hover:bg-white/5" asChild>
                     <Link href="/statistics">
                       <BarChart3 className="w-4 h-4 mr-2" />
                       {t('nav.statistics')}
                     </Link>
                   </DropdownMenuItem>
                   {(isAdmin || (subscriptionPlan && subscriptionPlan !== 'free')) && (
-                    <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                    <DropdownMenuItem className="cursor-pointer text-white/80 hover:text-white hover:bg-white/5" asChild>
                       <Link href="/settings">
                         <Settings className="w-4 h-4 mr-2" />
                         {t('nav.settings')}
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" asChild>
+                  <DropdownMenuItem className="cursor-pointer text-white/80 hover:text-white hover:bg-white/5" asChild>
                     <Link href="/billing">
                       <CreditCard className="w-4 h-4 mr-2" />
                       {t('nav.billing')}
@@ -217,8 +230,8 @@ export function Header() {
                   </DropdownMenuItem>
                   {user.email === 'andrej.galad@gmail.com' && (
                     <>
-                      <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
-                      <DropdownMenuItem className="cursor-pointer hover:bg-amber-500/10 text-amber-600 dark:text-amber-400" asChild>
+                      <DropdownMenuSeparator className="bg-white/10" />
+                      <DropdownMenuItem className="cursor-pointer hover:bg-amber-500/10 text-amber-400" asChild>
                         <Link href="/admin">
                           <Shield className="w-4 h-4 mr-2" />
                           {t('nav.admin')}
@@ -226,7 +239,7 @@ export function Header() {
                       </DropdownMenuItem>
                     </>
                   )}
-                  <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />
+                  <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem
                     className="cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-400"
                     onClick={() => signOut({ callbackUrl: '/' })}
@@ -237,23 +250,32 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button
-                asChild
-                variant="outline"
-                className="border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10"
-              >
-                <Link href="/auth/login">
-                  <LogIn className="w-4 h-4 mr-2" />
-                  {t('auth.signIn')}
-                </Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  asChild
+                  variant="ghost"
+                  className={`${mutedColor} hover:text-white hover:bg-white/5`}
+                >
+                  <Link href="/auth/login">
+                    {t('auth.signIn')}
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  className="bg-gradient-to-r from-violet-600 to-orange-500 hover:from-violet-500 hover:to-orange-400 text-white border-0 shadow-lg shadow-violet-500/25"
+                >
+                  <Link href="/auth/register">
+                    {t('landing.getStarted')}
+                  </Link>
+                </Button>
+              </div>
             )}
 
             {/* Mobile Menu Toggle */}
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+              className={`md:hidden ${mutedColor} hover:text-white hover:bg-white/5`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -270,7 +292,7 @@ export function Header() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden border-t border-black/5 dark:border-white/5 glass-strong"
+            className={`md:hidden border-t border-white/5 ${isLandingPage ? 'bg-black/90 backdrop-blur-xl' : 'glass-strong'}`}
           >
             <div className="container mx-auto px-4 py-4 space-y-2">
               {navItems.map((item) => (
@@ -281,7 +303,7 @@ export function Header() {
                 >
                   <Button
                     variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                    className={`w-full justify-start ${mutedColor} hover:text-white hover:bg-white/5`}
                   >
                     <item.icon className="w-4 h-4 mr-3" />
                     {item.label}
@@ -291,11 +313,11 @@ export function Header() {
               <div className="pt-2">
                 <Button
                   asChild
-                  className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
+                  className="w-full bg-gradient-to-r from-violet-600 to-orange-500 hover:from-violet-500 hover:to-orange-400 text-white border-0"
                 >
-                  <Link href="/project/new" onClick={() => setMobileMenuOpen(false)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('nav.newProject')}
+                  <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {t('landing.getStarted')}
                   </Link>
                 </Button>
               </div>

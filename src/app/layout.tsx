@@ -8,9 +8,9 @@ import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Film Generator | AI-Powered Film Creation Studio",
-  description: "Create stunning short films with AI. Generate prompts, characters, scenes, and videos with professional quality.",
-  keywords: ["AI film", "video generation", "short films", "AI animation", "film generator"],
+  title: "AI Story | Create AI-Powered Stories & Videos",
+  description: "Create stunning AI-powered stories and videos in minutes. Generate scripts, characters, scenes, and professional-quality animated films with AI.",
+  keywords: ["AI story", "AI video", "story generator", "AI animation", "animated films", "video generation"],
 };
 
 export default async function RootLayout({
