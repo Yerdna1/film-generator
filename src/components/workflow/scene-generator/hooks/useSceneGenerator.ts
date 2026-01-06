@@ -4,8 +4,8 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import { generateScenePrompt } from '@/lib/prompts/master-prompt';
-import type { Project, Scene, CameraShot, DialogueLine } from '@/types/project';
-import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
+import type { Project, Scene, CameraShot, DialogueLine, AspectRatio } from '@/types/project';
+import type { ImageResolution } from '@/lib/services/real-costs';
 
 // Retry configuration
 const MAX_RETRIES = 3;

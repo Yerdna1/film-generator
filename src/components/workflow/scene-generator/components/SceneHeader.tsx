@@ -21,9 +21,8 @@ import {
   IMAGE_RESOLUTIONS,
   ASPECT_RATIOS,
   type ImageResolution,
-  type AspectRatio,
 } from '@/lib/services/real-costs';
-import type { ImageProvider } from '@/types/project';
+import type { ImageProvider, AspectRatio } from '@/types/project';
 
 interface SceneHeaderProps {
   sceneCount: number;

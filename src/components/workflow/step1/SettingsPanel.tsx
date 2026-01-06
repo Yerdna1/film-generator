@@ -1,5 +1,6 @@
 'use client';
 
+import type { Dispatch, SetStateAction } from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
@@ -16,7 +17,7 @@ interface SettingsPanelProps {
   aspectRatio: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4';
   setAspectRatio: (ratio: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4') => void;
   videoLanguage: string;
-  setVideoLanguage: (lang: string) => void;
+  setVideoLanguage: (lang: string | ((prev: string) => string)) => void;
   storyModel: string;
   setStoryModel: (model: string) => void;
   styleModel: string;

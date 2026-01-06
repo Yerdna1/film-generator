@@ -11,7 +11,7 @@ import { StoryForm } from './step1/StoryForm';
 import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './step1/LoadingModal';
-import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, styleOptions } from './step1/constants';
+import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders } from './step1/constants';
 import { storyPresets } from './step1/story-presets';
 
 interface Step1Props {
@@ -43,7 +43,7 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4'>(
     project.settings?.aspectRatio || '16:9'
   );
-  const [videoLanguage, setVideoLanguage] = useState(
+  const [videoLanguage, setVideoLanguage] = useState<typeof videoLanguages[number]>(
     project.settings?.voiceLanguage || 'en'
   );
   const [storyModel, setStoryModel] = useState('gpt-4');
@@ -92,26 +92,30 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const handleGeneratePrompt = async () => {
     setIsGenerating(true);
 
+    // Get current settings from project (they should already be synced via useEffect)
+    // Define outside try block for fallback access in catch
+    const currentSettings = {
+      aspectRatio,
+      resolution: (styleModel === 'flux' ? '4k' : 'hd') as 'hd' | '4k',
+      voiceLanguage: videoLanguage as 'sk' | 'en',
+      sceneCount: project.settings?.sceneCount || 12,
+      characterCount: project.settings?.characterCount || 3,
+      imageResolution: (styleModel === 'flux' ? '4k' : '2k') as '1k' | '2k' | '4k',
+      voiceProvider,
+    };
+
+    // Generate the base master prompt template with current settings
+    const projectWithCurrentSettings = {
+      ...project,
+      settings: currentSettings
+    };
+
+    // Generate base prompt outside try block so it's available in catch block for fallback
+    const basePrompt = generateMasterPrompt(projectWithCurrentSettings.story, projectWithCurrentSettings.style, projectWithCurrentSettings.settings);
+
     try {
       // Small delay to ensure all settings are saved
       await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Get current settings from project (they should already be synced via useEffect)
-      const currentSettings = {
-        aspectRatio,
-        voiceLanguage: videoLanguage,
-        sceneCount: project.settings?.sceneCount || 12,
-        characterCount: project.settings?.characterCount || 3,
-        imageResolution: styleModel === 'flux' ? '4k' : '2k',
-        voiceProvider,
-      };
-
-      // Generate the base master prompt template with current settings
-      const projectWithCurrentSettings = {
-        ...project,
-        settings: currentSettings
-      };
-      const basePrompt = generateMasterPrompt(projectWithCurrentSettings.story, projectWithCurrentSettings.style, projectWithCurrentSettings.settings);
 
       // Try to enhance with user's configured LLM provider
       const response = await fetch('/api/llm/prompt', {
@@ -178,10 +182,9 @@ Format the output exactly like the base template but with richer, more detailed 
       setEditedPrompt(basePrompt);
     } catch (error) {
       console.error('Error generating prompt:', error);
-      // Fallback to local generation with current settings
-      const fallbackPrompt = generateMasterPrompt(projectWithCurrentSettings.story, projectWithCurrentSettings.style, projectWithCurrentSettings.settings);
-      setMasterPrompt(project.id, fallbackPrompt);
-      setEditedPrompt(fallbackPrompt);
+      // Fallback to local generation with current settings (reuse basePrompt)
+      setMasterPrompt(project.id, basePrompt);
+      setEditedPrompt(basePrompt);
     }
 
     setIsGenerating(false);
@@ -214,7 +217,7 @@ Format the output exactly like the base template but with richer, more detailed 
           aspectRatio={aspectRatio}
           setAspectRatio={setAspectRatio}
           videoLanguage={videoLanguage}
-          setVideoLanguage={setVideoLanguage}
+          setVideoLanguage={setVideoLanguage as (lang: string | ((prev: string) => string)) => void}
           storyModel={storyModel}
           setStoryModel={setStoryModel}
           styleModel={styleModel}
