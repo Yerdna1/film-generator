@@ -18,12 +18,12 @@ interface SettingsPanelProps {
   setAspectRatio: (ratio: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4') => void;
   videoLanguage: string;
   setVideoLanguage: (lang: string | ((prev: string) => string)) => void;
-  storyModel: string;
-  setStoryModel: (model: string) => void;
+  storyModel: 'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro';
+  setStoryModel: Dispatch<SetStateAction<'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro'>>;
   styleModel: string;
   setStyleModel: (model: string) => void;
   imageProvider: 'gemini' | 'modal' | 'modal-edit';
-  setImageProvider: (provider: 'gemini' | 'modal' | 'modal-edit') => void;
+  setImageProvider: Dispatch<SetStateAction<'gemini' | 'modal' | 'modal-edit'>>;
   voiceProvider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
   setVoiceProvider: (provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts') => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
@@ -153,7 +153,7 @@ export function SettingsPanel({
           {t('settings.storyModel')}
           <span className="px-1.5 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">New</span>
         </Label>
-        <Select value={storyModel} onValueChange={setStoryModel} disabled={isReadOnly}>
+        <Select value={storyModel} onValueChange={(value) => setStoryModel(value as 'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro')} disabled={isReadOnly}>
           <SelectTrigger className="w-full h-9 glass border-white/10 text-sm">
             <SelectValue />
           </SelectTrigger>

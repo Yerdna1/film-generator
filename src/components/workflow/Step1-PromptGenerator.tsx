@@ -56,7 +56,7 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
     project.settings?.voiceProvider || 'gemini-tts'
   );
   const [imageProvider, setImageProvider] = useState<'gemini' | 'modal' | 'modal-edit'>(
-    userConstants?.sceneImageProvider || 'gemini'
+    (userConstants?.sceneImageProvider as 'gemini' | 'modal' | 'modal-edit' | undefined) || 'gemini'
   );
 
   // Sync editedPrompt when masterPrompt changes
@@ -113,6 +113,7 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
       characterCount: project.settings?.characterCount || 3,
       imageResolution: (styleModel === 'flux' ? '4k' : '2k') as '1k' | '2k' | '4k',
       voiceProvider,
+      storyModel,
     };
 
     // Generate the base master prompt template with current settings

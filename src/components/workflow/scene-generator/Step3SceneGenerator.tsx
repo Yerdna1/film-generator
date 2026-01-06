@@ -110,7 +110,6 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     startEditScene,
     saveEditScene,
     cancelEditScene,
-    handleSceneCountChange,
     handleGenerateAllScenes,
     handleGenerateSceneImage,
     handleGenerateAllSceneImages,
@@ -426,7 +425,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
           onStopGeneration={handleStopImageGeneration}
           backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
           selectedCount={selectedScenes.size}
-          onSelectAll={selectAll}
+          onSelectAll={() => selectAll(scenes)}
           onSelectAllWithImages={selectAllWithImages}
           onClearSelection={clearSelection}
           onRegenerateSelected={handleRegenerateSelected}
