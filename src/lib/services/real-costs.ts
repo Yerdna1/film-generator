@@ -18,7 +18,7 @@ import { getActionCostSync } from './pricing-service';
 
 // Image resolution options
 export type ImageResolution = '1k' | '2k' | '4k';
-export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4';
+export type AspectRatio = '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4';
 
 export const IMAGE_RESOLUTIONS: Record<ImageResolution, { label: string; maxPixels: string; description: string }> = {
   '1k': { label: '1K', maxPixels: '1024x1024', description: 'Standard quality - fastest' },
@@ -29,6 +29,7 @@ export const IMAGE_RESOLUTIONS: Record<ImageResolution, { label: string; maxPixe
 export const ASPECT_RATIOS: Record<AspectRatio, { label: string; description: string }> = {
   '1:1': { label: 'Square (1:1)', description: 'Best for characters and icons' },
   '16:9': { label: 'Landscape (16:9)', description: 'Best for scenes and videos' },
+  '21:9': { label: 'Ultrawide (21:9)', description: 'Cinematic ultrawide aspect' },
   '9:16': { label: 'Portrait (9:16)', description: 'Best for mobile and stories' },
   '4:3': { label: 'Classic (4:3)', description: 'Traditional film aspect' },
   '3:4': { label: 'Portrait Classic (3:4)', description: 'Portrait traditional' },
