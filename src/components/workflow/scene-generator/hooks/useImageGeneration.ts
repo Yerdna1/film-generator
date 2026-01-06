@@ -14,8 +14,8 @@ interface ImageGenerationHookResult {
   handleStopImageGeneration: () => void;
   handleRegenerateAllImages: () => Promise<void>;
   handleRegenerateSelected: (selectedScenes: Set<string>, setSelectedScenes: (setter: (prev: Set<string>) => Set<string>) => void) => Promise<void>;
-  handleStartBackgroundGeneration: (limit?: number) => Promise<void>;
-  handleGenerateBatch: (batchSize: number) => void;
+  handleStartBackgroundGeneration: (limit?: number, backgroundJobId?: string | null, startPolling?: (jobId: string) => void) => Promise<void>;
+  handleGenerateBatch: (batchSize: number, handleStartBg: (limit?: number) => Promise<void>) => void;
   handleCancelSceneGeneration: (sceneJobId: string | null, setIsGenerating: (value: boolean) => void, setSceneJobId: (value: string | null) => void, sceneJobPollRef: React.MutableRefObject<NodeJS.Timeout | null>) => Promise<void>;
   isVisibleRef: React.MutableRefObject<boolean>;
 }
