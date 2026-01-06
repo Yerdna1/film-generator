@@ -65,7 +65,13 @@
       "Bash(nvm use:*)",
       "Bash(ls:*)",
       "Bash(env:*)",
-      "Bash(/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude -p --output-format text)"
+      "Bash(/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude -p --output-format text)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push:*)",
+      "Bash(git config:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh repo sync:*)"
     ]
   }
 }
