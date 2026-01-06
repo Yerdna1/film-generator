@@ -58,6 +58,7 @@ model User {
   projects     Project[]
   credits      Credits?
   subscription Subscription?
+  userConstants UserConstants?
 
   // Collaboration relations
   projectMemberships ProjectMember[]
@@ -513,4 +514,25 @@ model AppConfig {
   startingCredits Int @default(0) // Credits for new users (0 = no starting credits)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// User-specific constants and preferences
+model UserConstants {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  // Character generation defaults
+  characterImageProvider  String  @default("gemini")  // "gemini" | "modal" | "modal-edit"
+  characterAspectRatio     String  @default("1:1")  // "1:1" | "16:9" | "21:9" | "4:3" | "9:16" | "3:4"
+  // Scene generation defaults
+  sceneImageProvider      String  @default("gemini")  // "gemini" | "modal" | "modal-edit"
+  sceneAspectRatio        String  @default("16:9") // "16:9" | "21:9" | "4:3" | "1:1" | "9:16" | "3:4"
+  sceneImageResolution    String  @default("2k")  // "1k" | "2k" | "4k"
+  // Video generation defaults
+  videoResolution          String  @default("hd")  // "hd" | "4k"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

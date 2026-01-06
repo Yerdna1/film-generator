@@ -82,9 +82,7 @@ export interface ImageGenerationSettingsProps {
 
 export interface CharacterProgressProps {
   characters: Character[];
-  charactersWithImages: number;
   isGeneratingAll: boolean;
   imageResolution: ImageResolution;
   onGenerateAll: () => void;
-  onShowPromptsDialog: () => void;
 }

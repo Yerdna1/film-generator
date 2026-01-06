@@ -17,6 +17,7 @@ export function ProjectSyncProvider({ children }: { children: React.ReactNode })
     if (status === 'authenticated') {
       hasLoadedRef.current = true;
       useProjectStore.getState().loadProjectsFromDB();
+      useProjectStore.getState().loadUserConstants();
     } else {
       // Not authenticated - set loading to false so pages don't wait forever
       useProjectStore.setState({ isLoading: false });

@@ -9,10 +9,20 @@ import type {
   ApiConfig,
 } from '@/types/project';
 
+export interface UserConstants {
+  characterImageProvider: string; // "gemini" | "modal" | "modal-edit"
+  characterAspectRatio: string; // "1:1" | "16:9" | "21:9" | "4:3" | "9:16" | "3:4"
+  sceneImageProvider: string; // "gemini" | "modal" | "modal-edit"
+  sceneAspectRatio: string; // "16:9" | "21:9" | "4:3" | "1:1" | "9:16" | "3:4"
+  sceneImageResolution: string; // "1k" | "2k" | "4k"
+  videoResolution: string; // "hd" | "4k"
+}
+
 export interface ProjectState {
   projects: Project[];
   currentProject: Project | null;
   apiConfig: ApiConfig;
+  userConstants: UserConstants | null;
   isLoading: boolean;
   isSyncing: boolean;
   lastSyncError: string | null;
@@ -61,6 +71,10 @@ export interface ProjectActions {
 
   // API Config
   setApiConfig: (config: Partial<ApiConfig>) => void;
+
+  // User Constants
+  loadUserConstants: () => Promise<void>;
+  updateUserConstants: (constants: Partial<UserConstants>) => Promise<void>;
 
   // Import/Export
   exportProject: (id: string) => string | null;

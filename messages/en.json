@@ -185,6 +185,7 @@
       "progress": "Image Generation",
       "imagesGenerated": "images generated",
       "generating": "Generating...",
+      "generatingImages": "Generating Images",
       "generateAll": "Generate All Images",
       "maxReached": "Maximum characters reached"
     },
@@ -471,6 +472,7 @@
     "storyModel": "Story Model",
     "styleModel": "Style Model",
     "allModels": "All Models",
+    "imageProvider": "Image Provider",
     "styleExamples": "Style Examples"
   },
   "errors": {

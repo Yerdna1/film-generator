@@ -4,15 +4,23 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import type { Character, Project } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
+import type { ImageProvider } from '@/types/project';
 import type { CharacterImageState } from '../types';
 
-export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
+export function useCharacterImage(project: Project, aspectRatio: AspectRatio, provider: ImageProvider = 'gemini') {
   const { updateCharacter } = useProjectStore();
   const { handleApiResponse } = useCredits();
   const [imageStates, setImageStates] = useState<CharacterImageState>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
+  const [isGeneratingSingle, setIsGeneratingSingle] = useState(false);
+  const [generatingCharacterName, setGeneratingCharacterName] = useState<string>('');
 
   const generateCharacterImage = useCallback(async (character: Character) => {
+    setIsGeneratingSingle(true);
+    setGeneratingCharacterName(character.name);
+    setGenerationProgress({ current: 0, total: 1 });
+
     setImageStates((prev) => ({
       ...prev,
       [character.id]: { status: 'generating', progress: 10 },
@@ -32,6 +40,8 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
           prompt: character.masterPrompt,
           aspectRatio,
           resolution: imageResolution,
+          imageProvider: provider,
+          projectId: project.id,
         }),
       });
 
@@ -41,6 +51,8 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
           ...prev,
           [character.id]: { status: 'idle', progress: 0 },
         }));
+        setIsGeneratingSingle(false);
+        setGenerationProgress({ current: 0, total: 0 });
         return;
       }
 
@@ -58,7 +70,10 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
             ...prev,
             [character.id]: { status: 'complete', progress: 100 },
           }));
+          setGenerationProgress({ current: 1, total: 1 });
           window.dispatchEvent(new CustomEvent('credits-updated'));
+          setIsGeneratingSingle(false);
+          setTimeout(() => setGenerationProgress({ current: 0, total: 0 }), 500);
           return;
         }
       }
@@ -93,17 +108,24 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
           error: errorMessage
         },
       }));
+    } finally {
+      setIsGeneratingSingle(false);
+      setTimeout(() => setGenerationProgress({ current: 0, total: 0 }), 500);
     }
-  }, [project.id, project.settings?.imageResolution, aspectRatio, updateCharacter, handleApiResponse]);
+  }, [project.id, project.settings?.imageResolution, aspectRatio, provider, updateCharacter, handleApiResponse]);
 
   const handleGenerateAll = useCallback(async () => {
+    const charactersWithoutImages = project.characters.filter((c) => !c.imageUrl);
     setIsGeneratingAll(true);
-    for (const character of project.characters) {
-      if (!character.imageUrl) {
-        await generateCharacterImage(character);
-      }
+    setGenerationProgress({ current: 0, total: charactersWithoutImages.length });
+
+    for (let i = 0; i < charactersWithoutImages.length; i++) {
+      await generateCharacterImage(charactersWithoutImages[i]);
+      setGenerationProgress({ current: i + 1, total: charactersWithoutImages.length });
     }
+
     setIsGeneratingAll(false);
+    setGenerationProgress({ current: 0, total: 0 });
   }, [project.characters, generateCharacterImage]);
 
   const getCharacterStatus = useCallback((characterId: string) => {
@@ -115,6 +137,9 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio) {
   return {
     imageStates,
     isGeneratingAll,
+    isGeneratingSingle,
+    generationProgress,
+    generatingCharacterName,
     generateCharacterImage,
     handleGenerateAll,
     getCharacterStatus,

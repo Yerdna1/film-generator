@@ -6,6 +6,7 @@ import {
   createSceneSlice,
   createSettingsSlice,
   createNavigationSlice,
+  createUserConstantsSlice,
 } from './slices';
 
 // No localStorage persistence - DB is the source of truth
@@ -14,6 +15,7 @@ export const useProjectStore = create<ProjectStore>()((set, get) => ({
   projects: [],
   currentProject: null,
   apiConfig: {},
+  userConstants: null,
   isLoading: true, // Start as true until first DB load completes
   isSyncing: false,
   lastSyncError: null,
@@ -24,6 +26,7 @@ export const useProjectStore = create<ProjectStore>()((set, get) => ({
   ...createSceneSlice(set, get),
   ...createSettingsSlice(set, get),
   ...createNavigationSlice(set, get),
+  ...createUserConstantsSlice(set, get),
 }));
 
 // ============================================
@@ -45,6 +48,9 @@ export const useCurrentStep = () => useProjectStore((state) => state.currentProj
 
 // API config selector
 export const useApiConfig = () => useProjectStore((state) => state.apiConfig);
+
+// User constants selector
+export const useUserConstants = () => useProjectStore((state) => state.userConstants);
 
 // Action selectors (these don't cause re-renders as functions are stable)
 export const useProjectActions = () => useProjectStore((state) => ({

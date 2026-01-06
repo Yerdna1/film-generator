@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Check } from 'lucide-react';
-import { styleOptions } from './constants';
+import { styleOptions, imageProviders } from './constants';
 import type { StylePreset } from '@/types/project';
 import type { Project } from '@/types/project';
 
@@ -22,10 +22,13 @@ interface SettingsPanelProps {
   setStoryModel: (model: string) => void;
   styleModel: string;
   setStyleModel: (model: string) => void;
+  imageProvider: 'gemini' | 'modal' | 'modal-edit';
+  setImageProvider: (provider: 'gemini' | 'modal' | 'modal-edit') => void;
   voiceProvider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
   setVoiceProvider: (provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts') => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   updateSettings: (id: string, settings: any) => void;
+  updateUserConstants: (constants: any) => void;
   sceneOptions: readonly number[];
   storyModels: readonly string[];
   styleModels: readonly string[];
@@ -46,10 +49,13 @@ export function SettingsPanel({
   setStoryModel,
   styleModel,
   setStyleModel,
+  imageProvider,
+  setImageProvider,
   voiceProvider,
   setVoiceProvider,
   updateProject,
   updateSettings,
+  updateUserConstants,
   sceneOptions,
   storyModels,
   styleModels,
@@ -169,10 +175,33 @@ export function SettingsPanel({
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="glass-strong border-white/10">
-            <SelectItem value="all">{t('settings.allModels')}</SelectItem>
             {styleModels.map((model) => (
               <SelectItem key={model} value={model}>
                 {model}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Image Provider */}
+      <div className="space-y-1">
+        <Label className="text-xs">{t('settings.imageProvider')}</Label>
+        <Select
+          value={imageProvider}
+          onValueChange={(value) => {
+            setImageProvider(value as 'gemini' | 'modal' | 'modal-edit');
+            updateUserConstants({ sceneImageProvider: value, characterImageProvider: value });
+          }}
+          disabled={isReadOnly}
+        >
+          <SelectTrigger className="w-full h-9 glass border-white/10 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="glass-strong border-white/10">
+            {imageProviders.map((provider) => (
+              <SelectItem key={provider.id} value={provider.id}>
+                {provider.label}
               </SelectItem>
             ))}
           </SelectContent>

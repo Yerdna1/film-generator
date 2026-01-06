@@ -185,6 +185,7 @@
       "progress": "Generovanie obrázkov",
       "imagesGenerated": "obrázkov vygenerovaných",
       "generating": "Generuje sa...",
+      "generatingImages": "Generovanie obrázkov",
       "generateAll": "Generovať všetky obrázky",
       "maxReached": "Maximálny počet postáv dosiahnutý"
     },
@@ -471,6 +472,7 @@
     "storyModel": "Model príbehu",
     "styleModel": "Model štýlu",
     "allModels": "Všetky modely",
+    "imageProvider": "Poskytovateľ obrázkov",
     "styleExamples": "Príklady štýlov"
   },
   "errors": {

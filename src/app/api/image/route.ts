@@ -26,6 +26,7 @@ interface ImageGenerationRequest {
   sceneId?: string; // Optional scene ID for tracking
   skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
   ownerId?: string; // Use owner's settings instead of session user (for collaborator regeneration)
+  imageProvider?: ImageProvider; // Override the default provider from user settings
 }
 
 // Generate image using Gemini
@@ -370,7 +371,7 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false, ownerId }: ImageGenerationRequest = await request.json();
+    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false, ownerId, imageProvider: requestProvider }: ImageGenerationRequest = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -393,8 +394,8 @@ export async function POST(request: NextRequest) {
       });
 
       if (userApiKeys) {
-        // Get user's preferred provider
-        imageProvider = (userApiKeys.imageProvider as ImageProvider) || 'gemini';
+        // Use request provider if specified, otherwise use user's preferred provider
+        imageProvider = (requestProvider || (userApiKeys.imageProvider as ImageProvider)) || 'gemini';
 
         // Get provider-specific settings
         if (userApiKeys.geminiApiKey) {

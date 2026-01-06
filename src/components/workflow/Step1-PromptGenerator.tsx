@@ -11,7 +11,7 @@ import { StoryForm } from './step1/StoryForm';
 import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './step1/LoadingModal';
-import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders } from './step1/constants';
+import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
 import { storyPresets } from './step1/story-presets';
 
 interface Step1Props {
@@ -25,7 +25,7 @@ const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'p
 
 export function Step1PromptGenerator({ project: initialProject, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
-  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects } = useProjectStore();
+  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants } = useProjectStore();
 
   // Get live project data from store, but prefer initialProject for full data
   // Store may contain summary data without settings/story details
@@ -52,6 +52,9 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   );
   const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts'>(
     project.settings?.voiceProvider || 'gemini-tts'
+  );
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'modal' | 'modal-edit'>(
+    userConstants?.sceneImageProvider || 'gemini'
   );
 
   // Sync editedPrompt when masterPrompt changes
@@ -222,10 +225,13 @@ Format the output exactly like the base template but with richer, more detailed 
           setStoryModel={setStoryModel}
           styleModel={styleModel}
           setStyleModel={setStyleModel}
+          imageProvider={imageProvider}
+          setImageProvider={setImageProvider}
           voiceProvider={voiceProvider}
           setVoiceProvider={setVoiceProvider}
           updateProject={updateProject}
           updateSettings={updateSettings}
+          updateUserConstants={updateUserConstants}
           sceneOptions={sceneOptions}
           storyModels={storyModels}
           styleModels={styleModels}

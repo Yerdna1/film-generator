@@ -21,13 +21,13 @@ import {
   EditCharacterDialog,
   ImagePreviewModal,
   CopyPromptsDialog,
-  ImageGenerationSettings,
   CharacterProgress,
+  CharacterImageLoadingModal,
 } from './character-generator/components';
 
 export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
   const t = useTranslations();
-  const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects } = useProjectStore();
+  const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects, userConstants } = useProjectStore();
 
   // Get live project data from store, but prefer initialProject for full data (characters array)
   // Store may contain summary data without characters
@@ -42,17 +42,23 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const [isAddingCharacter, setIsAddingCharacter] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [characterAspectRatio, setCharacterAspectRatio] = useState<AspectRatio>('1:1');
   const [showPromptsDialog, setShowPromptsDialog] = useState(false);
   const [editCharacterData, setEditCharacterData] = useState<EditCharacterData | null>(null);
+
+  // Use user constants for character generation, fallback to defaults
+  const characterAspectRatio = (userConstants?.characterAspectRatio || '1:1') as AspectRatio;
+  const characterImageProvider = (userConstants?.characterImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit';
 
   // Custom hook for image generation
   const {
     imageStates,
     isGeneratingAll,
+    isGeneratingSingle,
+    generationProgress,
+    generatingCharacterName,
     generateCharacterImage,
     handleGenerateAll,
-  } = useCharacterImage(project, characterAspectRatio);
+  } = useCharacterImage(project, characterAspectRatio, characterImageProvider);
 
   // Handlers
   const handleAddCharacter = (data: CharacterFormData) => {
@@ -169,14 +175,6 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 px-4">
-      {/* Image Generation Settings */}
-      <ImageGenerationSettings
-        imageResolution={settings.imageResolution || '2k'}
-        aspectRatio={characterAspectRatio}
-        onResolutionChange={(resolution) => updateSettings(project.id, { imageResolution: resolution })}
-        onAspectRatioChange={setCharacterAspectRatio}
-      />
-
       {/* Characters Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {characters.map((character, index) => (
@@ -253,6 +251,14 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
         open={showPromptsDialog}
         onOpenChange={setShowPromptsDialog}
         characters={characters}
+      />
+
+      {/* Character Image Generation Loading Modal */}
+      <CharacterImageLoadingModal
+        isOpen={isGeneratingAll || isGeneratingSingle}
+        current={generationProgress.current}
+        total={generationProgress.total}
+        characterName={generatingCharacterName}
       />
     </div>
   );
