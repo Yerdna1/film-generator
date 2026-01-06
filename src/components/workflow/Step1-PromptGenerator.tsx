@@ -232,7 +232,7 @@ Format the output exactly like the base template but with richer, more detailed 
           tones={tones}
         />
 
-        {/* Right Column - Story Details, Master Prompt & Presets */}
+        {/* Right Column - Story Details, Presets & Master Prompt */}
         <div className="glass rounded-xl p-4 space-y-4 lg:col-span-3">
           <StoryForm
             project={project}
@@ -245,6 +245,12 @@ Format the output exactly like the base template but with richer, more detailed 
             tones={tones}
           />
 
+          <PresetStories
+            selectedPresetId={selectedPresetId}
+            onApplyPreset={handleApplyPreset}
+            isReadOnly={isReadOnly}
+          />
+
           <MasterPromptSection
             project={project}
             isReadOnly={isReadOnly}
@@ -253,12 +259,6 @@ Format the output exactly like the base template but with richer, more detailed 
             setIsEditing={setIsEditing}
             setEditedPrompt={setEditedPrompt}
             onSaveEditedPrompt={handleSaveEditedPrompt}
-          />
-
-          <PresetStories
-            selectedPresetId={selectedPresetId}
-            onApplyPreset={handleApplyPreset}
-            isReadOnly={isReadOnly}
           />
         </div>
       </div>
