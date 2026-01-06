@@ -39,6 +39,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CreditsDisplay } from '@/components/shared/CreditsDisplay';
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useSubscription } from '@/hooks';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { MembersPanel } from '@/components/collaboration/MembersPanel';
@@ -471,9 +473,11 @@ export default function ProjectWorkspacePage() {
                 </div>
               </div>
 
-              {/* Credits Display on Mobile */}
-              <div className="flex md:hidden">
+              {/* Credits Display and Controls on Mobile */}
+              <div className="flex items-center gap-1 md:hidden">
                 {user && <CreditsDisplay className="scale-90" />}
+                <LanguageSwitcher />
+                <ThemeToggle />
               </div>
             </div>
 
@@ -490,6 +494,12 @@ export default function ProjectWorkspacePage() {
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
               {/* Credits Display */}
               {user && <CreditsDisplay className="hidden sm:flex" />}
+
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
 
               {/* View Only Badge for readers */}
               {!permissions?.canEdit && userRole && (

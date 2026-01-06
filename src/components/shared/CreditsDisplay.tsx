@@ -69,7 +69,7 @@ export function CreditsDisplay({ className }: CreditsDisplayProps) {
           className={`flex items-center gap-2 px-3 py-2 h-auto hover:bg-white/5 ${className}`}
         >
           <Coins className="w-4 h-4 text-amber-400" />
-          <span className={`font-semibold ${getBalanceColor()}`}>
+          <span className={`font-semibold text-lg ${getBalanceColor()}`}>
             {data.credits.balance}
           </span>
           <ChevronDown className="w-3 h-3 text-muted-foreground" />
