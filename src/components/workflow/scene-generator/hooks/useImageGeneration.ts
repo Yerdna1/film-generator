@@ -229,7 +229,7 @@ export function useImageGeneration(
   }, [project.id, project.scenes, updateScene, handleGenerateAllSceneImages]);
 
   // Start background generation (Inngest) - works even when tab is closed
-  const handleStartBackgroundGeneration = useCallback(async (limit?: number, backgroundJobId: string | null | undefined, startPolling?: (jobId: string) => void) => {
+  const handleStartBackgroundGeneration = useCallback(async (limit?: number, backgroundJobId?: string | null | undefined, startPolling?: (jobId: string) => void) => {
     if (backgroundJobId) {
       alert('A background job is already running. Please wait for it to complete.');
       return;
