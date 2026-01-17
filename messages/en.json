@@ -168,6 +168,13 @@
       "concept": "A former convict returns to their hometown after 15 years in prison, seeking redemption and reconnection with a daughter who doesn't know them. Working as a fisherman alongside their estranged father, they must confront the mistakes of their past while the community struggles to forgive."
     }
   },
+  "characterPresets": {
+    "title": "Preset Characters",
+    "heroBoy": "Hero Boy",
+    "magicalCreature": "Magical Creature",
+    "wiseMentor": "Wise Mentor",
+    "braveGirl": "Brave Girl"
+  },
   "project": {
     "newProject": "New Project",
     "projectName": "Project Name",
@@ -255,7 +262,13 @@
       "generating": "Generating...",
       "generatingImages": "Generating Images",
       "generateAll": "Generate All Images",
-      "maxReached": "Maximum characters reached"
+      "maxReached": "Maximum characters reached",
+      "placeholders": {
+        "name": "e.g., The Boy, Fuzzy",
+        "personality": "e.g., Determined, brave, caring",
+        "description": "Brief character description...",
+        "visualDescription": "Detailed visual appearance (clothing, features, etc.)..."
+      }
     },
     "scenes": {
       "title": "Scene Images",

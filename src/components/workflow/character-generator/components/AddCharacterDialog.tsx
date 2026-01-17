@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import type { AddCharacterDialogProps, CharacterFormData } from '../types';
 import { MAX_CHARACTERS } from '../types';
+import { characterPresets } from '../character-presets';
 
 export function AddCharacterDialog({
   open,
@@ -31,16 +32,29 @@ export function AddCharacterDialog({
     visualDescription: '',
     personality: '',
   });
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
   const handleSubmit = () => {
     if (!newCharacter.name.trim()) return;
     onAddCharacter(newCharacter);
     setNewCharacter({ name: '', description: '', visualDescription: '', personality: '' });
+    setSelectedPresetId(null);
   };
 
   const handleCancel = () => {
     onOpenChange(false);
     setNewCharacter({ name: '', description: '', visualDescription: '', personality: '' });
+    setSelectedPresetId(null);
+  };
+
+  const handleApplyPreset = (preset: typeof characterPresets[0]) => {
+    setNewCharacter({
+      name: preset.name,
+      description: preset.description,
+      visualDescription: preset.visualDescription,
+      personality: preset.personality,
+    });
+    setSelectedPresetId(preset.id);
   };
 
   if (currentCount >= maxCount) {
@@ -74,24 +88,57 @@ export function AddCharacterDialog({
           </span>
         </button>
       </DialogTrigger>
-      <DialogContent className="glass-strong border-white/10 max-w-lg">
+      <DialogContent className="glass-strong border-white/10 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('steps.characters.addCharacter')}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>{t('steps.characters.characterName')}</Label>
-            <Input
-              placeholder="e.g., The Boy, Fuzzy"
-              value={newCharacter.name}
-              onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
-              className="glass border-white/10"
-            />
+        <div className="space-y-6 py-4">
+          {/* Preset Characters Section */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">{t('characterPresets.title')}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {characterPresets.map((preset) => {
+                const Icon = preset.icon;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleApplyPreset(preset)}
+                    className={`
+                      flex items-center gap-2 p-3 rounded-lg border transition-all
+                      ${selectedPresetId === preset.id
+                        ? 'bg-purple-500/20 border-purple-500/50 shadow-lg shadow-purple-500/20'
+                        : 'bg-white/5 border-white/10 hover:border-purple-500/30 hover:bg-white/10'
+                      }
+                    `}
+                  >
+                    <div className={`p-2 rounded-lg ${preset.iconBg} ${preset.iconColor}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-medium">{t(preset.titleKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Divider */}
+          <div className="border-t border-white/10" />
+
+          {/* Manual Input Section */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('steps.characters.characterName')}</Label>
+              <Input
+                placeholder={t('steps.characters.placeholders.name')}
+                value={newCharacter.name}
+                onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
+                className="glass border-white/10"
+              />
+            </div>
           <div className="space-y-2">
             <Label>{t('steps.characters.personality')}</Label>
             <Input
-              placeholder="e.g., Determined, brave, caring"
+              placeholder={t('steps.characters.placeholders.personality')}
               value={newCharacter.personality}
               onChange={(e) => setNewCharacter({ ...newCharacter, personality: e.target.value })}
               className="glass border-white/10"
@@ -100,7 +147,7 @@ export function AddCharacterDialog({
           <div className="space-y-2">
             <Label>{t('steps.characters.characterDescription')}</Label>
             <Textarea
-              placeholder="Brief character description..."
+              placeholder={t('steps.characters.placeholders.description')}
               value={newCharacter.description}
               onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
               className="glass border-white/10 min-h-[80px]"
@@ -109,11 +156,12 @@ export function AddCharacterDialog({
           <div className="space-y-2">
             <Label>{t('steps.characters.visualDescription')}</Label>
             <Textarea
-              placeholder="Detailed visual appearance (clothing, features, etc.)..."
+              placeholder={t('steps.characters.placeholders.visualDescription')}
               value={newCharacter.visualDescription}
               onChange={(e) => setNewCharacter({ ...newCharacter, visualDescription: e.target.value })}
               className="glass border-white/10 min-h-[100px]"
             />
+          </div>
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={handleCancel} className="border-white/10">

@@ -168,6 +168,13 @@
       "concept": "Bývalý trestanec sa po 15 rokoch vo väzení vracia do rodného mesta, hľadajúc vykúpenie a obnovenie vzťahu s dcérou, ktorá ho nepozná. Pracujúc ako rybár po boku svojho odcudzeného otca musí čeliť chybám svojej minulosti, zatiaľ čo komunita má problém odpustiť."
     }
   },
+  "characterPresets": {
+    "title": "Predpripravené Postavy",
+    "heroBoy": "Hrdinský Chlapec",
+    "magicalCreature": "Čarovné Stvorenie",
+    "wiseMentor": "Múdry Mentor",
+    "braveGirl": "Odvážne Dievča"
+  },
   "project": {
     "newProject": "Nový projekt",
     "projectName": "Názov projektu",
@@ -255,7 +262,13 @@
       "generating": "Generuje sa...",
       "generatingImages": "Generovanie obrázkov",
       "generateAll": "Generovať všetky obrázky",
-      "maxReached": "Maximálny počet postáv dosiahnutý"
+      "maxReached": "Maximálny počet postáv dosiahnutý",
+      "placeholders": {
+        "name": "napr. Chlapec, Fuzzy",
+        "personality": "napr. Odhodlaný, odvážny, starostlivý",
+        "description": "Stručný popis postavy...",
+        "visualDescription": "Podrobný vizuálny vzhľad (odev, vlastnosti atď.)..."
+      }
     },
     "scenes": {
       "title": "Obrázky",
