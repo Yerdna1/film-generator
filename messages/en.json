@@ -224,6 +224,46 @@
     "inProgress": "In Progress",
     "pending": "Pending"
   },
+  "step1": {
+    "modelConfiguration": {
+      "title": "Model Configuration",
+      "description": "Configure AI models for all generation steps",
+      "tabs": {
+        "llm": "Text",
+        "image": "Images",
+        "video": "Videos",
+        "voice": "Voice",
+        "music": "Music"
+      },
+      "llm": {
+        "provider": "LLM Provider",
+        "model": "LLM Model"
+      },
+      "image": {
+        "provider": "Image Provider",
+        "model": "Image Model",
+        "characterAspectRatio": "Character Aspect Ratio",
+        "sceneAspectRatio": "Scene Aspect Ratio",
+        "sceneResolution": "Scene Resolution"
+      },
+      "video": {
+        "provider": "Video Provider",
+        "model": "Video Model",
+        "resolution": "Video Resolution"
+      },
+      "voice": {
+        "provider": "Voice Provider",
+        "model": "Voice Model",
+        "defaultLanguage": "Default Language"
+      },
+      "music": {
+        "provider": "Music Provider",
+        "model": "Music Model"
+      },
+      "tooltip": "These settings will be used across all workflow steps",
+      "info": "Configure your preferred AI models for each generation type. Free options are available for getting started."
+    }
+  },
   "steps": {
     "prompt": {
       "title": "Story & Prompt",
@@ -281,6 +321,13 @@
         "tooltip": "These settings will be used across all workflow steps",
         "info": "Configure your preferred AI models for each generation type. Free options are available for getting started."
       }
+    },
+    "character": {
+      "title": "Characters",
+      "generated": "generated",
+      "stopGenerating": "Stop Generating",
+      "generateAll": "Generate All Images",
+      "addCharacter": "Add Character"
     },
     "characters": {
       "title": "Characters",

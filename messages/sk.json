@@ -224,6 +224,46 @@
     "inProgress": "Prebieha",
     "pending": "Čaká"
   },
+  "step1": {
+    "modelConfiguration": {
+      "title": "Konfigurácia modelov",
+      "description": "Nastavte AI modely pre všetky kroky generovania",
+      "tabs": {
+        "llm": "Text",
+        "image": "Obrázky",
+        "video": "Videá",
+        "voice": "Hlas",
+        "music": "Hudba"
+      },
+      "llm": {
+        "provider": "LLM Poskytovateľ",
+        "model": "LLM Model"
+      },
+      "image": {
+        "provider": "Poskytovateľ obrázkov",
+        "model": "Model obrázkov",
+        "characterAspectRatio": "Pomer strán postáv",
+        "sceneAspectRatio": "Pomer strán scén",
+        "sceneResolution": "Rozlíšenie scén"
+      },
+      "video": {
+        "provider": "Poskytovateľ videa",
+        "model": "Model videa",
+        "resolution": "Rozlíšenie videa"
+      },
+      "voice": {
+        "provider": "Poskytovateľ hlasu",
+        "model": "Model hlasu",
+        "defaultLanguage": "Predvolený jazyk"
+      },
+      "music": {
+        "provider": "Poskytovateľ hudby",
+        "model": "Model hudby"
+      },
+      "tooltip": "Tieto nastavenia budú použité vo všetkých krokoch postupu",
+      "info": "Nakonfigurujte vaše preferované AI modely pre každý typ generovania. Bezplatné možnosti sú dostupné pre začiatok."
+    }
+  },
   "steps": {
     "prompt": {
       "title": "Príbeh",
@@ -242,7 +282,52 @@
       "storyDetails": "Detaily príbehu",
       "generatingTitle": "Generujem hlavný prompt",
       "generatingDescription": "Vytváram detailný prompt pre váš film s pomocou AI...",
-      "analyzingStory": "Analyzujem príbeh a generujem scény..."
+      "analyzingStory": " Analyzujem príbeh a generujem scény...",
+      "modelConfiguration": {
+        "title": "Konfigurácia modelov",
+        "description": "Nastavte AI modely pre všetky kroky generovania",
+        "tabs": {
+          "llm": "Text",
+          "image": "Obrázky",
+          "video": "Videá",
+          "voice": "Hlas",
+          "music": "Hudba"
+        },
+        "llm": {
+          "provider": "LLM Poskytovateľ",
+          "model": "LLM Model"
+        },
+        "image": {
+          "provider": "Poskytovateľ obrázkov",
+          "model": "Model obrázkov",
+          "characterAspectRatio": "Pomer strán postáv",
+          "sceneAspectRatio": "Pomer strán scén",
+          "sceneResolution": "Rozlíšenie scén"
+        },
+        "video": {
+          "provider": "Poskytovateľ videa",
+          "model": "Model videa",
+          "resolution": "Rozlíšenie videa"
+        },
+        "voice": {
+          "provider": "Poskytovateľ hlasu",
+          "model": "Model hlasu",
+          "defaultLanguage": "Predvolený jazyk"
+        },
+        "music": {
+          "provider": "Poskytovateľ hudby",
+          "model": "Model hudby"
+        },
+        "tooltip": "Tieto nastavenia budú použité vo všetkých krokoch postupu",
+        "info": "Nakonfigurujte vaše preferované AI modely pre každý typ generovania. Bezplatné možnosti sú dostupné pre začiatok."
+      }
+    },
+    "character": {
+      "title": "Postavy",
+      "generated": "vygenerovaných",
+      "stopGenerating": "Zastaviť generovanie",
+      "generateAll": "Generovať všetky obrázky",
+      "addCharacter": "Pridať postavu"
     },
     "characters": {
       "title": "Postavy",
