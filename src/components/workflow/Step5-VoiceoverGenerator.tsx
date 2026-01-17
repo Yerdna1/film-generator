@@ -2,14 +2,18 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import { Mic, Volume2, VolumeX, AlertCircle, Loader2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useProjectStore } from '@/lib/stores/project-store';
+import { useCredits } from '@/contexts/CreditsContext';
+import { ACTION_COSTS } from '@/lib/services/real-costs';
 import type { VoiceProvider, VoiceLanguage } from '@/types/project';
 import type { RegenerationRequest, DeletionRequest } from '@/types/collaboration';
 import {
   Step5Props,
   getVoicesForProvider,
+  ELEVENLABS_VOICES,
 } from './voiceover-generator/types';
 import { useVoiceoverAudio } from './voiceover-generator/hooks';
 import {
@@ -17,9 +21,11 @@ import {
   ProviderSelector,
   VoiceoverProgress,
   SceneDialogueCard,
+  KieTtsModal,
 } from './voiceover-generator/components';
 import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
 import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
+import { InsufficientCreditsModal } from '@/components/workflow/character-generator/components/InsufficientCreditsModal';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
@@ -83,6 +89,23 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
   // Deletion requests state
   const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
+
+  // Credits for free users
+  const creditsData = useCredits();
+
+  // KIE AI modal state for TTS generation
+  const [isKieModalOpen, setIsKieModalOpen] = useState(false);
+  const [isSavingKieKey, setIsSavingKieKey] = useState(false);
+
+  // Insufficient credits modal state
+  const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
+
+  // Pending voiceover generation (for credit check flow)
+  const [pendingVoiceoverGeneration, setPendingVoiceoverGeneration] = useState<{
+    type: 'single' | 'all';
+    lineId?: string;
+    sceneId?: string;
+  } | null>(null);
 
   // Filter scenes with dialogue for pagination
   const scenesWithDialogue = useMemo(() =>
@@ -221,6 +244,18 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     }
   }, [project.id, fetchApprovedRegenerationRequests]);
 
+  // Credit check wrapper for single voiceover generation
+  const handleGenerateAudioWithCreditCheck = useCallback(async (lineId: string, sceneId: string) => {
+    setPendingVoiceoverGeneration({ type: 'single', lineId, sceneId });
+    setIsInsufficientCreditsModalOpen(true);
+  }, []);
+
+  // Credit check wrapper for all voiceovers generation
+  const handleGenerateAllWithCreditCheck = useCallback(async () => {
+    setPendingVoiceoverGeneration({ type: 'all' });
+    setIsInsufficientCreditsModalOpen(true);
+  }, []);
+
   // Custom hook for audio generation
   const {
     audioStates,
@@ -245,6 +280,96 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     getAvailableVersions,
     downloadLine,
   } = useVoiceoverAudio(project);
+
+  // Proceed with generation using app credits
+  const handleUseAppCredits = useCallback(async () => {
+    if (!pendingVoiceoverGeneration) return;
+
+    setIsInsufficientCreditsModalOpen(false);
+
+    if (pendingVoiceoverGeneration.type === 'single' && pendingVoiceoverGeneration.lineId && pendingVoiceoverGeneration.sceneId) {
+      await generateAudioForLine(pendingVoiceoverGeneration.lineId, pendingVoiceoverGeneration.sceneId, false); // Use app credits
+    } else if (pendingVoiceoverGeneration.type === 'all') {
+      await handleGenerateAll(false); // Use app credits
+    }
+
+    setPendingVoiceoverGeneration(null);
+  }, [pendingVoiceoverGeneration, generateAudioForLine, handleGenerateAll]);
+
+  // Save KIE AI API key handler
+  const handleSaveKieApiKey = useCallback(async (
+    apiKey: string,
+    model: string,
+    voiceAssignments?: Array<{ characterId: string; voiceId: string }>
+  ): Promise<void> => {
+    setIsSavingKieKey(true);
+
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kieApiKey: apiKey,
+          kieTtsModel: model,
+          ttsProvider: 'kie',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save API key');
+      }
+
+      // Update voice assignments for characters
+      if (voiceAssignments && voiceAssignments.length > 0) {
+        voiceAssignments.forEach(({ characterId, voiceId }) => {
+          const voice = ELEVENLABS_VOICES.find(v => v.id === voiceId);
+          if (voice) {
+            // Update character voice settings
+            updateCharacter(project.id, characterId, {
+              voiceId,
+              voiceName: voice.name,
+            });
+
+            // Update project voiceSettings characterVoices
+            updateVoiceSettings(project.id, {
+              characterVoices: {
+                ...(project.voiceSettings?.characterVoices || {}),
+                [characterId]: { voiceId, voiceName: voice.name },
+              },
+            });
+          }
+        });
+      }
+
+      // Update project voice settings to use KIE provider
+      updateVoiceSettings(project.id, { provider: 'kie' });
+
+      toast.success('KIE AI API Key uložený', {
+        description: 'Generujem hlasový prejav...',
+      });
+
+      setIsKieModalOpen(false);
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Process pending generation with KIE key (skip credit check by calling original handlers)
+      if (pendingVoiceoverGeneration) {
+        if (pendingVoiceoverGeneration.type === 'single' && pendingVoiceoverGeneration.lineId && pendingVoiceoverGeneration.sceneId) {
+          await generateAudioForLine(pendingVoiceoverGeneration.lineId, pendingVoiceoverGeneration.sceneId, true); // Skip credit check, use KIE key
+        } else if (pendingVoiceoverGeneration.type === 'all') {
+          await handleGenerateAll(true); // Skip credit check, use KIE key
+        }
+        setPendingVoiceoverGeneration(null);
+      }
+    } catch (error) {
+      toast.error('Failed to Save API Key', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    } finally {
+      setIsSavingKieKey(false);
+    }
+  }, [pendingVoiceoverGeneration, generateAudioForLine, handleGenerateAll, project, updateCharacter, updateVoiceSettings]);
 
   // Handler for toggling TTS usage in video composition per scene
   const handleToggleUseTts = useCallback((sceneId: string) => {
@@ -455,7 +580,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             provider={voiceSettings.provider}
             language={voiceSettings.language}
             availableVersions={getAvailableVersions()}
-            onGenerateAll={handleGenerateAll}
+            onGenerateAll={handleGenerateAllWithCreditCheck}
             onDownloadAll={handleDownloadAll}
             onDeleteAll={deleteAllAudio}
             onPlayAll={playAllDialogues}
@@ -464,6 +589,35 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
           />
         )}
       </div>
+
+      {/* Insufficient Credits Modal for TTS generation */}
+      <InsufficientCreditsModal
+        isOpen={isInsufficientCreditsModalOpen}
+        onClose={() => setIsInsufficientCreditsModalOpen(false)}
+        onOpenKieModal={() => {
+          setIsInsufficientCreditsModalOpen(false);
+          setIsKieModalOpen(true);
+        }}
+        onUseAppCredits={handleUseAppCredits}
+        creditsNeeded={ACTION_COSTS.voiceover.elevenlabs * (pendingVoiceoverGeneration?.type === 'all' ? (allDialogueLines.length || 1) : 1)}
+        currentCredits={creditsData?.credits?.balance ?? 0}
+        generationType="audio"
+      />
+
+      {/* KIE AI API Key Modal for TTS generation */}
+      <KieTtsModal
+        isOpen={isKieModalOpen}
+        onClose={() => setIsKieModalOpen(false)}
+        onSave={handleSaveKieApiKey}
+        isLoading={isSavingKieKey}
+        characters={project.characters || []}
+        currentVoiceAssignments={new Map(
+          Object.entries(project.voiceSettings?.characterVoices || {}).map(([charId, voiceData]) => [
+            charId,
+            (voiceData as any).voiceId || voiceData
+          ])
+        )}
+      />
     </div>
   );
 }

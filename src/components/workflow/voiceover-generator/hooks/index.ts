@@ -65,10 +65,10 @@ export function useVoiceoverAudio(project: Project) {
     totalCharacters,
 
     // Audio Generation
-    generateAudioForLine: (lineId: string, sceneId: string) =>
-      generation.generateAudioForLine(lineId, sceneId, uiState.setAudioStates),
-    handleGenerateAll: () =>
-      generation.handleGenerateAll(allDialogueLines, uiState.abortRef, uiState.setAudioStates, () => {/* setIsGeneratingAll handled inline */}),
+    generateAudioForLine: (lineId: string, sceneId: string, skipCreditCheck?: boolean) =>
+      generation.generateAudioForLine(lineId, sceneId, uiState.setAudioStates, skipCreditCheck),
+    handleGenerateAll: (skipCreditCheck?: boolean) =>
+      generation.handleGenerateAll(allDialogueLines, uiState.abortRef, uiState.setAudioStates, () => {/* setIsGeneratingAll handled inline */}, skipCreditCheck),
     stopGeneratingAll: () =>
       generation.stopGeneratingAll(uiState.abortRef, () => {/* setIsGeneratingAll handled inline */}),
 

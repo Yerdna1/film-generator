@@ -10,13 +10,15 @@ interface AudioGenerationHookResult {
   generateAudioForLine: (
     lineId: string,
     sceneId: string,
-    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>
+    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>,
+    skipCreditCheck?: boolean
   ) => Promise<boolean | 'insufficient_credits'>;
   handleGenerateAll: (
     allDialogueLines: DialogueLineWithScene[],
     abortRef: React.MutableRefObject<boolean>,
     setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>,
-    setIsGeneratingAll: (value: boolean) => void
+    setIsGeneratingAll: (value: boolean) => void,
+    skipCreditCheck?: boolean
   ) => Promise<void>;
   stopGeneratingAll: (
     abortRef: React.MutableRefObject<boolean>,
@@ -32,7 +34,8 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
   const generateAudioForLine = useCallback(async (
     lineId: string,
     sceneId: string,
-    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>
+    setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>,
+    skipCreditCheck = false
   ): Promise<boolean | 'insufficient_credits'> => {
     // Read fresh data from store to avoid race conditions when generating multiple lines
     const freshProject = useProjectStore.getState().projects.find(p => p.id === project.id);
@@ -54,7 +57,11 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
       }));
 
       // Use unified TTS endpoint - pass provider from UI selection
-      const provider = project.voiceSettings?.provider || 'gemini-tts';
+      // When skipCreditCheck is true, force provider to 'kie' (user's own API key)
+      let provider = project.voiceSettings?.provider || 'gemini-tts';
+      if (skipCreditCheck) {
+        provider = 'kie';
+      }
 
       // Get valid voice for the current provider
       // Returns null if character doesn't have a voice configured for this provider
@@ -84,6 +91,7 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
           language: project.voiceSettings?.language || 'sk',
           provider,
           projectId: project.id,
+          skipCreditCheck, // Pass skipCreditCheck to API
           // Voice customization settings
           voiceInstructions: character?.voiceInstructions,
           voiceStability: character?.voiceStability,
@@ -92,13 +100,16 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
         }),
       });
 
-      const isInsufficientCredits = await handleApiResponse(response);
-      if (isInsufficientCredits) {
-        setAudioStates((prev) => ({
-          ...prev,
-          [lineId]: { status: 'idle', progress: 0 },
-        }));
-        return 'insufficient_credits';
+      // Only check credits if not skipping credit check (user using own API key)
+      if (!skipCreditCheck) {
+        const isInsufficientCredits = await handleApiResponse(response);
+        if (isInsufficientCredits) {
+          setAudioStates((prev) => ({
+            ...prev,
+            [lineId]: { status: 'idle', progress: 0 },
+          }));
+          return 'insufficient_credits';
+        }
       }
 
       setAudioStates((prev) => ({
@@ -193,7 +204,8 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
     allDialogueLines: DialogueLineWithScene[],
     abortRef: React.MutableRefObject<boolean>,
     setAudioStates: React.Dispatch<React.SetStateAction<Record<string, ItemGenerationState>>>,
-    setIsGeneratingAll: (value: boolean) => void
+    setIsGeneratingAll: (value: boolean) => void,
+    skipCreditCheck = false
   ) => {
     abortRef.current = false;  // Reset abort flag
     setIsGeneratingAll(true);
@@ -217,7 +229,7 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
 
       if (!hasThisVersion) {
         console.log(`[TTS] Generating ${i + 1}/${allDialogueLines.length}: ${line.id}`);
-        const result = await generateAudioForLine(line.id, line.sceneId, setAudioStates);
+        const result = await generateAudioForLine(line.id, line.sceneId, setAudioStates, skipCreditCheck);
         // Stop batch generation if insufficient credits
         if (result === 'insufficient_credits') {
           console.log('TTS generation stopped: insufficient credits');

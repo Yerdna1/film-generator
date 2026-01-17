@@ -44,6 +44,7 @@ export async function GET() {
           kieApiKey: '', // KIE AI API key
           kieImageModel: 'seedream/4-5-text-to-image', // Default KIE image model
           kieVideoModel: 'grok-imagine/image-to-video', // Default KIE video model
+          kieTtsModel: 'elevenlabs/text-to-dialogue-v3', // Default KIE TTS model
           llmProvider: 'openrouter', // Default to OpenRouter
           musicProvider: 'piapi', // Default to PiAPI
           ttsProvider: 'gemini-tts', // Default to Gemini TTS
@@ -97,6 +98,7 @@ export async function GET() {
         openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
         kieImageModel: apiKeys.kieImageModel || 'seedream/4-5-text-to-image',
         kieVideoModel: apiKeys.kieVideoModel || 'grok-imagine/image-to-video',
+        kieTtsModel: apiKeys.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
         llmProvider: apiKeys.llmProvider || 'openrouter',
         musicProvider: apiKeys.musicProvider || 'piapi',
         ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
@@ -153,6 +155,7 @@ export async function POST(request: NextRequest) {
       kieApiKey,
       kieImageModel,
       kieVideoModel,
+      kieTtsModel,
       llmProvider,
       musicProvider,
       ttsProvider,
@@ -183,6 +186,7 @@ export async function POST(request: NextRequest) {
         ...(kieApiKey !== undefined && { kieApiKey }),
         ...(kieImageModel !== undefined && { kieImageModel }),
         ...(kieVideoModel !== undefined && { kieVideoModel }),
+        ...(kieTtsModel !== undefined && { kieTtsModel }),
         ...(llmProvider !== undefined && { llmProvider }),
         ...(musicProvider !== undefined && { musicProvider }),
         ...(ttsProvider !== undefined && { ttsProvider }),
@@ -211,6 +215,7 @@ export async function POST(request: NextRequest) {
         kieApiKey: kieApiKey || null,
         kieImageModel: kieImageModel || 'seedream/4-5-text-to-image',
         kieVideoModel: kieVideoModel || 'grok-imagine/image-to-video',
+        kieTtsModel: kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',
         ttsProvider: ttsProvider || 'gemini-tts',

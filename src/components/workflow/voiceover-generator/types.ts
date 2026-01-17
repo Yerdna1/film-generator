@@ -134,6 +134,9 @@ export const getVoicesForProvider = (provider: VoiceProvider): VoiceOption[] => 
       return ELEVENLABS_VOICES;
     case 'openai-tts':
       return OPENAI_VOICES;
+    case 'kie':
+      // KIE TTS uses ElevenLabs models, so use ElevenLabs voices
+      return ELEVENLABS_VOICES;
     default:
       return GEMINI_VOICES;
   }

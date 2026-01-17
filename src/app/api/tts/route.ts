@@ -22,6 +22,7 @@ interface TTSRequest {
   language?: string;
   projectId?: string;
   provider?: TTSProvider;  // Allow overriding provider from UI
+  skipCreditCheck?: boolean; // Skip credit check when user provides own API key
   // Voice customization settings
   voiceInstructions?: string;      // OpenAI: speaking style instructions
   voiceStability?: number;         // ElevenLabs: 0-1
@@ -305,17 +306,42 @@ async function generateWithKie(
   }
 
   console.log(`[KIE TTS] Using model: ${modelConfig.name} - ${formatKiePrice(modelConfig.credits)}`);
+  console.log(`[KIE TTS] Original voiceId: ${voiceId}`);
+
+  // KIE expects voice names (lowercase) instead of ElevenLabs IDs
+  // Map ElevenLabs voice IDs to names
+  const voiceIdToNameMap: Record<string, string> = {
+    '21m00Tcm4TlvDq8ikWAM': 'rachel',
+    '29vD33N1CtxCmqQRPOHJ': 'drew',
+    '2EiwWnXFnvU5JabPnv8n': 'clyde',
+    '5Q0t7uMcjvnagumLfvZi': 'paul',
+    'AZnzlk1XvdvUeBnXmlld': 'domi',
+    'CYw3kZ02Hs0563khs1Fj': 'dave',
+    'D38z5RcWu1voky8WS1ja': 'fin',
+    'EXAVITQu4vr4xnSDxMaL': 'sarah',
+    'ErXwobaYiN019PkySvjV': 'antoni',
+    'GBv7mTt0atIp3Br8iCZE': 'thomas',
+    'IKne3meq5aSn9XLyUdCD': 'charlie',
+    'LcfcDJNUP1GQjkzn1xUU': 'emily',
+    'pNInz6obpgDQGcFmaJgB': 'adam',
+    'onwK4e9ZLuTAKqWW03F9': 'daniel',
+    'XB0fDUnXU5powFXDhCwa': 'charlotte',
+  };
+
+  // Convert voice ID to voice name for KIE
+  const voiceName = voiceIdToNameMap[voiceId] || voiceId.toLowerCase();
+  console.log(`[KIE TTS] Using voice name: ${voiceName}`);
 
   // Prepare voice settings based on model
   const inputData: any = {
     text: text,
-    voice: voiceId,
+    voice: voiceName, // Use voice name instead of ID
   };
 
   // Add model-specific parameters
   if (modelId.includes('dialogue')) {
     // For dialogue models, text should be an array
-    inputData.dialogue = [{ text, voice: voiceId }];
+    inputData.dialogue = [{ text, voice: voiceName }];
     delete inputData.text;
     delete inputData.voice;
   }
@@ -463,6 +489,7 @@ export async function POST(request: NextRequest) {
       language = 'en',
       projectId,
       provider: requestedProvider,  // Provider from UI
+      skipCreditCheck = false,      // Skip credit check when using own API key
       voiceInstructions,             // OpenAI voice instructions
       voiceStability = 0.5,          // ElevenLabs stability
       voiceSimilarityBoost = 0.75,   // ElevenLabs similarity boost
@@ -501,11 +528,17 @@ export async function POST(request: NextRequest) {
         modalTtsEndpoint = userApiKeys.modalTtsEndpoint;
       }
 
-      const insufficientCredits = await requireCredits(sessionUserId, COSTS.VOICEOVER_LINE);
-      if (insufficientCredits) return insufficientCredits;
+      // Only check credits if not skipping credit check (user using own API key)
+      if (!skipCreditCheck) {
+        const insufficientCredits = await requireCredits(sessionUserId, COSTS.VOICEOVER_LINE);
+        if (insufficientCredits) return insufficientCredits;
+      }
     }
 
-    console.log(`[TTS] Using provider: ${ttsProvider}`);
+    console.log(`[TTS] Using provider: ${ttsProvider}${skipCreditCheck ? ' (skip credit check)' : ''}`);
+
+    // When skipCreditCheck is true, pass undefined userId to prevent credit spending
+    const userIdForGeneration = skipCreditCheck ? undefined : sessionUserId;
 
     if (ttsProvider === 'modal') {
       if (!modalTtsEndpoint) {
@@ -514,7 +547,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const result = await generateWithModal(text, voiceId, language, projectId, modalTtsEndpoint, sessionUserId);
+      const result = await generateWithModal(text, voiceId, language, projectId, modalTtsEndpoint, userIdForGeneration);
       return NextResponse.json(result);
     }
 
@@ -525,7 +558,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      const result = await generateWithElevenLabs(text, voiceId, projectId, elevenLabsApiKey, sessionUserId, voiceStability, voiceSimilarityBoost, voiceStyle);
+      const result = await generateWithElevenLabs(text, voiceId, projectId, elevenLabsApiKey, userIdForGeneration, voiceStability, voiceSimilarityBoost, voiceStyle);
       return NextResponse.json(result);
     }
 
@@ -536,7 +569,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, sessionUserId, voiceInstructions);
+      const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, userIdForGeneration, voiceInstructions);
       return NextResponse.json(result);
     }
 
@@ -553,7 +586,7 @@ export async function POST(request: NextRequest) {
         projectId,
         kieTtsModel,
         kieApiKey,
-        sessionUserId,
+        userIdForGeneration,
         {
           stability: voiceStability,
           similarityBoost: voiceSimilarityBoost,
@@ -570,7 +603,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    const result = await generateWithGemini(text, voiceName, language, projectId, geminiApiKey, sessionUserId);
+    const result = await generateWithGemini(text, voiceName, language, projectId, geminiApiKey, userIdForGeneration);
     return NextResponse.json(result);
 
   } catch (error) {

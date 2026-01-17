@@ -4,3 +4,4 @@ export { VoiceoverProgress } from './VoiceoverProgress';
 export { DialogueLineCard } from './DialogueLineCard';
 export { SceneDialogueCard } from './SceneDialogueCard';
 export { TTSPriceComparison } from './TTSPriceComparison';
+export { KieTtsModal } from './KieTtsModal';
