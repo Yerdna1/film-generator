@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { generateCharacterPrompt } from '@/lib/prompts/master-prompt';
+import { useCredits } from '@/hooks';
+import { getImageCreditCost } from '@/lib/services/credits';
 import type { Character } from '@/types/project';
 import type { AspectRatio } from '@/lib/services/real-costs';
 import {
@@ -23,11 +26,15 @@ import {
   CopyPromptsDialog,
   CharacterProgress,
   CharacterImageLoadingModal,
+  KieApiKeyModal,
+  InsufficientCreditsModal,
 } from './character-generator/components';
 
 export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
   const t = useTranslations();
-  const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects, userConstants } = useProjectStore();
+  const { data: session } = useSession();
+  const { addCharacter, updateCharacter, deleteCharacter, updateSettings, projects, userConstants, updateUserConstants } = useProjectStore();
+  const { data: creditsData } = useCredits();
 
   // Get live project data from store, but prefer initialProject for full data (characters array)
   // Store may contain summary data without characters
@@ -45,9 +52,42 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const [showPromptsDialog, setShowPromptsDialog] = useState(false);
   const [editCharacterData, setEditCharacterData] = useState<EditCharacterData | null>(null);
 
+  // KIE API key modal state
+  const [isKieModalOpen, setIsKieModalOpen] = useState(false);
+  const [isSavingKieKey, setIsSavingKieKey] = useState(false);
+  const [userApiKeys, setUserApiKeys] = useState<{
+    hasKieKey: boolean;
+    kieImageModel: string;
+  } | null>(null);
+  const [pendingCharacterGeneration, setPendingCharacterGeneration] = useState<Character | null>(null);
+  const [modalReason, setModalReason] = useState<'no-key' | 'insufficient-credits'>('no-key');
+
+  // Insufficient credits modal state
+  const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
+
+  // Fetch user's API keys
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      if (!session) return;
+      try {
+        const res = await fetch('/api/user/api-keys');
+        if (res.ok) {
+          const data = await res.json();
+          setUserApiKeys({
+            hasKieKey: data.hasKieKey || false,
+            kieImageModel: data.kieImageModel || 'seedream/4-5-text-to-image',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+      }
+    };
+    fetchApiKeys();
+  }, [session]);
+
   // Use user constants for character generation, fallback to defaults
   const characterAspectRatio = (userConstants?.characterAspectRatio || '1:1') as AspectRatio;
-  const characterImageProvider = (userConstants?.characterImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit';
+  const characterImageProvider = (userConstants?.characterImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
 
   // Custom hook for image generation
   const {
@@ -129,6 +169,119 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     setEditCharacterData(null);
   };
 
+  // Wrapper for image generation - shows Insufficient Credits modal with KIE option
+  const handleGenerateCharacterImage = useCallback(async (character: Character) => {
+    // Always show the Insufficient Credits modal first, giving users the choice:
+    // - Use their app credits (if they have enough)
+    // - Or use their own KIE AI key (bypasses app credits)
+    setPendingCharacterGeneration(character);
+    setIsInsufficientCreditsModalOpen(true);
+  }, []);
+
+  // Wrapper for "Generate All" - checks KIE key before starting batch
+  const handleGenerateAllWithCheck = useCallback(async () => {
+    // Check if user has KIE API key for image generation
+    const needsKieKey = !userApiKeys?.hasKieKey && characterImageProvider === 'kie';
+
+    if (needsKieKey) {
+      // For "Generate All", show modal but don't set a specific pending character
+      setIsKieModalOpen(true);
+      return;
+    }
+
+    await handleGenerateAll();
+  }, [userApiKeys?.hasKieKey, characterImageProvider, handleGenerateAll]);
+
+  // Save KIE API key handler
+  const handleSaveKieApiKey = async (apiKey: string, model: string): Promise<void> => {
+    setIsSavingKieKey(true);
+
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kieApiKey: apiKey,
+          kieImageModel: model,
+          imageProvider: 'kie',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save API key');
+      }
+
+      // Update local state and userConstants
+      setUserApiKeys(prev => prev ? { ...prev, hasKieKey: true, kieImageModel: model } : null);
+      updateUserConstants({ characterImageProvider: 'kie' });
+
+      toast.success('KIE AI API Key Saved', {
+        description: 'Generating character images...',
+      });
+
+      setIsKieModalOpen(false);
+
+      // Small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Generate the pending character image (individual generation) or all (batch)
+      if (pendingCharacterGeneration) {
+        // Direct API call with skipCreditCheck since user is using their own KIE key
+        const imageResolution = project.settings?.imageResolution || '2k';
+        const apiResponse = await fetch('/api/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: pendingCharacterGeneration.masterPrompt,
+            aspectRatio: characterAspectRatio,
+            resolution: imageResolution,
+            imageProvider: 'kie',
+            projectId: project.id,
+            skipCreditCheck: true, // Bypass credit check - using user's KIE credits
+          }),
+        });
+
+        if (apiResponse.ok) {
+          const data = await apiResponse.json();
+          if (data.imageUrl) {
+            await updateCharacter(project.id, pendingCharacterGeneration.id, { imageUrl: data.imageUrl });
+            toast.success('Image Generated', {
+              description: `Character image for ${pendingCharacterGeneration.name} saved`,
+            });
+          }
+        } else {
+          const error = await apiResponse.json();
+          const errorMessage = error.error || 'Failed to generate image';
+
+          // Special handling for KIE AI quota exceeded error
+          if (errorMessage.includes('exceeded the total limit') || errorMessage.includes('points used')) {
+            toast.error('KIE AI Credits Exhausted', {
+              description: 'Your KIE AI account has run out of credits. Please top up at kie.ai to continue generating images.',
+              duration: 8000,
+            });
+          } else {
+            toast.error('Generation Failed', {
+              description: errorMessage,
+            });
+          }
+        }
+
+        setPendingCharacterGeneration(null);
+      } else {
+        // No pending character means "Generate All" was clicked
+        await handleGenerateAll();
+      }
+    } catch (error) {
+      toast.error('Failed to Save API Key', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    } finally {
+      setIsSavingKieKey(false);
+    }
+  };
+
   // Handle image upload
   const handleUploadImage = useCallback(async (character: Character, file: File) => {
     // Validate file type
@@ -189,7 +342,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
               isReadOnly={isReadOnly}
               onEdit={startEditCharacter}
               onDelete={(id) => deleteCharacter(project.id, id)}
-              onGenerateImage={generateCharacterImage}
+              onGenerateImage={handleGenerateCharacterImage}
               onRegeneratePrompt={regeneratePrompt}
               onPreviewImage={setPreviewImage}
               onUploadImage={handleUploadImage}
@@ -222,7 +375,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
           characters={characters}
           isGeneratingAll={isGeneratingAll}
           imageResolution={settings.imageResolution || '2k'}
-          onGenerateAll={handleGenerateAll}
+          onGenerateAll={handleGenerateAllWithCheck}
         />
       )}
 
@@ -255,6 +408,32 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
         current={generationProgress.current}
         total={generationProgress.total}
         characterName={generatingCharacterName}
+      />
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        isOpen={isInsufficientCreditsModalOpen}
+        onClose={() => setIsInsufficientCreditsModalOpen(false)}
+        onOpenKieModal={() => {
+          setIsInsufficientCreditsModalOpen(false);
+          setIsKieModalOpen(true);
+        }}
+        onUseAppCredits={async () => {
+          if (pendingCharacterGeneration) {
+            await generateCharacterImage(pendingCharacterGeneration);
+            setPendingCharacterGeneration(null);
+          }
+        }}
+        creditsNeeded={getImageCreditCost(project.settings?.imageResolution || '2k')}
+        currentCredits={creditsData?.credits.balance}
+      />
+
+      {/* KIE AI API Key Modal */}
+      <KieApiKeyModal
+        isOpen={isKieModalOpen}
+        onClose={() => setIsKieModalOpen(false)}
+        onSave={handleSaveKieApiKey}
+        isLoading={isSavingKieKey}
       />
     </div>
   );

@@ -41,6 +41,8 @@ export async function GET() {
           openRouterApiKey: '',
           openRouterModel: 'anthropic/claude-4.5-sonnet', // Default model
           piapiApiKey: '',
+          kieApiKey: '', // KIE AI API key
+          kieImageModel: 'seedream/4-5-text-to-image', // Default KIE image model
           llmProvider: 'openrouter', // Default to OpenRouter
           musicProvider: 'piapi', // Default to PiAPI
           ttsProvider: 'gemini-tts', // Default to Gemini TTS
@@ -78,6 +80,7 @@ export async function GET() {
         sunoApiKey: maskApiKey(apiKeys.sunoApiKey),
         openRouterApiKey: maskApiKey(apiKeys.openRouterApiKey),
         piapiApiKey: maskApiKey(apiKeys.piapiApiKey),
+        kieApiKey: maskApiKey(apiKeys.kieApiKey),
         // Boolean flags to indicate if key is set (for UI logic)
         hasGeminiKey: !!apiKeys.geminiApiKey,
         hasGrokKey: !!apiKeys.grokApiKey,
@@ -88,8 +91,10 @@ export async function GET() {
         hasSunoKey: !!apiKeys.sunoApiKey,
         hasOpenRouterKey: !!apiKeys.openRouterApiKey,
         hasPiapiKey: !!apiKeys.piapiApiKey,
+        hasKieKey: !!apiKeys.kieApiKey,
         // Non-sensitive settings (can be sent in full)
         openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
+        kieImageModel: apiKeys.kieImageModel || 'seedream/4-5-text-to-image',
         llmProvider: apiKeys.llmProvider || 'openrouter',
         musicProvider: apiKeys.musicProvider || 'piapi',
         ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
@@ -143,6 +148,8 @@ export async function POST(request: NextRequest) {
       openRouterApiKey,
       openRouterModel,
       piapiApiKey,
+      kieApiKey,
+      kieImageModel,
       llmProvider,
       musicProvider,
       ttsProvider,
@@ -170,6 +177,8 @@ export async function POST(request: NextRequest) {
         ...(openRouterApiKey !== undefined && { openRouterApiKey }),
         ...(openRouterModel !== undefined && { openRouterModel }),
         ...(piapiApiKey !== undefined && { piapiApiKey }),
+        ...(kieApiKey !== undefined && { kieApiKey }),
+        ...(kieImageModel !== undefined && { kieImageModel }),
         ...(llmProvider !== undefined && { llmProvider }),
         ...(musicProvider !== undefined && { musicProvider }),
         ...(ttsProvider !== undefined && { ttsProvider }),
@@ -195,6 +204,8 @@ export async function POST(request: NextRequest) {
         openRouterApiKey: openRouterApiKey || null,
         openRouterModel: openRouterModel || 'anthropic/claude-4.5-sonnet',
         piapiApiKey: piapiApiKey || null,
+        kieApiKey: kieApiKey || null,
+        kieImageModel: kieImageModel || 'seedream/4-5-text-to-image',
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',
         ttsProvider: ttsProvider || 'gemini-tts',
