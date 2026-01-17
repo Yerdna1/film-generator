@@ -31,32 +31,32 @@ export function createModelConfigFromLegacySettings(
   const modelConfig: UnifiedModelConfig = {
     // LLM Configuration
     llm: {
-      provider: apiConfig.llmProvider || 'openrouter',
+      provider: (apiConfig.llmProvider || 'openrouter') as any,
       model: llmModel,
       modalEndpoint: apiConfig.modalEndpoints?.llmEndpoint,
     },
 
     // Image Generation Configuration
     image: {
-      provider: apiConfig.imageProvider || userConstants?.characterImageProvider || 'gemini',
+      provider: (apiConfig.imageProvider || userConstants?.characterImageProvider || 'gemini') as any,
       model: apiConfig.kieImageModel || 'seedream/4-5-text-to-image',
       modalEndpoint: apiConfig.modalEndpoints?.imageEndpoint,
-      characterAspectRatio: userConstants?.characterAspectRatio || '1:1',
-      sceneAspectRatio: userConstants?.sceneAspectRatio || project.settings.aspectRatio || '16:9',
-      sceneResolution: userConstants?.sceneImageResolution || project.settings.imageResolution || '2k',
+      characterAspectRatio: (userConstants?.characterAspectRatio || '1:1') as any,
+      sceneAspectRatio: (userConstants?.sceneAspectRatio || project.settings.aspectRatio || '16:9') as any,
+      sceneResolution: (userConstants?.sceneImageResolution || project.settings.imageResolution || '2k') as any,
     },
 
     // Video Generation Configuration
     video: {
-      provider: apiConfig.videoProvider || 'kie',
+      provider: (apiConfig.videoProvider || 'kie') as any,
       model: apiConfig.kieVideoModel || 'grok-imagine/image-to-video',
       modalEndpoint: apiConfig.modalEndpoints?.videoEndpoint,
-      resolution: userConstants?.videoResolution || project.settings.resolution || 'hd',
+      resolution: (userConstants?.videoResolution || project.settings.resolution || 'hd') as any,
     },
 
     // Text-to-Speech Configuration
     tts: {
-      provider: apiConfig.ttsProvider || project.settings.voiceProvider || 'gemini-tts',
+      provider: (apiConfig.ttsProvider || project.settings.voiceProvider || 'gemini-tts') as any,
       model: apiConfig.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
       modalEndpoint: apiConfig.modalEndpoints?.ttsEndpoint,
       defaultLanguage: project.settings.voiceLanguage || 'en',
@@ -64,7 +64,7 @@ export function createModelConfigFromLegacySettings(
 
     // Background Music Configuration
     music: {
-      provider: apiConfig.musicProvider || 'piapi',
+      provider: (apiConfig.musicProvider || 'piapi') as any,
       model: apiConfig.kieMusicModel || 'suno/v3-5-music',
       modalEndpoint: apiConfig.modalEndpoints?.musicEndpoint,
     },
