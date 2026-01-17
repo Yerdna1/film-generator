@@ -2,17 +2,22 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import type { Project } from '@/types/project';
 import type { RegenerationRequest, DeletionRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useVideoGenerator } from './hooks/useVideoGenerator';
+import { useCredits } from '@/contexts/CreditsContext';
+import { ACTION_COSTS } from '@/lib/services/real-costs';
 import {
   VideoHeader,
   VideoQuickActions,
   SceneVideoCard,
   Pagination,
   NoImagesWarning,
+  KieVideoModal,
 } from './components';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
+import { InsufficientCreditsModal } from '@/components/workflow/character-generator/components/InsufficientCreditsModal';
 
 interface Step4Props {
   project: Project;
@@ -79,6 +84,23 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
 
   // Deletion requests state
   const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
+
+  // Credits for free users
+  const creditsData = useCredits();
+
+  // KIE AI modal state for video generation
+  const [isKieModalOpen, setIsKieModalOpen] = useState(false);
+  const [isSavingKieKey, setIsSavingKieKey] = useState(false);
+
+  // Insufficient credits modal state
+  const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
+
+  // Pending video generation (for credit check flow)
+  const [pendingVideoGeneration, setPendingVideoGeneration] = useState<{
+    type: 'single' | 'all' | 'selected';
+    scene?: any;
+    scenes?: any[];
+  } | null>(null);
 
   // Fetch regeneration requests for this project
   const fetchRegenerationRequests = useCallback(async () => {
@@ -199,6 +221,90 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
     }
   }, [project.id, fetchApprovedRegenerationRequests]);
 
+  // Credit check wrapper for single video generation
+  const handleGenerateVideoWithCreditCheck = useCallback(async (scene: any) => {
+    setPendingVideoGeneration({ type: 'single', scene });
+    setIsInsufficientCreditsModalOpen(true);
+  }, []);
+
+  // Credit check wrapper for all videos generation
+  const handleGenerateAllWithCreditCheck = useCallback(async () => {
+    setPendingVideoGeneration({ type: 'all', scenes: scenesNeedingGeneration });
+    setIsInsufficientCreditsModalOpen(true);
+  }, [scenesNeedingGeneration]);
+
+  // Credit check wrapper for selected videos generation
+  const handleGenerateSelectedWithCreditCheck = useCallback(async () => {
+    const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
+    setPendingVideoGeneration({ type: 'selected', scenes: selectedScenesArray });
+    setIsInsufficientCreditsModalOpen(true);
+  }, [scenes, selectedScenes]);
+
+  // Proceed with generation using app credits
+  const handleUseAppCredits = useCallback(async () => {
+    if (!pendingVideoGeneration) return;
+
+    setIsInsufficientCreditsModalOpen(false);
+
+    if (pendingVideoGeneration.type === 'single' && pendingVideoGeneration.scene) {
+      await handleGenerateVideo(pendingVideoGeneration.scene);
+    } else if (pendingVideoGeneration.type === 'all' && pendingVideoGeneration.scenes) {
+      await handleGenerateAll();
+    } else if (pendingVideoGeneration.type === 'selected' && pendingVideoGeneration.scenes) {
+      await handleGenerateSelected();
+    }
+
+    setPendingVideoGeneration(null);
+  }, [pendingVideoGeneration, handleGenerateVideo, handleGenerateAll, handleGenerateSelected]);
+
+  // Save KIE AI API key handler
+  const handleSaveKieApiKey = async (apiKey: string, model: string): Promise<void> => {
+    setIsSavingKieKey(true);
+
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kieApiKey: apiKey,
+          kieVideoModel: model,
+          videoProvider: 'kie',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save API key');
+      }
+
+      toast.success('KIE AI API Key uložený', {
+        description: 'Generujem videá...',
+      });
+
+      setIsKieModalOpen(false);
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Process pending generation with KIE key
+      if (pendingVideoGeneration) {
+        if (pendingVideoGeneration.type === 'single' && pendingVideoGeneration.scene) {
+          await handleGenerateVideo(pendingVideoGeneration.scene, true); // Pass skipCreditCheck=true
+        } else if (pendingVideoGeneration.type === 'all' && pendingVideoGeneration.scenes) {
+          await handleGenerateAll(true); // Pass skipCreditCheck=true
+        } else if (pendingVideoGeneration.type === 'selected' && pendingVideoGeneration.scenes) {
+          await handleGenerateSelected(true); // Pass skipCreditCheck=true
+        }
+        setPendingVideoGeneration(null);
+      }
+    } catch (error) {
+      toast.error('Failed to Save API Key', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    } finally {
+      setIsSavingKieKey(false);
+    }
+  };
+
   // Get selected scenes data for the dialog
   const selectedScenesData = useMemo(() => {
     return scenes
@@ -303,14 +409,14 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
           scenesWithVideos={scenesWithVideos.length}
           scenesNeedingGeneration={scenesNeedingGeneration.length}
           isGeneratingAll={isGeneratingAll}
-          onGenerateAll={handleGenerateAll}
+          onGenerateAll={handleGenerateAllWithCreditCheck}
           onStopGeneration={handleStopGeneration}
           selectedCount={selectedScenes.size}
           onSelectAll={selectAll}
           onSelectAllWithVideos={selectAllWithVideos}
           onSelectAllWithoutVideos={selectAllWithoutVideos}
           onClearSelection={clearSelection}
-          onGenerateSelected={handleGenerateSelected}
+          onGenerateSelected={handleGenerateSelectedWithCreditCheck}
           onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
         />
       )}
@@ -326,6 +432,28 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
           clearSelection();
           fetchRegenerationRequests();
         }}
+      />
+
+      {/* Insufficient Credits Modal for video generation */}
+      <InsufficientCreditsModal
+        isOpen={isInsufficientCreditsModalOpen}
+        onClose={() => setIsInsufficientCreditsModalOpen(false)}
+        onOpenKieModal={() => {
+          setIsInsufficientCreditsModalOpen(false);
+          setIsKieModalOpen(true);
+        }}
+        onUseAppCredits={handleUseAppCredits}
+        creditsNeeded={ACTION_COSTS.video.grok * (pendingVideoGeneration?.scenes?.length || 1)}
+        currentCredits={creditsData?.credits?.balance ?? 0}
+        generationType="video"
+      />
+
+      {/* KIE AI API Key Modal for video generation */}
+      <KieVideoModal
+        isOpen={isKieModalOpen}
+        onClose={() => setIsKieModalOpen(false)}
+        onSave={handleSaveKieApiKey}
+        isLoading={isSavingKieKey}
       />
     </div>
   );

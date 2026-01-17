@@ -164,7 +164,8 @@ export function useVideoGenerator(initialProject: Project) {
   // bulkContext is optional - when provided, uses bulk handler for insufficient credits modal
   const generateSceneVideo = useCallback(async (
     scene: Scene,
-    forceRegenerationOrBulkContext: boolean | { projectId: string; scenes: Array<{ id: string; title: string; number: number; imageUrl?: string | null }>; targetType: 'video' } = false
+    forceRegenerationOrBulkContext: boolean | { projectId: string; scenes: Array<{ id: string; title: string; number: number; imageUrl?: string | null }>; targetType: 'video' } = false,
+    skipCreditCheck = false
   ) => {
     if (!scene.imageUrl) return;
 
@@ -198,6 +199,7 @@ export function useVideoGenerator(initialProject: Project) {
           projectId: project.id,
           isRegeneration,
           sceneId: scene.id,
+          skipCreditCheck, // Skip credit check when user provides own API key
         }),
       });
 
@@ -288,13 +290,13 @@ export function useVideoGenerator(initialProject: Project) {
   }, [project.id, videoMode, buildFullI2VPrompt, handleApiResponse, handleBulkApiResponse, pollForVideoCompletion, updateScene]);
 
   // Handle generate video for a single scene
-  const handleGenerateVideo = useCallback(async (scene: Scene) => {
+  const handleGenerateVideo = useCallback(async (scene: Scene, skipCreditCheck = false) => {
     if (!scene.imageUrl) return;
-    await generateSceneVideo(scene);
+    await generateSceneVideo(scene, false, skipCreditCheck);
   }, [generateSceneVideo]);
 
   // Handle generate all videos
-  const handleGenerateAll = useCallback(async () => {
+  const handleGenerateAll = useCallback(async (skipCreditCheck = false) => {
     if (isGeneratingAll) {
       console.log('Video generation already in progress, ignoring duplicate call');
       return;
@@ -315,7 +317,7 @@ export function useVideoGenerator(initialProject: Project) {
       const needsGeneration = !scene.videoUrl || currentStatus === 'error';
 
       if (needsGeneration) {
-        await generateSceneVideo(scene);
+        await generateSceneVideo(scene, false, skipCreditCheck);
         await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
       }
     }
@@ -362,7 +364,7 @@ export function useVideoGenerator(initialProject: Project) {
   }, []);
 
   // Generate selected videos
-  const handleGenerateSelected = useCallback(async () => {
+  const handleGenerateSelected = useCallback(async (skipCreditCheck = false) => {
     if (selectedScenes.size === 0) return;
     if (isGeneratingAll) return;
 
@@ -372,24 +374,11 @@ export function useVideoGenerator(initialProject: Project) {
     const RATE_LIMIT_DELAY_MS = 1500;
     const scenesToGenerate = scenesWithImages.filter(s => selectedScenes.has(s.id));
 
-    // Prepare bulk context for the case of insufficient credits
-    const bulkContext = {
-      projectId: project.id,
-      scenes: scenesToGenerate.map(s => ({
-        id: s.id,
-        title: s.title,
-        number: s.number,
-        imageUrl: s.imageUrl,
-      })),
-      targetType: 'video' as const,
-    };
-
     for (const scene of scenesToGenerate) {
       if (stopGenerationRef.current) break;
 
-      // Check credits before starting (the first failed API call will show the modal)
-      // Generate the video using generateSceneVideo
-      await generateSceneVideo(scene, bulkContext);
+      // Generate the video using generateSceneVideo with skipCreditCheck
+      await generateSceneVideo(scene, false, skipCreditCheck);
       // Remove from selection after generation
       setSelectedScenes(prev => {
         const newSet = new Set(prev);
@@ -401,7 +390,7 @@ export function useVideoGenerator(initialProject: Project) {
 
     setIsGeneratingAll(false);
     stopGenerationRef.current = false;
-  }, [selectedScenes, scenesWithImages, isGeneratingAll, generateSceneVideo, project.id]);
+  }, [selectedScenes, scenesWithImages, isGeneratingAll, generateSceneVideo]);
 
   return {
     // Project data

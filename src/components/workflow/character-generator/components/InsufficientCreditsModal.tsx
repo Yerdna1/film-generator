@@ -14,7 +14,7 @@ interface InsufficientCreditsModalProps {
   onUseAppCredits?: () => void; // New: callback when user wants to use app credits
   creditsNeeded?: number;
   currentCredits?: number;
-  generationType?: 'image' | 'text'; // New: distinguish between image and text generation
+  generationType?: 'image' | 'text' | 'video'; // Distinguish between image, text, and video generation
 }
 
 export function InsufficientCreditsModal({
@@ -30,6 +30,7 @@ export function InsufficientCreditsModal({
   const t = useTranslations();
   const hasEnoughCredits = currentCredits !== undefined && creditsNeeded !== undefined && currentCredits >= creditsNeeded;
   const isForText = generationType === 'text';
+  const isForVideo = generationType === 'video';
 
   if (!isOpen) return null;
 
@@ -133,7 +134,7 @@ export function InsufficientCreditsModal({
                   Použiť vlastný KIE AI kľúč
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                  Generujte obrázky pomocou svojich KIE AI kreditov
+                  {isForVideo ? 'Generujte videá pomocou svojich KIE AI kreditov' : 'Generujte obrázky pomocou svojich KIE AI kreditov'}
                 </p>
               </>
             )}

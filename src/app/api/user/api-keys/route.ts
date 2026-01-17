@@ -43,6 +43,7 @@ export async function GET() {
           piapiApiKey: '',
           kieApiKey: '', // KIE AI API key
           kieImageModel: 'seedream/4-5-text-to-image', // Default KIE image model
+          kieVideoModel: 'grok-imagine/image-to-video', // Default KIE video model
           llmProvider: 'openrouter', // Default to OpenRouter
           musicProvider: 'piapi', // Default to PiAPI
           ttsProvider: 'gemini-tts', // Default to Gemini TTS
@@ -95,6 +96,7 @@ export async function GET() {
         // Non-sensitive settings (can be sent in full)
         openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
         kieImageModel: apiKeys.kieImageModel || 'seedream/4-5-text-to-image',
+        kieVideoModel: apiKeys.kieVideoModel || 'grok-imagine/image-to-video',
         llmProvider: apiKeys.llmProvider || 'openrouter',
         musicProvider: apiKeys.musicProvider || 'piapi',
         ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
@@ -150,6 +152,7 @@ export async function POST(request: NextRequest) {
       piapiApiKey,
       kieApiKey,
       kieImageModel,
+      kieVideoModel,
       llmProvider,
       musicProvider,
       ttsProvider,
@@ -179,6 +182,7 @@ export async function POST(request: NextRequest) {
         ...(piapiApiKey !== undefined && { piapiApiKey }),
         ...(kieApiKey !== undefined && { kieApiKey }),
         ...(kieImageModel !== undefined && { kieImageModel }),
+        ...(kieVideoModel !== undefined && { kieVideoModel }),
         ...(llmProvider !== undefined && { llmProvider }),
         ...(musicProvider !== undefined && { musicProvider }),
         ...(ttsProvider !== undefined && { ttsProvider }),
@@ -206,6 +210,7 @@ export async function POST(request: NextRequest) {
         piapiApiKey: piapiApiKey || null,
         kieApiKey: kieApiKey || null,
         kieImageModel: kieImageModel || 'seedream/4-5-text-to-image',
+        kieVideoModel: kieVideoModel || 'grok-imagine/image-to-video',
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',
         ttsProvider: ttsProvider || 'gemini-tts',
