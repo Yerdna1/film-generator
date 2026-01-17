@@ -254,7 +254,7 @@ export interface VoiceoverProgressProps {
   onDeleteAll: () => void;
   onPlayAll: () => void;
   onStopPlayback: () => void;
-  onSwitchAllToProvider: (provider: string, language: string) => void;
+  onSwitchAllToProvider: (provider: VoiceProvider, language: VoiceLanguage) => void;
 }
 
 export interface DialogueLineCardProps {
