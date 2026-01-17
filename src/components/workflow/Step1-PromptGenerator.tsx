@@ -31,7 +31,7 @@ const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'p
 export function Step1PromptGenerator({ project: initialProject, userGlobalRole, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
   const { data: session } = useSession();
-  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants } = useProjectStore();
+  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants, nextStep } = useProjectStore();
   const { toast } = useToast();
 
   // Get live project data from store, but prefer initialProject for full data
@@ -283,11 +283,16 @@ Format the output exactly like the base template but with richer, more detailed 
           window.dispatchEvent(new CustomEvent('credits-updated'));
           setIsGenerating(false);
 
-          // Show success toast
+          // Show success toast and auto-advance to Step 2
           toast({
-            title: "Master Prompt Generated Successfully",
-            description: `Enhanced via ${data.provider}. ${data.creditsUsed} credits used.`,
+            title: "Step 1 Complete! 🎉",
+            description: `Master prompt generated via ${data.provider}. ${data.creditsUsed} credits used. Moving to Step 2...`,
           });
+
+          // Auto-advance to Step 2 after a short delay
+          setTimeout(() => {
+            nextStep(project.id);
+          }, 1500);
 
           console.log(`Master prompt enhanced via ${data.provider}, ${data.creditsUsed} credits used`);
           return;
@@ -314,23 +319,33 @@ Format the output exactly like the base template but with richer, more detailed 
       setMasterPrompt(project.id, basePrompt);
       setEditedPrompt(basePrompt);
 
-      // Show fallback toast
+      // Show fallback toast and auto-advance
       toast({
-        title: "Prompt Generated (Local)",
-        description: "Base prompt created without AI enhancement.",
+        title: "Step 1 Complete! 🎉",
+        description: "Base prompt created. Moving to Step 2...",
       });
+
+      // Auto-advance to Step 2 after a short delay
+      setTimeout(() => {
+        nextStep(project.id);
+      }, 1500);
     } catch (error) {
       console.error('Error generating prompt:', error);
       // Fallback to local generation with current settings (reuse basePrompt)
       setMasterPrompt(project.id, basePrompt);
       setEditedPrompt(basePrompt);
 
-      // Show error toast
+      // Show error toast and still auto-advance
       toast({
-        title: "Generation Failed",
-        description: "Using local fallback. Check your connection.",
+        title: "Step 1 Complete (Fallback)",
+        description: "Using local generation. Moving to Step 2...",
         variant: "destructive",
       });
+
+      // Auto-advance to Step 2 after a short delay
+      setTimeout(() => {
+        nextStep(project.id);
+      }, 1500);
     }
 
     setIsGenerating(false);
