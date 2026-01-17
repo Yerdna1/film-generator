@@ -192,7 +192,7 @@ export interface Project {
 export type LLMProvider = 'openrouter' | 'claude-sdk' | 'modal';
 
 // Music Provider selection - PiAPI is default (unified API for Suno/Udio)
-export type MusicProvider = 'piapi' | 'suno' | 'modal';
+export type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
 
 // TTS Provider selection for voiceover generation (re-export from VoiceProvider)
 // Note: Already defined as VoiceProvider above, this is for backwards compatibility
@@ -231,10 +231,11 @@ export interface ApiConfig {
   ttsProvider?: TTSProvider;  // Default: 'gemini-tts'
   imageProvider?: ImageProvider;  // Default: 'gemini'
   videoProvider?: VideoProvider;  // Default: 'kie'
-  // KIE.ai model selections
-  kieImageModel?: string;  // e.g., 'seedream/4-5-text-to-image'
-  kieVideoModel?: string;  // e.g., 'grok-imagine/image-to-video'
+  // KIE.ai model selections - full model ID includes variant information
+  kieImageModel?: string;  // e.g., 'seedream/4-5-text-to-image', 'google-nano-banana-pro-4k'
+  kieVideoModel?: string;  // e.g., 'grok-imagine/image-to-video', 'sora2/10s-image-to-video'
   kieTtsModel?: string;    // e.g., 'elevenlabs/text-to-dialogue-v3'
+  kieMusicModel?: string;  // e.g., 'suno/v3-5-music'
   // Modal.com self-hosted endpoints
   modalEndpoints?: ModalEndpoints;
 }

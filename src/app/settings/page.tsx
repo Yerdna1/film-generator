@@ -50,6 +50,7 @@ export default function SettingsPage() {
     kieImageModel,
     kieVideoModel,
     kieTtsModel,
+    kieMusicModel,
 
     // Actions
     toggleKeyVisibility,
@@ -73,6 +74,7 @@ export default function SettingsPage() {
     handleKieImageModelChange,
     handleKieVideoModelChange,
     handleKieTtsModelChange,
+    handleKieMusicModelChange,
     handleModalEndpointChange,
     handleSaveModalEndpoints,
   } = useSettings();
@@ -163,6 +165,7 @@ export default function SettingsPage() {
                 kieImageModel={kieImageModel}
                 kieVideoModel={kieVideoModel}
                 kieTtsModel={kieTtsModel}
+                kieMusicModel={kieMusicModel}
                 onToggleVisibility={toggleKeyVisibility}
                 onSaveKey={handleSaveKey}
                 onUpdateConfig={updateLocalConfig}
@@ -175,6 +178,7 @@ export default function SettingsPage() {
                 onKieImageModelChange={handleKieImageModelChange}
                 onKieVideoModelChange={handleKieVideoModelChange}
                 onKieTtsModelChange={handleKieTtsModelChange}
+                onKieMusicModelChange={handleKieMusicModelChange}
                 onModalEndpointChange={handleModalEndpointChange}
                 onSaveModalEndpoints={handleSaveModalEndpoints}
               />

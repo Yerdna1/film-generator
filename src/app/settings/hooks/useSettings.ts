@@ -37,6 +37,7 @@ export function useSettings() {
   const [kieImageModel, setKieImageModel] = useState<string>('seedream/4-5-text-to-image');
   const [kieVideoModel, setKieVideoModel] = useState<string>('grok-imagine/image-to-video');
   const [kieTtsModel, setKieTtsModel] = useState<string>('elevenlabs/text-to-dialogue-v3');
+  const [kieMusicModel, setKieMusicModel] = useState<string>('suno/v3-5-music');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -55,6 +56,7 @@ export function useSettings() {
     const savedKieImageModel = localStorage.getItem('app-kie-image-model') || 'seedream/4-5-text-to-image';
     const savedKieVideoModel = localStorage.getItem('app-kie-video-model') || 'grok-imagine/image-to-video';
     const savedKieTtsModel = localStorage.getItem('app-kie-tts-model') || 'elevenlabs/text-to-dialogue-v3';
+    const savedKieMusicModel = localStorage.getItem('app-kie-music-model') || 'suno/v3-5-music';
 
     setLanguage(savedLanguage);
     setCurrency(savedCurrency);
@@ -71,6 +73,7 @@ export function useSettings() {
     setKieImageModel(savedKieImageModel);
     setKieVideoModel(savedKieVideoModel);
     setKieTtsModel(savedKieTtsModel);
+    setKieMusicModel(savedKieMusicModel);
   }, []);
 
   // Fetch API keys from database for authenticated users
@@ -120,6 +123,10 @@ export function useSettings() {
           if (data.kieTtsModel) {
             setKieTtsModel(data.kieTtsModel);
             localStorage.setItem('app-kie-tts-model', data.kieTtsModel);
+          }
+          if (data.kieMusicModel) {
+            setKieMusicModel(data.kieMusicModel);
+            localStorage.setItem('app-kie-music-model', data.kieMusicModel);
           }
           // Load Modal endpoints
           setModalEndpoints({
@@ -453,6 +460,28 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
+  const handleKieMusicModelChange = useCallback(async (model: string) => {
+    setKieMusicModel(model);
+    localStorage.setItem('app-kie-music-model', model);
+    setApiConfig({ kieMusicModel: model });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kieMusicModel: model }),
+      });
+    } catch (error) {
+      console.error('Failed to sync kieMusicModel to database:', error);
+    }
+
+    toast.success(
+      tPage('toasts.kieModelChanged') || 'KIE model updated',
+      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
+    );
+  }, [setApiConfig, tPage]);
+
   const handleModalEndpointChange = useCallback((endpointKey: keyof ModalEndpoints, value: string) => {
     setModalEndpoints(prev => ({ ...prev, [endpointKey]: value }));
   }, []);
@@ -563,6 +592,7 @@ export function useSettings() {
     kieImageModel,
     kieVideoModel,
     kieTtsModel,
+    kieMusicModel,
 
     // Actions
     toggleKeyVisibility,
@@ -586,6 +616,7 @@ export function useSettings() {
     handleKieImageModelChange,
     handleKieVideoModelChange,
     handleKieTtsModelChange,
+    handleKieMusicModelChange,
     handleModalEndpointChange,
     handleSaveModalEndpoints,
   };

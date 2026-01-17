@@ -20,7 +20,7 @@ import {
   musicProviderOptions,
   modalEndpoints as modalEndpointConfigs,
 } from '../constants';
-import { KIE_IMAGE_MODELS, KIE_VIDEO_MODELS, KIE_TTS_MODELS, formatKiePrice } from '@/lib/constants/kie-models';
+import { KIE_IMAGE_MODELS, KIE_VIDEO_MODELS, KIE_TTS_MODELS, KIE_MUSIC_MODELS, formatKiePrice } from '@/lib/constants/kie-models';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints, ApiConfig } from '@/types/project';
 
 interface ApiKeysTabProps {
@@ -38,6 +38,7 @@ interface ApiKeysTabProps {
   kieImageModel: string;
   kieVideoModel: string;
   kieTtsModel: string;
+  kieMusicModel: string;
   onToggleVisibility: (key: string) => void;
   onSaveKey: (key: string) => void;
   onUpdateConfig: (key: string, value: string) => void;
@@ -50,6 +51,7 @@ interface ApiKeysTabProps {
   onKieImageModelChange: (model: string) => void;
   onKieVideoModelChange: (model: string) => void;
   onKieTtsModelChange: (model: string) => void;
+  onKieMusicModelChange: (model: string) => void;
   onModalEndpointChange: (key: keyof ModalEndpoints, value: string) => void;
   onSaveModalEndpoints: () => void;
 }
@@ -69,6 +71,7 @@ export function ApiKeysTab({
   kieImageModel,
   kieVideoModel,
   kieTtsModel,
+  kieMusicModel,
   onToggleVisibility,
   onSaveKey,
   onUpdateConfig,
@@ -81,6 +84,7 @@ export function ApiKeysTab({
   onKieImageModelChange,
   onKieVideoModelChange,
   onKieTtsModelChange,
+  onKieMusicModelChange,
   onModalEndpointChange,
   onSaveModalEndpoints,
 }: ApiKeysTabProps) {
@@ -244,16 +248,23 @@ export function ApiKeysTab({
                   <SelectContent className="max-h-[300px]">
                     {KIE_TTS_MODELS.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{model.name}</span>
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-start flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{model.name}</span>
+                              {model.recommended && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-violet-500/20 text-violet-400">
+                                  {tPage('recommended') || 'Recommended'}
+                                </Badge>
+                              )}
+                            </div>
+                            {model.description && (
+                              <span className="text-[10px] text-muted-foreground mt-1">{model.description}</span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-2">
                             {formatKiePrice(model.credits)}
                           </span>
-                          {model.recommended && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-violet-500/20 text-violet-400">
-                              {tPage('recommended') || 'Recommended'}
-                            </Badge>
-                          )}
                         </div>
                       </SelectItem>
                     ))}
@@ -319,16 +330,30 @@ export function ApiKeysTab({
                   <SelectContent className="max-h-[300px]">
                     {KIE_IMAGE_MODELS.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{model.name}</span>
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-start flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{model.name}</span>
+                              {model.recommended && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400">
+                                  {tPage('recommended') || 'Recommended'}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {model.modality && (
+                                <span className="text-[10px] text-muted-foreground">{model.modality}</span>
+                              )}
+                              {model.quality && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                  {model.quality}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-2">
                             {formatKiePrice(model.credits)}
                           </span>
-                          {model.recommended && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400">
-                              {tPage('recommended') || 'Recommended'}
-                            </Badge>
-                          )}
                         </div>
                       </SelectItem>
                     ))}
@@ -394,16 +419,35 @@ export function ApiKeysTab({
                   <SelectContent className="max-h-[300px]">
                     {KIE_VIDEO_MODELS.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{model.name}</span>
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-start flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{model.name}</span>
+                              {model.recommended && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400">
+                                  {tPage('recommended') || 'Recommended'}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {model.modality && (
+                                <span className="text-[10px] text-muted-foreground">{model.modality}</span>
+                              )}
+                              {model.quality && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                  {model.quality}
+                                </Badge>
+                              )}
+                              {model.length && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                  {model.length}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-2">
                             {formatKiePrice(model.credits)}
                           </span>
-                          {model.recommended && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400">
-                              {tPage('recommended') || 'Recommended'}
-                            </Badge>
-                          )}
                         </div>
                       </SelectItem>
                     ))}
@@ -446,6 +490,53 @@ export function ApiKeysTab({
                 </div>
               </motion.div>
             ))}
+
+            {/* KIE Music Model Selection */}
+            {musicProvider === 'kie' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 rounded-lg bg-muted/50 border border-border"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Music className="w-4 h-4 text-pink-400" />
+                  <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                </div>
+                <Select
+                  value={kieMusicModel}
+                  onValueChange={onKieMusicModelChange}
+                >
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
+                    <SelectValue placeholder="Select a music model" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {KIE_MUSIC_MODELS.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-start flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{model.name}</span>
+                              {model.recommended && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-pink-500/20 text-pink-400">
+                                  {tPage('recommended') || 'Recommended'}
+                                </Badge>
+                              )}
+                            </div>
+                            {model.description && (
+                              <span className="text-[10px] text-muted-foreground mt-1">{model.description}</span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {formatKiePrice(model.credits)}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
       </div>

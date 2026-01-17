@@ -13,7 +13,7 @@ import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/ser
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { Provider } from '@/lib/services/real-costs';
 
-type MusicProvider = 'piapi' | 'suno' | 'modal';
+type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
 
 const SUNO_API_URL = 'https://api.sunoapi.org';
 
@@ -26,7 +26,7 @@ interface MusicGenerationRequest {
   projectId?: string;
   title?: string;
   style?: string;
-  provider?: 'piapi' | 'suno' | 'modal'; // Override provider from request
+  provider?: 'piapi' | 'suno' | 'modal' | 'kie'; // Override provider from request
 }
 
 // Generate music using Modal (self-hosted ACE-Step or similar)
@@ -81,6 +81,157 @@ async function generateWithModal(
     storage: audioUrl.startsWith('data:') ? 'base64' : 's3',
     status: 'complete',
     title: data.title || title,
+  };
+}
+
+// KIE.ai API configuration
+const KIE_API_URL = 'https://api.kie.ai';
+
+// Generate music using KIE.ai (Suno via KIE)
+async function generateWithKie(
+  prompt: string,
+  instrumental: boolean,
+  title: string | undefined,
+  projectId: string | undefined,
+  kieApiKey: string,
+  modelId: string,
+  userId: string | undefined
+): Promise<{ taskId: string; status: string; message: string; projectId?: string }> {
+  console.log(`[KIE] Generating music with model: ${modelId}`);
+
+  const requestBody = {
+    model: modelId,
+    input: {
+      prompt,
+      instrumental,
+      title: title || 'Generated Music',
+    },
+  };
+
+  const response = await fetch(`${KIE_API_URL}/api/v1/jobs/createTask`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${kieApiKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || data.code !== 200) {
+    throw new Error(data.msg || data.message || 'Failed to create KIE music task');
+  }
+
+  return {
+    taskId: data.data.taskId,
+    status: 'processing',
+    message: 'Music generation started. Poll for status.',
+    projectId,
+  };
+}
+
+// Check KIE.ai task status
+async function checkKieMusicStatus(
+  taskId: string,
+  kieApiKey: string,
+  userId: string | undefined,
+  projectId: string | undefined,
+  modelId: string,
+  download: boolean
+): Promise<{
+  status: string;
+  audioUrl?: string;
+  externalAudioUrl?: string;
+  title?: string;
+  duration?: number;
+  cost?: number;
+  storage?: string;
+}> {
+  const response = await fetch(
+    `${KIE_API_URL}/api/v1/jobs/recordInfo?taskId=${taskId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${kieApiKey}`,
+        'Accept': 'application/json',
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || data.code !== 200) {
+    throw new Error(data.msg || data.message || 'Failed to check KIE task status');
+  }
+
+  const taskData = data.data;
+  const stateMapping: Record<string, string> = {
+    'waiting': 'processing',
+    'queuing': 'processing',
+    'generating': 'processing',
+    'success': 'complete',
+    'fail': 'error',
+  };
+
+  const status = stateMapping[taskData.state] || taskData.state;
+
+  let externalAudioUrl: string | undefined;
+  let audioUrl: string | undefined;
+  let title: string | undefined;
+  let duration: number | undefined;
+
+  if (taskData.resultJson) {
+    try {
+      const result = JSON.parse(taskData.resultJson);
+      externalAudioUrl = result.audioUrl || result.audio_url || result.resultUrls?.[0];
+      title = result.title;
+      duration = result.duration;
+    } catch {
+      console.error('Failed to parse KIE resultJson');
+    }
+  }
+
+  if (status === 'complete' && externalAudioUrl && download) {
+    const base64Audio = await downloadAudioAsBase64(externalAudioUrl);
+
+    if (base64Audio) {
+      audioUrl = await uploadMediaToS3(base64Audio, 'audio', projectId);
+    } else {
+      audioUrl = externalAudioUrl;
+    }
+  } else if (externalAudioUrl) {
+    audioUrl = externalAudioUrl;
+  }
+
+  // Get model-specific cost
+  const { getKieModelById } = await import('@/lib/constants/kie-models');
+  const modelConfig = getKieModelById(modelId, 'music');
+  const realCost = modelConfig?.cost || 0.50; // Fallback to default
+
+  if (status === 'complete' && userId) {
+    await spendCredits(
+      userId,
+      COSTS.MUSIC_GENERATION || 10,
+      'music',
+      `KIE ${modelConfig?.name || 'Music'} generation`,
+      projectId,
+      'kie' as Provider,
+      { model: modelId, kieCredits: modelConfig?.credits },
+      realCost
+    );
+  }
+
+  return {
+    status,
+    audioUrl,
+    externalAudioUrl,
+    title,
+    duration,
+    cost: status === 'complete' ? realCost : undefined,
+    storage: audioUrl && !audioUrl.startsWith('data:') && !audioUrl.startsWith('http')
+      ? 's3'
+      : (audioUrl?.startsWith('data:') ? 'base64' : 'external'),
   };
 }
 
@@ -155,6 +306,46 @@ export async function POST(request: NextRequest) {
         title,
         undefined,
         modalMusicEndpoint,
+        userId
+      );
+      return NextResponse.json(result);
+    }
+
+    // Handle KIE provider
+    if (provider === 'kie') {
+      const kieApiKey = userApiKeys?.kieApiKey;
+      if (!kieApiKey) {
+        return NextResponse.json(
+          { error: 'KIE.ai API key not configured. Please add your API key in Settings.' },
+          { status: 400 }
+        );
+      }
+
+      // Get the model from user settings or use default
+      const modelId = userApiKeys?.kieMusicModel || 'suno/v3-5-music';
+
+      // Pre-check credit balance
+      const insufficientCredits = await requireCredits(userId, COSTS.MUSIC_GENERATION);
+      if (insufficientCredits) return insufficientCredits;
+
+      if (!prompt) {
+        return NextResponse.json(
+          { error: 'Music prompt is required' },
+          { status: 400 }
+        );
+      }
+
+      // Build the full prompt with style if provided
+      const fullPrompt = style ? `${style}: ${prompt}` : prompt;
+
+      // KIE returns task ID (asynchronous)
+      const result = await generateWithKie(
+        fullPrompt,
+        instrumental,
+        title,
+        request.headers.get('x-project-id') || undefined,
+        kieApiKey,
+        modelId,
         userId
       );
       return NextResponse.json(result);
@@ -252,7 +443,7 @@ export async function GET(request: NextRequest) {
     const taskId = searchParams.get('taskId');
     const projectId = searchParams.get('projectId');
     const download = searchParams.get('download') !== 'false';
-    const requestProvider = searchParams.get('provider') as 'piapi' | 'suno' | null;
+    const requestProvider = searchParams.get('provider') as 'piapi' | 'suno' | 'kie' | null;
 
     if (!taskId) {
       return NextResponse.json(
@@ -271,6 +462,34 @@ export async function GET(request: NextRequest) {
     });
 
     const provider = requestProvider || userApiKeys?.musicProvider || 'piapi';
+
+    // Handle KIE provider
+    if (provider === 'kie') {
+      const kieApiKey = userApiKeys?.kieApiKey;
+      if (!kieApiKey) {
+        return NextResponse.json(
+          { error: 'KIE.ai API key not configured' },
+          { status: 500 }
+        );
+      }
+
+      const modelId = userApiKeys?.kieMusicModel || 'suno/v3-5-music';
+
+      const result = await checkKieMusicStatus(
+        taskId,
+        kieApiKey,
+        userId,
+        projectId || undefined,
+        modelId,
+        download
+      );
+
+      return NextResponse.json({
+        taskId,
+        provider,
+        ...result,
+      });
+    }
 
     let apiKey: string | null = null;
     if (provider === 'piapi') {

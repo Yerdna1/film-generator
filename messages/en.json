@@ -921,7 +921,8 @@
       "modelChanged": "Model Updated",
       "nowUsing": "Now using",
       "currencyUpdated": "Currency Updated",
-      "nowDisplaying": "Now displaying prices in"
+      "nowDisplaying": "Now displaying prices in",
+      "kieModelChanged": "KIE Model Updated"
     },
     "llmProvider": "LLM Provider for Scene Generation",
     "llmProviderDescription": "Choose which LLM provider to use for generating scenes. OpenRouter is recommended for Vercel deployments.",
@@ -948,7 +949,8 @@
     "modelContext": "Context",
     "modelPricing": "Pricing",
     "currency": "Currency",
-    "currencyDescription": "Choose your preferred currency for cost display"
+    "currencyDescription": "Choose your preferred currency for cost display",
+    "selectKieModel": "Select KIE Model"
   },
   "collaboration": {
     "title": "Collaboration",

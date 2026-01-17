@@ -165,6 +165,7 @@ model ApiKeys {
   kieImageModel    String?  @default("seedream/4-5-text-to-image")
   kieVideoModel    String?  @default("grok-imagine/image-to-video")
   kieTtsModel      String?  @default("elevenlabs/text-to-dialogue-v3")
+  kieMusicModel    String?  @default("suno/v3-5-music")
 
   // Modal.com self-hosted endpoints
   modalLlmEndpoint       String?  // e.g., https://your-app--llm.modal.run
@@ -277,6 +278,9 @@ model ActionCost {
   actionType  String    // 'image', 'video', 'voiceover', 'scene', 'character', 'prompt', 'music'
   provider    String    // 'gemini', 'modal', 'modal-edit', 'elevenlabs', 'grok', 'kie', 'claude', etc.
   model       String?   // Specific model within provider (e.g., 'seedream/4-5', 'kling/v2-6')
+  modality    String?   // e.g., 'text-to-image', 'image-to-image', 'image-to-video'
+  quality     String?   // e.g., '1k', '2k', '4k', 'standard', 'hd', 'fast', 'quality'
+  length      String?   // e.g., '5s', '10s', '30s' (for video models)
   cost        Float     // Cost in USD
   description String?   // Human-readable description
   isActive    Boolean   @default(true)
@@ -285,7 +289,7 @@ model ActionCost {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@unique([actionType, provider, model])
+  @@unique([actionType, provider, model, modality, quality, length])
   @@index([actionType])
   @@index([provider])
   @@index([validFrom])

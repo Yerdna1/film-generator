@@ -12,22 +12,28 @@ KIE.ai uses a credit-based pricing system:
 
 ### KIE.ai Image Models
 
-| Model ID | Model Name | Credits | USD Cost | Description |
-|----------|------------|---------|----------|-------------|
-| `seedream/3-0-text-to-image` | Seedream v3.0 | 15 | $0.075 | Basic quality, fast generation |
-| `seedream/4-0-text-to-image` | Seedream v4.0 | 18 | $0.09 | Improved quality |
-| `seedream/4-5-text-to-image` | Seedream v4.5 ⭐ | 20 | $0.10 | **Recommended** - Best balance |
-| `flux-2/pro-1.1-text-to-image` | Flux 2 Pro | 30 | $0.15 | High quality, photorealistic |
-| `flux-2/flex-text-to-image` | Flux 2 Flex | 25 | $0.125 | Flexible styles |
-| `google-imagen4/fast-text-to-image` | Google Imagen4 Fast | 40 | $0.20 | Fast generation, Google quality |
-| `google-imagen4/ultra-text-to-image` | Google Imagen4 Ultra | 50 | $0.25 | Ultra quality |
-| `google-imagen4/standard-text-to-image` | Google Imagen4 Standard | 45 | $0.225 | Standard quality |
-| `z-image/3-0-text-to-image` | Z-image v3.0 | 22 | $0.11 | Alternative model |
-| `gpt-image/1-5-text-to-image` | GPT Image 1.5 | 35 | $0.175 | OpenAI-style images |
-| `qwen/wanx-text-to-image` | Qwen WanX | 20 | $0.10 | Chinese-optimized |
-| `ideogram/v2-text-to-image` | Ideogram v2 | 50 | $0.25 | Text rendering specialist |
-| `recraft/v3-text-to-image` | Recraft v3 | 40 | $0.20 | Vector-style graphics |
-| `topaz/v1-text-to-image` | Topaz v1 | 60 | $0.30 | Premium quality |
+| Model ID | Model Name | Modality | Quality | Credits | USD Cost | Description |
+|----------|------------|----------|---------|---------|----------|-------------|
+| `google-nano-banana-pro` | Google Nano Banana Pro ⭐ | text-to-image | 1k-2k | 18 | $0.09 | **Recommended** - 1K or 2K resolution |
+| `google-nano-banana-pro-4k` | Google Nano Banana Pro 4K | text-to-image | 4k | 24 | $0.12 | 4K resolution |
+| `grok-imagine/text-to-image` | Grok Imagine Text | text-to-image | - | 4 | $0.02 | 4 credits per 6 images |
+| `grok-imagine/image-to-image` | Grok Imagine Image | image-to-image | - | 4 | $0.02 | 4 credits per 2 images |
+| `seedream/3-0-text-to-image` | Seedream v3.0 | text-to-image | - | 15 | $0.075 | Basic quality, fast generation |
+| `seedream/4-0-text-to-image` | Seedream v4.0 | text-to-image | - | 18 | $0.09 | Improved quality |
+| `seedream/4-5-text-to-image` | Seedream v4.5 ⭐ | text-to-image | - | 20 | $0.10 | **Recommended** - Best balance |
+| `flux-2/pro-1.1-text-to-image` | Flux 2 Pro | text-to-image | pro | 30 | $0.15 | High quality, photorealistic |
+| `flux-2/flex-text-to-image` | Flux 2 Flex | text-to-image | flex | 25 | $0.125 | Flexible styles |
+| `flux-2/dev-text-to-image` | Flux 2 Dev | text-to-image | dev | 20 | $0.10 | Development version |
+| `google-imagen4/fast-text-to-image` | Google Imagen4 Fast | text-to-image | fast | 40 | $0.20 | Fast generation, Google quality |
+| `google-imagen4/ultra-text-to-image` | Google Imagen4 Ultra | text-to-image | ultra | 50 | $0.25 | Ultra quality |
+| `google-imagen4/standard-text-to-image` | Google Imagen4 Standard | text-to-image | standard | 45 | $0.225 | Standard quality |
+| `z-image/3-0-text-to-image` | Z-image v3.0 | text-to-image | - | 22 | $0.11 | Alternative model |
+| `gpt-image/1-5-text-to-image` | GPT Image 1.5 | text-to-image | - | 35 | $0.175 | OpenAI-style images |
+| `qwen/wanx-text-to-image` | Qwen WanX | text-to-image | - | 20 | $0.10 | Chinese-optimized |
+| `ideogram/v2-text-to-image` | Ideogram v2 | text-to-image | standard | 50 | $0.25 | Text rendering specialist |
+| `ideogram/v2-turbo-text-to-image` | Ideogram v2 Turbo | text-to-image | turbo | 40 | $0.20 | Faster text rendering |
+| `recraft/v3-text-to-image` | Recraft v3 | text-to-image | - | 40 | $0.20 | Vector-style graphics |
+| `topaz/v1-text-to-image` | Topaz v1 | text-to-image | - | 60 | $0.30 | Premium quality |
 
 ### Other Image Providers
 
@@ -41,23 +47,24 @@ KIE.ai uses a credit-based pricing system:
 
 ### KIE.ai Video Models
 
-| Model ID | Model Name | Credits | USD Cost | Description |
-|----------|------------|---------|----------|-------------|
-| `grok-imagine/image-to-video` | Grok Imagine ⭐ | 20 | $0.10 | **Recommended** - 6s clips |
-| `kling/v2-1-image-to-video` | Kling v2.1 | 30 | $0.15 | High quality motion |
-| `kling/v2-2-image-to-video` | Kling v2.2 | 32 | $0.16 | Improved version |
-| `kling/v2-3-image-to-video` | Kling v2.3 | 35 | $0.175 | Latest improvements |
-| `kling/v2-4-image-to-video` | Kling v2.4 | 38 | $0.19 | Enhanced motion |
-| `kling/v2-5-image-to-video` | Kling v2.5 | 40 | $0.20 | Professional quality |
-| `kling/v2-6-image-to-video` | Kling v2.6 | 40 | $0.20 | Latest version |
-| `bytedance-seedance/v1-image-to-video` | Bytedance Seedance | 45 | $0.225 | TikTok technology |
-| `hailuo/v1-image-to-video` | Hailuo v1 | 50 | $0.25 | Premium motion |
-| `sora2/image-to-video` | Sora2 | 60 | $0.30 | OpenAI technology |
-| `wan/image-to-video` | Wan | 35 | $0.175 | Alternative model |
-| `topaz/v1-image-to-video` | Topaz v1 | 70 | $0.35 | Ultra quality |
-| `infinitalk/v1-avatar-to-video` | Infinitalk v1 | 80 | $0.40 | Avatar animation |
-| `veo3/1-fast-hd-image-to-video` | Veo 3.1 Fast HD | 80 | $0.40 | Google fast HD |
-| `veo3/1-quality-hd-image-to-video` | Veo 3.1 Quality HD | 400 | $2.00 | Google premium HD |
+| Model ID | Model Name | Modality | Quality | Length | Credits | USD Cost | Description |
+|----------|------------|----------|---------|--------|---------|----------|-------------|
+| `grok-imagine/image-to-video` | Grok Imagine ⭐ | image-to-video | - | - | 40 | $0.20 | **Recommended** - Fast & efficient |
+| `kling/v2-1-image-to-video` | Kling v2.1 | image-to-video | - | - | 50 | $0.25 | Basic version |
+| `kling/v2-2-image-to-video` | Kling v2.2 | image-to-video | - | - | 55 | $0.275 | Improved motion |
+| `kling/v2-3-image-to-video` | Kling v2.3 | image-to-video | - | - | 60 | $0.30 | Better stability |
+| `kling/v2-4-image-to-video` | Kling v2.4 | image-to-video | - | - | 65 | $0.325 | Enhanced quality |
+| `kling/v2-5-image-to-video` | Kling v2.5 | image-to-video | - | - | 70 | $0.35 | Professional quality |
+| `kling/v2-6-image-to-video` | Kling v2.6 ⭐ | image-to-video | - | - | 75 | $0.375 | Latest version |
+| `bytedance/seedance-image-to-video` | Bytedance Seedance | image-to-video | - | - | 80 | $0.40 | TikTok technology |
+| `hailuo/ai-image-to-video` | Hailuo AI | image-to-video | - | - | 60 | $0.30 | Advanced motion |
+| `sora2/5s-image-to-video` | Sora2 5 seconds | image-to-video | - | 5s | 100 | $0.50 | OpenAI tech - 5s |
+| `sora2/10s-image-to-video` | Sora2 10 seconds | image-to-video | - | 10s | 180 | $0.90 | OpenAI tech - 10s |
+| `wan/ai-image-to-video` | Wan AI | image-to-video | - | - | 50 | $0.25 | Alternative model |
+| `topaz/video-image-to-video` | Topaz Video | image-to-video | - | - | 120 | $0.60 | Premium quality |
+| `infinitalk/ai-image-to-video` | Infinitalk AI | image-to-video | - | - | 90 | $0.45 | Talking head specialist |
+| `veo/3-1-fast-image-to-video` | Veo 3.1 Fast | image-to-video | fast | - | 80 | $0.40 | Google DeepMind - Fast |
+| `veo/3-1-quality-image-to-video` | Veo 3.1 Quality | image-to-video | quality | - | 400 | $2.00 | Google DeepMind - Premium |
 
 ### Other Video Providers
 

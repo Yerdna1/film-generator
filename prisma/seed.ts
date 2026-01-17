@@ -87,57 +87,71 @@ async function main() {
     { actionType: 'music', provider: 'suno', cost: 0.10, description: 'Suno AI music generation' },
     { actionType: 'music', provider: 'piapi', cost: 0.08, description: 'PiAPI music generation' },
     { actionType: 'music', provider: 'modal', cost: 0.02, description: 'Modal ACE-Step (self-hosted)' },
+    { actionType: 'music', provider: 'kie', cost: 0.50, description: 'KIE AI music generation (fallback)' },
 
-    // KIE model-specific costs for images
-    { actionType: 'image', provider: 'kie', model: 'seedream/4-5-text-to-image', cost: 0.10, description: 'Seedream v4.5 (20 credits)' },
-    { actionType: 'image', provider: 'kie', model: 'flux-2/pro-1.1-text-to-image', cost: 0.15, description: 'Flux 2 Pro (30 credits)' },
-    { actionType: 'image', provider: 'kie', model: 'google-imagen4/fast-text-to-image', cost: 0.20, description: 'Google Imagen4 Fast (40 credits)' },
-    { actionType: 'image', provider: 'kie', model: 'ideogram/v2-text-to-image', cost: 0.25, description: 'Ideogram v2 (50 credits)' },
+    // KIE model-specific costs for images with variants
+    { actionType: 'image', provider: 'kie', model: 'google-nano-banana-pro', modality: 'text-to-image', quality: '1k-2k', cost: 0.09, description: 'Google Nano Banana Pro 1K/2K (18 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'google-nano-banana-pro-4k', modality: 'text-to-image', quality: '4k', cost: 0.12, description: 'Google Nano Banana Pro 4K (24 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'grok-imagine/text-to-image', modality: 'text-to-image', cost: 0.02, description: 'Grok Imagine Text to Image (4 credits per 6 images)' },
+    { actionType: 'image', provider: 'kie', model: 'grok-imagine/image-to-image', modality: 'image-to-image', cost: 0.02, description: 'Grok Imagine Image to Image (4 credits per 2 images)' },
+    { actionType: 'image', provider: 'kie', model: 'seedream/4-5-text-to-image', modality: 'text-to-image', cost: 0.10, description: 'Seedream v4.5 (20 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'flux-2/pro-1.1-text-to-image', modality: 'text-to-image', quality: 'pro', cost: 0.15, description: 'Flux 2 Pro 1.1 (30 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'google-imagen4/fast-text-to-image', modality: 'text-to-image', quality: 'fast', cost: 0.20, description: 'Google Imagen4 Fast (40 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'google-imagen4/ultra-text-to-image', modality: 'text-to-image', quality: 'ultra', cost: 0.25, description: 'Google Imagen4 Ultra (50 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'ideogram/v2-text-to-image', modality: 'text-to-image', quality: 'standard', cost: 0.25, description: 'Ideogram v2 (50 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'ideogram/v2-turbo-text-to-image', modality: 'text-to-image', quality: 'turbo', cost: 0.20, description: 'Ideogram v2 Turbo (40 credits)' },
 
-    // KIE model-specific costs for videos
-    { actionType: 'video', provider: 'kie', model: 'grok-imagine/image-to-video', cost: 0.10, description: 'Grok Imagine (20 credits)' },
-    { actionType: 'video', provider: 'kie', model: 'kling/v2-6-image-to-video', cost: 0.20, description: 'Kling v2.6 (40 credits)' },
-    { actionType: 'video', provider: 'kie', model: 'sora2/image-to-video', cost: 0.30, description: 'Sora2 (60 credits)' },
-    { actionType: 'video', provider: 'kie', model: 'veo3/1-quality-hd-image-to-video', cost: 2.00, description: 'Veo 3.1 Quality HD (400 credits)' },
+    // KIE model-specific costs for videos with variants
+    { actionType: 'video', provider: 'kie', model: 'grok-imagine/image-to-video', modality: 'image-to-video', cost: 0.20, description: 'Grok Imagine (40 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'kling/v2-6-image-to-video', modality: 'image-to-video', cost: 0.375, description: 'Kling v2.6 (75 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'sora2/5s-image-to-video', modality: 'image-to-video', length: '5s', cost: 0.50, description: 'Sora2 5 seconds (100 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'sora2/10s-image-to-video', modality: 'image-to-video', length: '10s', cost: 0.90, description: 'Sora2 10 seconds (180 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'veo/3-1-fast-image-to-video', modality: 'image-to-video', quality: 'fast', cost: 0.40, description: 'Veo 3.1 Fast (80 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'veo/3-1-quality-image-to-video', modality: 'image-to-video', quality: 'quality', cost: 2.00, description: 'Veo 3.1 Quality (400 credits)' },
 
     // KIE model-specific costs for TTS
     { actionType: 'voiceover', provider: 'kie', model: 'elevenlabs/text-to-dialogue-v3', cost: 0.025, description: 'ElevenLabs v3 via KIE (~100 chars)' },
     { actionType: 'voiceover', provider: 'kie', model: 'elevenlabs/text-to-speech-turbo-2-5', cost: 0.020, description: 'ElevenLabs Turbo 2.5 via KIE (~100 chars)' },
     { actionType: 'voiceover', provider: 'kie', model: 'elevenlabs/text-to-speech-multilingual-v2', cost: 0.030, description: 'ElevenLabs Multilingual v2 via KIE (~100 chars)' },
+
+    // KIE model-specific costs for music
+    { actionType: 'music', provider: 'kie', model: 'suno/v3-5-music', cost: 0.50, description: 'Suno v3.5 via KIE (100 credits)' },
+    { actionType: 'music', provider: 'kie', model: 'suno/v3-music', cost: 0.40, description: 'Suno v3 via KIE (80 credits)' },
+    { actionType: 'music', provider: 'kie', model: 'udio/v1-5-music', cost: 0.45, description: 'Udio v1.5 via KIE (90 credits)' },
   ];
 
   for (const cost of actionCosts) {
-    if (cost.model) {
-      // For model-specific costs, use the unique constraint with model
-      await prisma.actionCost.upsert({
-        where: {
-          actionType_provider_model: {
-            actionType: cost.actionType,
-            provider: cost.provider,
-            model: cost.model,
-          },
-        },
-        update: {
+    // First, try to find existing record
+    const existing = await prisma.actionCost.findFirst({
+      where: {
+        actionType: cost.actionType,
+        provider: cost.provider,
+        model: cost.model || null,
+        modality: (cost as any).modality || null,
+        quality: (cost as any).quality || null,
+        length: (cost as any).length || null,
+      },
+    });
+
+    if (existing) {
+      // Update existing record
+      await prisma.actionCost.update({
+        where: { id: existing.id },
+        data: {
           cost: cost.cost,
           description: cost.description,
         },
-        create: cost,
       });
     } else {
-      // For non-model-specific costs, use the original unique constraint
-      await prisma.actionCost.upsert({
-        where: {
-          actionType_provider_model: {
-            actionType: cost.actionType,
-            provider: cost.provider,
-            model: null,
-          },
+      // Create new record
+      await prisma.actionCost.create({
+        data: {
+          ...cost,
+          model: cost.model || null,
+          modality: (cost as any).modality || null,
+          quality: (cost as any).quality || null,
+          length: (cost as any).length || null,
         },
-        update: {
-          cost: cost.cost,
-          description: cost.description,
-        },
-        create: { ...cost, model: null },
       });
     }
   }

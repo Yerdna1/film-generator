@@ -921,7 +921,8 @@
       "modelChanged": "Model aktualizovaný",
       "nowUsing": "Teraz sa používa",
       "currencyUpdated": "Mena aktualizovaná",
-      "nowDisplaying": "Ceny sa teraz zobrazujú v"
+      "nowDisplaying": "Ceny sa teraz zobrazujú v",
+      "kieModelChanged": "KIE model aktualizovaný"
     },
     "llmProvider": "LLM Poskytovateľ pre generovanie scén",
     "llmProviderDescription": "Vyberte poskytovateľa LLM pre generovanie scén. OpenRouter je odporúčaný pre Vercel nasadenia.",
@@ -948,7 +949,8 @@
     "modelContext": "Kontext",
     "modelPricing": "Cena",
     "currency": "Mena",
-    "currencyDescription": "Vyberte preferovanú menu pre zobrazenie nákladov"
+    "currencyDescription": "Vyberte preferovanú menu pre zobrazenie nákladov",
+    "selectKieModel": "Vyberte KIE Model"
   },
   "collaboration": {
     "title": "Spolupráca",
