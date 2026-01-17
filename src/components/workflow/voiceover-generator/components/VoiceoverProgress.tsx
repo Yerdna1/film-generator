@@ -197,7 +197,7 @@ export function VoiceoverProgress({
                     ? `${info.color} text-white border-0`
                     : 'border-white/20 hover:bg-white/10'} w-full sm:w-auto`}
                   onClick={() => {
-                    onSwitchAllToProvider(v.provider, v.language);
+                    onSwitchAllToProvider(v.provider as any, v.language as any);
                     onPlayAll();
                   }}
                 >

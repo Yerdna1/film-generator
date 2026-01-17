@@ -502,7 +502,7 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
                 <Label>{t('step1.modelConfiguration.voice.defaultLanguage')}</Label>
                 <Select
                   value={config.tts.defaultLanguage || 'en'}
-                  onValueChange={(value) => updateTTS({ defaultLanguage: value })}
+                  onValueChange={(value) => updateTTS({ defaultLanguage: value as any })}
                   disabled={disabled}
                 >
                   <SelectTrigger>
@@ -543,7 +543,7 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
                   <SelectContent>
                     <SelectItem value="piapi">
                       PiAPI
-                      {getProviderBadge('piapi', !!apiKeysData?.hasPiapiKey)}
+                      {getProviderBadge('piapi', !!apiKeysData?.hasPiApiKey)}
                     </SelectItem>
                     <SelectItem value="suno">
                       Suno
