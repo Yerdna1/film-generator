@@ -88,7 +88,7 @@ export async function GET() {
         hasGrokKey: !!apiKeys.grokApiKey,
         hasElevenLabsKey: !!apiKeys.elevenLabsApiKey,
         hasClaudeKey: !!apiKeys.claudeApiKey,
-        hasOpenaiKey: !!apiKeys.openaiApiKey,
+        hasOpenAIKey: !!apiKeys.openaiApiKey,
         hasNanoBananaKey: !!apiKeys.nanoBananaApiKey,
         hasSunoKey: !!apiKeys.sunoApiKey,
         hasOpenRouterKey: !!apiKeys.openRouterApiKey,

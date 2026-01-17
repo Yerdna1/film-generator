@@ -7,4 +7,4 @@ export { useBackgroundMusic } from './useBackgroundMusic';
 export { useTimelineEditor } from './useTimelineEditor';
 export { useVideoComposer } from './useVideoComposer';
 export type { UseTimelineEditorReturn, TimelineEditorState } from './useTimelineEditor';
-export type { UseVideoComposerReturn, CompositionState, CompositionResult, CompositionOptions } from './useVideoComposer';
+export type { UseVideoComposerReturn, CompositionState, CompositionResult, CompositionOptions, Resolution, OutputFormat } from './useVideoComposer';

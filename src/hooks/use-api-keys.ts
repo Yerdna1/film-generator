@@ -24,6 +24,11 @@ export interface ApiKeysData {
   hasGeminiKey?: boolean;
   hasPiApiKey?: boolean;
   hasKieKey?: boolean;
+  hasOpenAIKey?: boolean;
+  hasGrokKey?: boolean;
+  hasClaudeKey?: boolean;
+  hasNanoBananaKey?: boolean;
+  hasSunoKey?: boolean;
 }
 
 const fetcher = async (url: string): Promise<ApiKeysData> => {
