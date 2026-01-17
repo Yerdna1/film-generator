@@ -7,6 +7,7 @@ import type {
   StoryConfig,
   VoiceSettings,
   ApiConfig,
+  UnifiedModelConfig,
 } from '@/types/project';
 
 export interface UserConstants {
@@ -37,7 +38,7 @@ export interface ProjectActions {
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => Promise<void>;
   duplicateProject: (id: string) => Project | null;
-  setCurrentProject: (id: string | null) => void;
+  setCurrentProject: (id: string | null) => Promise<void>;
   getProject: (id: string) => Project | undefined;
   addSharedProject: (project: Project) => void;
   clearProjects: () => void;
@@ -60,6 +61,9 @@ export interface ProjectActions {
 
   // Settings actions
   updateSettings: (projectId: string, settings: Partial<ProjectSettings>) => void;
+
+  // Model configuration actions
+  updateModelConfig: (projectId: string, modelConfig: Partial<UnifiedModelConfig>) => void;
 
   // Voice actions
   updateVoiceSettings: (projectId: string, settings: Partial<VoiceSettings>) => void;

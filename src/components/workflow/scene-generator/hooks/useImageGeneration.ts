@@ -23,7 +23,9 @@ interface ImageGenerationHookResult {
 export function useImageGeneration(
   project: Project,
   sceneAspectRatio: AspectRatio,
-  imageResolution: ImageResolution
+  imageResolution: ImageResolution,
+  imageProvider?: string,
+  imageModel?: string
 ): ImageGenerationHookResult {
   const { updateScene } = useProjectStore();
   const { handleApiResponse, handleBulkApiResponse } = useCredits();
@@ -79,6 +81,8 @@ export function useImageGeneration(
             isRegeneration,
             sceneId: scene.id,
             skipCreditCheck, // Skip credit check when user provides own API key
+            ...(imageProvider && { imageProvider }), // Include provider if specified
+            ...(imageModel && { model: imageModel }), // Include model if specified
           }),
         },
         MAX_RETRIES

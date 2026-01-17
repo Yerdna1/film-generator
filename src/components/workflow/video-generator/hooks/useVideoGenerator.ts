@@ -188,6 +188,11 @@ export function useVideoGenerator(initialProject: Project) {
       }));
 
       const fullPrompt = buildFullI2VPrompt(scene);
+      // Use model configuration if available
+      const modelConfig = project.modelConfig;
+      const videoProvider = modelConfig?.video?.provider;
+      const videoModel = modelConfig?.video?.model;
+
       // Use unified video endpoint - routes based on user's videoProvider setting
       const response = await fetch('/api/video', {
         method: 'POST',
@@ -200,6 +205,8 @@ export function useVideoGenerator(initialProject: Project) {
           isRegeneration,
           sceneId: scene.id,
           skipCreditCheck, // Skip credit check when user provides own API key
+          ...(videoProvider && { videoProvider }), // Include provider from model config
+          ...(videoModel && { model: videoModel }), // Include model from config
         }),
       });
 

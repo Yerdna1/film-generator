@@ -67,6 +67,49 @@ export type VoiceProvider = 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts'
 // Type alias for TTS provider stored in database
 export type TTSProvider = VoiceProvider;
 
+// Unified Model Configuration - Centralized AI model selection
+export interface UnifiedModelConfig {
+  // LLM Configuration (for story/scene generation)
+  llm: {
+    provider: LLMProvider;
+    model: string; // e.g., 'anthropic/claude-sonnet-4.5' for OpenRouter
+    modalEndpoint?: string;
+  };
+
+  // Image Generation Configuration
+  image: {
+    provider: ImageProvider;
+    model?: string; // e.g., 'seedream/4-5-text-to-image' for KIE
+    modalEndpoint?: string;
+    characterAspectRatio: AspectRatio;
+    sceneAspectRatio: AspectRatio;
+    sceneResolution: ImageResolution;
+  };
+
+  // Video Generation Configuration
+  video: {
+    provider: VideoProvider;
+    model?: string; // e.g., 'grok-imagine/image-to-video' for KIE
+    modalEndpoint?: string;
+    resolution: Resolution;
+  };
+
+  // Text-to-Speech Configuration
+  tts: {
+    provider: TTSProvider;
+    model?: string; // e.g., 'elevenlabs/text-to-dialogue-v3' for KIE
+    modalEndpoint?: string;
+    defaultLanguage?: VoiceLanguage;
+  };
+
+  // Background Music Configuration
+  music: {
+    provider: MusicProvider;
+    model?: string; // e.g., 'suno/v3-5-music' for KIE
+    modalEndpoint?: string;
+  };
+}
+
 // Project settings
 export interface ProjectSettings {
   sceneCount: 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360;
@@ -186,6 +229,8 @@ export interface Project {
   // Rendered video export
   renderedVideoUrl?: string;
   renderedDraftUrl?: string;
+  // Unified model configuration - centralized AI model settings
+  modelConfig?: UnifiedModelConfig; // Optional for backward compatibility
 }
 
 // LLM Provider selection - OpenRouter is default (works everywhere including Vercel)

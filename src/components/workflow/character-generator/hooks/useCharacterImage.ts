@@ -7,7 +7,7 @@ import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
 import type { ImageProvider } from '@/types/project';
 import type { CharacterImageState } from '../types';
 
-export function useCharacterImage(project: Project, aspectRatio: AspectRatio, provider: ImageProvider = 'gemini') {
+export function useCharacterImage(project: Project, aspectRatio: AspectRatio, provider: ImageProvider = 'gemini', model?: string) {
   const { updateCharacter } = useProjectStore();
   const { handleApiResponse } = useCredits();
   const [imageStates, setImageStates] = useState<CharacterImageState>({});
@@ -32,7 +32,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
         [character.id]: { status: 'generating', progress: 30 },
       }));
 
-      const imageResolution = project.settings?.imageResolution || '2k';
+      const imageResolution = project.modelConfig?.image?.sceneResolution || project.settings?.imageResolution || '2k';
       const response = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,6 +41,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
           aspectRatio,
           resolution: imageResolution,
           imageProvider: provider,
+          ...(model && { model }), // Include model if provided
           projectId: project.id,
         }),
       });

@@ -3,6 +3,7 @@ import type { Project, StoryConfig } from '@/types/project';
 import type { StateCreator } from '../types';
 import { defaultSettings, defaultStory, defaultVoiceSettings } from '../defaults';
 import { debounceSync } from '../utils';
+import { migrateAllProjects, migrateProjectModelConfig, projectNeedsMigration } from '../migrations';
 
 export interface ProjectSlice {
   loadProjectsFromDB: () => Promise<void>;
@@ -10,7 +11,7 @@ export interface ProjectSlice {
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => Promise<void>;
   duplicateProject: (id: string) => Project | null;
-  setCurrentProject: (id: string | null) => void;
+  setCurrentProject: (id: string | null) => Promise<void>;
   getProject: (id: string) => Project | undefined;
   addSharedProject: (project: Project) => void;
   clearProjects: () => void;
@@ -27,7 +28,12 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set, get) => ({
       const response = await fetch('/api/projects');
       if (response.ok) {
         const projects = await response.json();
-        set({ projects, isLoading: false });
+
+        // Run migration for projects without modelConfig
+        const { apiConfig, userConstants } = get();
+        const migratedProjects = await migrateAllProjects(projects, apiConfig, userConstants);
+
+        set({ projects: migratedProjects, isLoading: false });
       } else if (response.status === 401) {
         set({ isLoading: false });
       } else {
@@ -169,13 +175,28 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set, get) => ({
     return duplicated;
   },
 
-  setCurrentProject: (id) => {
+  setCurrentProject: async (id) => {
     if (id === null) {
       set({ currentProject: null });
       return;
     }
-    const project = get().projects.find((p) => p.id === id);
-    set({ currentProject: project || null });
+    let project = get().projects.find((p) => p.id === id);
+
+    // Run migration if needed
+    if (project && projectNeedsMigration(project)) {
+      const { apiConfig, userConstants } = get();
+      project = await migrateProjectModelConfig(project, apiConfig, userConstants);
+
+      // Update the project in the projects list
+      set((state) => ({
+        projects: state.projects.map((p) =>
+          p.id === project!.id ? project! : p
+        ),
+        currentProject: project
+      }));
+    } else {
+      set({ currentProject: project || null });
+    }
   },
 
   getProject: (id) => {

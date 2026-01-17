@@ -22,27 +22,35 @@ export function useSceneGenerator(initialProject: Project) {
   const characters = project.characters || [];
   const projectSettings = project.settings || { sceneCount: 12, imageResolution: '2k' };
 
-  // Aspect ratio state (from project settings)
+  // Aspect ratio state (from model config or project settings)
   const [sceneAspectRatio, setSceneAspectRatio] = useState<AspectRatio>(
-    projectSettings.aspectRatio || '16:9'
+    project.modelConfig?.image?.sceneAspectRatio || projectSettings.aspectRatio || '16:9'
   );
 
-  // Sync aspect ratio when project settings change
+  // Sync aspect ratio when project settings or model config changes
   useEffect(() => {
-    if (projectSettings.aspectRatio) {
+    const configAspectRatio = project.modelConfig?.image?.sceneAspectRatio;
+    if (configAspectRatio) {
+      setSceneAspectRatio(configAspectRatio);
+    } else if (projectSettings.aspectRatio) {
       setSceneAspectRatio(projectSettings.aspectRatio);
     }
-  }, [projectSettings.aspectRatio]);
+  }, [project.modelConfig?.image?.sceneAspectRatio, projectSettings.aspectRatio]);
 
   // Computed values
   const scenesWithImages = scenes.filter((s) => s.imageUrl).length;
-  const imageResolution = projectSettings.imageResolution || '2k';
+  const imageResolution = project.modelConfig?.image?.sceneResolution || projectSettings.imageResolution || '2k';
+
+  // Get model configuration from project
+  const modelConfig = project.modelConfig;
+  const imageProvider = modelConfig?.image?.provider;
+  const imageModel = modelConfig?.image?.model;
 
   // Use sub-hooks for different concerns
   const polling = useScenePolling(project);
   const uiState = useSceneUIState(scenes);
   const editing = useSceneEditing(project, uiState.setEditingScene);
-  const imageGen = useImageGeneration(project, sceneAspectRatio, imageResolution);
+  const imageGen = useImageGeneration(project, sceneAspectRatio, imageResolution, imageProvider, imageModel);
 
   // Scene generation state
   const [isGeneratingScenes, setIsGeneratingScenes] = useState(false);

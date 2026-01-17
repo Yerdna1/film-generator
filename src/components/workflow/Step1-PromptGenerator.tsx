@@ -13,10 +13,12 @@ import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './step1/LoadingModal';
 import { ApiKeyModal } from './step1/ApiKeyModal';
+import { ModelConfigurationPanel } from './step1/ModelConfigurationPanel';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
 import { storyPresets } from './step1/story-presets';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import type { UnifiedModelConfig } from '@/types/project';
 
 interface Step1Props {
   project: Project;
@@ -31,7 +33,7 @@ const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'p
 export function Step1PromptGenerator({ project: initialProject, userGlobalRole, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
   const { data: session } = useSession();
-  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants, nextStep } = useProjectStore();
+  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants, nextStep, updateModelConfig } = useProjectStore();
   const { toast } = useToast();
 
   // Get live project data from store, but prefer initialProject for full data
@@ -224,16 +226,12 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
       // Small delay to ensure all settings are saved
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Map storyModel to actual OpenRouter model ID (for premium users)
-      const storyModelMapping: Record<string, string> = {
-        'gpt-4': 'openai/gpt-4-turbo',
-        'claude-sonnet-4.5': 'anthropic/claude-sonnet-4.5',
-        'gemini-3-pro': 'google/gemini-2.0-flash-exp:free', // Map to free Gemini model
-      };
-
-      // For premium users, use the mapped storyModel
-      // For free users who just entered key, the backend will use their saved openRouterModel
-      const modelToUse = isPremiumUser ? storyModelMapping[storyModel] : undefined;
+      // Use the model from the unified model configuration if available
+      const modelConfig = project.modelConfig;
+      const modelToUse = modelConfig?.llm?.model || (isPremiumUser ?
+        storyModel === 'gpt-4' ? 'openai/gpt-4-turbo' :
+        storyModel === 'claude-sonnet-4.5' ? 'anthropic/claude-sonnet-4.5' :
+        'google/gemini-2.0-flash-exp:free' : undefined);
 
       // Try to enhance with user's configured LLM provider
       const response = await fetch('/api/llm/prompt', {
@@ -251,11 +249,11 @@ Concept: ${project.story.concept}
 Visual Style: ${project.style}
 
 Technical Settings:
-- Aspect Ratio: ${aspectRatio}
-- Video Language: ${videoLanguage}
-- Story Model: ${storyModel}
-- Style Model: ${styleModel}
-- Voice Provider: ${voiceProvider}
+- Aspect Ratio: ${modelConfig?.image?.sceneAspectRatio || aspectRatio}
+- Video Language: ${modelConfig?.tts?.defaultLanguage || videoLanguage}
+- LLM Model: ${modelConfig?.llm?.model || storyModel}
+- Image Provider: ${modelConfig?.image?.provider || imageProvider}
+- Voice Provider: ${modelConfig?.tts?.provider || voiceProvider}
 - Characters: ${currentSettings.characterCount}
 - Scenes: ${currentSettings.sceneCount}
 
@@ -420,6 +418,12 @@ Format the output exactly like the base template but with richer, more detailed 
     await handleGeneratePrompt();
   };
 
+  const handleModelConfigChange = (modelConfig: UnifiedModelConfig) => {
+    if (!isReadOnly && project.id) {
+      updateModelConfig(project.id, modelConfig);
+    }
+  };
+
   return (
     <div className="max-w-[1920px] mx-auto">
       {/* 2-Column Layout */}
@@ -453,8 +457,14 @@ Format the output exactly like the base template but with richer, more detailed 
           tones={tones}
         />
 
-        {/* Right Column - Story Details, Presets & Master Prompt */}
+        {/* Right Column - Model Config, Story Details, Presets & Master Prompt */}
         <div className="glass rounded-xl p-4 space-y-4 lg:col-span-3">
+          <ModelConfigurationPanel
+            modelConfig={project.modelConfig}
+            onConfigChange={handleModelConfigChange}
+            disabled={isReadOnly}
+          />
+
           <StoryForm
             project={project}
             isReadOnly={isReadOnly}
