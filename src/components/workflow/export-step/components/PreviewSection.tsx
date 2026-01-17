@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { MoviePreview } from '../../export/components';
 import { Lock } from 'lucide-react';
 import type { Project } from '@/types/project';
-import type { PreviewPlayerState } from '../../export/hooks/usePreviewPlayer';
+import type { usePreviewPlayer } from '../../export/hooks';
 
 interface PreviewSectionProps {
   project: Project;
@@ -10,7 +10,7 @@ interface PreviewSectionProps {
     totalScenes: number;
   };
   isAuthenticated: boolean;
-  previewPlayer: PreviewPlayerState;
+  previewPlayer: ReturnType<typeof usePreviewPlayer>;
 }
 
 export function PreviewSection({ project, stats, isAuthenticated, previewPlayer }: PreviewSectionProps) {
