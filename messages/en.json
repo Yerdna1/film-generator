@@ -106,6 +106,14 @@
       "inProgress": "In Progress",
       "completed": "Completed",
       "scenes": "Scenes"
+    },
+    "features": {
+      "aiScripts": "AI-Powered Scripts",
+      "aiScriptsDesc": "Generate complete film scripts with characters and scenes",
+      "multipleStyles": "Multiple Styles",
+      "multipleStylesDesc": "Disney/Pixar, Realistic, Anime, or Custom visual styles",
+      "voiceGeneration": "Voice Generation",
+      "voiceGenerationDesc": "Add voiceovers in Slovak and English with AI voices"
     }
   },
   "project": {

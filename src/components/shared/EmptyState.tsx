@@ -100,7 +100,6 @@ export function EmptyState({ onCreateProject }: EmptyStateProps) {
         </motion.div>
       </motion.div>
 
-      {/* Feature highlights */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -110,22 +109,22 @@ export function EmptyState({ onCreateProject }: EmptyStateProps) {
         {[
           {
             icon: '🎬',
-            title: 'AI-Powered Scripts',
-            description: 'Generate complete film scripts with characters and scenes',
+            title: t('dashboard.features.aiScripts'),
+            description: t('dashboard.features.aiScriptsDesc'),
           },
           {
             icon: '🎨',
-            title: 'Multiple Styles',
-            description: 'Disney/Pixar, Realistic, Anime, or Custom visual styles',
+            title: t('dashboard.features.multipleStyles'),
+            description: t('dashboard.features.multipleStylesDesc'),
           },
           {
             icon: '🎙️',
-            title: 'Voice Generation',
-            description: 'Add voiceovers in Slovak and English with AI voices',
+            title: t('dashboard.features.voiceGeneration'),
+            description: t('dashboard.features.voiceGenerationDesc'),
           },
         ].map((feature, index) => (
           <motion.div
-            key={feature.title}
+            key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 + index * 0.1 }}

@@ -38,12 +38,20 @@ interface CreditsData {
   }>;
 }
 
+interface SubscriptionData {
+  subscription: {
+    plan: string;
+    status: string;
+  } | null;
+}
+
 export default function ProfilePage() {
   const { data: session } = useSession();
   const t = useTranslations('profile');
   const tAuth = useTranslations('auth');
   const { projects } = useProjectStore();
   const [creditsData, setCreditsData] = useState<CreditsData | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
 
   useEffect(() => {
     const fetchCredits = async () => {
@@ -57,8 +65,24 @@ export default function ProfilePage() {
         console.error('Failed to fetch credits:', error);
       }
     };
+
+    const fetchSubscription = async () => {
+      try {
+        const res = await fetch('/api/polar');
+        if (res.ok) {
+          const data = await res.json();
+          setSubscriptionData(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
+      }
+    };
+
     fetchCredits();
-  }, []);
+    if (session) {
+      fetchSubscription();
+    }
+  }, [session]);
 
   // Calculate stats (safe accessors for summary data without full arrays)
   const totalScenes = projects.reduce((acc, p) => acc + (p.scenes?.length || 0), 0);
@@ -115,11 +139,6 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
               </div>
             </div>
-            <Link href="/settings">
-              <Button variant="ghost" size="icon">
-                <Settings className="w-5 h-5" />
-              </Button>
-            </Link>
           </div>
         </div>
       </div>
@@ -140,7 +159,9 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <h2 className="font-semibold truncate">{userName}</h2>
                   <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 text-xs">
-                    {session ? t('proPlan') : t('freePlan')}
+                    {subscriptionData?.subscription?.plan
+                      ? subscriptionData.subscription.plan.charAt(0).toUpperCase() + subscriptionData.subscription.plan.slice(1)
+                      : t('freePlan')}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">{userEmail}</p>

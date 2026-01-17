@@ -106,6 +106,14 @@
       "inProgress": "Rozpracované",
       "completed": "Dokončené",
       "scenes": "Scény"
+    },
+    "features": {
+      "aiScripts": "AI-generované scenáre",
+      "aiScriptsDesc": "Generujte kompletné filmové scenáre s postavami a scénami",
+      "multipleStyles": "Viacero štýlov",
+      "multipleStylesDesc": "Disney/Pixar, Realistický, Anime alebo vlastný vizuálny štýl",
+      "voiceGeneration": "Generovanie hlasu",
+      "voiceGenerationDesc": "Pridajte hlasové komentáre v slovenčine a angličtine s AI hlasmi"
     }
   },
   "project": {
