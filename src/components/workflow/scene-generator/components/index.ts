@@ -6,3 +6,4 @@ export { AddSceneDialog } from './AddSceneDialog';
 export { SceneCard } from './SceneCard';
 export { SceneHeader } from './SceneHeader';
 export { QuickActions } from './QuickActions';
+export { OpenRouterModal } from './OpenRouterModal';

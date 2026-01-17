@@ -211,14 +211,32 @@ export function QuickActions({
               ? `Processing... ${backgroundJobProgress}%`
               : `Stop (${scenesWithImages}/${totalScenes})`}
           </Button>
-        ) : scenesWithImages === totalScenes ? (
-          <Button
-            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0"
-            disabled
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            All Images Generated
-          </Button>
+        ) : scenesWithImages === totalScenes && totalScenes > 0 ? (
+          <div className="flex gap-2">
+            {/* Regenerate All button - shown when all images are complete */}
+            <Button
+              variant="outline"
+              className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+              onClick={() => {
+                if (window.confirm(`Regenerate all ${totalScenes} images? This will cost approximately ${formatCostCompact(costPerImage * totalScenes)}.`)) {
+                  onGenerateAllImages();
+                }
+              }}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Regenerate All
+              <Badge variant="outline" className="ml-2 border-orange-500/30 text-orange-400 text-[10px] px-1.5 py-0">
+                ~{formatCostCompact(costPerImage * totalScenes)}
+              </Badge>
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0"
+              disabled
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Complete
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             {/* Batch generation dropdown */}

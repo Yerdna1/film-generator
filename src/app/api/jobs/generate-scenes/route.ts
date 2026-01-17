@@ -13,27 +13,38 @@ export async function POST(request: NextRequest) {
 
     const session = await auth();
     if (!session?.user?.id) {
+      console.log('[Jobs/Scenes] Unauthorized: No session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { projectId, story, characters, style, sceneCount } = body;
-    console.log('[Jobs/Scenes] Request:', { projectId, sceneCount, charactersCount: characters?.length });
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.log('[Jobs/Scenes] Failed to parse request body:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const { projectId, story, characters, style, sceneCount, skipCreditCheck = false } = body;
+    console.log('[Jobs/Scenes] Request:', { projectId, sceneCount, charactersCount: characters?.length, skipCreditCheck });
 
     if (!projectId || !story || !characters || !sceneCount) {
+      console.log('[Jobs/Scenes] Bad Request: Missing fields', { projectId, hasStory: !!story, hasCharacters: !!characters, sceneCount });
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check credit balance
-    const totalCost = COSTS.SCENE_GENERATION * sceneCount;
-    const balanceCheck = await checkBalance(session.user.id, totalCost);
-    if (!balanceCheck.hasEnough) {
-      return NextResponse.json({
-        error: 'Insufficient credits',
-        required: balanceCheck.required,
-        balance: balanceCheck.balance,
-        needsPurchase: true,
-      }, { status: 402 });
+    // Check credit balance (skip if user provides own API key)
+    if (!skipCreditCheck) {
+      const totalCost = COSTS.SCENE_GENERATION * sceneCount;
+      const balanceCheck = await checkBalance(session.user.id, totalCost);
+      if (!balanceCheck.hasEnough) {
+        return NextResponse.json({
+          error: 'Insufficient credits',
+          required: balanceCheck.required,
+          balance: balanceCheck.balance,
+          needsPurchase: true,
+        }, { status: 402 });
+      }
     }
 
     // Check for existing active job

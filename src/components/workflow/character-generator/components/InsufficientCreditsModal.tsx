@@ -10,21 +10,26 @@ interface InsufficientCreditsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenKieModal: () => void;
+  onOpenRouterModal?: () => void; // New: for scene text generation
   onUseAppCredits?: () => void; // New: callback when user wants to use app credits
   creditsNeeded?: number;
   currentCredits?: number;
+  generationType?: 'image' | 'text'; // New: distinguish between image and text generation
 }
 
 export function InsufficientCreditsModal({
   isOpen,
   onClose,
   onOpenKieModal,
+  onOpenRouterModal,
   onUseAppCredits,
   creditsNeeded,
   currentCredits,
+  generationType = 'image',
 }: InsufficientCreditsModalProps) {
   const t = useTranslations();
   const hasEnoughCredits = currentCredits !== undefined && creditsNeeded !== undefined && currentCredits >= creditsNeeded;
+  const isForText = generationType === 'text';
 
   if (!isOpen) return null;
 
@@ -98,20 +103,40 @@ export function InsufficientCreditsModal({
               </div>
             </div>
 
-            {/* Use KIE AI Key - always available */}
-            <Button
-              onClick={() => {
-                onClose();
-                onOpenKieModal();
-              }}
-              className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white border-0"
-            >
-              <Key className="w-4 h-4 mr-2" />
-              Použiť vlastný KIE AI kľúč
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Generujte obrázky pomocou svojich KIE AI kreditov
-            </p>
+            {/* Use API Key - shows different option based on generation type */}
+            {isForText && onOpenRouterModal ? (
+              <>
+                <Button
+                  onClick={() => {
+                    onClose();
+                    onOpenRouterModal();
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Použiť vlastný OpenRouter kľúč
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Generujte scény pomocou vášho OpenRouter kreditu
+                </p>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={() => {
+                    onClose();
+                    onOpenKieModal();
+                  }}
+                  className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white border-0"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Použiť vlastný KIE AI kľúč
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Generujte obrázky pomocou svojich KIE AI kreditov
+                </p>
+              </>
+            )}
           </div>
 
           {/* Close Button */}

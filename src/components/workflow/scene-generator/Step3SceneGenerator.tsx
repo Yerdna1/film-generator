@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { formatCostCompact, getImageCost } from '@/lib/services/real-costs';
+import { useSession } from 'next-auth/react';
+import { formatCostCompact, getImageCost, ACTION_COSTS } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
 import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useProjectStore } from '@/lib/stores/project-store';
@@ -13,16 +14,24 @@ import {
   ImagePreviewModal,
   PromptsDialog,
   QuickActions,
+  SceneHeader,
+  OpenRouterModal,
 } from './components';
 import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
 import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
+import { InsufficientCreditsModal } from '@/components/workflow/character-generator/components';
+import { KieApiKeyModal } from '@/components/workflow/character-generator/components/KieApiKeyModal';
 import {
   useApiKeys,
+  useCredits,
   usePendingRegenerationRequests,
   useApprovedRegenerationRequests,
   usePendingDeletionRequests,
 } from '@/hooks';
+import { getImageCreditCost } from '@/lib/services/credits';
+import type { Scene } from '@/types/project';
+import { toast } from 'sonner';
 
 interface Step3Props {
   project: Project;
@@ -63,6 +72,11 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   }, [apiKeysData, setApiConfig]);
 
   const imageProvider: ImageProvider = apiConfig.imageProvider || apiKeysImageProvider || 'gemini';
+
+  // Session and credits for free user flow
+  const { data: session } = useSession();
+  const { data: creditsData } = useCredits();
+  const { updateScene, updateUserConstants } = useProjectStore();
 
   const {
     // Project data
@@ -130,10 +144,6 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
   // Use Inngest for Modal providers (long-running), direct calls for Gemini (fast)
   const useInngest = imageProvider === 'modal' || imageProvider === 'modal-edit';
-  // Wrap to prevent click event from being passed as argument
-  const handleGenerateImages = useInngest
-    ? () => handleStartBackgroundGeneration()
-    : handleGenerateAllSceneImages;
   const isGenerating = useInngest ? isBackgroundJobRunning : isGeneratingAllImages;
 
   // Pagination
@@ -163,6 +173,27 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   } = usePendingDeletionRequests(project.id);
 
   const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
+
+  // KIE AI modal state for free users
+  const [isKieModalOpen, setIsKieModalOpen] = useState(false);
+  const [isSavingKieKey, setIsSavingKieKey] = useState(false);
+  const [userApiKeys, setUserApiKeys] = useState<{
+    hasKieKey: boolean;
+    kieImageModel: string;
+  } | null>(null);
+  const [pendingSceneGeneration, setPendingSceneGeneration] = useState<{
+    type: 'single' | 'all' | 'batch' | 'regenerate';
+    scene?: Scene;
+    scenes?: Scene[];
+    batchSize?: number;
+  } | null>(null);
+  const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
+
+  // OpenRouter modal state for scene text generation
+  const [isOpenRouterModalOpen, setIsOpenRouterModalOpen] = useState(false);
+  const [isSavingOpenRouterKey, setIsSavingOpenRouterKey] = useState(false);
+  const [pendingSceneTextGeneration, setPendingSceneTextGeneration] = useState(false);
+  const [sceneTextCreditsNeeded, setSceneTextCreditsNeeded] = useState(0);
 
   // Combined refresh function for regeneration requests
   const fetchApprovedRegenerationRequests = useCallback(() => {
@@ -310,8 +341,230 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     }
   }, [currentPage, totalPages]);
 
+  // Fetch user's API keys for KIE modal
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      if (!session) return;
+      try {
+        const res = await fetch('/api/user/api-keys');
+        if (res.ok) {
+          const data = await res.json();
+          setUserApiKeys({
+            hasKieKey: data.hasKieKey || false,
+            kieImageModel: data.kieImageModel || 'seedream/4-5-text-to-image',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+      }
+    };
+    fetchApiKeys();
+  }, [session]);
+
+  // Wrapper for image generation with credit check
+  const handleGenerateSceneImageWithCreditCheck = useCallback(async (scene: Scene) => {
+    const creditsNeeded = getImageCreditCost(imageResolution);
+    const currentCredits = creditsData?.credits.balance || 0;
+
+    // Always show Insufficient Credits modal giving user choice
+    setPendingSceneGeneration({ type: 'single', scene });
+    setIsInsufficientCreditsModalOpen(true);
+  }, [creditsData, imageResolution]);
+
+  // Wrapper for "Generate All" with credit check
+  const handleGenerateAllWithCreditCheck = useCallback(async () => {
+    const scenesNeedingImages = scenes.filter(s => !s.imageUrl);
+    if (scenesNeedingImages.length === 0) return;
+
+    const creditsNeeded = getImageCreditCost(imageResolution) * scenesNeedingImages.length;
+    const currentCredits = creditsData?.credits.balance || 0;
+
+    setPendingSceneGeneration({ type: 'all', scenes: scenesNeedingImages });
+    setIsInsufficientCreditsModalOpen(true);
+  }, [creditsData, imageResolution, scenes]);
+
+  // Wrap to prevent click event from being passed as argument
+  const handleGenerateImages = useInngest
+    ? () => handleStartBackgroundGeneration()
+    : handleGenerateAllWithCreditCheck; // Use credit check wrapper for free users
+
+  // Save KIE API key handler
+  const handleSaveKieApiKey = async (apiKey: string, model: string): Promise<void> => {
+    setIsSavingKieKey(true);
+
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kieApiKey: apiKey,
+          kieImageModel: model,
+          imageProvider: 'kie',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save API key');
+      }
+
+      setUserApiKeys(prev => prev ? { ...prev, hasKieKey: true, kieImageModel: model } : null);
+      updateUserConstants({ characterImageProvider: 'kie' });
+
+      toast.success('KIE AI API Key Saved', {
+        description: 'Generating scene images...',
+      });
+
+      setIsKieModalOpen(false);
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Process pending generation with KIE key
+      if (pendingSceneGeneration) {
+        if (pendingSceneGeneration.type === 'single' && pendingSceneGeneration.scene) {
+          const scene = pendingSceneGeneration.scene;
+          const apiResponse = await fetch('/api/image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: scene.textToImagePrompt,
+              aspectRatio: sceneAspectRatio,
+              resolution: imageResolution,
+              imageProvider: 'kie',
+              projectId: project.id,
+              sceneId: scene.id,
+              skipCreditCheck: true,
+            }),
+          });
+
+          if (apiResponse.ok) {
+            const data = await apiResponse.json();
+            if (data.imageUrl) {
+              await updateScene(project.id, scene.id, { imageUrl: data.imageUrl });
+              toast.success('Image Generated', {
+                description: `Scene ${scene.number || ''} image saved`,
+              });
+            }
+          } else {
+            const error = await apiResponse.json();
+            const errorMessage = error.error || 'Failed to generate image';
+            if (errorMessage.includes('exceeded the total limit') || errorMessage.includes('points used')) {
+              toast.error('KIE AI Credits Exhausted', {
+                description: 'Your KIE AI account has run out of credits. Please top up at kie.ai to continue generating images.',
+                duration: 8000,
+              });
+            } else {
+              toast.error('Generation Failed', { description: errorMessage });
+            }
+          }
+        }
+        setPendingSceneGeneration(null);
+      }
+    } catch (error) {
+      toast.error('Failed to Save API Key', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    } finally {
+      setIsSavingKieKey(false);
+    }
+  };
+
+  // Proceed with generation using app credits
+  const handleUseAppCredits = useCallback(async () => {
+    if (!pendingSceneGeneration) return;
+
+    setIsInsufficientCreditsModalOpen(false);
+
+    if (pendingSceneGeneration.type === 'single' && pendingSceneGeneration.scene) {
+      await handleGenerateSceneImage(pendingSceneGeneration.scene);
+    } else if (pendingSceneGeneration.type === 'all' && pendingSceneGeneration.scenes) {
+      await handleGenerateAllSceneImages();
+    }
+
+    setPendingSceneGeneration(null);
+  }, [pendingSceneGeneration, handleGenerateSceneImage, handleGenerateAllSceneImages]);
+
+  // Wrapper for scene text generation with credit check
+  const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {
+    const sceneCount = projectSettings.sceneCount || 12;
+    const creditsNeeded = ACTION_COSTS.scene.claude * sceneCount;
+    const currentCredits = creditsData?.credits.balance || 0;
+
+    setSceneTextCreditsNeeded(creditsNeeded);
+
+    // Always show Insufficient Credits modal giving user choice
+    setPendingSceneTextGeneration(true);
+    setIsInsufficientCreditsModalOpen(true);
+  }, [creditsData, projectSettings.sceneCount]);
+
+  // Save OpenRouter API key handler
+  const handleSaveOpenRouterKey = async (apiKey: string, model: string): Promise<void> => {
+    setIsSavingOpenRouterKey(true);
+
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          openRouterApiKey: apiKey,
+          openRouterModel: model,
+          llmProvider: 'openrouter',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save API key');
+      }
+
+      toast.success('OpenRouter API Key Saved', {
+        description: 'Generating scenes...',
+      });
+
+      setIsOpenRouterModalOpen(false);
+      setIsInsufficientCreditsModalOpen(false);
+
+      // Generate scenes with OpenRouter key (skip credit check)
+      await handleGenerateAllScenes(true);
+
+      setPendingSceneTextGeneration(false);
+    } catch (error) {
+      toast.error('Failed to Save API Key', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    } finally {
+      setIsSavingOpenRouterKey(false);
+    }
+  };
+
+  // Proceed with scene text generation using app credits
+  const handleUseAppCreditsForScenes = useCallback(async () => {
+    setIsInsufficientCreditsModalOpen(false);
+    setPendingSceneTextGeneration(false);
+
+    await handleGenerateAllScenes(false); // Use app credits, don't skip credit check
+  }, [handleGenerateAllScenes]);
+
   return (
     <div className="max-w-[1920px] mx-auto space-y-6 px-4">
+      {/* Scene Header - shows progress and "Generate All Scenes" button */}
+      <SceneHeader
+        sceneCount={projectSettings.sceneCount || 12}
+        totalScenes={scenes.length}
+        scenesWithImages={scenesWithImages}
+        imageResolution={imageResolution}
+        aspectRatio={sceneAspectRatio}
+        imageProvider={imageProvider}
+        hasCharacters={characters.length > 0}
+        isGeneratingScenes={isGeneratingScenes}
+        sceneJobProgress={sceneJobProgress}
+        sceneJobStatus={sceneJobStatus}
+        isSceneJobRunning={isSceneJobRunning}
+        onGenerateAllScenes={handleGenerateAllScenesWithCreditCheck}
+        onStopSceneGeneration={handleCancelSceneGeneration}
+      />
+
       {/* Pagination - Top */}
       {scenes.length > 0 && (
         <Pagination
@@ -359,7 +612,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
               onToggleExpand={() => toggleExpanded(scene.id)}
               onDelete={() => deleteScene(scene.id)}
               onEdit={() => startEditScene(scene)}
-              onGenerateImage={() => handleGenerateSceneImage(scene)}
+              onGenerateImage={() => handleGenerateSceneImageWithCreditCheck(scene)}
               onRegeneratePrompts={() => regeneratePrompts(scene)}
               onPreviewImage={setPreviewImage}
               onDeletionRequested={fetchDeletionRequests}
@@ -449,6 +702,44 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
           fetchRegenerationRequests();
         }}
       />
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        isOpen={isInsufficientCreditsModalOpen}
+        onClose={() => setIsInsufficientCreditsModalOpen(false)}
+        onOpenKieModal={() => {
+          setIsInsufficientCreditsModalOpen(false);
+          setIsKieModalOpen(true);
+        }}
+        onOpenRouterModal={() => {
+          setIsInsufficientCreditsModalOpen(false);
+          setIsOpenRouterModalOpen(true);
+        }}
+        onUseAppCredits={pendingSceneTextGeneration ? handleUseAppCreditsForScenes : handleUseAppCredits}
+        creditsNeeded={pendingSceneTextGeneration ? sceneTextCreditsNeeded : getImageCreditCost(imageResolution)}
+        currentCredits={creditsData?.credits.balance}
+        generationType={pendingSceneTextGeneration ? 'text' : 'image'}
+      />
+
+      {/* KIE AI API Key Modal */}
+      <KieApiKeyModal
+        isOpen={isKieModalOpen}
+        onClose={() => setIsKieModalOpen(false)}
+        onSave={handleSaveKieApiKey}
+        isLoading={isSavingKieKey}
+      />
+
+      {/* OpenRouter API Key Modal for scene text generation */}
+      {pendingSceneTextGeneration && (
+        <OpenRouterModal
+          isOpen={isOpenRouterModalOpen}
+          onClose={() => setIsOpenRouterModalOpen(false)}
+          onSave={handleSaveOpenRouterKey}
+          isLoading={isSavingOpenRouterKey}
+          sceneCount={projectSettings.sceneCount || 12}
+          creditsNeeded={sceneTextCreditsNeeded}
+        />
+      )}
     </div>
   );
 }

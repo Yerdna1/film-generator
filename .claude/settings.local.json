@@ -82,7 +82,8 @@
       "WebFetch(domain:kie.ai)",
       "Bash(npx prisma migrate dev:*)",
       "Bash(npm run db:migrate:*)",
-      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" npx tsx:*)"
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" npx tsx:*)",
+      "Bash(npx prisma db execute --stdin <<'SQL'\nSELECT \n  p.id,\n  p.name,\n  p.\"currentStep\",\n  p.visibility,\n  COUNT\\(DISTINCT s.id\\) as total_scenes,\n  COUNT\\(DISTINCT CASE WHEN s.\"imageUrl\" IS NOT NULL AND s.\"imageUrl\" != '' THEN s.id END\\) as scenes_with_images\nFROM \"Project\" p\nLEFT JOIN \"Scene\" s ON s.\"projectId\" = p.id\nWHERE p.id = 'cmkifdlkw001foykm4mfo7cyq'\nGROUP BY p.id;\nSQL)"
     ]
   }
 }

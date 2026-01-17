@@ -60,19 +60,43 @@ export const generateScenesBatch = inngest.createFunction(
 
     const openRouterApiKey = userSettings?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
     const modalLlmEndpoint = userSettings?.modalLlmEndpoint;
+    const userSelectedOpenRouterModel = userSettings?.openRouterModel; // User's selected model from modal
 
     // Map storyModel to actual LLM provider and model
+    // When user provides own OpenRouter key, use OpenRouter-compatible models
     const storyModelMapping: Record<string, { provider: 'openrouter' | 'gemini' | 'claude-sdk' | 'modal'; model: string; endpoint?: string }> = {
-      'gpt-4': { provider: 'openrouter', model: 'openai/gpt-4-turbo' },
-      'claude-sonnet-4.5': { provider: 'openrouter', model: 'anthropic/claude-sonnet-4.5' },
-      'gemini-3-pro': { provider: 'gemini', model: 'gemini-3-pro' },
+      'gpt-4': { provider: 'openrouter', model: 'openai/gpt-4o' },
+      'claude-sonnet-4.5': { provider: 'openrouter', model: 'anthropic/claude-3.5-sonnet' },
+      'gemini-3-pro': openRouterApiKey
+        ? { provider: 'openrouter', model: 'google/gemini-pro-1.5' }  // OpenRouter-compatible when user has key
+        : { provider: 'gemini', model: 'gemini-3-pro' },         // Google API (app credits)
     };
 
-    const llmConfig = storyModelMapping[storyModel] || storyModelMapping['claude-sonnet-4.5'];
-    const llmProvider = llmConfig.provider;
-    const llmModel = llmConfig.model;
+    let llmConfig = storyModelMapping[storyModel] || storyModelMapping['claude-sonnet-4.5'];
+    let llmProvider = llmConfig.provider;
+    let llmModel = llmConfig.model;
 
-    console.log(`[Inngest Scenes] LLM config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}`);
+    // If user has their own OpenRouter key and selected a specific model, use it
+    if (openRouterApiKey && userSelectedOpenRouterModel) {
+      // Validate that the user's selected model is one of the supported models
+      const supportedModels = [
+        'anthropic/claude-3-haiku',
+        'google/gemini-pro-1.5',
+        'anthropic/claude-3.5-sonnet',
+        'openai/gpt-4o',
+        'anthropic/claude-3-opus',
+      ];
+
+      if (supportedModels.includes(userSelectedOpenRouterModel)) {
+        llmProvider = 'openrouter';
+        llmModel = userSelectedOpenRouterModel;
+        console.log(`[Inngest Scenes] Using user-selected OpenRouter model: ${llmModel}`);
+      } else {
+        console.warn(`[Inngest Scenes] Unknown user-selected model: ${userSelectedOpenRouterModel}, falling back to default`);
+      }
+    }
+
+    console.log(`[Inngest Scenes] LLM config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}, hasUserOpenRouterKey=${!!openRouterApiKey}, userSelectedModel=${userSelectedOpenRouterModel || 'none'}`);
 
     // Validate provider settings
     if (llmProvider === 'openrouter' && !openRouterApiKey) {

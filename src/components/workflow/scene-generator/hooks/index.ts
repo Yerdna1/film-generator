@@ -48,7 +48,7 @@ export function useSceneGenerator(initialProject: Project) {
   const [isGeneratingScenes, setIsGeneratingScenes] = useState(false);
 
   // Generate all scenes with AI via Inngest background job
-  const handleGenerateAllScenes = useCallback(async () => {
+  const handleGenerateAllScenes = useCallback(async (skipCreditCheck = false) => {
     if (characters.length === 0) {
       alert('Please add characters in Step 2 first');
       return;
@@ -62,6 +62,12 @@ export function useSceneGenerator(initialProject: Project) {
     setIsGeneratingScenes(true);
 
     try {
+      console.log('[Scenes] Starting scene generation...', {
+        projectId: project.id,
+        sceneCount: project.settings.sceneCount,
+        skipCreditCheck,
+      });
+
       // Use Inngest background job for reliable scene generation
       const response = await fetch('/api/jobs/generate-scenes', {
         method: 'POST',
@@ -77,12 +83,28 @@ export function useSceneGenerator(initialProject: Project) {
           })),
           style: project.style,
           sceneCount: project.settings.sceneCount,
+          skipCreditCheck, // Skip credit check when user provides own API key
         }),
       });
 
+      console.log('[Scenes] Response received:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+      });
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to start scene generation');
+        let errorMessage = 'Failed to start scene generation';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+          console.log('[Scenes] Server error:', error);
+        } catch (jsonError) {
+          // Response body isn't valid JSON
+          errorMessage = `Server error (${response.status}): ${response.statusText}`;
+          console.log('[Scenes] Could not parse error response:', jsonError);
+        }
+        throw new Error(errorMessage);
       }
 
       const { jobId, totalScenes } = await response.json();
@@ -92,7 +114,12 @@ export function useSceneGenerator(initialProject: Project) {
       console.log(`[Scenes] Started background job ${jobId} for ${totalScenes} scenes`);
 
     } catch (error) {
-      console.error('Error starting scene generation:', error);
+      console.error('[Scenes] Error starting scene generation:', error);
+      console.error('[Scenes] Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       alert(`Failed to start scene generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsGeneratingScenes(false);
     }

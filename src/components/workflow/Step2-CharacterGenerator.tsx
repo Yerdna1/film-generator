@@ -426,6 +426,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
         }}
         creditsNeeded={getImageCreditCost(project.settings?.imageResolution || '2k')}
         currentCredits={creditsData?.credits.balance}
+        generationType="image"
       />
 
       {/* KIE AI API Key Modal */}
