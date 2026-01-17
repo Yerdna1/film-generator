@@ -65,6 +65,60 @@ export const OPENAI_VOICES: VoiceOption[] = [
   { id: 'verse', name: 'Verse', description: 'Mellow, laid-back male', gender: 'male' },
 ];
 
+// KIE AI TTS voices - KIE accepts specific voice names from ElevenLabs
+// These are the only voices supported by KIE's ElevenLabs models
+export const KIE_VOICES: VoiceOption[] = [
+  { id: 'Rachel', name: 'Rachel', description: 'Calm, young, American female', gender: 'female' },
+  { id: 'Aria', name: 'Aria', description: 'Expressive, American female', gender: 'female' },
+  { id: 'Roger', name: 'Roger', description: 'American male', gender: 'male' },
+  { id: 'Sarah', name: 'Sarah', description: 'Soft, young, American female', gender: 'female' },
+  { id: 'Laura', name: 'Laura', description: 'American female', gender: 'female' },
+  { id: 'Charlie', name: 'Charlie', description: 'Australian male', gender: 'male' },
+  { id: 'George', name: 'George', description: 'American male', gender: 'male' },
+  { id: 'Callum', name: 'Callum', description: 'British male', gender: 'male' },
+  { id: 'River', name: 'River', description: 'American female', gender: 'female' },
+  { id: 'Liam', name: 'Liam', description: 'Irish male', gender: 'male' },
+  { id: 'Charlotte', name: 'Charlotte', description: 'Swedish female', gender: 'female' },
+  { id: 'Alice', name: 'Alice', description: 'American female', gender: 'female' },
+  { id: 'Matilda', name: 'Matilda', description: 'American female', gender: 'female' },
+  { id: 'Will', name: 'Will', description: 'American male', gender: 'male' },
+  { id: 'Jessica', name: 'Jessica', description: 'American female', gender: 'female' },
+  { id: 'Eric', name: 'Eric', description: 'British male', gender: 'male' },
+  { id: 'Chris', name: 'Chris', description: 'American male', gender: 'male' },
+  { id: 'Brian', name: 'Brian', description: 'American male', gender: 'male' },
+  { id: 'Daniel', name: 'Daniel', description: 'British male', gender: 'male' },
+  { id: 'Lily', name: 'Lily', description: 'American female', gender: 'female' },
+  { id: 'Bill', name: 'Bill', description: 'American male', gender: 'male' },
+];
+
+// Map ElevenLabs voice IDs to KIE voice names
+// Maps our ELEVENLABS_VOICES to the closest KIE voice
+export const ELEVENLABS_TO_KIE_VOICE_MAP: Record<string, string> = {
+  // Direct name matches
+  '21m00Tcm4TlvDq8ikWAM': 'Rachel', // Rachel → Rachel
+  'EXAVITQu4vr4xnSDxMaL': 'Sarah',   // Sarah → Sarah
+  'IKne3meq5aSn9XLyUdCD': 'Charlie', // Charlie → Charlie
+  'XB0fDUnXU5powFXDhCwa': 'Charlotte', // Charlotte → Charlotte
+  'onwK4e9ZLuTAKqWW03F9': 'Daniel',  // Daniel → Daniel
+
+  // Close matches by gender and accent
+  'LcfcDJNUP1GQjkzn1xUU': 'Laura',   // Emily → Laura (American female)
+  'AZnzlk1XvdvUeBnXmlld': 'Aria',    // Domi → Aria (American female)
+  '29vD33N1CtxCmqQRPOHJ': 'Roger',   // Drew → Roger (American male)
+  'pNInz6obpgDQGcFmaJgB': 'George',  // Adam → George (American male)
+  '2EiwWnXFnvU5JabPnv8n': 'Bill',    // Clyde → Bill (American male)
+  '5Q0t7uMcjvnagumLfvZi': 'Chris',   // Paul → Chris (American male)
+  'CYw3kZ02Hs0563khs1Fj': 'Eric',    // Dave → Eric (British male)
+  'D38z5RcWu1voky8WS1ja': 'Liam',    // Fin → Liam (Irish male)
+  'ErXwobaYiN019PkySvjV': 'Will',    // Antoni → Will (American male)
+  'GBv7mTt0atIp3Br8iCZE': 'Brian',   // Thomas → Brian (American male)
+};
+
+// Convert ElevenLabs voice ID to KIE voice name
+export const getKieVoiceName = (elevenLabsVoiceId: string): string => {
+  return ELEVENLABS_TO_KIE_VOICE_MAP[elevenLabsVoiceId] || 'Rachel'; // Default to Rachel
+};
+
 // Helper to get a valid voice ID for the current provider
 // Returns null if no valid voice is configured for this provider
 export const getVoiceForProvider = (
@@ -88,8 +142,17 @@ export const getVoiceForProvider = (
     return voiceId;
   }
   if (provider === 'kie') {
-    // Kie accepts any voice name
-    return voiceId;
+    // KIE requires specific voice names
+    // If voiceId is already a KIE voice name, use it directly
+    if (KIE_VOICES.some(v => v.id === voiceId)) {
+      return voiceId;
+    }
+    // If voiceId is an ElevenLabs ID, convert it to KIE voice name
+    if (ELEVENLABS_TO_KIE_VOICE_MAP[voiceId]) {
+      return ELEVENLABS_TO_KIE_VOICE_MAP[voiceId];
+    }
+    // Default to Rachel if unknown
+    return 'Rachel';
   }
 
   return null;
@@ -135,8 +198,8 @@ export const getVoicesForProvider = (provider: VoiceProvider): VoiceOption[] => 
     case 'openai-tts':
       return OPENAI_VOICES;
     case 'kie':
-      // KIE TTS uses ElevenLabs models, so use ElevenLabs voices
-      return ELEVENLABS_VOICES;
+      // KIE TTS uses KIE voice names (Rachel, George, Laura, etc.)
+      return KIE_VOICES;
     default:
       return GEMINI_VOICES;
   }

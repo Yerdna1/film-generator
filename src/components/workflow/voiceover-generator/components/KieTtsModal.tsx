@@ -15,17 +15,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { KIE_TTS_MODELS, type KieModelConfig } from '@/lib/constants/kie-models';
-import { ELEVENLABS_VOICES } from '../types';
+import { KIE_VOICES } from '../types';
 import type { Character } from '@/types/project';
 
 // Affordable KIE TTS models for free users (sorted by price)
+// Only include actual TTS models, not speech-to-text or audio processing models
 const AFFORDABLE_KIE_TTS_MODELS: KieModelConfig[] = [
-  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/speech-to-text')!, // 5 credits - cheapest!
-  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/text-to-speech-turbo-2-5')!, // 8 credits
+  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/text-to-speech-turbo-2-5')!, // 8 credits - cheapest TTS!
   KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/text-to-dialogue-v3')!, // 10 credits - recommended
-  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/audio-isolation')!, // 10 credits
   KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/text-to-speech-multilingual-v2')!, // 12 credits
-  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/sound-effect-v2')!, // 15 credits
 ].filter(Boolean);
 
 interface VoiceAssignment {
@@ -65,12 +63,12 @@ export function KieTtsModal({
       if (existingVoice) {
         assignments[char.id] = existingVoice;
       } else {
-        // Default voices: alternate between male and female voices
+        // Default voices: alternate between male and female voices (using KIE voice names)
         const defaultVoices = [
-          'pNInz6obpgDQGcFmaJgB', // Adam (male)
-          'LcfcDJNUP1GQjkzn1xUU', // Emily (female)
-          '29vD33N1CtxCmqQRPOHJ', // Drew (male)
-          'AZnzlk1XvdvUeBnXmlld', // Domi (female)
+          'George', // Adam equivalent (male)
+          'Laura',  // Emily equivalent (female)
+          'Roger',  // Drew equivalent (male)
+          'Aria',   // Domi equivalent (female)
         ];
         assignments[char.id] = defaultVoices[index % defaultVoices.length];
       }
@@ -87,12 +85,12 @@ export function KieTtsModal({
         if (existingVoice) {
           assignments[char.id] = existingVoice;
         } else {
-          // Default voices: alternate between male and female voices
+          // Default voices: alternate between male and female voices (using KIE voice names)
           const defaultVoices = [
-            'pNInz6obpgDQGcFmaJgB', // Adam (male)
-            'LcfcDJNUP1GQjkzn1xUU', // Emily (female)
-            '29vD33N1CtxCmqQRPOHJ', // Drew (male)
-            'AZnzlk1XvdvUeBnXmlld', // Domi (female)
+            'George', // Adam equivalent (male)
+            'Laura',  // Emily equivalent (female)
+            'Roger',  // Drew equivalent (male)
+            'Aria',   // Domi equivalent (female)
           ];
           assignments[char.id] = defaultVoices[index % defaultVoices.length];
         }
@@ -213,7 +211,7 @@ export function KieTtsModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Najlacnejšie TTS modely pre generovanie hlasového prejavu. <span className="text-green-400 font-semibold">ElevenLabs Speech to Text je najlacnejší!</span>
+                Najlacnejšie TTS modely pre generovanie hlasového prejavu. <span className="text-green-400 font-semibold">ElevenLabs TTS Turbo je najlacnejší!</span>
               </p>
             </div>
 
@@ -240,7 +238,7 @@ export function KieTtsModal({
                           <SelectValue placeholder="Vyberte hlas" />
                         </SelectTrigger>
                         <SelectContent className="glass-strong border-white/10 max-h-60">
-                          {ELEVENLABS_VOICES.map((voice) => (
+                          {KIE_VOICES.map((voice) => (
                             <SelectItem key={voice.id} value={voice.id} className="cursor-pointer">
                               <div className="flex flex-col">
                                 <span className="text-xs font-medium">{voice.name}</span>
@@ -254,7 +252,7 @@ export function KieTtsModal({
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-blue-400">💡</span> Vyberte hlas ElevenLabs pre každú postavu. KIE AI používa ElevenLabs modely.
+                  <span className="text-blue-400">💡</span> Vyberte hlas pre každú postavu. KIE AI podporuje ElevenLabs hlasy.
                 </p>
               </div>
             )}

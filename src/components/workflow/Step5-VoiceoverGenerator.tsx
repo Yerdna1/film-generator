@@ -14,6 +14,7 @@ import {
   Step5Props,
   getVoicesForProvider,
   ELEVENLABS_VOICES,
+  KIE_VOICES,
 } from './voiceover-generator/types';
 import { useVoiceoverAudio } from './voiceover-generator/hooks';
 import {
@@ -323,9 +324,11 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
       // Update voice assignments for characters
       if (voiceAssignments && voiceAssignments.length > 0) {
         voiceAssignments.forEach(({ characterId, voiceId }) => {
-          const voice = ELEVENLABS_VOICES.find(v => v.id === voiceId);
+          // voiceId is now a KIE voice name (like "George", "Laura")
+          // For KIE provider, voiceId = voice name
+          const voice = KIE_VOICES.find(v => v.id === voiceId);
           if (voice) {
-            // Update character voice settings
+            // Update character with voice settings
             updateCharacter(project.id, characterId, {
               voiceId,
               voiceName: voice.name,
@@ -614,7 +617,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         currentVoiceAssignments={new Map(
           Object.entries(project.voiceSettings?.characterVoices || {}).map(([charId, voiceData]) => [
             charId,
-            (voiceData as any).voiceId || voiceData
+            (voiceData as any).voiceId || voiceData,
           ])
         )}
       />

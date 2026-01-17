@@ -308,40 +308,21 @@ async function generateWithKie(
   console.log(`[KIE TTS] Using model: ${modelConfig.name} - ${formatKiePrice(modelConfig.credits)}`);
   console.log(`[KIE TTS] Original voiceId: ${voiceId}`);
 
-  // KIE expects voice names (lowercase) instead of ElevenLabs IDs
-  // Map ElevenLabs voice IDs to names
-  const voiceIdToNameMap: Record<string, string> = {
-    '21m00Tcm4TlvDq8ikWAM': 'rachel',
-    '29vD33N1CtxCmqQRPOHJ': 'drew',
-    '2EiwWnXFnvU5JabPnv8n': 'clyde',
-    '5Q0t7uMcjvnagumLfvZi': 'paul',
-    'AZnzlk1XvdvUeBnXmlld': 'domi',
-    'CYw3kZ02Hs0563khs1Fj': 'dave',
-    'D38z5RcWu1voky8WS1ja': 'fin',
-    'EXAVITQu4vr4xnSDxMaL': 'sarah',
-    'ErXwobaYiN019PkySvjV': 'antoni',
-    'GBv7mTt0atIp3Br8iCZE': 'thomas',
-    'IKne3meq5aSn9XLyUdCD': 'charlie',
-    'LcfcDJNUP1GQjkzn1xUU': 'emily',
-    'pNInz6obpgDQGcFmaJgB': 'adam',
-    'onwK4e9ZLuTAKqWW03F9': 'daniel',
-    'XB0fDUnXU5powFXDhCwa': 'charlotte',
-  };
-
-  // Convert voice ID to voice name for KIE
-  const voiceName = voiceIdToNameMap[voiceId] || voiceId.toLowerCase();
-  console.log(`[KIE TTS] Using voice name: ${voiceName}`);
+  // KIE expects voice names (like "Rachel", "George", "Laura"), not ElevenLabs IDs
+  // The voiceId is already a KIE voice name from our mapping
+  const voiceForKie = voiceId;
+  console.log(`[KIE TTS] Using voice for KIE: ${voiceForKie}`);
 
   // Prepare voice settings based on model
   const inputData: any = {
     text: text,
-    voice: voiceName, // Use voice name instead of ID
+    voice: voiceForKie,
   };
 
   // Add model-specific parameters
   if (modelId.includes('dialogue')) {
     // For dialogue models, text should be an array
-    inputData.dialogue = [{ text, voice: voiceName }];
+    inputData.dialogue = [{ text, voice: voiceForKie }];
     delete inputData.text;
     delete inputData.voice;
   }
