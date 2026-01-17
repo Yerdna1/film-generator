@@ -56,9 +56,11 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
         [lineId]: { status: 'generating', progress: 30 },
       }));
 
-      // Use unified TTS endpoint - pass provider from UI selection
+      // Use unified TTS endpoint - pass provider from model config or UI selection
       // When skipCreditCheck is true, force provider to 'kie' (user's own API key)
-      let provider = project.voiceSettings?.provider || 'gemini-tts';
+      const modelConfig = freshProject?.modelConfig || project.modelConfig;
+      let provider = modelConfig?.tts?.provider || project.voiceSettings?.provider || 'gemini-tts';
+      const ttsModel = modelConfig?.tts?.model;
       if (skipCreditCheck) {
         provider = 'kie';
       }
@@ -88,8 +90,9 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
           text: line.text,
           voiceName: getValidGeminiVoice(voiceId),
           voiceId,
-          language: project.voiceSettings?.language || 'sk',
+          language: modelConfig?.tts?.defaultLanguage || project.voiceSettings?.language || 'sk',
           provider,
+          ...(ttsModel && { model: ttsModel }), // Include TTS model if specified
           projectId: project.id,
           skipCreditCheck, // Pass skipCreditCheck to API
           // Voice customization settings

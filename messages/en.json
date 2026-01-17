@@ -242,7 +242,45 @@
       "storyDetails": "Story Details",
       "generatingTitle": "Generating Master Prompt",
       "generatingDescription": "Creating your detailed film prompt with AI...",
-      "analyzingStory": "Analyzing story and generating scenes..."
+      "analyzingStory": "Analyzing story and generating scenes...",
+      "modelConfiguration": {
+        "title": "Model Configuration",
+        "description": "Configure AI models for all generation steps",
+        "tabs": {
+          "llm": "Text",
+          "image": "Images",
+          "video": "Videos",
+          "voice": "Voice",
+          "music": "Music"
+        },
+        "llm": {
+          "provider": "LLM Provider",
+          "model": "LLM Model"
+        },
+        "image": {
+          "provider": "Image Provider",
+          "model": "Image Model",
+          "characterAspectRatio": "Character Aspect Ratio",
+          "sceneAspectRatio": "Scene Aspect Ratio",
+          "sceneResolution": "Scene Resolution"
+        },
+        "video": {
+          "provider": "Video Provider",
+          "model": "Video Model",
+          "resolution": "Video Resolution"
+        },
+        "voice": {
+          "provider": "Voice Provider",
+          "model": "Voice Model",
+          "defaultLanguage": "Default Language"
+        },
+        "music": {
+          "provider": "Music Provider",
+          "model": "Music Model"
+        },
+        "tooltip": "These settings will be used across all workflow steps",
+        "info": "Configure your preferred AI models for each generation type. Free options are available for getting started."
+      }
     },
     "characters": {
       "title": "Characters",
