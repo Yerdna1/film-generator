@@ -50,6 +50,13 @@
       "daysAgo": "{days}d ago"
     }
   },
+  "premium": {
+    "upgradeToUnlock": "Upgrade to unlock",
+    "upgrade": "Upgrade",
+    "locked": "Pro",
+    "premiumFeature": "Premium feature",
+    "subscribeForMore": "Subscribe to a paid plan to access this feature"
+  },
   "auth": {
     "signIn": "Sign In",
     "signUp": "Sign Up",

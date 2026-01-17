@@ -50,6 +50,13 @@
       "daysAgo": "pred {days}d"
     }
   },
+  "premium": {
+    "upgradeToUnlock": "Upgradnite pre odomknutie",
+    "upgrade": "Upgrade",
+    "locked": "Pro",
+    "premiumFeature": "Prémiová funkcia",
+    "subscribeForMore": "Prihláste sa na platený plán pre prístup k tejto funkcii"
+  },
   "auth": {
     "signIn": "Prihlásiť sa",
     "signUp": "Registrovať sa",

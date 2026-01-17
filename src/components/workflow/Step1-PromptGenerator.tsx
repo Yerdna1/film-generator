@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSession } from 'next-auth/react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { generateMasterPrompt } from '@/lib/prompts/master-prompt';
 import type { Project } from '@/types/project';
@@ -25,6 +26,7 @@ const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'p
 
 export function Step1PromptGenerator({ project: initialProject, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
+  const { data: session } = useSession();
   const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants } = useProjectStore();
 
   // Get live project data from store, but prefer initialProject for full data
@@ -34,30 +36,78 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const hasFullData = storeProject?.story && typeof storeProject.story === 'object' && 'title' in storeProject.story;
   const project = hasFullData ? storeProject : initialProject;
 
+  // Subscription status - check if user has a paid plan
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
+
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      if (!session) {
+        setIsPremiumUser(false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/polar');
+        if (res.ok) {
+          const data = await res.json();
+          // Premium if plan is anything other than 'free'
+          const plan = data.subscription?.plan || 'free';
+          setIsPremiumUser(plan !== 'free');
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
+        setIsPremiumUser(false);
+      }
+    };
+    fetchSubscription();
+  }, [session]);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(project.masterPrompt || '');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
   // New state for additional options - initialize from project settings
+  // For free users, enforce defaults
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4'>(
     project.settings?.aspectRatio || '16:9'
   );
   const [videoLanguage, setVideoLanguage] = useState<typeof videoLanguages[number]>(
+    // Free users default to English
     project.settings?.voiceLanguage || 'en'
   );
   const [storyModel, setStoryModel] = useState<'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro'>(
-    project.settings?.storyModel || 'claude-sonnet-4.5'
+    // Free users use default model
+    project.settings?.storyModel || 'gemini-3-pro'
   );
   const [styleModel, setStyleModel] = useState(
     project.settings?.imageResolution === '4k' ? 'flux' : 'dall-e-3'
   );
   const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie'>(
+    // Free users use Gemini TTS
     project.settings?.voiceProvider || 'gemini-tts'
   );
   const [imageProvider, setImageProvider] = useState<'gemini' | 'modal' | 'modal-edit' | 'kie'>(
     (userConstants?.sceneImageProvider as 'gemini' | 'modal' | 'modal-edit' | 'kie' | undefined) || 'gemini'
   );
+
+  // Enforce free user defaults when subscription status changes
+  useEffect(() => {
+    if (!isPremiumUser) {
+      setVideoLanguage('en');
+      setStoryModel('gemini-3-pro');
+      setVoiceProvider('gemini-tts');
+      setStyleModel('gemini');
+      setImageProvider('gemini');
+      // Enforce Disney/Pixar style for free users
+      if (project.style !== 'disney-pixar') {
+        updateProject(project.id, { style: 'disney-pixar' });
+      }
+      // Enforce max 12 scenes for free users
+      if ((project.settings?.sceneCount || 12) > 12) {
+        updateSettings(project.id, { sceneCount: 12 });
+      }
+    }
+  }, [isPremiumUser, project.id, project.style, project.settings?.sceneCount, updateProject, updateSettings]);
 
   // Sync editedPrompt when masterPrompt changes
   useEffect(() => {
@@ -226,6 +276,7 @@ Format the output exactly like the base template but with richer, more detailed 
         <SettingsPanel
           project={project}
           isReadOnly={isReadOnly}
+          isPremiumUser={isPremiumUser}
           aspectRatio={aspectRatio}
           setAspectRatio={setAspectRatio}
           videoLanguage={videoLanguage}
