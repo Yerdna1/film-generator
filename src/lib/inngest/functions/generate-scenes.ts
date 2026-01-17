@@ -80,17 +80,17 @@ export const generateScenesBatch = inngest.createFunction(
     if (openRouterApiKey && userSelectedOpenRouterModel) {
       // Validate that the user's selected model is one of the supported models
       const supportedModels = [
-        'anthropic/claude-3-haiku',
-        'google/gemini-pro-1.5',
-        'anthropic/claude-3.5-sonnet',
-        'openai/gpt-4o',
-        'anthropic/claude-3-opus',
+        'google/gemma-3-27b-it:free',
+        'meta-llama/llama-3.1-8b-instruct:free',
+        'meta-llama/llama-3.2-3b-instruct:free',
+        'mistralai/mistral-7b-instruct:free',
+        'qwen/qwen-2-7b-instruct:free',
       ];
 
       if (supportedModels.includes(userSelectedOpenRouterModel)) {
         llmProvider = 'openrouter';
         llmModel = userSelectedOpenRouterModel;
-        console.log(`[Inngest Scenes] Using user-selected OpenRouter model: ${llmModel}`);
+        console.log(`[Inngest Scenes] Using user-selected FREE OpenRouter model: ${llmModel}`);
       } else {
         console.warn(`[Inngest Scenes] Unknown user-selected model: ${userSelectedOpenRouterModel}, falling back to default`);
       }
@@ -280,13 +280,21 @@ Return ONLY the JSON array.`;
             try { fs.unlinkSync(tmpFile); } catch { }
           }
         } else if (openRouterApiKey) {
-          fullResponse = await callOpenRouter(
-            openRouterApiKey,
-            systemPrompt,
-            prompt,
-            llmModel,
-            16384
-          );
+          try {
+            fullResponse = await callOpenRouter(
+              openRouterApiKey,
+              systemPrompt,
+              prompt,
+              llmModel,
+              16384
+            );
+          } catch (openRouterError: any) {
+            // Check if it's an insufficient credits error
+            if (openRouterError.message?.includes('Insufficient credits')) {
+              throw new Error(`OpenRouter API error: Your OpenRouter account has insufficient credits. Please add credits at https://openrouter.ai/settings/credits and try again.`);
+            }
+            throw openRouterError; // Re-throw other errors
+          }
         } else {
           throw new Error('No LLM provider available');
         }
