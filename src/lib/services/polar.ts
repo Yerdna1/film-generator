@@ -15,9 +15,9 @@ export const SUBSCRIPTION_PLANS = {
   free: {
     name: 'Free',
     price: 0,
-    credits: 150,
+    credits: 0, // Dynamically set from AppConfig.startingCredits in /api/polar
     description: 'Try out the app',
-    features: ['150 credits on signup', 'Basic features', 'Community support'],
+    features: ['Credits on signup', 'Basic features', 'Community support'], // Credits count set dynamically
   },
   starter: {
     name: 'Starter',

@@ -8,17 +8,35 @@ import {
   SUBSCRIPTION_PLANS,
   type PlanType,
 } from '@/lib/services/polar';
+import { getStartingCredits } from '@/lib/services/app-config';
 
 // GET - Get current subscription status (or just plans for non-authenticated users)
 export async function GET() {
   try {
     const session = await auth();
 
+    // Fetch admin-configured starting credits
+    const startingCredits = await getStartingCredits();
+
+    // Create dynamic plans with admin-configured free credits
+    const dynamicPlans = {
+      ...SUBSCRIPTION_PLANS,
+      free: {
+        ...SUBSCRIPTION_PLANS.free,
+        credits: startingCredits,
+        features: [
+          `${startingCredits} credits on signup`,
+          'Basic features',
+          'Community support',
+        ],
+      },
+    };
+
     // If not authenticated, just return plans (for pricing page visibility)
     if (!session?.user?.id) {
       return NextResponse.json({
         subscription: null,
-        plans: SUBSCRIPTION_PLANS,
+        plans: dynamicPlans,
       });
     }
 
@@ -26,7 +44,7 @@ export async function GET() {
 
     return NextResponse.json({
       subscription,
-      plans: SUBSCRIPTION_PLANS,
+      plans: dynamicPlans,
     });
   } catch (error) {
     console.error('Error getting subscription:', error);

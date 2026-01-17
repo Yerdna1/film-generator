@@ -4,9 +4,12 @@ import { useSession, signOut } from 'next-auth/react';
 import { Clock, LogOut, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function PendingApprovalPage() {
   const { data: session, status } = useSession();
+  const t = useTranslations('auth.pendingApproval');
+  const tAuth = useTranslations('auth');
 
   if (status === 'loading') {
     return (
@@ -31,10 +34,10 @@ export default function PendingApprovalPage() {
         {/* Title */}
         <div>
           <h1 className="text-2xl font-bold text-foreground mb-2">
-            Account Pending Approval
+            {t('title')}
           </h1>
           <p className="text-muted-foreground">
-            Thank you for registering! Your account is awaiting approval from an administrator.
+            {t('description')}
           </p>
         </div>
 
@@ -43,17 +46,16 @@ export default function PendingApprovalPage() {
           <div className="flex items-start gap-3">
             <Mail className="w-5 h-5 text-purple-500 mt-0.5" />
             <div>
-              <p className="font-medium text-foreground">What happens next?</p>
+              <p className="font-medium text-foreground">{t('whatNext')}</p>
               <p className="text-sm text-muted-foreground">
-                The administrator has been notified about your registration.
-                You'll receive an email once your account is approved.
+                {t('explanation')}
               </p>
             </div>
           </div>
 
           <div className="pt-2 border-t border-border/50">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Registered as:</span>{' '}
+              <span className="font-medium text-foreground">{t('registeredAs')}</span>{' '}
               {session?.user?.email}
             </p>
           </div>
@@ -66,7 +68,7 @@ export default function PendingApprovalPage() {
             onClick={() => window.location.reload()}
             className="w-full"
           >
-            Check Status
+            {t('checkStatus')}
           </Button>
           <Button
             variant="ghost"
@@ -74,7 +76,7 @@ export default function PendingApprovalPage() {
             className="w-full text-muted-foreground"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
+            {tAuth('signOut')}
           </Button>
         </div>
       </div>

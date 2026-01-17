@@ -66,7 +66,15 @@
     "welcomeBack": "Vitajte späť",
     "createAccount": "Vytvorte si účet",
     "signInDescription": "Prihláste sa pre prístup k vašim filmovým projektom",
-    "signUpDescription": "Začnite vytvárať úžasné filmy generované AI"
+    "signUpDescription": "Začnite vytvárať úžasné filmy generované AI",
+    "pendingApproval": {
+      "title": "Účet čaká na schválenie",
+      "description": "Ďakujeme za registráciu! Váš účet čaká na schválenie od administrátora.",
+      "whatNext": "Čo sa stane ďalej?",
+      "explanation": "Administrátor bol upozornený o vašej registrácii. Keď bude váš účet schválený, dostanete e-mail.",
+      "registeredAs": "Registrovaný ako:",
+      "checkStatus": "Skontrolovať stav"
+    }
   },
   "nav": {
     "dashboard": "Prehľad",
