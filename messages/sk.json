@@ -1324,6 +1324,7 @@
       "subscription": "Predplatné"
     },
     "providers": {
+      "openrouter": "OpenRouter",
       "gemini": "Google Gemini",
       "gemini-tts": "Gemini TTS",
       "elevenlabs": "ElevenLabs",

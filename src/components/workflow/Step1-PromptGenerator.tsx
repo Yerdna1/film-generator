@@ -12,8 +12,11 @@ import { StoryForm } from './step1/StoryForm';
 import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './step1/LoadingModal';
+import { ApiKeyModal } from './step1/ApiKeyModal';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
 import { storyPresets } from './step1/story-presets';
+import { useToast } from '@/hooks/use-toast';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface Step1Props {
   project: Project;
@@ -29,6 +32,7 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
   const t = useTranslations();
   const { data: session } = useSession();
   const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants } = useProjectStore();
+  const { toast } = useToast();
 
   // Get live project data from store, but prefer initialProject for full data
   // Store may contain summary data without settings/story details
@@ -62,10 +66,40 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
     fetchSubscription();
   }, [session]);
 
+  // Fetch user's API keys
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      if (!session) return;
+      try {
+        const res = await fetch('/api/user/api-keys');
+        if (res.ok) {
+          const data = await res.json();
+          setUserApiKeys({
+            hasOpenRouterKey: data.hasOpenRouterKey || false,
+            openRouterModel: data.openRouterModel || 'anthropic/claude-4.5-sonnet',
+            llmProvider: data.llmProvider || 'openrouter',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+      }
+    };
+    fetchApiKeys();
+  }, [session]);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(project.masterPrompt || '');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+
+  // API key modal state
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
+  const [userApiKeys, setUserApiKeys] = useState<{
+    hasOpenRouterKey: boolean;
+    openRouterModel: string;
+    llmProvider: string;
+  } | null>(null);
 
   // New state for additional options - initialize from project settings
   // For free users, enforce defaults
@@ -151,7 +185,17 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
     }
   }, [storyModel, project.id, updateSettings, isReadOnly]);
 
-  const handleGeneratePrompt = async () => {
+  const handleGeneratePrompt = async (skipApiKeyCheck = false) => {
+    // Check if user has OpenRouter API key configured (unless skipped)
+    if (!skipApiKeyCheck) {
+      const needsApiKey = !userApiKeys?.hasOpenRouterKey && userApiKeys?.llmProvider === 'openrouter';
+
+      if (needsApiKey) {
+        setIsApiKeyModalOpen(true);
+        return;
+      }
+    }
+
     setIsGenerating(true);
 
     // Get current settings from project (they should already be synced via useEffect)
@@ -180,12 +224,23 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
       // Small delay to ensure all settings are saved
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // Map storyModel to actual OpenRouter model ID (for premium users)
+      const storyModelMapping: Record<string, string> = {
+        'gpt-4': 'openai/gpt-4-turbo',
+        'claude-sonnet-4.5': 'anthropic/claude-sonnet-4.5',
+        'gemini-3-pro': 'google/gemini-2.0-flash-exp:free', // Map to free Gemini model
+      };
+
+      // For premium users, use the mapped storyModel
+      // For free users who just entered key, the backend will use their saved openRouterModel
+      const modelToUse = isPremiumUser ? storyModelMapping[storyModel] : undefined;
+
       // Try to enhance with user's configured LLM provider
       const response = await fetch('/api/llm/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: storyModel, // Use the model selected in left panel
+          ...(modelToUse && { model: modelToUse }), // Pass model for premium users
           prompt: `Based on the following story concept and settings, enhance and expand this prompt for generating a ${currentSettings.sceneCount}-scene animated short film.
 
 Story Title: ${project.story.title}
@@ -227,6 +282,13 @@ Format the output exactly like the base template but with richer, more detailed 
           // Dispatch credits update event
           window.dispatchEvent(new CustomEvent('credits-updated'));
           setIsGenerating(false);
+
+          // Show success toast
+          toast({
+            title: "Master Prompt Generated Successfully",
+            description: `Enhanced via ${data.provider}. ${data.creditsUsed} credits used.`,
+          });
+
           console.log(`Master prompt enhanced via ${data.provider}, ${data.creditsUsed} credits used`);
           return;
         }
@@ -236,6 +298,14 @@ Format the output exactly like the base template but with richer, more detailed 
       if (response.status === 402) {
         const errorData = await response.json();
         console.warn('Insufficient credits for AI enhancement:', errorData);
+
+        // Show warning toast
+        toast({
+          title: "Insufficient Credits",
+          description: "Using local generation instead. Upgrade your plan for AI enhancement.",
+          variant: "destructive",
+        });
+
         // Fall back to local generation (free)
       }
 
@@ -243,11 +313,24 @@ Format the output exactly like the base template but with richer, more detailed 
       console.warn('Using local generation (no credits deducted)');
       setMasterPrompt(project.id, basePrompt);
       setEditedPrompt(basePrompt);
+
+      // Show fallback toast
+      toast({
+        title: "Prompt Generated (Local)",
+        description: "Base prompt created without AI enhancement.",
+      });
     } catch (error) {
       console.error('Error generating prompt:', error);
       // Fallback to local generation with current settings (reuse basePrompt)
       setMasterPrompt(project.id, basePrompt);
       setEditedPrompt(basePrompt);
+
+      // Show error toast
+      toast({
+        title: "Generation Failed",
+        description: "Using local fallback. Check your connection.",
+        variant: "destructive",
+      });
     }
 
     setIsGenerating(false);
@@ -256,6 +339,56 @@ Format the output exactly like the base template but with richer, more detailed 
   const handleSaveEditedPrompt = () => {
     setMasterPrompt(project.id, editedPrompt);
     setIsEditing(false);
+  };
+
+  const handleSaveApiKey = async (apiKey: string, model: string): Promise<void> => {
+    setIsSavingApiKey(true);
+
+    try {
+      // Save the API key and selected model
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          openRouterApiKey: apiKey,
+          openRouterModel: model,
+          llmProvider: 'openrouter',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save API key');
+      }
+
+      // Update local state immediately
+      setUserApiKeys(prev => prev ? { ...prev, hasOpenRouterKey: true, openRouterModel: model } : null);
+
+      // Show success toast for API key save
+      toast({
+        title: "API Key Saved",
+        description: "Generating your master prompt...",
+      });
+
+      // Close modal
+      setIsApiKeyModalOpen(false);
+
+      // Small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Now proceed with generation (skip API key check since we just saved it)
+      await handleGeneratePrompt(true);
+    } catch (error) {
+      // Show error toast
+      toast({
+        title: "Failed to Save API Key",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+      throw error; // Re-throw to let the modal handle it
+    } finally {
+      setIsSavingApiKey(false);
+    }
   };
 
   const handleApplyPreset = async (preset: typeof storyPresets[0]) => {
@@ -340,6 +473,14 @@ Format the output exactly like the base template but with richer, more detailed 
 
       {/* Loading Modal */}
       <LoadingModal isOpen={isGenerating} />
+
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onSave={handleSaveApiKey}
+        isLoading={isSavingApiKey}
+      />
     </div>
   );
 }
