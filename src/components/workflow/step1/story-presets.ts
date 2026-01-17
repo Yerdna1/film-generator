@@ -1,13 +1,19 @@
 import { Film, Camera, Sparkles, Wand2 } from 'lucide-react';
-import type { StoryConfig } from '@/types/project';
+import type { StoryConfig, StylePreset } from '@/types/project';
 
 export interface StoryPreset {
   id: string;
   title: string;
+  labelKey: string;
+  descriptionKey: string;
   description: string;
+  storyTitleKey: string;
+  settingKey: string;
+  conceptKey: string;
   icon: any;
   iconBg: string;
   iconColor: string;
+  style: StylePreset;
   story: Partial<StoryConfig>;
 }
 
@@ -16,10 +22,16 @@ export const storyPresets: StoryPreset[] = [
   {
     id: 'disney-magical-creatures',
     title: 'Magical Creatures',
+    labelKey: 'presets.magicalCreatures.title',
+    descriptionKey: 'presets.magicalCreatures.description',
     description: 'Heartwarming Disney/Pixar adventure with cute magical creatures',
+    storyTitleKey: 'presets.magicalCreatures.storyTitle',
+    settingKey: 'presets.magicalCreatures.setting',
+    conceptKey: 'presets.magicalCreatures.concept',
     icon: Sparkles,
     iconBg: 'bg-blue-500/20',
     iconColor: 'text-blue-500',
+    style: 'disney-pixar',
     story: {
       title: 'The Lost Spirit',
       genre: 'family',
@@ -31,10 +43,16 @@ export const storyPresets: StoryPreset[] = [
   {
     id: 'disney-underdog-hero',
     title: 'Underdog Hero',
+    labelKey: 'presets.underdogHero.title',
+    descriptionKey: 'presets.underdogHero.description',
     description: 'Inspiring Disney/Pixar story about following your dreams',
+    storyTitleKey: 'presets.underdogHero.storyTitle',
+    settingKey: 'presets.underdogHero.setting',
+    conceptKey: 'presets.underdogHero.concept',
     icon: Wand2,
     iconBg: 'bg-purple-500/20',
     iconColor: 'text-purple-500',
+    style: 'disney-pixar',
     story: {
       title: 'Dream Big',
       genre: 'family',
@@ -48,10 +66,16 @@ export const storyPresets: StoryPreset[] = [
   {
     id: 'anime-spirit-world',
     title: 'Spirit World',
+    labelKey: 'presets.spiritWorld.title',
+    descriptionKey: 'presets.spiritWorld.description',
     description: 'Anime fantasy adventure in mystical Japan',
+    storyTitleKey: 'presets.spiritWorld.storyTitle',
+    settingKey: 'presets.spiritWorld.setting',
+    conceptKey: 'presets.spiritWorld.concept',
     icon: Film,
     iconBg: 'bg-pink-500/20',
     iconColor: 'text-pink-500',
+    style: 'anime',
     story: {
       title: 'Spirit Hunter',
       genre: 'fantasy',
@@ -63,10 +87,16 @@ export const storyPresets: StoryPreset[] = [
   {
     id: 'anime-mecha-academy',
     title: 'Mecha Academy',
+    labelKey: 'presets.mechaAcademy.title',
+    descriptionKey: 'presets.mechaAcademy.description',
     description: 'Anime sci-fi action with giant robots and school rivalry',
+    storyTitleKey: 'presets.mechaAcademy.storyTitle',
+    settingKey: 'presets.mechaAcademy.setting',
+    conceptKey: 'presets.mechaAcademy.concept',
     icon: Sparkles,
     iconBg: 'bg-cyan-500/20',
     iconColor: 'text-cyan-500',
+    style: 'anime',
     story: {
       title: 'Iron Academy',
       genre: 'scifi',
@@ -80,10 +110,16 @@ export const storyPresets: StoryPreset[] = [
   {
     id: 'realistic-noir-thriller',
     title: 'Noir Thriller',
+    labelKey: 'presets.noirThriller.title',
+    descriptionKey: 'presets.noirThriller.description',
     description: 'Gritty detective story in noir style',
+    storyTitleKey: 'presets.noirThriller.storyTitle',
+    settingKey: 'presets.noirThriller.setting',
+    conceptKey: 'presets.noirThriller.concept',
     icon: Camera,
     iconBg: 'bg-gray-500/20',
     iconColor: 'text-gray-500',
+    style: 'realistic',
     story: {
       title: 'Shadows in the Rain',
       genre: 'mystery',
@@ -95,10 +131,16 @@ export const storyPresets: StoryPreset[] = [
   {
     id: 'realistic-drama-redemption',
     title: 'Redemption Story',
+    labelKey: 'presets.redemptionStory.title',
+    descriptionKey: 'presets.redemptionStory.description',
     description: 'Character-driven drama about second chances',
+    storyTitleKey: 'presets.redemptionStory.storyTitle',
+    settingKey: 'presets.redemptionStory.setting',
+    conceptKey: 'presets.redemptionStory.concept',
     icon: Film,
     iconBg: 'bg-amber-500/20',
     iconColor: 'text-amber-500',
+    style: 'realistic',
     story: {
       title: 'The Long Way Home',
       genre: 'drama',

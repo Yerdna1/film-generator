@@ -261,8 +261,11 @@ Format the output exactly like the base template but with richer, more detailed 
     setSelectedPresetId(preset.id);
     updateStory(project.id, preset.story);
 
-    // Sync project name with story title
-    updateProject(project.id, { name: preset.story.title });
+    // Sync project name with story title and style
+    updateProject(project.id, {
+      name: preset.story.title,
+      style: preset.style
+    });
 
     // Auto-generate the master prompt
     await handleGeneratePrompt();
@@ -318,6 +321,7 @@ Format the output exactly like the base template but with richer, more detailed 
             selectedPresetId={selectedPresetId}
             onApplyPreset={handleApplyPreset}
             isReadOnly={isReadOnly}
+            isPremiumUser={isPremiumUser}
           />
 
           <MasterPromptSection

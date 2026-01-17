@@ -123,6 +123,51 @@
       "voiceGenerationDesc": "Pridajte hlasové komentáre v slovenčine a angličtine s AI hlasmi"
     }
   },
+  "presets": {
+    "title": "Predpripravené Príbehy",
+    "magicalCreatures": {
+      "title": "Čarovné Stvorenia",
+      "description": "Dojímavé Disney/Pixar dobrodružstvo s roztomilými čarovnými stvoreniami",
+      "storyTitle": "Stratený Duch",
+      "setting": "Začarovaný les so žiariacimi stvoreniami, magickými vodopádmi a lietajúcimi lampiónmi",
+      "concept": "Osamelé mladé dievča objaví malého strateného ducha, ktorý spadol zo sveta duchov. Spoločne sa vydajú na cestu cez magický les plný priateľských stvorení, aby vrátili ducha domov skôr, než sa portál navždy uzavrie, pričom sa učia o priateľstve a odvahe."
+    },
+    "underdogHero": {
+      "title": "Hrdina z Ľudu",
+      "description": "Inšpiratívny Disney/Pixar príbeh o plnení snov",
+      "storyTitle": "Snívaj vo Veľkom",
+      "setting": "Moderné mesto s rušnými štvrťami, malou rodinnou reštauráciou a športovou arénou",
+      "concept": "Mladý snílek z ťažko skúšanej rodiny imigrantov chce súťažiť v prestížnej talentovej šou, ale čelí odmietnutiu a pochybnostiam. S pomocou svojráznych priateľov a nečakaných mentorov dokážu, že vášeň a srdce sú dôležitejšie ako pôvod alebo vzhľad."
+    },
+    "spiritWorld": {
+      "title": "Svet Duchov",
+      "description": "Anime fantasy dobrodružstvo v mystickom Japonsku",
+      "storyTitle": "Lovec Duchov",
+      "setting": "Moderné Tokio so skrytými svätyňami duchov, starobylými japonskými chrámami a mystickou lesnou ríšou",
+      "concept": "Neochotný tínedžer zdedí schopnosť vidieť duchov a musí chrániť ľudský svet pred pomstychtivými Yokai. Vycvičený tajomnou kňažkou odhalí sprisahanie hroziace spojením sveta duchov a ľudí, čo vedie k epickej bitke v centre Tokia."
+    },
+    "mechaAcademy": {
+      "title": "Mecha Akadémia",
+      "description": "Anime sci-fi akcia s obrovskými robotmi a školskou rivalitou",
+      "storyTitle": "Železná Akadémia",
+      "setting": "Futuristická vojenská akadémia vo vesmíre, masívne tréningové priestory pre mecha robotov, orbitálne stanice",
+      "concept": "Na elitnej vesmírnej akadémii, kde študenti pilotujú obrovské mecha roboty na obranu proti mimozemským hrozbám, musí talentovaný, ale bezohľadný kadet viesť tím outsiderov proti inváznej mimozemskej flotile. Keď sa odhalia tajomstvá o skutočnom účele akadémie, musia si vybrať medzi povinnosťou a pravdou."
+    },
+    "noirThriller": {
+      "title": "Noir Thriller",
+      "description": "Drsný detektívny príbeh v noir štýle",
+      "storyTitle": "Tiene v Daždi",
+      "setting": "Dažďom zmáčané ulice mesta, neónové nápisy, detektívna kancelária zo 40. rokov, zafajčené jazzové kluby",
+      "concept": "Rozčarovaný detektív vyšetruje vraždu záhadnej ženy, ktorá ho navštívila predošlú noc s tvrdením, že jej život je v ohrození. Keď odkrýva vrstvy korupcie v podsvetí mesta, zisťuje, že vrahom je niekto z jeho vlastnej minulosti, čo ho núti čeliť pochovaným tajomstvám."
+    },
+    "redemptionStory": {
+      "title": "Príbeh Vykúpenia",
+      "description": "Príbehová dráma o druhých šanciach",
+      "storyTitle": "Dlhá Cesta Domov",
+      "setting": "Malé pobrežné mestečko, ošľahaná rybárska loď, miestna reštaurácia, jesenná krajina",
+      "concept": "Bývalý trestanec sa po 15 rokoch vo väzení vracia do rodného mesta, hľadajúc vykúpenie a obnovenie vzťahu s dcérou, ktorá ho nepozná. Pracujúc ako rybár po boku svojho odcudzeného otca musí čeliť chybám svojej minulosti, zatiaľ čo komunita má problém odpustiť."
+    }
+  },
   "project": {
     "newProject": "Nový projekt",
     "projectName": "Názov projektu",

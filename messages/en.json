@@ -123,6 +123,51 @@
       "voiceGenerationDesc": "Add voiceovers in Slovak and English with AI voices"
     }
   },
+  "presets": {
+    "title": "Preset Stories",
+    "magicalCreatures": {
+      "title": "Magical Creatures",
+      "description": "Heartwarming Disney/Pixar adventure with cute magical creatures",
+      "storyTitle": "The Lost Spirit",
+      "setting": "Enchanted forest with glowing creatures, magical waterfalls, floating lanterns",
+      "concept": "A lonely young girl discovers a tiny lost spirit who has fallen from the spirit realm. Together they embark on a journey through a magical forest filled with friendly creatures to return the spirit home before the portal closes forever, learning about friendship and courage along the way."
+    },
+    "underdogHero": {
+      "title": "Underdog Hero",
+      "description": "Inspiring Disney/Pixar story about following your dreams",
+      "storyTitle": "Dream Big",
+      "setting": "Modern city with vibrant neighborhoods, a small family restaurant, sports arena",
+      "concept": "A young dreamer from a struggling immigrant family wants to compete in a prestigious talent show but faces rejection and doubt. With the help of quirky friends and unexpected mentors, they prove that passion and heart matter more than background or appearance."
+    },
+    "spiritWorld": {
+      "title": "Spirit World",
+      "description": "Anime fantasy adventure in mystical Japan",
+      "storyTitle": "Spirit Hunter",
+      "setting": "Modern Tokyo with hidden spirit shrines, ancient Japanese temples, mystical forest realm",
+      "concept": "A reluctant teenager inherits the ability to see spirits and must protect the human world from vengeful Yokai seeking revenge. Trained by a mysterious shrine maiden, they uncover a conspiracy that threatens to merge the spirit and human worlds, leading to an epic battle in downtown Tokyo."
+    },
+    "mechaAcademy": {
+      "title": "Mecha Academy",
+      "description": "Anime sci-fi action with giant robots and school rivalry",
+      "storyTitle": "Iron Academy",
+      "setting": "Futuristic military academy in space, massive mecha training grounds, orbital stations",
+      "concept": "At an elite space academy where students pilot giant mechs to defend against alien threats, a talented but reckless cadet must lead a team of misfits against an invading alien fleet. As secrets about the academy's true purpose unravel, they must choose between duty and the truth."
+    },
+    "noirThriller": {
+      "title": "Noir Thriller",
+      "description": "Gritty detective story in noir style",
+      "storyTitle": "Shadows in the Rain",
+      "setting": "Rain-soaked city streets, neon signs, 1940s detective office, smoky jazz clubs",
+      "concept": "A disillusioned detective investigates the murder of a mysterious woman who visited them the night before, claiming her life was in danger. As they peel back layers of corruption in the city's underworld, they realize the killer is someone from their own past, forcing a confrontation with buried secrets."
+    },
+    "redemptionStory": {
+      "title": "Redemption Story",
+      "description": "Character-driven drama about second chances",
+      "storyTitle": "The Long Way Home",
+      "setting": "Small coastal town, weathered fishing boat, local diner, autumn landscapes",
+      "concept": "A former convict returns to their hometown after 15 years in prison, seeking redemption and reconnection with a daughter who doesn't know them. Working as a fisherman alongside their estranged father, they must confront the mistakes of their past while the community struggles to forgive."
+    }
+  },
   "project": {
     "newProject": "New Project",
     "projectName": "Project Name",
