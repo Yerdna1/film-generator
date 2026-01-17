@@ -58,8 +58,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Registration error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to register user' },
+      { error: 'Failed to register user', details: errorMessage },
       { status: 500 }
     );
   }
