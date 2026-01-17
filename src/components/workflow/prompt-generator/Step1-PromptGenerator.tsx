@@ -147,30 +147,42 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
             image: { ...modelConfig.image, sceneAspectRatio: ratio },
           })}
           videoLanguage={modelConfig.tts.defaultLanguage || 'en'}
-          setVideoLanguage={(lang: string) => handleModelConfigChange({
-            ...modelConfig,
-            tts: { ...modelConfig.tts, defaultLanguage: lang },
-          })}
-          storyModel={modelConfig.llm.model}
-          setStoryModel={(model) => handleModelConfigChange({
-            ...modelConfig,
-            llm: { ...modelConfig.llm, model },
-          })}
+          setVideoLanguage={(lang: any) => {
+            const newLang = typeof lang === 'function' ? lang(modelConfig.tts.defaultLanguage || 'en') : lang;
+            handleModelConfigChange({
+              ...modelConfig,
+              tts: { ...modelConfig.tts, defaultLanguage: newLang as any },
+            });
+          }}
+          storyModel={modelConfig.llm.model as any}
+          setStoryModel={(model) => {
+            const newModel = typeof model === 'function' ? model(modelConfig.llm.model as any) : model;
+            handleModelConfigChange({
+              ...modelConfig,
+              llm: { ...modelConfig.llm, model: newModel },
+            });
+          }}
           styleModel={'gemini'}
-          setStyleModel={() => {}}
+          setStyleModel={() => { }}
           imageProvider={modelConfig.image.provider}
-          setImageProvider={(provider) => handleModelConfigChange({
-            ...modelConfig,
-            image: { ...modelConfig.image, provider },
-          })}
+          setImageProvider={(provider) => {
+            const newProvider = typeof provider === 'function' ? provider(modelConfig.image.provider as any) : provider;
+            handleModelConfigChange({
+              ...modelConfig,
+              image: { ...modelConfig.image, provider: newProvider as any },
+            });
+          }}
           voiceProvider={modelConfig.tts.provider}
-          setVoiceProvider={(provider) => handleModelConfigChange({
-            ...modelConfig,
-            tts: { ...modelConfig.tts, provider },
-          })}
+          setVoiceProvider={(provider: any) => {
+            const newProvider = typeof provider === 'function' ? provider(modelConfig.tts.provider) : provider;
+            handleModelConfigChange({
+              ...modelConfig,
+              tts: { ...modelConfig.tts, provider: newProvider as any },
+            });
+          }}
           updateProject={updateProject}
-          updateSettings={() => {}}
-          updateUserConstants={() => {}}
+          updateSettings={() => { }}
+          updateUserConstants={() => { }}
           sceneOptions={sceneOptions}
           storyModels={[]}
           styleModels={[]}
