@@ -1297,7 +1297,7 @@
     "howCreditsWork": "Ako fungujú kredity?",
     "howCreditsWorkAnswer": "Kredity sa používajú na AI generovanie: obrázky, videá, hlasové komentáre a ďalšie. Každá operácia stojí určitý počet kreditov v závislosti od zložitosti.",
     "creditsRollOver": "Prenášajú sa nevyužité kredity?",
-    "creditsRollOverAnswer": "Áno! Vaše kredity nikdy nevypršia. Všetky nevyužité kredity z mesačnej alokácie zostávajú na vašom účte.",
+    "creditsRollOverAnswer": "Nie. Kredity sa resetujú na začiatku každého nového mesiaca. Nevyužité kredity z predchádzajúceho mesiaca prepadajú.",
     "canCancelAnytime": "Môžem kedykoľvek zrušiť?",
     "canCancelAnytimeAnswer": "Áno, predplatné môžete kedykoľvek zrušiť. Prístup vám zostane do konca fakturačného obdobia.",
     "paymentMethods": "Aké platobné metódy prijímate?",

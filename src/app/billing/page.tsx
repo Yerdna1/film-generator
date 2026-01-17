@@ -146,11 +146,10 @@ export default function BillingPage() {
                 <p className="text-sm text-muted-foreground">{t('billing.currentPlan')}</p>
                 <p className="font-semibold">{subscriptionData.subscription.planDetails.name}</p>
               </div>
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                subscriptionData.subscription.status === 'active'
+              <div className={`px-3 py-1 rounded-full text-sm font-medium ${subscriptionData.subscription.status === 'active'
                   ? 'bg-green-500/20 text-green-400'
                   : 'bg-muted text-muted-foreground'
-              }`}>
+                }`}>
                 {subscriptionData.subscription.status === 'active' ? t('billing.active') : t('billing.free')}
               </div>
             </div>
@@ -197,12 +196,6 @@ export default function BillingPage() {
               <h3 className="font-medium">{t('billing.howCreditsWork')}</h3>
               <p className="text-sm text-muted-foreground">
                 {t('billing.howCreditsWorkAnswer')}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-medium">{t('billing.creditsRollOver')}</h3>
-              <p className="text-sm text-muted-foreground">
-                {t('billing.creditsRollOverAnswer')}
               </p>
             </div>
             <div>

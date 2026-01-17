@@ -194,6 +194,7 @@ export async function activateSubscription(
 
 /**
  * Handle subscription renewal (called from webhook)
+ * Credits are reset to 0 and new monthly credits are added (no rollover)
  */
 export async function renewSubscription(
   userId: string,
@@ -211,14 +212,24 @@ export async function renewSubscription(
     data: { currentPeriodEnd },
   });
 
-  // Add monthly credits
+  // Reset credits to 0 and add new monthly credits (no rollover)
   const planConfig = SUBSCRIPTION_PLANS[subscription.plan as PlanType];
   if (planConfig && planConfig.credits > 0) {
+    // Reset balance to 0 first
+    await prisma.credits.updateMany({
+      where: { userId },
+      data: {
+        balance: 0,
+        lastUpdated: new Date(),
+      },
+    });
+
+    // Add fresh monthly credits
     await addCredits(
       userId,
       planConfig.credits,
       'subscription_renewal',
-      `${planConfig.name} plan renewal`
+      `${planConfig.name} plan renewal (monthly reset)`
     );
   }
 }

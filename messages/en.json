@@ -1297,7 +1297,7 @@
     "howCreditsWork": "How do credits work?",
     "howCreditsWorkAnswer": "Credits are used for AI generation: images, videos, voiceovers, and more. Each operation costs a certain amount of credits based on complexity.",
     "creditsRollOver": "Do unused credits roll over?",
-    "creditsRollOverAnswer": "Yes! Your credits never expire. Any unused credits from your monthly allocation remain in your account.",
+    "creditsRollOverAnswer": "No. Credits reset at the beginning of each new month. Unused credits from the previous month do not carry over.",
     "canCancelAnytime": "Can I cancel anytime?",
     "canCancelAnytimeAnswer": "Yes, you can cancel your subscription at any time. You'll keep access until the end of your billing period.",
     "paymentMethods": "What payment methods are accepted?",
