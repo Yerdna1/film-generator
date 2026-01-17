@@ -444,7 +444,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         }}
         onUseAppCredits={handleUseAppCredits}
         creditsNeeded={ACTION_COSTS.video.grok * (pendingVideoGeneration?.scenes?.length || 1)}
-        currentCredits={creditsData?.credits?.balance ?? 0}
+        currentCredits={undefined}
         generationType="video"
       />
 

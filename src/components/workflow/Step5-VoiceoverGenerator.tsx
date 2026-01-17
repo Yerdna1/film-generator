@@ -603,7 +603,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         }}
         onUseAppCredits={handleUseAppCredits}
         creditsNeeded={ACTION_COSTS.voiceover.elevenlabs * (pendingVoiceoverGeneration?.type === 'all' ? (allDialogueLines.length || 1) : 1)}
-        currentCredits={creditsData?.credits?.balance ?? 0}
+        currentCredits={undefined}
         generationType="audio"
       />
 
