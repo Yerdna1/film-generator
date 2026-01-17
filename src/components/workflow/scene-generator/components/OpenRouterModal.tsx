@@ -29,43 +29,43 @@ interface OpenRouterModelConfig {
   features?: string[];
 }
 
-// Affordable OpenRouter models for free users (sorted by price)
+// FREE OpenRouter models for free users (sorted by quality)
 const OPENROUTER_MODELS: OpenRouterModelConfig[] = [
   {
-    id: 'anthropic/claude-3-haiku',
-    name: 'Claude 3 Haiku',
-    description: 'Fastest and most affordable Claude model',
-    costPerScene: 1,      // ~$0.002 per scene
-    usdCost: 0.002,
-  },
-  {
-    id: 'google/gemini-pro-1.5',
-    name: 'Gemini Pro 1.5',
-    description: 'Google\'s fast and capable model',
-    costPerScene: 2,      // ~$0.005 per scene
-    usdCost: 0.005,
-  },
-  {
-    id: 'anthropic/claude-3.5-sonnet',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Best balance of quality and speed',
-    costPerScene: 4,      // ~$0.01 per scene
-    usdCost: 0.01,
+    id: 'google/gemma-3-27b-it:free',
+    name: 'Gemma 3 27B (FREE)',
+    description: 'Google\'s capable open model, completely free',
+    costPerScene: 0,      // FREE
+    usdCost: 0,
     recommended: true,
   },
   {
-    id: 'openai/gpt-4o',
-    name: 'GPT-4o',
-    description: 'OpenAI\'s latest flagship model',
-    costPerScene: 4,      // ~$0.01 per scene
-    usdCost: 0.01,
+    id: 'meta-llama/llama-3.1-8b-instruct:free',
+    name: 'Llama 3.1 8B (FREE)',
+    description: 'Meta\'s efficient open model',
+    costPerScene: 0,      // FREE
+    usdCost: 0,
   },
   {
-    id: 'anthropic/claude-3-opus',
-    name: 'Claude 3 Opus',
-    description: 'Highest quality Claude model',
-    costPerScene: 6,      // ~$0.015 per scene
-    usdCost: 0.015,
+    id: 'meta-llama/llama-3.2-3b-instruct:free',
+    name: 'Llama 3.2 3B (FREE)',
+    description: 'Fastest lightweight model',
+    costPerScene: 0,      // FREE
+    usdCost: 0,
+  },
+  {
+    id: 'mistralai/mistral-7b-instruct:free',
+    name: 'Mistral 7B (FREE)',
+    description: 'Mistral\'s capable open model',
+    costPerScene: 0,      // FREE
+    usdCost: 0,
+  },
+  {
+    id: 'qwen/qwen-2-7b-instruct:free',
+    name: 'Qwen 2 7B (FREE)',
+    description: 'Alibaba\'s efficient model',
+    costPerScene: 0,      // FREE
+    usdCost: 0,
   },
 ];
 
@@ -88,7 +88,7 @@ export function OpenRouterModal({
 }: OpenRouterModalProps) {
   const t = useTranslations();
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState(OPENROUTER_MODELS[2].id); // Default to Claude 3.5 Sonnet (recommended)
+  const [selectedModel, setSelectedModel] = useState(OPENROUTER_MODELS[0].id); // Default to Gemma 3 27B (free, recommended)
   const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState('');
 
@@ -138,10 +138,10 @@ export function OpenRouterModal({
           {/* Title */}
           <div className="text-center space-y-2">
             <h3 className="text-xl font-semibold text-foreground">
-              Vygenerujte scény s vlastným kľúčom
+              Vygenerujte scény ZADARMO s vlastným kľúčom
             </h3>
             <p className="text-sm text-muted-foreground">
-              Generovanie {sceneCount} scén pomocou vášho OpenRouter API kľúča.
+              Generovanie {sceneCount} scén pomocou vášho OpenRouter API kľúča s <span className="text-green-400 font-semibold">BEZPLATNÝMI</span> modelmi.
             </p>
             {creditsNeeded && (
               <p className="text-xs text-amber-400">
@@ -160,6 +160,9 @@ export function OpenRouterModal({
               <li>Vytvorte bezplatný účet alebo sa prihláste</li>
               <li>Skopírujte váš API kľúč z dashboardu</li>
             </ol>
+            <p className="text-xs text-green-400 mt-2">
+              ✅ Všetky modely v tomto zozname sú úplne ZADARMO! Nepotrebujete žiadne kredity.
+            </p>
           </div>
 
           {/* Form */}
@@ -186,21 +189,21 @@ export function OpenRouterModal({
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{model.costPerScene} credits/scene</span>
+                            <span className="text-green-400 font-semibold">ZADARMO</span>
                             <span>•</span>
-                            <span>${model.usdCost.toFixed(3)}/scene</span>
+                            <span>{model.description}</span>
                           </div>
-                          {model.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
-                          )}
                         </div>
                       </SelectItem>
                     );
                   })}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-green-400 font-semibold">
+                ✅ Úplne zadarmo - žiadne náklady ({sceneCount} scén)
+              </p>
               <p className="text-xs text-muted-foreground">
-                Total cost: <span className="text-blue-400 font-semibold">{totalCost} credits ({sceneCount} scenes)</span>
+                Používate BEZPLATNÉ modely z OpenRouter
               </p>
             </div>
 
@@ -264,10 +267,10 @@ export function OpenRouterModal({
           </form>
 
           {/* Info about credits */}
-          <div className="glass rounded-lg p-3 border border-blue-500/20">
+          <div className="glass rounded-lg p-3 border border-green-500/20">
             <p className="text-xs text-muted-foreground text-center">
-              <FileText className="w-3 h-3 inline mr-1 text-blue-400" />
-              Scény sa vygenerujú pomocou vášho OpenRouter kreditu
+              <FileText className="w-3 h-3 inline mr-1 text-green-400" />
+              Scény sa vygenerujú <span className="text-green-400 font-semibold">ZADARMO</span> pomocou OpenRouter
             </p>
           </div>
         </div>
