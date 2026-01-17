@@ -7,10 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Info, Sparkles, Image, Video, Mic, Music } from 'lucide-react';
+import { Info, Sparkles, Image, Video, Mic, Music, Check, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { UnifiedModelConfig, ApiConfig, LLMProvider, ImageProvider, VideoProvider, TTSProvider, MusicProvider, AspectRatio, ImageResolution, Resolution } from '@/types/project';
 import { useApiKeys } from '@/hooks/use-api-keys';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface ModelConfigurationPanelProps {
   modelConfig?: UnifiedModelConfig;
@@ -119,9 +122,62 @@ const MUSIC_MODELS = {
   ],
 };
 
+// Helper component for API Key Input within the panel
+function ApiKeyInput({
+  provider,
+  apiKeyName,
+  hasKey,
+  onSave
+}: {
+  provider: string;
+  apiKeyName: string;
+  hasKey: boolean;
+  onSave: (keyName: string, value: string) => Promise<void>;
+}) {
+  const [value, setValue] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const t = useTranslations();
+
+  const handleSave = async () => {
+    if (!value.trim()) return;
+    setIsSaving(true);
+    await onSave(apiKeyName, value);
+    setValue('');
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="mt-2 p-3 bg-muted/30 rounded-md border border-border/50">
+      <div className="flex items-center justify-between mb-2">
+        <Label className="text-xs font-medium text-muted-foreground">
+          {hasKey ? t('step1.modelConfiguration.apiKeySet') : t('step1.modelConfiguration.apiKeyRequired')}
+        </Label>
+        {hasKey && <Badge variant="outline" className="text-[10px] text-green-600 border-green-200 bg-green-50">Active</Badge>}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          type="password"
+          placeholder={hasKey ? "••••••••••••••••" : `Enter ${provider} API Key`}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="h-8 text-sm"
+        />
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={!value.trim() || isSaving}
+          className="h-8 px-3"
+        >
+          {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled = false }: ModelConfigurationPanelProps) {
   const t = useTranslations();
-  const { data: apiKeysData, isLoading } = useApiKeys();
+  const { data: apiKeysData, mutate } = useApiKeys(); // Get mutate to refresh keys
   const [config, setConfig] = useState<UnifiedModelConfig>(modelConfig || DEFAULT_CONFIG);
 
   const updateConfig = (updates: Partial<UnifiedModelConfig>) => {
@@ -162,9 +218,27 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
 
   const getProviderBadge = (provider: string, hasKey: boolean) => {
     if (!hasKey && provider !== 'gemini' && provider !== 'gemini-tts') {
-      return <Badge variant="outline" className="ml-2 text-xs">API Key Required</Badge>;
+      return <Badge variant="outline" className="ml-2 text-xs text-amber-600 border-amber-200 bg-amber-50">Key Needed</Badge>;
     }
     return null;
+  };
+
+  const handleSaveApiKey = async (keyName: string, value: string) => {
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [keyName]: value }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save API key');
+
+      toast.success(t('step1.modelConfiguration.keySaved'));
+      mutate(); // Refresh key status
+    } catch (error) {
+      toast.error(t('step1.modelConfiguration.keySaveFailed'));
+      console.error(error);
+    }
   };
 
   return (
@@ -209,7 +283,7 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
           </TabsList>
 
           {/* LLM Configuration */}
-          <TabsContent value="llm" className="space-y-4">
+          <TabsContent value="llm" className="space-y-4 pt-4">
             <div className="grid gap-4">
               <div>
                 <Label>{t('step1.modelConfiguration.llm.provider')}</Label>
@@ -227,10 +301,28 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
                       {getProviderBadge('openrouter', !!apiKeysData?.hasOpenRouterKey)}
                     </SelectItem>
                     <SelectItem value="gemini">Gemini (Free)</SelectItem>
-                    <SelectItem value="claude-sdk">Claude SDK</SelectItem>
+                    <SelectItem value="claude-sdk">Claude SDK {getProviderBadge('claude-sdk', !!apiKeysData?.hasClaudeKey)}</SelectItem>
                     <SelectItem value="modal">Modal (Self-hosted)</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* API Key Inputs for LLM */}
+                {config.llm.provider === 'openrouter' && (
+                  <ApiKeyInput
+                    provider="OpenRouter"
+                    apiKeyName="openRouterApiKey"
+                    hasKey={!!apiKeysData?.hasOpenRouterKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
+                {config.llm.provider === 'claude-sdk' && (
+                  <ApiKeyInput
+                    provider="Anthropic"
+                    apiKeyName="claudeApiKey"
+                    hasKey={!!apiKeysData?.hasClaudeKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
               </div>
 
               <div>
@@ -261,7 +353,7 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
           </TabsContent>
 
           {/* Image Configuration */}
-          <TabsContent value="image" className="space-y-4">
+          <TabsContent value="image" className="space-y-4 pt-4">
             <div className="grid gap-4">
               <div>
                 <Label>{t('step1.modelConfiguration.image.provider')}</Label>
@@ -283,6 +375,16 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
                     <SelectItem value="modal-edit">Modal Edit</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* API Key Inputs for Image */}
+                {config.image.provider === 'kie' && (
+                  <ApiKeyInput
+                    provider="KIE.ai"
+                    apiKeyName="kieApiKey"
+                    hasKey={!!apiKeysData?.hasKieKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
               </div>
 
               {config.image.provider === 'kie' && (
@@ -375,7 +477,7 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
           </TabsContent>
 
           {/* Video Configuration */}
-          <TabsContent value="video" className="space-y-4">
+          <TabsContent value="video" className="space-y-4 pt-4">
             <div className="grid gap-4">
               <div>
                 <Label>{t('step1.modelConfiguration.video.provider')}</Label>
@@ -395,6 +497,16 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
                     <SelectItem value="modal">Modal (Self-hosted)</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* API Key Inputs for Video */}
+                {config.video.provider === 'kie' && (
+                  <ApiKeyInput
+                    provider="KIE.ai"
+                    apiKeyName="kieApiKey"
+                    hasKey={!!apiKeysData?.hasKieKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
               </div>
 
               {config.video.provider === 'kie' && (
@@ -442,7 +554,7 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
           </TabsContent>
 
           {/* Voice Configuration */}
-          <TabsContent value="voice" className="space-y-4">
+          <TabsContent value="voice" className="space-y-4 pt-4">
             <div className="grid gap-4">
               <div>
                 <Label>{t('step1.modelConfiguration.voice.provider')}</Label>
@@ -471,6 +583,32 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
                     <SelectItem value="modal">Modal (Self-hosted)</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* API Key Inputs for Voice */}
+                {config.tts.provider === 'elevenlabs' && (
+                  <ApiKeyInput
+                    provider="ElevenLabs"
+                    apiKeyName="elevenLabsApiKey"
+                    hasKey={!!apiKeysData?.hasElevenLabsKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
+                {config.tts.provider === 'openai-tts' && (
+                  <ApiKeyInput
+                    provider="OpenAI"
+                    apiKeyName="openaiApiKey"
+                    hasKey={!!apiKeysData?.hasOpenAIKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
+                {config.tts.provider === 'kie' && (
+                  <ApiKeyInput
+                    provider="KIE.ai"
+                    apiKeyName="kieApiKey"
+                    hasKey={!!apiKeysData?.hasKieKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
               </div>
 
               {config.tts.provider === 'kie' && (
@@ -528,7 +666,7 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
           </TabsContent>
 
           {/* Music Configuration */}
-          <TabsContent value="music" className="space-y-4">
+          <TabsContent value="music" className="space-y-4 pt-4">
             <div className="grid gap-4">
               <div>
                 <Label>{t('step1.modelConfiguration.music.provider')}</Label>
@@ -556,6 +694,32 @@ export function ModelConfigurationPanel({ modelConfig, onConfigChange, disabled 
                     <SelectItem value="modal">Modal (Self-hosted)</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* API Key Inputs for Music */}
+                {config.music.provider === 'piapi' && (
+                  <ApiKeyInput
+                    provider="PiAPI"
+                    apiKeyName="piapiApiKey"
+                    hasKey={!!apiKeysData?.hasPiApiKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
+                {config.music.provider === 'suno' && (
+                  <ApiKeyInput
+                    provider="Suno"
+                    apiKeyName="sunoApiKey"
+                    hasKey={!!apiKeysData?.hasSunoKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
+                {config.music.provider === 'kie' && (
+                  <ApiKeyInput
+                    provider="KIE.ai"
+                    apiKeyName="kieApiKey"
+                    hasKey={!!apiKeysData?.hasKieKey}
+                    onSave={handleSaveApiKey}
+                  />
+                )}
               </div>
 
               {config.music.provider === 'kie' && (

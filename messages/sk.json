@@ -261,7 +261,11 @@
         "model": "Model hudby"
       },
       "tooltip": "Tieto nastavenia budú použité vo všetkých krokoch postupu",
-      "info": "Nakonfigurujte vaše preferované AI modely pre každý typ generovania. Bezplatné možnosti sú dostupné pre začiatok."
+      "info": "Nakonfigurujte vaše preferované AI modely pre každý typ generovania. Bezplatné možnosti sú dostupné pre začiatok.",
+      "apiKeySet": "API kľúč aktívny",
+      "apiKeyRequired": "Vyžaduje sa API kľúč",
+      "keySaved": "API kľúč úspešne uložený",
+      "keySaveFailed": "Nepodarilo sa uložiť API kľúč"
     }
   },
   "steps": {

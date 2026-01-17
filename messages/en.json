@@ -261,7 +261,11 @@
         "model": "Music Model"
       },
       "tooltip": "These settings will be used across all workflow steps",
-      "info": "Configure your preferred AI models for each generation type. Free options are available for getting started."
+      "info": "Configure your preferred AI models for each generation type. Free options are available for getting started.",
+      "apiKeySet": "API Key Active",
+      "apiKeyRequired": "API Key Required",
+      "keySaved": "API Key saved successfully",
+      "keySaveFailed": "Failed to save API Key"
     }
   },
   "steps": {

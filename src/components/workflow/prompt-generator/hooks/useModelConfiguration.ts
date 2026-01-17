@@ -102,6 +102,55 @@ export function useModelConfiguration({
     }
   }, [isPremiumUser, isReadOnly, project.id, project.style, project.settings?.sceneCount, updateModelConfig, updateProject, updateSettings]);
 
+  // Function to save user preferences globally
+  const saveUserPreferences = useCallback(async (newConfig: UnifiedModelConfig) => {
+    try {
+      const payload: any = {
+        llmProvider: newConfig.llm.provider,
+        imageProvider: newConfig.image.provider,
+        videoProvider: newConfig.video.provider,
+        ttsProvider: newConfig.tts.provider,
+        musicProvider: newConfig.music.provider,
+      };
+
+      // Map specific models if applicable
+      if (newConfig.llm.provider === 'openrouter') {
+        payload.openRouterModel = newConfig.llm.model;
+      }
+
+      if (newConfig.image.provider === 'kie') {
+        payload.kieImageModel = newConfig.image.model;
+      }
+
+      if (newConfig.video.provider === 'kie') {
+        payload.kieVideoModel = newConfig.video.model;
+      }
+
+      if (newConfig.tts.provider === 'kie') {
+        payload.kieTtsModel = newConfig.tts.model;
+      }
+
+      if (newConfig.music.provider === 'kie') {
+        payload.kieMusicModel = newConfig.music.model; // Use kieMusicModel for consistency (though DB field is just kieMusicModel if generic?)
+      }
+
+      // Map Modal Endpoints
+      if (newConfig.llm.modalEndpoint) payload.modalLlmEndpoint = newConfig.llm.modalEndpoint;
+      if (newConfig.image.modalEndpoint) payload.modalImageEndpoint = newConfig.image.modalEndpoint;
+      if (newConfig.video.modalEndpoint) payload.modalVideoEndpoint = newConfig.video.modalEndpoint;
+      if (newConfig.tts.modalEndpoint) payload.modalTtsEndpoint = newConfig.tts.modalEndpoint;
+      if (newConfig.music.modalEndpoint) payload.modalMusicEndpoint = newConfig.music.modalEndpoint;
+
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      console.error('Failed to save user preferences', error);
+    }
+  }, []);
+
   const handleModelConfigChange = useCallback(
     (newConfig: UnifiedModelConfig) => {
       if (!isReadOnly && project.id) {
@@ -116,9 +165,12 @@ export function useModelConfiguration({
           voiceLanguage: newConfig.tts.defaultLanguage as 'sk' | 'en',
           voiceProvider: newConfig.tts.provider,
         });
+
+        // Save as user preference
+        saveUserPreferences(newConfig);
       }
     },
-    [isReadOnly, project.id, updateModelConfig, updateSettings]
+    [isReadOnly, project.id, updateModelConfig, updateSettings, saveUserPreferences]
   );
 
   return {
