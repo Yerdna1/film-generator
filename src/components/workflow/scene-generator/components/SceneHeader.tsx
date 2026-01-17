@@ -44,6 +44,7 @@ const IMAGE_PROVIDER_LABELS: Record<ImageProvider, string> = {
   gemini: 'Gemini',
   modal: 'Modal Qwen',
   'modal-edit': 'Qwen-Edit',
+  kie: 'Kie.ai',
 };
 
 export function SceneHeader({

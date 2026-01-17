@@ -213,9 +213,18 @@ export async function upsertActionCost(
   validFrom?: Date,
   validTo?: Date | null
 ): Promise<ActionCostRecord> {
+  const whereClause = {
+    actionType,
+    provider,
+    model: null,
+    modality: null,
+    quality: null,
+    length: null,
+  } as any;
+
   const record = await prisma.actionCost.upsert({
     where: {
-      actionType_provider: { actionType, provider },
+      actionType_provider_model_modality_quality_length: whereClause,
     },
     update: {
       cost,
@@ -294,12 +303,18 @@ export async function seedPricingData(): Promise<void> {
   ];
 
   for (const item of pricingData) {
+    const whereClause = {
+      actionType: item.actionType,
+      provider: item.provider,
+      model: null,
+      modality: null,
+      quality: null,
+      length: null,
+    } as any;
+
     await prisma.actionCost.upsert({
       where: {
-        actionType_provider: {
-          actionType: item.actionType,
-          provider: item.provider
-        },
+        actionType_provider_model_modality_quality_length: whereClause,
       },
       update: {
         cost: item.cost,

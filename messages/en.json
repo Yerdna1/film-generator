@@ -903,6 +903,7 @@
       "musicProviderChanged": "Music Provider Updated",
       "musicProviderPiAPI": "Using PiAPI for music generation",
       "musicProviderSuno": "Using Suno for music generation",
+      "musicProviderKie": "Using Kie.ai for music generation",
       "musicProviderModal": "Using ACE-Step on Modal.com for music",
       "ttsProviderChanged": "TTS Provider Updated",
       "ttsProviderGemini": "Using Gemini TTS for voiceovers",

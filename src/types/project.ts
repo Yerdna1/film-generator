@@ -91,7 +91,7 @@ export interface StoryConfig {
 // Audio version for a specific provider + language combination
 export interface AudioVersion {
   audioUrl: string;
-  provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
+  provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie';
   language: VoiceLanguage;
   voiceId?: string;
   voiceName?: string;
@@ -108,7 +108,7 @@ export interface DialogueLine {
   // Primary audio (for backwards compatibility and current selection)
   audioUrl?: string;
   audioDuration?: number;
-  ttsProvider?: 'elevenlabs' | 'gemini-tts' | 'modal' | 'openai-tts';
+  ttsProvider?: 'elevenlabs' | 'gemini-tts' | 'modal' | 'openai-tts' | 'kie';
   // All generated audio versions (provider + language combinations)
   audioVersions?: AudioVersion[];
 }

@@ -303,6 +303,7 @@ export function useSettings() {
     const descriptions: Record<MusicProvider, string> = {
       'piapi': tPage('toasts.musicProviderPiAPI') || 'Using PiAPI for music generation',
       'suno': tPage('toasts.musicProviderSuno') || 'Using Suno AI for music generation',
+      'kie': tPage('toasts.musicProviderKie') || 'Using Kie.ai for music generation',
       'modal': tPage('toasts.musicProviderModal') || 'Using ACE-Step on Modal.com for music',
     };
     toast.success(

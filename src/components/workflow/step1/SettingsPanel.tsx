@@ -24,8 +24,8 @@ interface SettingsPanelProps {
   setStyleModel: (model: string) => void;
   imageProvider: 'gemini' | 'modal' | 'modal-edit' | 'kie';
   setImageProvider: Dispatch<SetStateAction<'gemini' | 'modal' | 'modal-edit' | 'kie'>>;
-  voiceProvider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
-  setVoiceProvider: (provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts') => void;
+  voiceProvider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie';
+  setVoiceProvider: (provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie') => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   updateSettings: (id: string, settings: any) => void;
   updateUserConstants: (constants: any) => void;
@@ -33,7 +33,7 @@ interface SettingsPanelProps {
   storyModels: readonly string[];
   styleModels: readonly string[];
   videoLanguages: readonly string[];
-  voiceProviders: Array<{ id: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts'; label: string }>;
+  voiceProviders: Array<{ id: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie'; label: string }>;
   genres: readonly string[];
   tones: readonly string[];
 }

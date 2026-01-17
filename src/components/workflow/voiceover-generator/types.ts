@@ -69,7 +69,7 @@ export const OPENAI_VOICES: VoiceOption[] = [
 // Returns null if no valid voice is configured for this provider
 export const getVoiceForProvider = (
   voiceId: string | undefined,
-  provider: 'gemini-tts' | 'elevenlabs' | 'openai-tts' | 'modal'
+  provider: 'gemini-tts' | 'elevenlabs' | 'openai-tts' | 'modal' | 'kie'
 ): string | null => {
   if (!voiceId) return null;
 
@@ -87,6 +87,10 @@ export const getVoiceForProvider = (
     // Modal accepts any voice name
     return voiceId;
   }
+  if (provider === 'kie') {
+    // Kie accepts any voice name
+    return voiceId;
+  }
 
   return null;
 };
@@ -98,6 +102,7 @@ export const getProviderDisplayName = (provider: string): string => {
     'elevenlabs': 'ElevenLabs',
     'openai-tts': 'OpenAI TTS',
     'modal': 'Modal TTS',
+    'kie': 'Kie.ai TTS',
   };
   return names[provider] || provider;
 };

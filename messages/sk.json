@@ -903,6 +903,7 @@
       "musicProviderChanged": "Poskytovateľ hudby aktualizovaný",
       "musicProviderPiAPI": "Používa sa PiAPI pre generovanie hudby",
       "musicProviderSuno": "Používa sa Suno pre generovanie hudby",
+      "musicProviderKie": "Používa sa Kie.ai pre generovanie hudby",
       "musicProviderModal": "Používa sa ACE-Step na Modal.com pre hudbu",
       "ttsProviderChanged": "TTS Poskytovateľ aktualizovaný",
       "ttsProviderGemini": "Používa sa Gemini TTS pre hlasové komentáre",

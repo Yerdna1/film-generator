@@ -52,7 +52,7 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const [styleModel, setStyleModel] = useState(
     project.settings?.imageResolution === '4k' ? 'flux' : 'dall-e-3'
   );
-  const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts'>(
+  const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie'>(
     project.settings?.voiceProvider || 'gemini-tts'
   );
   const [imageProvider, setImageProvider] = useState<'gemini' | 'modal' | 'modal-edit' | 'kie'>(

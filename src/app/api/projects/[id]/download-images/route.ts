@@ -112,12 +112,12 @@ export async function GET(
     console.log('[Download API] Generating ZIP buffer...');
 
     // Generate ZIP buffer
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
 
     console.log(`[Download API] ZIP created: ${(zipBuffer.length / 1024 / 1024).toFixed(2)} MB`);
 
     // Return ZIP file as response
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(zipBuffer as BodyInit, {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="scene-images-${id.slice(0, 8)}.zip"`,
