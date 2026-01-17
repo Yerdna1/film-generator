@@ -575,7 +575,7 @@
       "apiKeys": "What API keys do I need?",
       "apiKeysAnswer": "For full functionality, you need: Google Gemini API key (text, images, Slovak TTS), Kie.ai API key (video generation via Grok Imagine), and optionally ElevenLabs API key (English voiceover). You can use the app without API keys in manual mode by copying prompts.",
       "credits": "How do credits work?",
-      "creditsAnswer": "Each generation costs credits: Images cost 5 credits, Videos cost 20 credits, Voiceover lines cost 2 credits, and Scene generations cost 1 credit. New users start with 500 credits.",
+      "creditsAnswer": "Each generation costs credits depending on the type and complexity of the operation. The number of starting credits depends on your plan.",
       "slowMotion": "Why are my videos in slow motion?",
       "slowMotionAnswer": "Grok Imagine automatically determines movement speed based on your prompt. Add words like \"dynamic motion\", \"quick movement\", or \"energetic\" to your Image-to-Video prompts for faster motion.",
       "noDialogue": "Why is there no dialogue audio in my videos?",
@@ -587,11 +587,11 @@
       "capcut": "How do I import into CapCut?",
       "capcutAnswer": "Export your project from Step 6, then import the videos and audio files into CapCut. Arrange them on the timeline according to the scene order. The export includes a timeline preview to help you organize.",
       "dataStorage": "Is my data stored online?",
-      "dataStorageAnswer": "By default, all data is stored locally in your browser. API keys never leave your device. You can optionally sign in to enable cloud sync across devices.",
+      "dataStorageAnswer": "Your data is securely stored in our cloud database. You can export it as a backup at any time.",
       "languages": "What languages are supported?",
-      "languagesAnswer": "The app interface is available in English and Slovak. For voiceovers, ElevenLabs supports English voices, while Gemini TTS supports Slovak voices.",
+      "languagesAnswer": "The app interface is available in English and Slovak.",
       "moreCredits": "How do I get more credits?",
-      "moreCreditsAnswer": "Credits are currently provided for free during the beta period. In the future, you may be able to purchase additional credits or earn them through referrals."
+      "moreCreditsAnswer": "You can get more credits by upgrading to a paid plan (Starter, Pro, or Studio). Each plan provides a monthly credit allocation."
     },
     "collaboration": {
       "title": "Collaboration Guide",

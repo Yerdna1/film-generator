@@ -575,7 +575,7 @@
       "apiKeys": "Aké API kľúče potrebujem?",
       "apiKeysAnswer": "Pre plnú funkčnosť potrebujete: Google Gemini API kľúč (text, obrázky, slovenský TTS), Kie.ai API kľúč (generovanie videa cez Grok Imagine) a voliteľne ElevenLabs API kľúč (anglický hlasový komentár). Aplikáciu môžete používať bez API kľúčov v manuálnom režime kopírovaním promptov.",
       "credits": "Ako fungujú kredity?",
-      "creditsAnswer": "Každé generovanie stojí kredity: Obrázky stoja 5 kreditov, Videá stoja 20 kreditov, Riadky hlasového komentára stoja 2 kredity a Generovanie scén stojí 1 kredit. Noví používatelia začínajú s 500 kreditmi.",
+      "creditsAnswer": "Každé generovanie stojí kredity v závislosti od typu a zložitosti operácie. Počet začiatočných kreditov závisí od vášho plánu.",
       "slowMotion": "Prečo sú moje videá v spomalenom zábere?",
       "slowMotionAnswer": "Grok Imagine automaticky určuje rýchlosť pohybu podľa vášho promptu. Pridajte slová ako \"dynamický pohyb\", \"rýchly pohyb\" alebo \"energický\" do vašich Image-to-Video promptov pre rýchlejší pohyb.",
       "noDialogue": "Prečo vo videách nie je dialógový zvuk?",
@@ -587,11 +587,11 @@
       "capcut": "Ako importujem do CapCut?",
       "capcutAnswer": "Exportujte projekt z kroku 6, potom importujte videá a zvukové súbory do CapCut. Usporiadajte ich na časovej osi podľa poradia scén. Export obsahuje náhľad časovej osi pre uľahčenie organizácie.",
       "dataStorage": "Sú moje dáta uložené online?",
-      "dataStorageAnswer": "Štandardne sú všetky dáta uložené lokálne vo vašom prehliadači. API kľúče nikdy neopúšťajú vaše zariadenie. Voliteľne sa môžete prihlásiť pre cloudovú synchronizáciu medzi zariadeniami.",
+      "dataStorageAnswer": "Vaše dáta sú bezpečne uložené v našej cloudovej databáze. Môžete si ich kedykoľvek exportovať ako zálohu.",
       "languages": "Aké jazyky sú podporované?",
-      "languagesAnswer": "Rozhranie aplikácie je dostupné v angličtine a slovenčine. Pre hlasový komentár ElevenLabs podporuje anglické hlasy, zatiaľ čo Gemini TTS podporuje slovenské hlasy.",
+      "languagesAnswer": "Rozhranie aplikácie je dostupné v angličtine a slovenčine.",
       "moreCredits": "Ako získam viac kreditov?",
-      "moreCreditsAnswer": "Kredity sú momentálne poskytované zadarmo počas beta obdobia. V budúcnosti budete môcť zakúpiť ďalšie kredity alebo ich získať cez odporúčania."
+      "moreCreditsAnswer": "Viac kreditov získate upgradovaním na platený plán (Starter, Pro alebo Štúdio). Každý plán poskytuje mesačnú alokáciu kreditov."
     },
     "collaboration": {
       "title": "Príručka spolupráce",
