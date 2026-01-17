@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Copy, RefreshCw, Sparkles, Square, ChevronDown } from 'lucide-react';
+import { Copy, RefreshCw, Sparkles, Square, ChevronDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
 import { formatCostCompact, getImageCost, type ImageResolution } from '@/lib/services/real-costs';
+import type { Scene } from '@/types/project';
+import { toast } from 'sonner';
 
 interface QuickActionsProps {
   totalScenes: number;
@@ -41,6 +43,8 @@ interface QuickActionsProps {
   onClearSelection?: () => void;
   onRegenerateSelected?: () => void;
   onRequestRegeneration?: () => void;
+  // Download props
+  projectId: string;
 }
 
 // Batch size options
@@ -62,6 +66,7 @@ export function QuickActions({
   onClearSelection,
   onRegenerateSelected,
   onRequestRegeneration,
+  projectId,
 }: QuickActionsProps) {
   const t = useTranslations();
   const remainingImages = totalScenes - scenesWithImages;
@@ -69,6 +74,53 @@ export function QuickActions({
 
   // Confirmation dialog for generate all
   const [showGenerateAllConfirm, setShowGenerateAllConfirm] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Handle download all images and prompts via server API
+  const handleDownloadAll = async () => {
+    setIsDownloading(true);
+    toast.info(`Preparing download for ${scenesWithImages} images... This may take a moment for large files.`);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/download-images`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to download images');
+      }
+
+      // Get the blob from response
+      const blob = await response.blob();
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'scene-images.zip';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Download complete! ZIP file with images and prompts has been downloaded.');
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to download images and prompts');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleGenerateAllClick = () => {
     if (remainingImages > 5) {
@@ -132,6 +184,20 @@ export function QuickActions({
           <span className="hidden sm:inline">Copy Prompts for Gemini</span>
           <Badge variant="outline" className="hidden sm:inline-flex ml-2 border-purple-500/30 text-purple-400 text-[10px] px-1.5 py-0">
             FREE
+          </Badge>
+        </Button>
+
+        {/* Download All Button */}
+        <Button
+          variant="outline"
+          className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+          disabled={scenesWithImages === 0 || isDownloading}
+          onClick={handleDownloadAll}
+        >
+          <Download className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">{isDownloading ? 'Downloading...' : 'Download All'}</span>
+          <Badge variant="outline" className="hidden sm:inline-flex ml-2 border-blue-500/30 text-blue-400 text-[10px] px-1.5 py-0">
+            {scenesWithImages}
           </Badge>
         </Button>
 

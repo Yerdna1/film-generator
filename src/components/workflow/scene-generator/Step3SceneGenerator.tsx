@@ -410,6 +410,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
           onClearSelection={clearSelection}
           onRegenerateSelected={handleRegenerateSelected}
           onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
+          projectId={project.id}
         />
       )}
 
