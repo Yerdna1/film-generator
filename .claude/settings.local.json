@@ -81,7 +81,8 @@
       "WebFetch(domain:docs.kie.ai)",
       "WebFetch(domain:kie.ai)",
       "Bash(npx prisma migrate dev:*)",
-      "Bash(npm run db:migrate:*)"
+      "Bash(npm run db:migrate:*)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_0c5LeAwahPry@ep-hidden-meadow-ag73hwfb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require\" npx tsx:*)"
     ]
   }
 }

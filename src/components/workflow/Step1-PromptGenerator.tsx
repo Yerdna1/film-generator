@@ -19,12 +19,13 @@ interface Step1Props {
   project: Project;
   permissions?: ProjectPermissions | null;
   userRole?: ProjectRole | null;
+  userGlobalRole?: string;
   isReadOnly?: boolean;
 }
 
 const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh'] as const;
 
-export function Step1PromptGenerator({ project: initialProject, isReadOnly = false }: Step1Props) {
+export function Step1PromptGenerator({ project: initialProject, userGlobalRole, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
   const { data: session } = useSession();
   const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants } = useProjectStore();
@@ -327,6 +328,7 @@ Format the output exactly like the base template but with richer, more detailed 
           <MasterPromptSection
             project={project}
             isReadOnly={isReadOnly}
+            userGlobalRole={userGlobalRole}
             isEditing={isEditing}
             editedPrompt={editedPrompt}
             setIsEditing={setIsEditing}

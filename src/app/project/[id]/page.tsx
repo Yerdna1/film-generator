@@ -193,6 +193,7 @@ export default function ProjectWorkspacePage() {
   // Get user from session
   const user = session?.user;
   const isAdmin = user?.email === 'andrej.galad@gmail.com';
+  const userGlobalRole = user?.role; // Global role from User table ('user' | 'admin')
 
   // Use subscription hook
   const { plan: subscriptionPlan } = useSubscription({ enabled: !!user });
@@ -423,6 +424,7 @@ export default function ProjectWorkspacePage() {
       project,
       permissions,
       userRole,
+      userGlobalRole,
       isReadOnly,
       isAuthenticated,
     };

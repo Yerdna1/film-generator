@@ -10,6 +10,7 @@ import type { Project } from '@/types/project';
 interface MasterPromptSectionProps {
   project: Project;
   isReadOnly: boolean;
+  userGlobalRole?: string;
   isEditing: boolean;
   editedPrompt: string;
   setIsEditing: (editing: boolean) => void;
@@ -20,6 +21,7 @@ interface MasterPromptSectionProps {
 export function MasterPromptSection({
   project,
   isReadOnly,
+  userGlobalRole,
   isEditing,
   editedPrompt,
   setIsEditing,
@@ -27,6 +29,11 @@ export function MasterPromptSection({
   onSaveEditedPrompt,
 }: MasterPromptSectionProps) {
   const t = useTranslations();
+
+  // Only show master prompt to users with admin role in User table
+  if (userGlobalRole !== 'admin') {
+    return null;
+  }
 
   return (
     <div>
