@@ -422,40 +422,10 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       if (pendingSceneGeneration) {
         if (pendingSceneGeneration.type === 'single' && pendingSceneGeneration.scene) {
           const scene = pendingSceneGeneration.scene;
-          const apiResponse = await fetch('/api/image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt: scene.textToImagePrompt,
-              aspectRatio: sceneAspectRatio,
-              resolution: imageResolution,
-              imageProvider: 'kie',
-              projectId: project.id,
-              sceneId: scene.id,
-              skipCreditCheck: true,
-            }),
-          });
-
-          if (apiResponse.ok) {
-            const data = await apiResponse.json();
-            if (data.imageUrl) {
-              await updateScene(project.id, scene.id, { imageUrl: data.imageUrl });
-              toast.success('Image Generated', {
-                description: `Scene ${scene.number || ''} image saved`,
-              });
-            }
-          } else {
-            const error = await apiResponse.json();
-            const errorMessage = error.error || 'Failed to generate image';
-            if (errorMessage.includes('exceeded the total limit') || errorMessage.includes('points used')) {
-              toast.error('KIE AI Credits Exhausted', {
-                description: 'Your KIE AI account has run out of credits. Please top up at kie.ai to continue generating images.',
-                duration: 8000,
-              });
-            } else {
-              toast.error('Generation Failed', { description: errorMessage });
-            }
-          }
+          await handleGenerateSceneImage(scene, true); // Pass skipCreditCheck=true
+        } else if (pendingSceneGeneration.type === 'all' && pendingSceneGeneration.scenes) {
+          // Generate all images using KIE key (skip credit check)
+          await handleGenerateAllSceneImages(true);
         }
         setPendingSceneGeneration(null);
       }

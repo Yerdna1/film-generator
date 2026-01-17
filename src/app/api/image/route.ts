@@ -302,8 +302,25 @@ async function generateWithKie(
     const createData = await createResponse.json();
 
     if (!createResponse.ok || createData.code !== 200) {
-      const errorMsg = createData.msg || createData.message || 'Failed to create KIE image task';
-      console.error('[KIE] Task creation failed:', errorMsg);
+      const errorMsg = createData.msg || createData.message || createData.error || 'Failed to create KIE image task';
+      console.error('[KIE] Task creation failed:', {
+        status: createResponse.status,
+        code: createData.code,
+        msg: createData.msg,
+        message: createData.message,
+        fullResponse: createData,
+      });
+
+      // Provide helpful error messages
+      if (errorMsg.includes('access') || errorMsg.includes('permission') || errorMsg.includes('unauthorized')) {
+        throw new Error(`KIE AI access denied: Your API key may not have access to model "${modelId}". Please check your KIE AI account permissions and try a different model.`);
+      }
+      if (errorMsg.includes('credit') || errorMsg.includes('balance') || errorMsg.includes('insufficient')) {
+        throw new Error(`KIE AI credits exhausted: Your KIE AI account has run out of credits. Please top up at kie.ai to continue generating images.`);
+      }
+      if (errorMsg.includes('key') || errorMsg.includes('auth') || errorMsg.includes('token')) {
+        throw new Error(`KIE AI authentication failed: Your API key appears to be invalid. Please check your API key in Settings.`);
+      }
       throw new Error(`KIE AI image generation failed: ${errorMsg}`);
     }
 

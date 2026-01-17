@@ -9,8 +9,8 @@ interface ImageGenerationHookResult {
   isGeneratingAllImages: boolean;
   generatingImageForScene: string | null;
   failedScenes: number[];
-  handleGenerateSceneImage: (scene: Scene) => Promise<void>;
-  handleGenerateAllSceneImages: () => Promise<void>;
+  handleGenerateSceneImage: (scene: Scene, skipCreditCheck?: boolean) => Promise<void>;
+  handleGenerateAllSceneImages: (skipCreditCheck?: boolean) => Promise<void>;
   handleStopImageGeneration: () => void;
   handleRegenerateAllImages: () => Promise<void>;
   handleRegenerateSelected: (selectedScenes: Set<string>, setSelectedScenes: (setter: (prev: Set<string>) => Set<string>) => void) => Promise<void>;
@@ -46,7 +46,7 @@ export function useImageGeneration(
   }, []);
 
   // Generate image for a single scene with retry logic
-  const handleGenerateSceneImage = useCallback(async (scene: Scene) => {
+  const handleGenerateSceneImage = useCallback(async (scene: Scene, skipCreditCheck = false) => {
     if (!scene.textToImagePrompt?.trim()) {
       alert('This scene has no prompt. Please regenerate the prompt first or edit the scene.');
       return;
@@ -78,6 +78,7 @@ export function useImageGeneration(
             referenceImages,
             isRegeneration,
             sceneId: scene.id,
+            skipCreditCheck, // Skip credit check when user provides own API key
           }),
         },
         MAX_RETRIES
@@ -114,7 +115,7 @@ export function useImageGeneration(
   }, [project, sceneAspectRatio, imageResolution, handleApiResponse, updateScene]);
 
   // Generate all scene images with retry logic and visibility handling
-  const handleGenerateAllSceneImages = useCallback(async () => {
+  const handleGenerateAllSceneImages = useCallback(async (skipCreditCheck = false) => {
     if (isGeneratingAllImages) {
       console.log('Generation already in progress, ignoring duplicate call');
       return;
@@ -145,7 +146,7 @@ export function useImageGeneration(
         }
 
         setGeneratingImageForScene(scene.id);
-        console.log(`[Scene ${scene.number}] Starting image generation... (tab visible: ${isVisibleRef.current})`);
+        console.log(`[Scene ${scene.number}] Starting image generation... (tab visible: ${isVisibleRef.current}, skipCreditCheck: ${skipCreditCheck})`);
 
         try {
           const response = await fetchWithRetry(
@@ -161,6 +162,7 @@ export function useImageGeneration(
                 referenceImages,
                 isRegeneration: false, // These are all new generations (scenes without images)
                 sceneId: scene.id,
+                skipCreditCheck, // Skip credit check when user provides own API key
               }),
             },
             MAX_RETRIES

@@ -103,6 +103,9 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
             <p className="text-xs text-amber-400 mt-2">
               ⚠️ Make sure your KIE AI account has credits before generating
             </p>
+            <p className="text-xs text-blue-400 mt-1">
+              💡 Verify your account has access to the selected model. Some models require specific permissions.
+            </p>
           </div>
 
           {/* Form */}
