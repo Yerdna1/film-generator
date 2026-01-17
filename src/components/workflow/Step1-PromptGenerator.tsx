@@ -55,8 +55,8 @@ export function Step1PromptGenerator({ project: initialProject, isReadOnly = fal
   const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts'>(
     project.settings?.voiceProvider || 'gemini-tts'
   );
-  const [imageProvider, setImageProvider] = useState<'gemini' | 'modal' | 'modal-edit'>(
-    (userConstants?.sceneImageProvider as 'gemini' | 'modal' | 'modal-edit' | undefined) || 'gemini'
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'modal' | 'modal-edit' | 'kie'>(
+    (userConstants?.sceneImageProvider as 'gemini' | 'modal' | 'modal-edit' | 'kie' | undefined) || 'gemini'
   );
 
   // Sync editedPrompt when masterPrompt changes

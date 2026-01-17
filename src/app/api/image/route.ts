@@ -252,6 +252,175 @@ async function generateWithModal(
   return { imageUrl, cost: realCost, storage: imageUrl.startsWith('data:') ? 'base64' : 's3' };
 }
 
+// Generate image using KIE AI with model support
+async function generateWithKie(
+  prompt: string,
+  aspectRatio: string,
+  resolution: ImageResolution,
+  projectId: string | undefined,
+  kieApiKey: string,
+  modelId: string,
+  creditUserId: string | undefined,
+  realCostUserId: string | undefined,
+  isRegeneration: boolean = false,
+  sceneId?: string
+): Promise<{ imageUrl: string; cost: number; storage: string }> {
+  console.log(`[KIE] Generating image with model: ${modelId}`);
+
+  // Import KIE model configs
+  const { getKieModelById, formatKiePrice } = await import('@/lib/constants/kie-models');
+  const modelConfig = getKieModelById(modelId, 'image');
+
+  if (!modelConfig) {
+    throw new Error(`Invalid KIE image model: ${modelId}`);
+  }
+
+  console.log(`[KIE] Using model: ${modelConfig.name} - ${formatKiePrice(modelConfig.credits)}`);
+
+  try {
+    // KIE AI unified task creation endpoint
+    const KIE_API_URL = 'https://api.kie.ai';
+    const createResponse = await fetch(`${KIE_API_URL}/api/v1/jobs/createTask`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${kieApiKey}`,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        input: {
+          prompt: prompt,
+          aspect_ratio: aspectRatio,
+          // Model-specific parameters can be added here based on modelId
+          ...(modelId.includes('ideogram') && { render_text: true }),
+          ...(modelId.includes('flux') && { guidance_scale: 7.5 }),
+        },
+      }),
+    });
+
+    const createData = await createResponse.json();
+
+    if (!createResponse.ok || createData.code !== 200) {
+      const errorMsg = createData.msg || createData.message || 'Failed to create KIE image task';
+      console.error('[KIE] Task creation failed:', errorMsg);
+      throw new Error(`KIE AI image generation failed: ${errorMsg}`);
+    }
+
+    const taskId = createData.data?.taskId;
+    if (!taskId) {
+      throw new Error('KIE AI did not return a task ID');
+    }
+
+    console.log(`[KIE] Task created: ${taskId}, polling for completion...`);
+
+    // Poll for task completion
+    const maxPolls = 60; // 2 minutes max (2s intervals)
+    let imageUrl: string | undefined;
+    let failMessage: string | undefined;
+
+    for (let i = 0; i < maxPolls; i++) {
+      // Wait before polling (except first iteration)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      const statusResponse = await fetch(
+        `${KIE_API_URL}/api/v1/jobs/recordInfo?taskId=${taskId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${kieApiKey}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      const statusData = await statusResponse.json();
+
+      if (!statusResponse.ok || statusData.code !== 200) {
+        throw new Error(statusData.msg || statusData.message || 'Failed to check KIE task status');
+      }
+
+      const taskData = statusData.data;
+      const state = taskData.state;
+
+      console.log(`[KIE] Task ${taskId} state: ${state}`);
+
+      if (state === 'success') {
+        // Extract image URL from result
+        if (taskData.resultJson) {
+          try {
+            const result = JSON.parse(taskData.resultJson);
+            imageUrl = result.resultUrls?.[0] || result.imageUrl || result.image_url;
+            if (!imageUrl && result.images?.length > 0) {
+              imageUrl = result.images[0];
+            }
+          } catch (e) {
+            console.error('[KIE] Failed to parse resultJson:', e);
+          }
+        }
+
+        // Fallback to direct URL fields
+        if (!imageUrl) {
+          imageUrl = taskData.imageUrl || taskData.image_url || taskData.resultUrl;
+        }
+
+        if (!imageUrl) {
+          throw new Error('KIE AI completed but did not return an image URL');
+        }
+
+        break;
+      } else if (state === 'fail') {
+        failMessage = taskData.failMsg || 'Image generation failed';
+        throw new Error(`KIE AI image generation failed: ${failMessage}`);
+      }
+      // Continue polling for 'waiting', 'queuing', 'generating' states
+    }
+
+    if (!imageUrl) {
+      throw new Error('KIE AI image generation timed out');
+    }
+
+    // Calculate costs based on model
+    const realCost = modelConfig.cost;
+    const creditCost = getImageCreditCost(resolution);
+    const actionType = isRegeneration ? 'regeneration' : 'generation';
+
+    if (creditUserId) {
+      // Normal case: deduct credits and track real cost
+      await spendCredits(
+        creditUserId,
+        creditCost,
+        'image',
+        `KIE AI ${modelConfig.name} ${actionType} (${resolution.toUpperCase()})`,
+        projectId,
+        'kie',
+        { isRegeneration, sceneId, model: modelId, kieCredits: modelConfig.credits },
+        realCost
+      );
+    } else if (realCostUserId) {
+      // Collaborator regeneration: only track real cost
+      await trackRealCostOnly(
+        realCostUserId,
+        realCost,
+        'image',
+        `KIE AI ${modelConfig.name} ${actionType} (${resolution.toUpperCase()}) - prepaid`,
+        projectId,
+        'kie',
+        { isRegeneration, sceneId, model: modelId, kieCredits: modelConfig.credits, prepaidRegeneration: true }
+      );
+    }
+
+    // Upload to S3 if needed
+    imageUrl = await uploadMediaToS3(imageUrl, 'image', projectId);
+
+    return { imageUrl, cost: realCost, storage: !imageUrl.startsWith('data:') ? 's3' : 'base64' };
+  } catch (error) {
+    console.error('[KIE] Error generating image:', error);
+    throw error;
+  }
+}
+
 // Generate image using Modal-Edit (Qwen-Image-Edit-2511) with reference images for character consistency
 async function generateWithModalEdit(
   prompt: string,
@@ -381,6 +550,8 @@ export async function POST(request: NextRequest) {
     const sessionUserId = authCtx?.userId;
     let imageProvider: ImageProvider = 'gemini';
     let geminiApiKey = process.env.GEMINI_API_KEY;
+    let kieApiKey = process.env.KIE_API_KEY;
+    let kieImageModel = 'seedream/4-5-text-to-image'; // Default model
     let modalImageEndpoint: string | null = null;
     let modalImageEditEndpoint: string | null = null;
 
@@ -400,6 +571,12 @@ export async function POST(request: NextRequest) {
         // Get provider-specific settings
         if (userApiKeys.geminiApiKey) {
           geminiApiKey = userApiKeys.geminiApiKey;
+        }
+        if (userApiKeys.kieApiKey) {
+          kieApiKey = userApiKeys.kieApiKey;
+        }
+        if (userApiKeys.kieImageModel) {
+          kieImageModel = userApiKeys.kieImageModel;
         }
         modalImageEndpoint = userApiKeys.modalImageEndpoint;
         modalImageEditEndpoint = userApiKeys.modalImageEditEndpoint;
@@ -458,6 +635,18 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await generateWithModal(prompt, aspectRatio, resolution, projectId, modalImageEndpoint, effectiveUserId, realCostUserId, isRegeneration, sceneId);
+      return NextResponse.json(result);
+    }
+
+    if (imageProvider === 'kie') {
+      if (!kieApiKey) {
+        return NextResponse.json(
+          { error: 'KIE AI API key not configured. Please add your API key in Settings.' },
+          { status: 400 }
+        );
+      }
+
+      const result = await generateWithKie(prompt, aspectRatio, resolution, projectId, kieApiKey, kieImageModel, effectiveUserId, realCostUserId, isRegeneration, sceneId);
       return NextResponse.json(result);
     }
 

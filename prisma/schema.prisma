@@ -158,8 +158,14 @@ model ApiKeys {
   llmProvider      String   @default("openrouter") // "openrouter" | "claude-sdk" | "modal"
   musicProvider    String   @default("piapi") // "piapi" | "suno" | "modal"
   ttsProvider      String   @default("gemini-tts") // "gemini-tts" | "elevenlabs" | "modal"
-  imageProvider    String   @default("gemini") // "gemini" | "modal" | "modal-edit"
+  imageProvider    String   @default("gemini") // "gemini" | "modal" | "modal-edit" | "kie"
   videoProvider    String   @default("kie") // "kie" | "modal"
+
+  // KIE.ai model selections
+  kieImageModel    String?  @default("seedream/4-5-text-to-image")
+  kieVideoModel    String?  @default("grok-imagine/image-to-video")
+  kieTtsModel      String?  @default("elevenlabs/text-to-dialogue-v3")
+
   // Modal.com self-hosted endpoints
   modalLlmEndpoint       String?  // e.g., https://your-app--llm.modal.run
   modalTtsEndpoint       String?  // e.g., https://your-app--tts.modal.run
@@ -270,6 +276,7 @@ model ActionCost {
   id          String    @id @default(cuid())
   actionType  String    // 'image', 'video', 'voiceover', 'scene', 'character', 'prompt', 'music'
   provider    String    // 'gemini', 'modal', 'modal-edit', 'elevenlabs', 'grok', 'kie', 'claude', etc.
+  model       String?   // Specific model within provider (e.g., 'seedream/4-5', 'kling/v2-6')
   cost        Float     // Cost in USD
   description String?   // Human-readable description
   isActive    Boolean   @default(true)
@@ -278,7 +285,7 @@ model ActionCost {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@unique([actionType, provider])
+  @@unique([actionType, provider, model])
   @@index([actionType])
   @@index([provider])
   @@index([validFrom])

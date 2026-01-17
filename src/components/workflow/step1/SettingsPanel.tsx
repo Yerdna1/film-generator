@@ -22,8 +22,8 @@ interface SettingsPanelProps {
   setStoryModel: Dispatch<SetStateAction<'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro'>>;
   styleModel: string;
   setStyleModel: (model: string) => void;
-  imageProvider: 'gemini' | 'modal' | 'modal-edit';
-  setImageProvider: Dispatch<SetStateAction<'gemini' | 'modal' | 'modal-edit'>>;
+  imageProvider: 'gemini' | 'modal' | 'modal-edit' | 'kie';
+  setImageProvider: Dispatch<SetStateAction<'gemini' | 'modal' | 'modal-edit' | 'kie'>>;
   voiceProvider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
   setVoiceProvider: (provider: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts') => void;
   updateProject: (id: string, updates: Partial<Project>) => void;

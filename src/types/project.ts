@@ -62,7 +62,7 @@ export type ImageResolution = '1k' | '2k' | '4k';
 
 export type VoiceLanguage = 'sk' | 'en';
 
-export type VoiceProvider = 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
+export type VoiceProvider = 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie';
 
 // Type alias for TTS provider stored in database
 export type TTSProvider = VoiceProvider;
@@ -198,7 +198,7 @@ export type MusicProvider = 'piapi' | 'suno' | 'modal';
 // Note: Already defined as VoiceProvider above, this is for backwards compatibility
 
 // Image Provider selection for image generation
-export type ImageProvider = 'gemini' | 'modal' | 'modal-edit';
+export type ImageProvider = 'gemini' | 'modal' | 'modal-edit' | 'kie';
 
 // Video Provider selection for video generation
 export type VideoProvider = 'kie' | 'modal';
@@ -231,6 +231,10 @@ export interface ApiConfig {
   ttsProvider?: TTSProvider;  // Default: 'gemini-tts'
   imageProvider?: ImageProvider;  // Default: 'gemini'
   videoProvider?: VideoProvider;  // Default: 'kie'
+  // KIE.ai model selections
+  kieImageModel?: string;  // e.g., 'seedream/4-5-text-to-image'
+  kieVideoModel?: string;  // e.g., 'grok-imagine/image-to-video'
+  kieTtsModel?: string;    // e.g., 'elevenlabs/text-to-dialogue-v3'
   // Modal.com self-hosted endpoints
   modalEndpoints?: ModalEndpoints;
 }

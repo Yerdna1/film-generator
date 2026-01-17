@@ -280,6 +280,176 @@ async function generateWithModal(
   return { audioUrl, cost: realCost, storage: audioUrl.startsWith('data:') ? 'base64' : 's3' };
 }
 
+// Generate audio using KIE AI (ElevenLabs via KIE)
+async function generateWithKie(
+  text: string,
+  voiceId: string,
+  projectId: string | undefined,
+  modelId: string,
+  apiKey: string,
+  userId: string | undefined,
+  voiceSettings?: {
+    stability?: number;
+    similarityBoost?: number;
+    style?: number;
+  }
+): Promise<{ audioUrl: string; cost: number; storage: string }> {
+  console.log(`[KIE TTS] Generating with model: ${modelId}`);
+
+  // Import KIE model configs
+  const { getKieModelById, formatKiePrice } = await import('@/lib/constants/kie-models');
+  const modelConfig = getKieModelById(modelId, 'tts');
+
+  if (!modelConfig) {
+    throw new Error(`Invalid KIE TTS model: ${modelId}`);
+  }
+
+  console.log(`[KIE TTS] Using model: ${modelConfig.name} - ${formatKiePrice(modelConfig.credits)}`);
+
+  // Prepare voice settings based on model
+  const inputData: any = {
+    text: text,
+    voice: voiceId,
+  };
+
+  // Add model-specific parameters
+  if (modelId.includes('dialogue')) {
+    // For dialogue models, text should be an array
+    inputData.dialogue = [{ text, voice: voiceId }];
+    delete inputData.text;
+    delete inputData.voice;
+  }
+
+  if (voiceSettings && modelId.includes('elevenlabs')) {
+    inputData.voice_settings = {
+      stability: voiceSettings.stability ?? 0.5,
+      similarity_boost: voiceSettings.similarityBoost ?? 0.75,
+      style: voiceSettings.style ?? 0.5,
+    };
+  }
+
+  try {
+    // Create task via KIE unified API
+    const KIE_API_URL = 'https://api.kie.ai';
+    const createResponse = await fetch(`${KIE_API_URL}/api/v1/jobs/createTask`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        input: inputData,
+      }),
+    });
+
+    const createData = await createResponse.json();
+
+    if (!createResponse.ok || createData.code !== 200) {
+      const errorMsg = createData.msg || createData.message || 'Failed to create KIE TTS task';
+      console.error('[KIE TTS] Task creation failed:', errorMsg);
+      throw new Error(`KIE AI TTS generation failed: ${errorMsg}`);
+    }
+
+    const taskId = createData.data?.taskId;
+    if (!taskId) {
+      throw new Error('KIE AI did not return a task ID');
+    }
+
+    console.log(`[KIE TTS] Task created: ${taskId}, polling for completion...`);
+
+    // Poll for task completion
+    const maxPolls = 30; // 1 minute max (2s intervals)
+    let audioUrl: string | undefined;
+    let failMessage: string | undefined;
+
+    for (let i = 0; i < maxPolls; i++) {
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      const statusResponse = await fetch(
+        `${KIE_API_URL}/api/v1/jobs/recordInfo?taskId=${taskId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      const statusData = await statusResponse.json();
+
+      if (!statusResponse.ok || statusData.code !== 200) {
+        throw new Error(statusData.msg || statusData.message || 'Failed to check KIE task status');
+      }
+
+      const taskData = statusData.data;
+      const state = taskData.state;
+
+      console.log(`[KIE TTS] Task ${taskId} state: ${state}`);
+
+      if (state === 'success') {
+        // Extract audio URL from result
+        if (taskData.resultJson) {
+          try {
+            const result = JSON.parse(taskData.resultJson);
+            audioUrl = result.resultUrls?.[0] || result.audioUrl || result.audio_url;
+            if (!audioUrl && result.audios?.length > 0) {
+              audioUrl = result.audios[0];
+            }
+          } catch (e) {
+            console.error('[KIE TTS] Failed to parse resultJson:', e);
+          }
+        }
+
+        if (!audioUrl) {
+          audioUrl = taskData.audioUrl || taskData.audio_url || taskData.resultUrl;
+        }
+
+        if (!audioUrl) {
+          throw new Error('KIE AI completed but did not return an audio URL');
+        }
+
+        break;
+      } else if (state === 'fail') {
+        failMessage = taskData.failMsg || 'Audio generation failed';
+        throw new Error(`KIE AI TTS generation failed: ${failMessage}`);
+      }
+    }
+
+    if (!audioUrl) {
+      throw new Error('KIE AI TTS generation timed out');
+    }
+
+    // Calculate costs based on character count
+    const characterCount = text.length;
+    const realCost = calculateVoiceCost(characterCount, 'elevenlabs'); // Use ElevenLabs pricing
+
+    if (userId) {
+      await spendCredits(
+        userId,
+        COSTS.VOICEOVER_LINE,
+        'voiceover',
+        `KIE ${modelConfig.name} TTS (${characterCount} chars)`,
+        projectId,
+        'kie',
+        { characterCount, model: modelId, kieCredits: modelConfig.credits * Math.ceil(characterCount / 100) },
+        realCost
+      );
+    }
+
+    // Upload to S3 if needed
+    audioUrl = await uploadMediaToS3(audioUrl, 'audio', projectId);
+
+    return { audioUrl, cost: realCost, storage: !audioUrl.startsWith('data:') ? 's3' : 'base64' };
+  } catch (error) {
+    console.error('[KIE TTS] Error generating audio:', error);
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limit generation to prevent abuse (20 requests/min)
   const rateLimitResult = await rateLimit(request, 'generation');
@@ -309,6 +479,8 @@ export async function POST(request: NextRequest) {
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     let openaiApiKey = process.env.OPENAI_API_KEY;
+    let kieApiKey = process.env.KIE_API_KEY;
+    let kieTtsModel = 'elevenlabs/text-to-dialogue-v3'; // Default model
     let modalTtsEndpoint: string | null = null;
 
     if (sessionUserId) {
@@ -324,6 +496,8 @@ export async function POST(request: NextRequest) {
         if (userApiKeys.geminiApiKey) geminiApiKey = userApiKeys.geminiApiKey;
         if (userApiKeys.elevenLabsApiKey) elevenLabsApiKey = userApiKeys.elevenLabsApiKey;
         if (userApiKeys.openaiApiKey) openaiApiKey = userApiKeys.openaiApiKey;
+        if (userApiKeys.kieApiKey) kieApiKey = userApiKeys.kieApiKey;
+        if (userApiKeys.kieTtsModel) kieTtsModel = userApiKeys.kieTtsModel;
         modalTtsEndpoint = userApiKeys.modalTtsEndpoint;
       }
 
@@ -363,6 +537,29 @@ export async function POST(request: NextRequest) {
         );
       }
       const result = await generateWithOpenAI(text, voiceId, language, projectId, openaiApiKey, sessionUserId, voiceInstructions);
+      return NextResponse.json(result);
+    }
+
+    if (ttsProvider === 'kie') {
+      if (!kieApiKey) {
+        return NextResponse.json(
+          { error: 'KIE AI API key not configured. Please add your API key in Settings.' },
+          { status: 500 }
+        );
+      }
+      const result = await generateWithKie(
+        text,
+        voiceId,
+        projectId,
+        kieTtsModel,
+        kieApiKey,
+        sessionUserId,
+        {
+          stability: voiceStability,
+          similarityBoost: voiceSimilarityBoost,
+          style: voiceStyle,
+        }
+      );
       return NextResponse.json(result);
     }
 

@@ -34,6 +34,9 @@ export function useSettings() {
   const [videoProvider, setVideoProvider] = useState<VideoProvider>('kie');
   const [modalEndpoints, setModalEndpoints] = useState<ModalEndpoints>({});
   const [currency, setCurrency] = useState<Currency>('EUR');
+  const [kieImageModel, setKieImageModel] = useState<string>('seedream/4-5-text-to-image');
+  const [kieVideoModel, setKieVideoModel] = useState<string>('grok-imagine/image-to-video');
+  const [kieTtsModel, setKieTtsModel] = useState<string>('elevenlabs/text-to-dialogue-v3');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -49,6 +52,9 @@ export function useSettings() {
     const savedImageProvider = (localStorage.getItem('app-image-provider') as ImageProvider) || 'gemini';
     const savedVideoProvider = (localStorage.getItem('app-video-provider') as VideoProvider) || 'kie';
     const savedCurrency = getCurrency();
+    const savedKieImageModel = localStorage.getItem('app-kie-image-model') || 'seedream/4-5-text-to-image';
+    const savedKieVideoModel = localStorage.getItem('app-kie-video-model') || 'grok-imagine/image-to-video';
+    const savedKieTtsModel = localStorage.getItem('app-kie-tts-model') || 'elevenlabs/text-to-dialogue-v3';
 
     setLanguage(savedLanguage);
     setCurrency(savedCurrency);
@@ -62,6 +68,9 @@ export function useSettings() {
     setTTSProvider(savedTTSProvider);
     setImageProvider(savedImageProvider);
     setVideoProvider(savedVideoProvider);
+    setKieImageModel(savedKieImageModel);
+    setKieVideoModel(savedKieVideoModel);
+    setKieTtsModel(savedKieTtsModel);
   }, []);
 
   // Fetch API keys from database for authenticated users
@@ -98,6 +107,19 @@ export function useSettings() {
           if (data.videoProvider) {
             setVideoProvider(data.videoProvider);
             localStorage.setItem('app-video-provider', data.videoProvider);
+          }
+          // Load KIE model selections
+          if (data.kieImageModel) {
+            setKieImageModel(data.kieImageModel);
+            localStorage.setItem('app-kie-image-model', data.kieImageModel);
+          }
+          if (data.kieVideoModel) {
+            setKieVideoModel(data.kieVideoModel);
+            localStorage.setItem('app-kie-video-model', data.kieVideoModel);
+          }
+          if (data.kieTtsModel) {
+            setKieTtsModel(data.kieTtsModel);
+            localStorage.setItem('app-kie-tts-model', data.kieTtsModel);
           }
           // Load Modal endpoints
           setModalEndpoints({
@@ -303,6 +325,7 @@ export function useSettings() {
       'elevenlabs': tPage('toasts.ttsProviderElevenLabs') || 'Using ElevenLabs for voiceovers',
       'modal': tPage('toasts.ttsProviderModal') || 'Using self-hosted TTS on Modal.com',
       'openai-tts': tPage('toasts.ttsProviderOpenAI') || 'Using OpenAI TTS for voiceovers',
+      'kie': tPage('toasts.ttsProviderKie') || 'Using KIE.ai (ElevenLabs) for voiceovers',
     };
     toast.success(
       tPage('toasts.ttsProviderChanged') || 'TTS provider updated',
@@ -328,6 +351,7 @@ export function useSettings() {
 
     const descriptions: Record<ImageProvider, string> = {
       'gemini': tPage('toasts.imageProviderGemini') || 'Using Gemini for image generation',
+      'kie': tPage('toasts.imageProviderKie') || 'Using KIE.ai for image generation',
       'modal': tPage('toasts.imageProviderModal') || 'Using Qwen-Image on Modal.com',
       'modal-edit': tPage('toasts.imageProviderModalEdit') || 'Using Qwen-Image-Edit for character consistency',
     };
@@ -360,6 +384,72 @@ export function useSettings() {
     toast.success(
       tPage('toasts.videoProviderChanged') || 'Video provider updated',
       { description: descriptions[provider] }
+    );
+  }, [setApiConfig, tPage]);
+
+  const handleKieImageModelChange = useCallback(async (model: string) => {
+    setKieImageModel(model);
+    localStorage.setItem('app-kie-image-model', model);
+    setApiConfig({ kieImageModel: model });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kieImageModel: model }),
+      });
+    } catch (error) {
+      console.error('Failed to sync kieImageModel to database:', error);
+    }
+
+    toast.success(
+      tPage('toasts.kieModelChanged') || 'KIE model updated',
+      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
+    );
+  }, [setApiConfig, tPage]);
+
+  const handleKieVideoModelChange = useCallback(async (model: string) => {
+    setKieVideoModel(model);
+    localStorage.setItem('app-kie-video-model', model);
+    setApiConfig({ kieVideoModel: model });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kieVideoModel: model }),
+      });
+    } catch (error) {
+      console.error('Failed to sync kieVideoModel to database:', error);
+    }
+
+    toast.success(
+      tPage('toasts.kieModelChanged') || 'KIE model updated',
+      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
+    );
+  }, [setApiConfig, tPage]);
+
+  const handleKieTtsModelChange = useCallback(async (model: string) => {
+    setKieTtsModel(model);
+    localStorage.setItem('app-kie-tts-model', model);
+    setApiConfig({ kieTtsModel: model });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kieTtsModel: model }),
+      });
+    } catch (error) {
+      console.error('Failed to sync kieTtsModel to database:', error);
+    }
+
+    toast.success(
+      tPage('toasts.kieModelChanged') || 'KIE model updated',
+      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
     );
   }, [setApiConfig, tPage]);
 
@@ -470,6 +560,9 @@ export function useSettings() {
     videoProvider,
     modalEndpoints,
     currency,
+    kieImageModel,
+    kieVideoModel,
+    kieTtsModel,
 
     // Actions
     toggleKeyVisibility,
@@ -490,6 +583,9 @@ export function useSettings() {
     handleTTSProviderChange,
     handleImageProviderChange,
     handleVideoProviderChange,
+    handleKieImageModelChange,
+    handleKieVideoModelChange,
+    handleKieTtsModelChange,
     handleModalEndpointChange,
     handleSaveModalEndpoints,
   };

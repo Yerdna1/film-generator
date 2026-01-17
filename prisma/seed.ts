@@ -58,6 +58,7 @@ async function main() {
     { actionType: 'image', provider: 'gemini', cost: 0.04, description: 'Gemini Imagen 3 Standard ($0.04/image)' },
     { actionType: 'image', provider: 'nanoBanana', cost: 0.04, description: 'Nano Banana image generation' },
     { actionType: 'image', provider: 'modal', cost: 0.01, description: 'Modal self-hosted (compute only)' },
+    { actionType: 'image', provider: 'kie', cost: 0.04, description: 'KIE AI image generation' },
 
     // Video generation (6s clip)
     { actionType: 'video', provider: 'grok', cost: 0.10, description: 'Grok Imagine video generation (6s)' },
@@ -86,22 +87,59 @@ async function main() {
     { actionType: 'music', provider: 'suno', cost: 0.10, description: 'Suno AI music generation' },
     { actionType: 'music', provider: 'piapi', cost: 0.08, description: 'PiAPI music generation' },
     { actionType: 'music', provider: 'modal', cost: 0.02, description: 'Modal ACE-Step (self-hosted)' },
+
+    // KIE model-specific costs for images
+    { actionType: 'image', provider: 'kie', model: 'seedream/4-5-text-to-image', cost: 0.10, description: 'Seedream v4.5 (20 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'flux-2/pro-1.1-text-to-image', cost: 0.15, description: 'Flux 2 Pro (30 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'google-imagen4/fast-text-to-image', cost: 0.20, description: 'Google Imagen4 Fast (40 credits)' },
+    { actionType: 'image', provider: 'kie', model: 'ideogram/v2-text-to-image', cost: 0.25, description: 'Ideogram v2 (50 credits)' },
+
+    // KIE model-specific costs for videos
+    { actionType: 'video', provider: 'kie', model: 'grok-imagine/image-to-video', cost: 0.10, description: 'Grok Imagine (20 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'kling/v2-6-image-to-video', cost: 0.20, description: 'Kling v2.6 (40 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'sora2/image-to-video', cost: 0.30, description: 'Sora2 (60 credits)' },
+    { actionType: 'video', provider: 'kie', model: 'veo3/1-quality-hd-image-to-video', cost: 2.00, description: 'Veo 3.1 Quality HD (400 credits)' },
+
+    // KIE model-specific costs for TTS
+    { actionType: 'voiceover', provider: 'kie', model: 'elevenlabs/text-to-dialogue-v3', cost: 0.025, description: 'ElevenLabs v3 via KIE (~100 chars)' },
+    { actionType: 'voiceover', provider: 'kie', model: 'elevenlabs/text-to-speech-turbo-2-5', cost: 0.020, description: 'ElevenLabs Turbo 2.5 via KIE (~100 chars)' },
+    { actionType: 'voiceover', provider: 'kie', model: 'elevenlabs/text-to-speech-multilingual-v2', cost: 0.030, description: 'ElevenLabs Multilingual v2 via KIE (~100 chars)' },
   ];
 
   for (const cost of actionCosts) {
-    await prisma.actionCost.upsert({
-      where: {
-        actionType_provider: {
-          actionType: cost.actionType,
-          provider: cost.provider,
+    if (cost.model) {
+      // For model-specific costs, use the unique constraint with model
+      await prisma.actionCost.upsert({
+        where: {
+          actionType_provider_model: {
+            actionType: cost.actionType,
+            provider: cost.provider,
+            model: cost.model,
+          },
         },
-      },
-      update: {
-        cost: cost.cost,
-        description: cost.description,
-      },
-      create: cost,
-    });
+        update: {
+          cost: cost.cost,
+          description: cost.description,
+        },
+        create: cost,
+      });
+    } else {
+      // For non-model-specific costs, use the original unique constraint
+      await prisma.actionCost.upsert({
+        where: {
+          actionType_provider_model: {
+            actionType: cost.actionType,
+            provider: cost.provider,
+            model: null,
+          },
+        },
+        update: {
+          cost: cost.cost,
+          description: cost.description,
+        },
+        create: { ...cost, model: null },
+      });
+    }
   }
 
   console.log(`Action costs seeded: ${actionCosts.length} entries`);

@@ -151,6 +151,7 @@ export const ACTION_COSTS = {
     nanoBanana: 0.24,                             // Same as Gemini 3 Pro
     modal: PROVIDER_COSTS.modal.imageGeneration,  // Modal Qwen: $0.09
     'modal-edit': PROVIDER_COSTS.modal.imageEdit, // Modal Edit: $0.09
+    kie: 0.10,                                    // KIE default: $0.10 (model-specific costs in DB)
   },
 
   // Video generation (6s clip)
@@ -166,6 +167,7 @@ export const ACTION_COSTS = {
     geminiTts: 0.002,
     openaiTts: 0.0015,        // OpenAI TTS: ~$0.0015 per 100 chars ($0.015/1K chars)
     modal: 0.01,              // Modal Chatterbox TTS: ~$0.01 per line
+    kie: 0.025,               // KIE (ElevenLabs) default: $0.025 (model-specific costs in DB)
   },
 
   // Scene generation (text) - per scene
@@ -323,7 +325,7 @@ export function formatCostCompact(cost: number): string {
  */
 export function calculateVoiceCost(
   characterCount: number,
-  provider: 'elevenlabs' | 'geminiTts' | 'openaiTts'
+  provider: 'elevenlabs' | 'geminiTts' | 'openaiTts' | 'kie'
 ): number {
   if (provider === 'elevenlabs') {
     return (characterCount / 1000) * PROVIDER_COSTS.elevenlabs.voicePer1K;
@@ -335,6 +337,11 @@ export function calculateVoiceCost(
 
   if (provider === 'openaiTts') {
     return (characterCount / 1000) * PROVIDER_COSTS.openai.ttsPer1K;
+  }
+
+  if (provider === 'kie') {
+    // KIE uses ElevenLabs models, similar pricing
+    return (characterCount / 1000) * (PROVIDER_COSTS.elevenlabs.voicePer1K * 0.9); // Slightly cheaper than direct ElevenLabs
   }
 
   return 0;
@@ -375,7 +382,7 @@ export function estimateVideosCost(
  */
 export function estimateVoiceoversCost(
   lineCount: number,
-  provider: 'elevenlabs' | 'geminiTts' | 'openaiTts' = 'elevenlabs',
+  provider: 'elevenlabs' | 'geminiTts' | 'openaiTts' | 'kie' = 'elevenlabs',
   avgCharsPerLine: number = 100
 ): CostEstimate {
   const totalChars = lineCount * avgCharsPerLine;
@@ -385,6 +392,7 @@ export function estimateVoiceoversCost(
     geminiTts: 'gemini-tts',
     elevenlabs: 'elevenlabs',
     openaiTts: 'openai-tts',
+    kie: 'kie',
   };
 
   return {

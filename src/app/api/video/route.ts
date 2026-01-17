@@ -52,13 +52,14 @@ async function downloadVideoAsBase64(videoUrl: string): Promise<string | null> {
   }
 }
 
-// Generate video using Kie.ai (Grok Imagine)
+// Generate video using Kie.ai with model support
 async function createKieTask(
   imageUrl: string,
   prompt: string,
   mode: string,
   seed: number | undefined,
-  apiKey: string
+  apiKey: string,
+  modelId: string = 'grok-imagine/image-to-video'
 ): Promise<{ taskId: string }> {
   // Upload base64 image to S3 first if needed
   let publicImageUrl = imageUrl;
@@ -75,13 +76,15 @@ async function createKieTask(
   const effectiveMode = mode === 'spicy' ? 'normal' : mode;
 
   const requestBody: any = {
-    model: 'grok-imagine/image-to-video',
+    model: modelId,
     input: {
       image_urls: [publicImageUrl],
       prompt: enhancedPrompt,
       mode: effectiveMode,
     },
   };
+
+  console.log(`[Kie] Creating video task with model: ${modelId}`);
 
   if (seed !== undefined) {
     requestBody.input.seed = seed;
@@ -115,7 +118,8 @@ async function checkKieTaskStatus(
   realCostUserId: string | undefined, // For real cost tracking (track even if no credit deduction)
   download: boolean,
   isRegeneration: boolean = false,
-  sceneId?: string
+  sceneId?: string,
+  modelId: string = 'grok-imagine/image-to-video'
 ): Promise<{ status: string; videoUrl?: string; externalVideoUrl?: string; failMessage?: string; cost?: number; storage?: string }> {
   const response = await fetch(
     `${KIE_API_URL}/api/v1/jobs/recordInfo?taskId=${taskId}`,
@@ -168,7 +172,11 @@ async function checkKieTaskStatus(
     videoUrl = externalVideoUrl;
   }
 
-  const realCost = ACTION_COSTS.video.grok;
+  // Get model-specific cost
+  const { getKieModelById } = await import('@/lib/constants/kie-models');
+  const modelConfig = getKieModelById(modelId, 'video');
+  const realCost = modelConfig?.cost || ACTION_COSTS.video.grok; // Fallback to default
+  const modelName = modelConfig?.name || 'Video';
   const actionType = isRegeneration ? 'regeneration' : 'generation';
 
   if (status === 'complete') {
@@ -178,10 +186,10 @@ async function checkKieTaskStatus(
         creditUserId,
         COSTS.VIDEO_GENERATION,
         'video',
-        `Kie.ai video ${actionType}`,
+        `KIE ${modelName} ${actionType}`,
         projectId,
         'kie',
-        { isRegeneration, sceneId },
+        { isRegeneration, sceneId, model: modelId, kieCredits: modelConfig?.credits },
         realCost
       );
     } else if (realCostUserId) {
@@ -190,10 +198,10 @@ async function checkKieTaskStatus(
         realCostUserId,
         realCost,
         'video',
-        `Kie.ai video ${actionType} - prepaid`,
+        `KIE ${modelName} ${actionType} - prepaid`,
         projectId,
         'kie',
-        { isRegeneration, sceneId, prepaidRegeneration: true }
+        { isRegeneration, sceneId, model: modelId, kieCredits: modelConfig?.credits, prepaidRegeneration: true }
       );
     }
   }
@@ -310,6 +318,7 @@ export async function POST(request: NextRequest) {
     const sessionUserId = authCtx?.userId;
     let videoProvider: VideoProvider = 'kie';
     let kieApiKey = process.env.KIE_API_KEY;
+    let kieVideoModel = 'grok-imagine/image-to-video'; // Default model
     let modalVideoEndpoint: string | null = null;
 
     // When ownerId is provided (collaborator regeneration), use owner's settings
@@ -324,6 +333,7 @@ export async function POST(request: NextRequest) {
       if (userApiKeys) {
         videoProvider = (userApiKeys.videoProvider as VideoProvider) || 'kie';
         if (userApiKeys.kieApiKey) kieApiKey = userApiKeys.kieApiKey;
+        if (userApiKeys.kieVideoModel) kieVideoModel = userApiKeys.kieVideoModel;
         modalVideoEndpoint = userApiKeys.modalVideoEndpoint;
       }
 
@@ -362,7 +372,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await createKieTask(imageUrl, prompt, mode, seed, kieApiKey);
+    const result = await createKieTask(imageUrl, prompt, mode, seed, kieApiKey, kieVideoModel);
     return NextResponse.json({
       taskId: result.taskId,
       status: 'processing',
@@ -402,6 +412,7 @@ export async function GET(request: NextRequest) {
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
     let kieApiKey = process.env.KIE_API_KEY;
+    let kieVideoModel = 'grok-imagine/image-to-video'; // Default model
 
     // When ownerId is provided, use owner's settings
     const settingsUserId = ownerId || sessionUserId;
@@ -412,6 +423,9 @@ export async function GET(request: NextRequest) {
       });
       if (userApiKeys?.kieApiKey) {
         kieApiKey = userApiKeys.kieApiKey;
+      }
+      if (userApiKeys?.kieVideoModel) {
+        kieVideoModel = userApiKeys.kieVideoModel;
       }
     }
 
@@ -426,7 +440,7 @@ export async function GET(request: NextRequest) {
     const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
     const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
 
-    const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, effectiveUserId, realCostUserId, download, isRegeneration, sceneId);
+    const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, effectiveUserId, realCostUserId, download, isRegeneration, sceneId, kieVideoModel);
     return NextResponse.json({ taskId, ...result });
 
   } catch (error) {

@@ -47,6 +47,9 @@ export default function SettingsPage() {
     videoProvider,
     modalEndpoints,
     currency,
+    kieImageModel,
+    kieVideoModel,
+    kieTtsModel,
 
     // Actions
     toggleKeyVisibility,
@@ -67,6 +70,9 @@ export default function SettingsPage() {
     handleTTSProviderChange,
     handleImageProviderChange,
     handleVideoProviderChange,
+    handleKieImageModelChange,
+    handleKieVideoModelChange,
+    handleKieTtsModelChange,
     handleModalEndpointChange,
     handleSaveModalEndpoints,
   } = useSettings();
@@ -154,6 +160,9 @@ export default function SettingsPage() {
                 imageProvider={imageProvider}
                 videoProvider={videoProvider}
                 modalEndpoints={modalEndpoints}
+                kieImageModel={kieImageModel}
+                kieVideoModel={kieVideoModel}
+                kieTtsModel={kieTtsModel}
                 onToggleVisibility={toggleKeyVisibility}
                 onSaveKey={handleSaveKey}
                 onUpdateConfig={updateLocalConfig}
@@ -163,6 +172,9 @@ export default function SettingsPage() {
                 onTTSProviderChange={handleTTSProviderChange}
                 onImageProviderChange={handleImageProviderChange}
                 onVideoProviderChange={handleVideoProviderChange}
+                onKieImageModelChange={handleKieImageModelChange}
+                onKieVideoModelChange={handleKieVideoModelChange}
+                onKieTtsModelChange={handleKieTtsModelChange}
                 onModalEndpointChange={handleModalEndpointChange}
                 onSaveModalEndpoints={handleSaveModalEndpoints}
               />

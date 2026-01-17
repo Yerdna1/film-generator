@@ -84,6 +84,7 @@ export async function GET() {
         { actionType: 'image', provider: 'gemini', cost: 0.04, description: 'Gemini Imagen 3 Standard ($0.04/image)' },
         { actionType: 'image', provider: 'nanoBanana', cost: 0.04, description: 'Nano Banana image generation' },
         { actionType: 'image', provider: 'modal', cost: 0.01, description: 'Modal self-hosted (compute only)' },
+        { actionType: 'image', provider: 'kie', cost: 0.04, description: 'KIE AI image generation' },
       ],
       video: [
         { actionType: 'video', provider: 'grok', cost: 0.10, description: 'Grok Imagine video generation (6s)' },

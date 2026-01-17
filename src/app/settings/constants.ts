@@ -199,7 +199,7 @@ export const musicProviderOptions: MusicProviderOption[] = [
 
 // TTS Provider options for voiceover generation
 export interface TTSProviderOption {
-  id: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts';
+  id: 'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie';
   name: string;
   description: string;
   requiresApiKey: boolean;
@@ -231,6 +231,13 @@ export const ttsProviderOptions: TTSProviderOption[] = [
     apiKeyField: 'elevenLabsApiKey',
   },
   {
+    id: 'kie',
+    name: 'KIE.ai (ElevenLabs)',
+    description: 'ElevenLabs voices via KIE.ai API. Multiple models available.',
+    requiresApiKey: true,
+    apiKeyField: 'kieApiKey',
+  },
+  {
     id: 'modal',
     name: 'Modal (Self-Hosted)',
     description: 'Self-hosted TTS model (e.g., Bark, XTTS, Coqui) on Modal.com.',
@@ -242,7 +249,7 @@ export const ttsProviderOptions: TTSProviderOption[] = [
 
 // Image Provider options for image generation
 export interface ImageProviderOption {
-  id: 'gemini' | 'modal' | 'modal-edit';
+  id: 'gemini' | 'modal' | 'modal-edit' | 'kie';
   name: string;
   description: string;
   requiresApiKey: boolean;
@@ -258,6 +265,13 @@ export const imageProviderOptions: ImageProviderOption[] = [
     description: 'Google Gemini for image generation. High quality, good pricing.',
     requiresApiKey: true,
     apiKeyField: 'geminiApiKey',
+  },
+  {
+    id: 'kie',
+    name: 'KIE.ai',
+    description: 'Multiple models: Seedream, Flux-2, Imagen4, Ideogram, etc.',
+    requiresApiKey: true,
+    apiKeyField: 'kieApiKey',
   },
   {
     id: 'modal',
@@ -291,8 +305,8 @@ export interface VideoProviderOption {
 export const videoProviderOptions: VideoProviderOption[] = [
   {
     id: 'kie',
-    name: 'Kie.ai (Grok Imagine)',
-    description: 'Image-to-video generation via Grok Imagine. Default provider.',
+    name: 'KIE.ai',
+    description: 'Multiple models: Grok Imagine, Kling, Sora2, Veo 3.1, etc.',
     requiresApiKey: true,
     apiKeyField: 'kieApiKey',
   },
@@ -407,8 +421,8 @@ export const apiProviders: ApiProvider[] = [
   },
   {
     key: 'kieApiKey',
-    name: 'Kie.ai (Grok Imagine)',
-    description: 'Image-to-video generation via Grok Imagine',
+    name: 'KIE.ai',
+    description: 'Image, video, and TTS generation with multiple models',
     icon: Zap,
     color: 'text-orange-400',
     bgColor: 'bg-orange-500/20',

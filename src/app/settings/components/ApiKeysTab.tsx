@@ -20,6 +20,7 @@ import {
   musicProviderOptions,
   modalEndpoints as modalEndpointConfigs,
 } from '../constants';
+import { KIE_IMAGE_MODELS, KIE_VIDEO_MODELS, KIE_TTS_MODELS, formatKiePrice } from '@/lib/constants/kie-models';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints, ApiConfig } from '@/types/project';
 
 interface ApiKeysTabProps {
@@ -34,6 +35,9 @@ interface ApiKeysTabProps {
   imageProvider: ImageProvider;
   videoProvider: VideoProvider;
   modalEndpoints: ModalEndpoints;
+  kieImageModel: string;
+  kieVideoModel: string;
+  kieTtsModel: string;
   onToggleVisibility: (key: string) => void;
   onSaveKey: (key: string) => void;
   onUpdateConfig: (key: string, value: string) => void;
@@ -43,6 +47,9 @@ interface ApiKeysTabProps {
   onTTSProviderChange: (provider: TTSProvider) => void;
   onImageProviderChange: (provider: ImageProvider) => void;
   onVideoProviderChange: (provider: VideoProvider) => void;
+  onKieImageModelChange: (model: string) => void;
+  onKieVideoModelChange: (model: string) => void;
+  onKieTtsModelChange: (model: string) => void;
   onModalEndpointChange: (key: keyof ModalEndpoints, value: string) => void;
   onSaveModalEndpoints: () => void;
 }
@@ -59,6 +66,9 @@ export function ApiKeysTab({
   imageProvider,
   videoProvider,
   modalEndpoints,
+  kieImageModel,
+  kieVideoModel,
+  kieTtsModel,
   onToggleVisibility,
   onSaveKey,
   onUpdateConfig,
@@ -68,6 +78,9 @@ export function ApiKeysTab({
   onTTSProviderChange,
   onImageProviderChange,
   onVideoProviderChange,
+  onKieImageModelChange,
+  onKieVideoModelChange,
+  onKieTtsModelChange,
   onModalEndpointChange,
   onSaveModalEndpoints,
 }: ApiKeysTabProps) {
@@ -208,6 +221,46 @@ export function ApiKeysTab({
                 </div>
               </motion.div>
             ))}
+
+            {/* KIE TTS Model Selection */}
+            {ttsProvider === 'kie' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 rounded-lg bg-muted/50 border border-border"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Mic className="w-4 h-4 text-violet-400" />
+                  <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                </div>
+                <Select
+                  value={kieTtsModel}
+                  onValueChange={onKieTtsModelChange}
+                >
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
+                    <SelectValue placeholder="Select a TTS model" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {KIE_TTS_MODELS.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{model.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatKiePrice(model.credits)}
+                          </span>
+                          {model.recommended && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-violet-500/20 text-violet-400">
+                              {tPage('recommended') || 'Recommended'}
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
 
@@ -243,6 +296,46 @@ export function ApiKeysTab({
                 </div>
               </motion.div>
             ))}
+
+            {/* KIE Image Model Selection */}
+            {imageProvider === 'kie' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 rounded-lg bg-muted/50 border border-border"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <ImageIcon className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                </div>
+                <Select
+                  value={kieImageModel}
+                  onValueChange={onKieImageModelChange}
+                >
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
+                    <SelectValue placeholder="Select an image model" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {KIE_IMAGE_MODELS.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{model.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatKiePrice(model.credits)}
+                          </span>
+                          {model.recommended && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400">
+                              {tPage('recommended') || 'Recommended'}
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
 
@@ -278,6 +371,46 @@ export function ApiKeysTab({
                 </div>
               </motion.div>
             ))}
+
+            {/* KIE Video Model Selection */}
+            {videoProvider === 'kie' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 rounded-lg bg-muted/50 border border-border"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Video className="w-4 h-4 text-orange-400" />
+                  <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                </div>
+                <Select
+                  value={kieVideoModel}
+                  onValueChange={onKieVideoModelChange}
+                >
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
+                    <SelectValue placeholder="Select a video model" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {KIE_VIDEO_MODELS.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{model.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatKiePrice(model.credits)}
+                          </span>
+                          {model.recommended && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400">
+                              {tPage('recommended') || 'Recommended'}
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
 
