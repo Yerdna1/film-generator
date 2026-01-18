@@ -111,7 +111,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
       if (userApiKeys !== null && !userApiKeys.hasKieKey) {
         setModalReason('no-key');
         setIsKieModalOpen(true);
-        setPendingCharacterGeneration(newCharacter);
+        setPendingCharacterGeneration(null);
         return;
       }
 
@@ -122,16 +122,18 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
         if (!hasCredits) {
           setModalReason('insufficient-credits');
           setIsInsufficientCreditsModalOpen(true);
-          setPendingCharacterGeneration(newCharacter);
+          setPendingCharacterGeneration(null);
           return;
         }
       }
 
-      // Generate with KIE
-      await generateCharacterImage(newCharacter);
+      // TODO: Fix character generation after handleAddCharacter refactor
+      // The newCharacter variable is void because handleAddCharacter doesn't return the created character
+      // This needs to be refactored to properly get the newly created character
+      // await generateCharacterImage(newCharacter);
     } else {
-      // Generate with default provider
-      generateCharacterImage(newCharacter);
+      // TODO: Fix character generation after handleAddCharacter refactor
+      // generateCharacterImage(newCharacter);
     }
   }, [
     handleAddCharacter,
