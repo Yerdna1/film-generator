@@ -86,7 +86,11 @@
       "Bash(npx prisma db execute --stdin <<'SQL'\nSELECT \n  p.id,\n  p.name,\n  p.\"currentStep\",\n  p.visibility,\n  COUNT\\(DISTINCT s.id\\) as total_scenes,\n  COUNT\\(DISTINCT CASE WHEN s.\"imageUrl\" IS NOT NULL AND s.\"imageUrl\" != '' THEN s.id END\\) as scenes_with_images\nFROM \"Project\" p\nLEFT JOIN \"Scene\" s ON s.\"projectId\" = p.id\nWHERE p.id = 'cmkifdlkw001foykm4mfo7cyq'\nGROUP BY p.id;\nSQL)",
       "Bash(tree:*)",
       "mcp__playwright__browser_evaluate",
-      "mcp__playwright__browser_take_screenshot"
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_tabs",
+      "Bash(git checkout:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx dotenv-cli:*)"
     ]
   }
 }

@@ -1,0 +1,885 @@
+{
+  "kie_ai_video_models": {
+    "metadata": {
+      "last_updated": "2026-01-18",
+      "total_video_models_found": 152,
+      "source": "https://kie.ai/pricing",
+      "documentation": "https://docs.kie.ai/"
+    },
+    "models": [
+      {
+        "model_id": "grok-imagine/text-to-video",
+        "model_name": "Grok Imagine Text to Video",
+        "provider": "Grok",
+        "description": "High-quality video generation from text descriptions powered by Grok's advanced AI model",
+        "modality": "text-to-video",
+        "credits_required": 20,
+        "cost_usd": 0.1,
+        "supported_durations": [
+          {
+            "duration_seconds": 6,
+            "credits": 20,
+            "cost_usd": 0.1
+          }
+        ],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["2:3", "3:2", "1:1", "16:9", "9:16"],
+        "default_values": {
+          "aspect_ratio": "2:3",
+          "mode": "normal",
+          "duration": "6s"
+        },
+        "input_parameters": {
+          "required": [
+            {
+              "name": "prompt",
+              "type": "string",
+              "description": "Text prompt describing the desired video motion",
+              "constraints": "Maximum 5000 characters, English language"
+            }
+          ],
+          "optional": [
+            {
+              "name": "aspect_ratio",
+              "type": "enum",
+              "values": ["2:3", "3:2", "1:1", "16:9", "9:16"],
+              "default": "2:3",
+              "description": "Width-to-height ratio of the generated video"
+            },
+            {
+              "name": "mode",
+              "type": "enum",
+              "values": ["fun", "normal", "spicy"],
+              "default": "normal",
+              "description": "Generation mode affecting style and intensity of motion"
+            }
+          ]
+        },
+        "quality_variants": ["fun", "normal", "spicy"],
+        "constraints": {
+          "max_prompt_length": 5000,
+          "language": "English only"
+        }
+      },
+      {
+        "model_id": "grok-imagine/image-to-video",
+        "model_name": "Grok Imagine Image to Video",
+        "provider": "Grok",
+        "description": "Convert images to videos with motion using Grok's AI model",
+        "modality": "image-to-video",
+        "credits_required": 20,
+        "cost_usd": 0.1,
+        "supported_durations": [
+          {
+            "duration_seconds": 6,
+            "credits": 20,
+            "cost_usd": 0.1
+          }
+        ],
+        "supported_resolutions": ["720p"],
+        "default_values": {
+          "duration": "6s"
+        }
+      },
+      {
+        "model_id": "grok-imagine/upscale",
+        "model_name": "Grok Imagine Upscale",
+        "provider": "Grok",
+        "description": "Video upscaling from 360p to 720p",
+        "modality": "video-upscaling",
+        "credits_required": 10,
+        "cost_usd": 0.05,
+        "supported_resolutions": {
+          "input": "360p",
+          "output": "720p"
+        }
+      },
+      {
+        "model_id": "kling-2.6/text-to-video",
+        "model_name": "Kling 2.6 Text to Video",
+        "provider": "Kling",
+        "description": "Kling AI's audio-visual generation model producing synchronized video, speech, ambient sound, and sound effects from text inputs",
+        "modality": "text-to-video",
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "audio": "with audio",
+            "credits": 110,
+            "cost_usd": 0.55,
+            "fal_price": 0.7,
+            "discount": "-21.4%"
+          },
+          {
+            "duration": "5s",
+            "audio": "without audio",
+            "credits": 55,
+            "cost_usd": 0.275,
+            "fal_price": 0.35,
+            "discount": "-21.4%"
+          },
+          {
+            "duration": "10s",
+            "audio": "with audio",
+            "credits": 110,
+            "cost_usd": 0.55,
+            "fal_price": 0.7,
+            "discount": "-21.4%"
+          }
+        ],
+        "supported_durations": ["5s", "10s"],
+        "supported_audio_options": ["with audio", "without audio"],
+        "quality_variants": ["standard", "premium"]
+      },
+      {
+        "model_id": "kling-2.6/image-to-video",
+        "model_name": "Kling 2.6 Image to Video",
+        "provider": "Kling",
+        "description": "Convert images to videos with optional audio synchronization",
+        "modality": "image-to-video",
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "audio": "without audio",
+            "credits": 110,
+            "cost_usd": 0.55,
+            "fal_price": 0.7,
+            "discount": "-21.4%"
+          },
+          {
+            "duration": "10s",
+            "audio": "with audio",
+            "credits": 220,
+            "cost_usd": 1.1,
+            "fal_price": 1.4,
+            "discount": "-21.4%"
+          },
+          {
+            "duration": "5s",
+            "audio": "with audio",
+            "credits": 110,
+            "cost_usd": 0.55,
+            "fal_price": 0.7,
+            "discount": "-21.4%"
+          },
+          {
+            "duration": "5s",
+            "audio": "without audio",
+            "credits": 55,
+            "cost_usd": 0.275,
+            "fal_price": 0.35,
+            "discount": "-21.4%"
+          }
+        ]
+      },
+      {
+        "model_id": "kling-2.5/turbo-text-to-video-pro",
+        "model_name": "Kling 2.5 Turbo Text to Video Pro",
+        "provider": "Kling",
+        "description": "Turbo Pro version for faster text-to-video generation",
+        "modality": "text-to-video",
+        "quality_variants": ["Turbo Pro"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "credits": 84,
+            "cost_usd": 0.42,
+            "fal_price": 0.7,
+            "discount": "-40.0%"
+          },
+          {
+            "duration": "5s",
+            "credits": 42,
+            "cost_usd": 0.21,
+            "fal_price": 0.35,
+            "discount": "-40.0%"
+          }
+        ]
+      },
+      {
+        "model_id": "kling-2.5/turbo-image-to-video-pro",
+        "model_name": "Kling 2.5 Turbo Image to Video Pro",
+        "provider": "Kling",
+        "modality": "image-to-video",
+        "quality_variants": ["Turbo Pro"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "credits": 84,
+            "cost_usd": 0.42,
+            "fal_price": 0.7,
+            "discount": "-40.0%"
+          },
+          {
+            "duration": "5s",
+            "credits": 42,
+            "cost_usd": 0.21,
+            "fal_price": 0.35,
+            "discount": "-40.0%"
+          }
+        ]
+      },
+      {
+        "model_id": "kling-2.6-motion-control/video-to-video",
+        "model_name": "Kling 2.6 Motion Control",
+        "provider": "Kling",
+        "description": "Performance-driven image-to-video model that transfers real human motion, gestures, and expressions from reference video to character images",
+        "modality": "video-to-video",
+        "pricing_per_second": [
+          {
+            "resolution": "1080p",
+            "credits_per_second": 9,
+            "cost_usd_per_second": 0.045,
+            "fal_price": 0.112,
+            "discount": "-59.8%"
+          },
+          {
+            "resolution": "720p",
+            "credits_per_second": 6,
+            "cost_usd_per_second": 0.03,
+            "fal_price": 0.07,
+            "discount": "-57.1%"
+          }
+        ],
+        "supported_resolutions": ["720p", "1080p"]
+      },
+      {
+        "model_id": "kling/v2-1-standard",
+        "model_name": "Kling 2.1 Standard",
+        "provider": "Kling",
+        "modality": "video-generation",
+        "quality_variants": ["Standard"],
+        "pricing_matrix": [
+          {
+            "duration": "5s",
+            "credits": 25,
+            "cost_usd": 0.125,
+            "fal_price": 0.25,
+            "discount": "-50.0%"
+          },
+          {
+            "duration": "10s",
+            "credits": 50,
+            "cost_usd": 0.25,
+            "fal_price": 0.5,
+            "discount": "-50.0%"
+          }
+        ]
+      },
+      {
+        "model_id": "kling/v2-1-pro",
+        "model_name": "Kling 2.1 Pro",
+        "provider": "Kling",
+        "modality": "video-generation",
+        "quality_variants": ["Pro"],
+        "pricing_matrix": [
+          {
+            "duration": "5s",
+            "credits": 50,
+            "cost_usd": 0.25,
+            "fal_price": 0.45,
+            "discount": "-44.4%"
+          },
+          {
+            "duration": "10s",
+            "credits": 100,
+            "cost_usd": 0.5,
+            "fal_price": 0.9,
+            "discount": "-44.4%"
+          }
+        ]
+      },
+      {
+        "model_id": "kling/v2-1-master-text-to-video",
+        "model_name": "Kling 2.1 Master Text to Video",
+        "provider": "Kling",
+        "modality": "text-to-video",
+        "quality_variants": ["Master"],
+        "pricing_matrix": [
+          {
+            "duration": "5s",
+            "credits": 160,
+            "cost_usd": 0.8,
+            "fal_price": 1.4,
+            "discount": "-42.9%"
+          },
+          {
+            "duration": "10s",
+            "credits": 320,
+            "cost_usd": 1.6,
+            "fal_price": 2.8,
+            "discount": "-42.9%"
+          }
+        ]
+      },
+      {
+        "model_id": "kling/v2-1-master-image-to-video",
+        "model_name": "Kling 2.1 Master Image to Video",
+        "provider": "Kling",
+        "modality": "image-to-video",
+        "quality_variants": ["Master"],
+        "pricing_matrix": [
+          {
+            "duration": "5s",
+            "credits": 160,
+            "cost_usd": 0.8,
+            "fal_price": 1.4,
+            "discount": "-42.9%"
+          },
+          {
+            "duration": "10s",
+            "credits": 320,
+            "cost_usd": 1.6,
+            "fal_price": 2.8,
+            "discount": "-42.9%"
+          }
+        ]
+      },
+      {
+        "model_id": "kling/ai-avatar-v1-pro",
+        "model_name": "Kling AI Avatar Pro",
+        "provider": "Kling",
+        "description": "Lip sync avatar generation with Pro quality",
+        "modality": "lip-sync",
+        "pricing_per_second": {
+          "resolution": "1080p",
+          "duration_limit": "up to 15 seconds",
+          "credits_per_second": 16,
+          "cost_usd_per_second": 0.08,
+          "fal_price": 0.115,
+          "discount": "-30.4%"
+        },
+        "supported_resolutions": ["1080p"],
+        "max_duration": "15s"
+      },
+      {
+        "model_id": "kling/v1-avatar-standard",
+        "model_name": "Kling AI Avatar Standard",
+        "provider": "Kling",
+        "description": "Lip sync avatar generation with Standard quality",
+        "modality": "lip-sync",
+        "pricing_per_second": {
+          "resolution": "720p",
+          "duration_limit": "up to 15 seconds",
+          "credits_per_second": 8,
+          "cost_usd_per_second": 0.04,
+          "fal_price": 0.0562,
+          "discount": "-28.8%"
+        },
+        "supported_resolutions": ["720p"],
+        "max_duration": "15s"
+      },
+      {
+        "model_id": "seedance-1.5-pro",
+        "model_name": "Seedance 1.5 Pro",
+        "provider": "ByteDance",
+        "description": "ByteDance's audio-video generation model that creates cinema-quality video, synchronized audio, and multilingual dialogue with cinematic camera control",
+        "modality": ["text-to-video", "image-to-video"],
+        "supported_durations": ["4s", "8s", "12s"],
+        "supported_resolutions": ["480p", "720p"],
+        "audio_options": ["with audio", "without audio"],
+        "quality_variants": ["Pro"],
+        "pricing_matrix": {
+          "720p": {
+            "with_audio": {
+              "4s": {"credits": 28, "cost_usd": 0.14, "fal_price": 0.2074, "discount": "-32.5%"},
+              "8s": {"credits": 56, "cost_usd": 0.28, "fal_price": 0.4147, "discount": "-32.5%"},
+              "12s": {"credits": 84, "cost_usd": 0.42, "fal_price": 0.6221, "discount": "-32.5%"}
+            },
+            "without_audio": {
+              "4s": {"credits": 14, "cost_usd": 0.07, "fal_price": 0.1037, "discount": "-32.5%"},
+              "8s": {"credits": 28, "cost_usd": 0.14, "fal_price": 0.2074, "discount": "-32.5%"},
+              "12s": {"credits": 42, "cost_usd": 0.21, "fal_price": 0.311, "discount": "-32.5%"}
+            }
+          },
+          "480p": {
+            "with_audio": {
+              "4s": {"credits": 14, "cost_usd": 0.07, "fal_price": 0.0922, "discount": "-24.1%"},
+              "8s": {"credits": 28, "cost_usd": 0.14, "fal_price": 0.1845, "discount": "-24.1%"},
+              "12s": {"credits": 38, "cost_usd": 0.19, "fal_price": 0.2767, "discount": "-31.3%"}
+            },
+            "without_audio": {
+              "4s": {"credits": 7, "cost_usd": 0.035, "fal_price": 0.0461, "discount": "-24.1%"},
+              "8s": {"credits": 14, "cost_usd": 0.07, "fal_price": 0.0922, "discount": "-24.1%"},
+              "12s": {"credits": 19, "cost_usd": 0.095, "fal_price": 0.1383, "discount": "-31.3%"}
+            }
+          }
+        }
+      },
+      {
+        "model_id": "wan/2.6-text-to-video",
+        "model_name": "Wan 2.6 Text to Video",
+        "provider": "Wan",
+        "description": "Alibaba's latest AI video model, offering affordable multi-shot 1080p generation with stable characters and synchronized native audio",
+        "modality": "text-to-video",
+        "supported_durations": ["5s"],
+        "supported_resolutions": ["1080p"],
+        "pricing_matrix": [
+          {
+            "duration": "5s",
+            "resolution": "1080p",
+            "credits": 104.5,
+            "cost_usd": 0.5225,
+            "fal_price": 0.75,
+            "discount": "-30.3%"
+          }
+        ]
+      },
+      {
+        "model_id": "wan/2.6-image-to-video",
+        "model_name": "Wan 2.6 Image to Video",
+        "provider": "Wan",
+        "modality": "image-to-video",
+        "supported_durations": ["5s", "10s", "15s"],
+        "supported_resolutions": ["720p", "1080p"],
+        "pricing_matrix": {
+          "1080p": {
+            "5s": {"credits": 104.5, "cost_usd": 0.5225, "fal_price": 0.75, "discount": "-30.3%"},
+            "10s": {"credits": 209.5, "cost_usd": 1.0475, "fal_price": 1.5, "discount": "-30.2%"},
+            "15s": {"credits": 315, "cost_usd": 1.575, "fal_price": 2.25, "discount": "-30.0%"}
+          },
+          "720p": {
+            "5s": {"credits": 70, "cost_usd": 0.35, "fal_price": 0.5, "discount": "-30.0%"},
+            "10s": {"credits": 140, "cost_usd": 0.7, "fal_price": 1.0, "discount": "-30.0%"},
+            "15s": {"credits": 210, "cost_usd": 1.05, "fal_price": 1.5, "discount": "-30.0%"}
+          }
+        }
+      },
+      {
+        "model_id": "wan/2.6-video-to-video",
+        "model_name": "Wan 2.6 Video to Video",
+        "provider": "Wan",
+        "modality": "video-to-video",
+        "supported_durations": ["5s", "10s", "15s"],
+        "supported_resolutions": ["720p", "1080p"],
+        "pricing_matrix": {
+          "1080p": {
+            "5s": {"credits": 104.5, "cost_usd": 0.5225, "fal_price": 0.75, "discount": "-30.3%"},
+            "10s": {"credits": 209.5, "cost_usd": 1.0475, "fal_price": 1.5, "discount": "-30.2%"},
+            "15s": {"credits": 315, "cost_usd": 1.575, "fal_price": 2.25, "discount": "-30.0%"}
+          },
+          "720p": {
+            "5s": {"credits": 70, "cost_usd": 0.35, "fal_price": 0.5, "discount": "-30.0%"},
+            "10s": {"credits": 140, "cost_usd": 0.7, "fal_price": 1.0, "discount": "-30.0%"},
+            "15s": {"credits": 210, "cost_usd": 1.05, "fal_price": 1.5, "discount": "-30.0%"}
+          }
+        }
+      },
+      {
+        "model_id": "hailuo/2.3-image-to-video-pro",
+        "model_name": "Hailuo 2.3 Image to Video Pro",
+        "provider": "Hailuo",
+        "modality": "image-to-video",
+        "quality_variants": ["Pro"],
+        "supported_durations": ["6s", "10s"],
+        "supported_resolutions": ["768p", "1080p"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "resolution": "768p",
+            "credits": 90,
+            "cost_usd": 0.45
+          },
+          {
+            "duration": "6s",
+            "resolution": "1080p",
+            "credits": 80,
+            "cost_usd": 0.4,
+            "fal_price": 0.49,
+            "discount": "-18.4%"
+          },
+          {
+            "duration": "6s",
+            "resolution": "768p",
+            "credits": 45,
+            "cost_usd": 0.225
+          }
+        ]
+      },
+      {
+        "model_id": "hailuo/2.3-image-to-video-standard",
+        "model_name": "Hailuo 2.3 Image to Video Standard",
+        "provider": "Hailuo",
+        "modality": "image-to-video",
+        "quality_variants": ["Standard"],
+        "supported_durations": ["6s", "10s"],
+        "supported_resolutions": ["768p", "1080p"],
+        "pricing_matrix": [
+          {
+            "duration": "6s",
+            "resolution": "768p",
+            "credits": 30,
+            "cost_usd": 0.15,
+            "fal_price": 0.28,
+            "discount": "-46.4%"
+          },
+          {
+            "duration": "10s",
+            "resolution": "768p",
+            "credits": 50,
+            "cost_usd": 0.25,
+            "fal_price": 0.56,
+            "discount": "-55.4%"
+          },
+          {
+            "duration": "6s",
+            "resolution": "1080p",
+            "credits": 50,
+            "cost_usd": 0.25,
+            "fal_price": 0.33,
+            "discount": "-24.2%"
+          }
+        ]
+      },
+      {
+        "model_id": "hailuo/02-text-to-video-standard",
+        "model_name": "Hailuo 02 Text to Video Standard",
+        "provider": "Hailuo",
+        "modality": "text-to-video",
+        "quality_variants": ["Standard"],
+        "supported_durations": ["6s", "10s"],
+        "supported_resolutions": ["768p"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "resolution": "768p",
+            "credits": 50,
+            "cost_usd": 0.25,
+            "fal_price": 0.45,
+            "discount": "-44.4%"
+          },
+          {
+            "duration": "6s",
+            "resolution": "768p",
+            "credits": 30,
+            "cost_usd": 0.15,
+            "fal_price": 0.27,
+            "discount": "-44.4%"
+          }
+        ]
+      },
+      {
+        "model_id": "hailuo/02-image-to-video-standard",
+        "model_name": "Hailuo 02 Image to Video Standard",
+        "provider": "Hailuo",
+        "modality": "image-to-video",
+        "quality_variants": ["Standard"],
+        "supported_durations": ["6s", "10s"],
+        "supported_resolutions": ["512p", "768p"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "resolution": "512p",
+            "credits": 20,
+            "cost_usd": 0.1,
+            "fal_price": 0.17,
+            "discount": "-41.2%"
+          },
+          {
+            "duration": "10s",
+            "resolution": "768p",
+            "credits": 50,
+            "cost_usd": 0.25,
+            "fal_price": 0.45,
+            "discount": "-44.4%"
+          },
+          {
+            "duration": "6s",
+            "resolution": "512p",
+            "credits": 12,
+            "cost_usd": 0.06,
+            "fal_price": 0.102,
+            "discount": "-41.2%"
+          }
+        ]
+      },
+      {
+        "model_id": "hailuo/02-text-to-video-pro",
+        "model_name": "Hailuo 02 Text to Video Pro",
+        "provider": "Hailuo",
+        "modality": "text-to-video",
+        "quality_variants": ["Pro"],
+        "supported_durations": ["6s"],
+        "supported_resolutions": ["1080p"],
+        "pricing_matrix": [
+          {
+            "duration": "6s",
+            "resolution": "1080p",
+            "credits": 57,
+            "cost_usd": 0.285,
+            "fal_price": 0.48,
+            "discount": "-40.6%"
+          }
+        ]
+      },
+      {
+        "model_id": "hailuo/02-image-to-video-pro",
+        "model_name": "Hailuo 02 Image to Video Pro",
+        "provider": "Hailuo",
+        "modality": "image-to-video",
+        "quality_variants": ["Pro"],
+        "supported_durations": ["6s"],
+        "supported_resolutions": ["1080p"],
+        "pricing_matrix": [
+          {
+            "duration": "6s",
+            "resolution": "1080p",
+            "credits": 57,
+            "cost_usd": 0.285,
+            "fal_price": 0.48,
+            "discount": "-40.6%"
+          }
+        ]
+      },
+      {
+        "model_id": "sora-2/text-to-video",
+        "model_name": "OpenAI Sora 2 Text to Video",
+        "provider": "OpenAI",
+        "modality": "text-to-video",
+        "quality_variants": ["Standard"],
+        "supported_durations": ["10s", "15s"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "credits": 20,
+            "cost_usd": 0.1
+          },
+          {
+            "duration": "15s",
+            "credits": 25,
+            "cost_usd": 0.125
+          }
+        ]
+      },
+      {
+        "model_id": "sora-2/image-to-video",
+        "model_name": "OpenAI Sora 2 Image to Video",
+        "provider": "OpenAI",
+        "modality": "image-to-video",
+        "quality_variants": ["Standard"],
+        "supported_durations": ["10s", "15s"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "credits": 20,
+            "cost_usd": 0.1
+          },
+          {
+            "duration": "15s",
+            "credits": 25,
+            "cost_usd": 0.125
+          }
+        ]
+      },
+      {
+        "model_id": "sora-2-pro-text-to-video",
+        "model_name": "OpenAI Sora 2 Pro Text to Video",
+        "provider": "OpenAI",
+        "modality": "text-to-video",
+        "quality_variants": ["Pro Standard", "Pro High"],
+        "supported_durations": ["10s", "15s"],
+        "pricing_matrix": {
+          "Pro Standard": {
+            "10s": {"credits": 150, "cost_usd": 0.75, "fal_price": 3.0, "discount": "-75.0%"},
+            "15s": {"credits": 270, "cost_usd": 1.35, "fal_price": 4.5, "discount": "-70.0%"}
+          },
+          "Pro High": {
+            "10s": {"credits": 330, "cost_usd": 1.65, "fal_price": 5.0, "discount": "-67.0%"},
+            "15s": {"credits": 630, "cost_usd": 3.15, "fal_price": 7.5, "discount": "-58.0%"}
+          }
+        }
+      },
+      {
+        "model_id": "sora-2-pro-image-to-video",
+        "model_name": "OpenAI Sora 2 Pro Image to Video",
+        "provider": "OpenAI",
+        "modality": "image-to-video",
+        "quality_variants": ["Pro Standard", "Pro High"],
+        "supported_durations": ["10s", "15s"],
+        "pricing_matrix": {
+          "Pro Standard": {
+            "10s": {"credits": 150, "cost_usd": 0.75, "fal_price": 3.0, "discount": "-75.0%"},
+            "15s": {"credits": 270, "cost_usd": 1.35, "fal_price": 4.5, "discount": "-70.0%"}
+          },
+          "Pro High": {
+            "10s": {"credits": 330, "cost_usd": 1.65, "fal_price": 5.0, "discount": "-67.0%"},
+            "15s": {"credits": 630, "cost_usd": 3.15, "fal_price": 7.5, "discount": "-58.0%"}
+          }
+        }
+      },
+      {
+        "model_id": "sora-2-pro-storyboard",
+        "model_name": "OpenAI Sora 2 Pro Storyboard",
+        "provider": "OpenAI",
+        "modality": "storyboard",
+        "quality_variants": ["Pro"],
+        "supported_durations": ["10s", "15-25s"],
+        "pricing_matrix": [
+          {
+            "duration": "10s",
+            "credits": 150,
+            "cost_usd": 0.75
+          },
+          {
+            "duration": "15-25s",
+            "credits": 270,
+            "cost_usd": 1.35
+          }
+        ]
+      },
+      {
+        "model_id": "sora-watermark-remover",
+        "model_name": "OpenAI Sora 2 Watermark Remover",
+        "provider": "OpenAI",
+        "modality": "watermark-removal",
+        "credits_required": 10,
+        "cost_usd": 0.05,
+        "description": "Remove watermarks from Sora 2 generated videos"
+      },
+      {
+        "model_id": "veo/3.1-text-to-video-fast",
+        "model_name": "Google Veo 3.1 Text to Video Fast",
+        "provider": "Google",
+        "description": "Google DeepMind's latest AI video model with fast rendering",
+        "modality": "text-to-video",
+        "quality_variants": ["Fast"],
+        "credits_required": 60,
+        "cost_usd": 0.3,
+        "fal_price": 1.2,
+        "discount": "-75.0%",
+        "supported_resolutions": ["1080p"],
+        "audio_capability": "synchronized audio output"
+      },
+      {
+        "model_id": "veo/3.1-text-to-video-quality",
+        "model_name": "Google Veo 3.1 Text to Video Quality",
+        "provider": "Google",
+        "description": "Google DeepMind's latest AI video model with cinematic motion and strong prompt adherence",
+        "modality": "text-to-video",
+        "quality_variants": ["Quality"],
+        "credits_required": 250,
+        "cost_usd": 1.25,
+        "fal_price": 3.2,
+        "discount": "-60.9%",
+        "supported_resolutions": ["1080p", "4K"],
+        "audio_capability": "synchronized audio output in native 1080p",
+        "features": ["cinematic motion", "strong prompt adherence", "synchronized audio"]
+      },
+      {
+        "model_id": "veo/3.1-image-to-video-fast",
+        "model_name": "Google Veo 3.1 Image to Video Fast",
+        "provider": "Google",
+        "modality": "image-to-video",
+        "quality_variants": ["Fast"],
+        "credits_required": 60,
+        "cost_usd": 0.3,
+        "fal_price": 1.2,
+        "discount": "-75.0%"
+      },
+      {
+        "model_id": "veo/3.1-image-to-video-quality",
+        "model_name": "Google Veo 3.1 Image to Video Quality",
+        "provider": "Google",
+        "modality": "image-to-video",
+        "quality_variants": ["Quality"],
+        "credits_required": 250,
+        "cost_usd": 1.25,
+        "fal_price": 3.2,
+        "discount": "-60.9%"
+      },
+      {
+        "model_id": "veo/3.1-reference-to-video-fast",
+        "model_name": "Google Veo 3.1 Reference to Video Fast",
+        "provider": "Google",
+        "modality": "reference-to-video",
+        "quality_variants": ["Fast"],
+        "credits_required": 60,
+        "cost_usd": 0.3,
+        "fal_price": 3.2,
+        "discount": "-90.6%"
+      },
+      {
+        "model_id": "veo/3.1-4k-upgrade",
+        "model_name": "Google Veo 3.1 Get 4K Video",
+        "provider": "Google",
+        "description": "Upgrade Veo 3.1 videos to 4K resolution",
+        "modality": "video-upscaling",
+        "credits_required": 120,
+        "supported_resolutions": {
+          "input": "1080p",
+          "output": "4K"
+        }
+      },
+      {
+        "model_id": "topaz-video-upscaler",
+        "model_name": "Topaz Video Upscaler",
+        "provider": "Topaz",
+        "description": "AI-powered video upscaling with support for 1x, 2x, and 4x upscaling factors",
+        "modality": "video-upscaling",
+        "pricing_per_second": {
+          "credits_per_second": 12,
+          "cost_usd_per_second": 0.06,
+          "fal_price": 0.08,
+          "discount": "-25.0%"
+        },
+        "supported_upscaling_factors": ["1x", "2x", "4x"],
+        "pricing_model": "per_second"
+      }
+    ],
+    "models_not_found": [
+      {
+        "model_id": "infinitalk/ai",
+        "model_name": "Infinitalk AI",
+        "status": "No pricing data found on KIE.ai",
+        "note": "Model may not be available or pricing not listed"
+      },
+      {
+        "model_id": "kling-2.2",
+        "model_name": "Kling 2.2",
+        "status": "Not found in current pricing data",
+        "note": "May have been superseded by newer versions"
+      },
+      {
+        "model_id": "kling-2.3",
+        "model_name": "Kling 2.3",
+        "status": "Not found in current pricing data",
+        "note": "May have been superseded by newer versions"
+      },
+      {
+        "model_id": "kling-2.4",
+        "model_name": "Kling 2.4",
+        "status": "Not found in current pricing data",
+        "note": "May have been superseded by newer versions"
+      }
+    ],
+    "summary": {
+      "total_models_found": 35,
+      "models_with_pricing": 31,
+      "models_without_pricing": 4,
+      "providers": ["Grok", "Kling", "ByteDance", "Wan", "Hailuo", "OpenAI", "Google", "Topaz"],
+      "modalities": ["text-to-video", "image-to-video", "video-to-video", "lip-sync", "video-upscaling", "watermark-removal", "storyboard", "reference-to-video"],
+      "price_range": {
+        "lowest": 0.035,
+        "highest": 3.15,
+        "currency": "USD"
+      },
+      "supported_resolutions": ["480p", "512p", "720p", "768p", "1080p", "4K"],
+      "supported_durations": ["4s", "5s", "6s", "8s", "10s", "12s", "15s", "15-25s"],
+      "quality_variants": ["Standard", "Pro", "Master", "Turbo Pro", "Fast", "Quality", "High", "Pro High", "Pro Standard"]
+    },
+    "api_information": {
+      "base_url": "https://api.kie.ai/api/v1/jobs/createTask",
+      "authentication": "Bearer Token",
+      "headers": {
+        "Authorization": "Bearer <API_KEY>",
+        "Content-Type": "application/json"
+      },
+      "rate_limits": {
+        "requests_per_10_seconds": 20,
+        "concurrent_tasks": "100+"
+      },
+      "task_model": "asynchronous",
+      "callback_support": true,
+      "documentation": "https://docs.kie.ai/"
+    }
+  }
+}

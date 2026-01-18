@@ -92,6 +92,10 @@ export interface UnifiedModelConfig {
     model?: string; // e.g., 'grok-imagine/image-to-video' for KIE
     modalEndpoint?: string;
     resolution: Resolution;
+    // Advanced KIE video parameters
+    videoDuration?: string; // e.g., '5s', '10s', '15s'
+    videoResolution?: string; // e.g., '720p', '1080p', '768P', '4K'
+    videoAspectRatio?: string; // e.g., '16:9', '9:16', '1:1'
   };
 
   // Text-to-Speech Configuration

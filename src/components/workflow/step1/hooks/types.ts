@@ -1,4 +1,7 @@
 import type { Project } from '@/types/project';
+import type { Dispatch, SetStateAction } from 'react';
+
+export type Setter<T> = Dispatch<SetStateAction<T>>;
 
 export interface Step1State {
   // Project
@@ -38,7 +41,7 @@ export interface Step1State {
   aspectRatio: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4';
   setAspectRatio: (value: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4') => void;
   videoLanguage: string;
-  setVideoLanguage: (value: string | ((prev: string) => string)) => void;
+  setVideoLanguage: Dispatch<SetStateAction<any>>;
   storyModel: 'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro';
   setStoryModel: (value: 'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro') => void;
   styleModel: string;

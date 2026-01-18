@@ -639,7 +639,6 @@ model KieTtsModel {
   name                  String
   provider              String
   description           String?
-  modality              String[] // ["text-to-speech", "speech-to-text", ...]
   credits               Int
   cost                  Float
   costUnit              String?  // "per_request", "per_1000_chars", "per_minute"
@@ -695,7 +694,6 @@ model KieLlmModel {
   name                  String
   provider              String
   description           String?
-  modality              String[] // ["chat", "text-generation", ...]
   creditsPerToken       Float?
   creditsPerRequest     Int?
   cost                  Float

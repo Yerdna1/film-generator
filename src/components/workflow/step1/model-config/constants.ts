@@ -54,15 +54,15 @@ export const IMAGE_MODELS: Record<string, { id: string; name: string; badge: str
   'modal-edit': [
     { id: 'custom-edit', name: 'Custom Modal Edit Endpoint', badge: 'SELF-HOSTED' },
   ],
-  kie: [
-    { id: 'seedream/4-5-text-to-image', name: 'SeeDream 4.5', badge: 'PREMIUM' },
-    { id: 'google-nano-banana-pro-4k', name: 'Nano Banana Pro 4K', badge: 'PREMIUM' },
-  ],
+  kie: [], // KIE models now loaded from database via useImageModels hook
 };
 
 export const VIDEO_MODELS = {
   kie: [
     { id: 'grok-imagine/image-to-video', name: 'Grok Imagine', badge: 'DEFAULT' },
+    { id: 'hailuo/02-image-to-video-standard', name: 'Hailuo 02 Standard', badge: 'STANDARD' },
+    { id: 'wan/2-6-image-to-video', name: 'Wan 2.6', badge: 'POPULAR' },
+    { id: 'kling/v2-6-image-to-video', name: 'Kling v2.6', badge: 'RECOMMENDED' },
     { id: 'sora2/10s-image-to-video', name: 'Sora 2 (10s)', badge: 'PREMIUM' },
   ],
   modal: [
@@ -122,4 +122,27 @@ export const ASPECT_RATIOS = [
   { value: '4:3', label: '4:3 (Standard)' },
   { value: '3:4', label: '3:4' },
   { value: '21:9', label: '21:9 (Ultrawide)' },
+];
+
+// Video-specific parameters for KIE models
+export const VIDEO_DURATIONS = [
+  { value: '5s', label: '5 seconds' },
+  { value: '10s', label: '10 seconds' },
+  { value: '15s', label: '15 seconds' },
+  { value: '30s', label: '30 seconds' },
+];
+
+export const KIE_VIDEO_RESOLUTIONS = [
+  { value: '720p', label: '720p (HD)' },
+  { value: '768P', label: '768P (Hailuo Standard)' },
+  { value: '1080p', label: '1080p (Full HD)' },
+  { value: '4K', label: '4K (Ultra HD)' },
+];
+
+export const VIDEO_ASPECT_RATIOS = [
+  { value: '16:9', label: '16:9 (Landscape)' },
+  { value: '9:16', label: '9:16 (Portrait)' },
+  { value: '1:1', label: '1:1 (Square)' },
+  { value: '4:3', label: '4:3 (Standard)' },
+  { value: '3:4', label: '3:4' },
 ];

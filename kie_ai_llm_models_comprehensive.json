@@ -1,0 +1,321 @@
+{
+  "kie_ai_llm_models": {
+    "metadata": {
+      "last_updated": "2026-01-18",
+      "total_llm_models_found": 14,
+      "source": "https://kie.ai/pricing",
+      "documentation": "https://docs.kie.ai/",
+      "credit_system": "1 credit = $0.005 USD"
+    },
+    "models": [
+      {
+        "model_id": "claude-opus-4-5-thinking",
+        "model_name": "Claude Opus 4.5 Thinking",
+        "provider": "Anthropic",
+        "description": "Claude Opus 4.5 with extended thinking capabilities for complex reasoning tasks",
+        "modality": "chat",
+        "model_type": "thinking_model",
+        "pricing": {
+          "input": {
+            "credits_per_million_tokens": 300,
+            "cost_usd": 1.50,
+            "discount_from_official": "70.0%"
+          },
+          "output": {
+            "credits_per_million_tokens": 1500,
+            "cost_usd": 7.50,
+            "discount_from_official": "70.0%"
+          }
+        },
+        "capabilities": [
+          "complex_reasoning",
+          "extended_thinking",
+          "function_calling",
+          "multimodal_inputs",
+          "streaming"
+        ],
+        "use_cases": [
+          "complex_problem_solving",
+          "research_analysis",
+          "code_generation",
+          "technical_writing"
+        ]
+      },
+      {
+        "model_id": "claude-sonnet-4-5-thinking",
+        "model_name": "Claude Sonnet 4.5 Thinking",
+        "provider": "Anthropic",
+        "description": "Claude Sonnet 4.5 with extended thinking capabilities for balanced performance",
+        "modality": "chat",
+        "model_type": "thinking_model",
+        "pricing": {
+          "input": {
+            "credits_per_million_tokens": 300,
+            "cost_usd": 1.50,
+            "discount_from_official": "70.0%"
+          },
+          "output": {
+            "credits_per_million_tokens": 1500,
+            "cost_usd": 7.50,
+            "discount_from_official": "70.0%"
+          }
+        },
+        "capabilities": [
+          "balanced_reasoning",
+          "extended_thinking",
+          "function_calling",
+          "multimodal_inputs",
+          "streaming"
+        ],
+        "use_cases": [
+          "general_purpose_ai",
+          "content_creation",
+          "analysis",
+          "coding_assistance"
+        ]
+      },
+      {
+        "model_id": "claude-sonnet-4-5",
+        "model_name": "Claude Sonnet 4.5",
+        "provider": "Anthropic",
+        "description": "Anthropic's balanced performance model for general purpose AI tasks",
+        "modality": "chat",
+        "model_type": "standard_model",
+        "pricing": {
+          "input": {
+            "credits_per_million_tokens": 180,
+            "cost_usd": 0.90,
+            "discount_from_official": "70.0%"
+          },
+          "output": {
+            "credits_per_million_tokens": 900,
+            "cost_usd": 4.50,
+            "discount_from_official": "70.0%"
+          }
+        },
+        "capabilities": [
+          "general_reasoning",
+          "function_calling",
+          "multimodal_inputs",
+          "streaming",
+          "code_execution"
+        ],
+        "context_window": "200K tokens",
+        "use_cases": [
+          "conversational_ai",
+          "content_generation",
+          "analysis",
+          "automation"
+        ]
+      },
+      {
+        "model_id": "gemini-3-flash",
+        "model_name": "Gemini 3 Flash",
+        "provider": "Google",
+        "description": "Google's fast-response multimodal model for quick interactions",
+        "modality": "chat",
+        "model_type": "fast_model",
+        "pricing": {
+          "input": {
+            "credits_per_million_tokens": 30,
+            "cost_usd": 0.15,
+            "discount_from_official": "70.0%"
+          },
+          "output": {
+            "credits_per_million_tokens": 180,
+            "cost_usd": 0.90,
+            "discount_from_official": "70.0%"
+          }
+        },
+        "capabilities": [
+          "fast_response",
+          "multimodal_understanding",
+          "function_calling",
+          "streaming",
+          "code_generation"
+        ],
+        "use_cases": [
+          "real_time_interactions",
+          "quick_responses",
+          "customer_support",
+          "basic_tasks"
+        ]
+      },
+      {
+        "model_id": "gemini-3-pro",
+        "model_name": "Gemini 3 Pro",
+        "provider": "Google DeepMind",
+        "description": "Google's next-generation multimodal model with advanced reasoning and long-context processing",
+        "modality": "chat",
+        "model_type": "advanced_model",
+        "pricing": {
+          "input": {
+            "credits_per_million_tokens": 100,
+            "cost_usd": 0.50,
+            "discount_from_official": "75.0%"
+          },
+          "output": {
+            "credits_per_million_tokens": 700,
+            "cost_usd": 3.50,
+            "discount_from_official": "70.0%"
+          }
+        },
+        "capabilities": [
+          "advanced_reasoning",
+          "multimodal_fusion",
+          "long_context_processing",
+          "function_calling",
+          "streaming",
+          "structured_outputs",
+          "grounding_with_google_search",
+          "thinking_process",
+          "agentic_coding"
+        ],
+        "context_window": "1M tokens",
+        "specifications": {
+          "multimodal_support": ["text", "images", "video", "audio", "pdfs", "code_repositories"],
+          "benchmarks": {
+            "humanitys_last_exam": "37.5%",
+            "gpqa_diamond": "91.9%",
+            "mmmu_pro": "81.0%",
+            "video_mmuu": "87.6%",
+            "terminal_bench_2": "54.2%",
+            "mrcr_v2": "26.3%",
+            "livecodebench_pro": "2,439 Elo"
+          }
+        },
+        "use_cases": [
+          "complex_reasoning",
+          "multimodal_analysis",
+          "long_context_document_analysis",
+          "agentic_workflows",
+          "scientific_analysis",
+          "financial_analysis",
+          "advanced_coding"
+        ]
+      },
+      {
+        "model_id": "gemini-2.5-flash",
+        "model_name": "Gemini 2.5 Flash",
+        "provider": "Google DeepMind",
+        "description": "Google's first hybrid reasoning LLM combining fast generation with optional reasoning",
+        "modality": "chat",
+        "model_type": "hybrid_reasoning_model",
+        "pricing": {
+          "input": {
+            "credits_per_million_tokens": 18,
+            "cost_usd": 0.09,
+            "discount_from_official": "70.0%"
+          },
+          "output": {
+            "credits_per_million_tokens": 150,
+            "cost_usd": 0.75,
+            "discount_from_official": "70.0%"
+          }
+        },
+        "capabilities": [
+          "hybrid_reasoning",
+          "fast_generation",
+          "optional_reasoning",
+          "multimodal_inputs",
+          "function_calling",
+          "streaming"
+        ],
+        "use_cases": [
+          "balanced_performance",
+          "cost_effective_reasoning",
+          "general_purpose_tasks",
+          "simple_to_complex_tasks"
+        ]
+      },
+      {
+        "model_id": "gemini-2.5-pro",
+        "model_name": "Gemini 2.5 Pro",
+        "provider": "Google DeepMind",
+        "description": "Google's advanced thinking model for complex reasoning and long-context understanding with native multimodal inputs",
+        "modality": "chat",
+        "model_type": "thinking_model",
+        "pricing": {
+          "input": {
+            "credits_per_million_tokens": 76,
+            "cost_usd": 0.38,
+            "discount_from_official": "69.6%"
+          },
+          "output": {
+            "credits_per_million_tokens": 600,
+            "cost_usd": 3.00,
+            "discount_from_official": "70.0%"
+          }
+        },
+        "capabilities": [
+          "complex_reasoning",
+          "code_generation",
+          "long_context_understanding",
+          "native_multimodal_inputs",
+          "function_calling",
+          "streaming",
+          "advanced_analysis"
+        ],
+        "context_window": "1M tokens",
+        "use_cases": [
+          "complex_reasoning_tasks",
+          "code_generation",
+          "long_context_analysis",
+          "multimodal_understanding",
+          "advanced_problem_solving"
+        ]
+      }
+    ],
+    "additional_models": [
+      {
+        "note": "Based on the pricing page showing 14 total chat models, there are additional LLM models available on KIE.ai that weren't fully detailed in this research. These may include other Claude variants, additional Gemini models, or models from other providers."
+      }
+    ],
+    "summary": {
+      "total_models_researched": 7,
+      "total_available_on_platform": 14,
+      "providers": ["Anthropic", "Google DeepMind"],
+      "model_types": ["thinking_model", "standard_model", "fast_model", "advanced_model", "hybrid_reasoning_model"],
+      "price_range": {
+        "input_cheapest": "$0.09 per million tokens (Gemini 2.5 Flash)",
+        "input_expensive": "$1.50 per million tokens (Claude Opus 4.5 Thinking)",
+        "output_cheapest": "$0.75 per million tokens (Gemini 2.5 Flash)",
+        "output_expensive": "$7.50 per million tokens (Claude Opus/Sonnet 4.5 Thinking)"
+      },
+      "key_features": [
+        "function_calling",
+        "streaming",
+        "multimodal_inputs",
+        "long_context_windows",
+        "advanced_reasoning",
+        "code_generation",
+        "structured_outputs"
+      ],
+      "context_windows": {
+        "standard": "200K tokens",
+        "extended": "1M tokens"
+      },
+      "api_compatibility": "OpenAI-compatible API format",
+      "pricing_structure": "Credit-based system (1 credit = $0.005 USD)",
+      "discounts_from_official": "69.6% - 75.0% cheaper than official provider pricing"
+    },
+    "api_information": {
+      "base_url": "https://api.kie.ai",
+      "authentication": "Bearer Token",
+      "api_format": "OpenAI-compatible",
+      "documentation": "https://docs.kie.ai/",
+      "support": "[email protected]"
+    },
+    "research_notes": {
+      "data_collection_method": "Web scraping and analysis of KIE.ai pricing page and model documentation",
+      "date": "2026-01-18",
+      "limitations": "Some model URLs resulted in 404 errors, indicating potential URL changes or access restrictions. Full specifications for all 14 models were not accessible during this research.",
+      "recommendations": [
+        "Contact KIE.ai support for complete model catalog",
+        "Check official documentation for the most up-to-date specifications",
+        "Verify pricing directly on https://kie.ai/pricing",
+        "Test free tier credits before committing to production use"
+      ]
+    }
+  }
+}

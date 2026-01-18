@@ -10,6 +10,7 @@ import {
   ApiKeyInput,
   ProviderSelect
 } from '../../model-config';
+import { useMusicModels, type KieMusicModel } from '@/hooks/use-kie-models';
 
 interface MusicTabProps extends TabProps {
   isFreeUser?: boolean;
@@ -17,10 +18,15 @@ interface MusicTabProps extends TabProps {
 
 export function MusicTab({ config, apiKeysData, disabled, onUpdateConfig, onSaveApiKey, isFreeUser }: MusicTabProps) {
   const t = useTranslations();
+  const { models: musicModels, loading: modelsLoading } = useMusicModels();
 
   const updateMusic = (updates: Partial<UnifiedModelConfig['music']>) => {
     onUpdateConfig({ music: { ...config.music, ...updates } });
   };
+
+  // Get the selected model configuration
+  const selectedModelId = config.music.model || MUSIC_MODELS.kie[0]?.id;
+  const modelConfig = musicModels.find(m => m.modelId === selectedModelId);
 
   const getProviderBadge = (provider: string, hasKey: boolean) => {
     if (!hasKey && provider !== 'gemini' && provider !== 'gemini-tts') {
@@ -80,25 +86,47 @@ export function MusicTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
         )}
 
         {config.music.provider === 'kie' && (
-          <div>
-            <Label>{t('step1.modelConfiguration.music.model')}</Label>
-            <Select
-              value={config.music.model || MUSIC_MODELS.kie[0].id}
-              onValueChange={(value: string) => updateMusic({ model: value })}
-              disabled={disabled}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MUSIC_MODELS.kie.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <>
+            <div>
+              <Label>{t('step1.modelConfiguration.music.model')}</Label>
+              <Select
+                value={selectedModelId}
+                onValueChange={(value: string) => updateMusic({ model: value })}
+                disabled={disabled}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MUSIC_MODELS.kie.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                  {/* Show KIE music models from database */}
+                  {musicModels.map((model) => (
+                    <SelectItem key={model.modelId} value={model.modelId}>
+                      {model.name} ({model.credits} credits)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Model info for KIE provider */}
+            {modelConfig && (
+              <div className="text-xs text-muted-foreground space-y-1 p-3 glass rounded-lg">
+                <p><strong>Model:</strong> {modelConfig.name}</p>
+                <p><strong>Cost:</strong> {modelConfig.credits} credits (${modelConfig.cost.toFixed(2)}) per song</p>
+                {modelConfig.description && (
+                  <p><strong>Description:</strong> {modelConfig.description}</p>
+                )}
+                {modelConfig.modality && (
+                  <p><strong>Modality:</strong> {modelConfig.modality.join(', ')}</p>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </TabsContent>

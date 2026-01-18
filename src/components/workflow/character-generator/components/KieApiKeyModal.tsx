@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Key, Eye, EyeOff, Loader2, Image } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -14,17 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { KIE_IMAGE_MODELS, type KieModelConfig } from '@/lib/constants/kie-models';
-
-// Affordable models for free users (sorted by price)
-const AFFORDABLE_KIE_MODELS: KieModelConfig[] = [
-  KIE_IMAGE_MODELS.find(m => m.id === 'grok-imagine/text-to-image')!, // 4 credits - cheapest!
-  KIE_IMAGE_MODELS.find(m => m.id === 'seedream/3-0-text-to-image')!, // 15 credits
-  KIE_IMAGE_MODELS.find(m => m.id === 'google-nano-banana-pro')!, // 18 credits - recommended
-  KIE_IMAGE_MODELS.find(m => m.id === 'seedream/4-0-text-to-image')!, // 18 credits
-  KIE_IMAGE_MODELS.find(m => m.id === 'seedream/4-5-text-to-image')!, // 20 credits - recommended
-  KIE_IMAGE_MODELS.find(m => m.id === 'flux-2/dev-text-to-image')!, // 20 credits
-].filter(Boolean);
+import { useImageModels, type KieImageModel } from '@/hooks/use-kie-models';
 
 interface KieApiKeyModalProps {
   isOpen: boolean;
@@ -35,10 +25,23 @@ interface KieApiKeyModalProps {
 
 export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: KieApiKeyModalProps) {
   const t = useTranslations();
+  const { models: imageModels, loading: modelsLoading } = useImageModels();
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState(AFFORDABLE_KIE_MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState('');
+
+  // Affordable models for free users (sorted by price) - filtered from database
+  const AFFORDABLE_KIE_MODELS = imageModels
+    .filter(m => m.credits <= 25) // Filter for affordable models
+    .sort((a, b) => a.credits - b.credits); // Sort by price (cheapest first)
+
+  // Set default model when models load
+  useEffect(() => {
+    if (AFFORDABLE_KIE_MODELS.length > 0 && !selectedModel) {
+      setSelectedModel(AFFORDABLE_KIE_MODELS[0].modelId);
+    }
+  }, [AFFORDABLE_KIE_MODELS, selectedModel]);
 
   if (!isOpen) return null;
 
@@ -121,14 +124,14 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
                 </SelectTrigger>
                 <SelectContent className="glass-strong border-white/10 max-h-80 overflow-y-auto">
                   {AFFORDABLE_KIE_MODELS.map((model) => {
-                    const isSelected = selectedModel === model.id;
+                    const isSelected = selectedModel === model.modelId;
                     return (
-                      <SelectItem key={model.id} value={model.id} className="cursor-pointer">
+                      <SelectItem key={model.modelId} value={model.modelId} className="cursor-pointer">
                         <div className="flex flex-col gap-0.5 py-1">
                           <div className="flex items-center justify-between gap-4">
                             <span className="font-medium text-foreground">{model.name}</span>
-                            {model.recommended && (
-                              <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">Best</span>
+                            {model.credits <= 20 && (
+                              <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">Best Value</span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
