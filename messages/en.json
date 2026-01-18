@@ -1661,7 +1661,11 @@
     "similarity": "Similarity Boost",
     "similarityHint": "How closely to match the original voice sample",
     "style": "Style Exaggeration",
-    "styleHint": "Amplify the style of the original speaker (0 = neutral)"
+    "styleHint": "Amplify the style of the original speaker (0 = neutral)",
+    "voiceSettings": "Voice Settings",
+    "assignVoices": "Assign Voices",
+    "noVoice": "No Voice",
+    "selectVoice": "Select Voice"
   },
   "copy": {
     "characterPromptsTitle": "Copy Character Prompts for Gemini",

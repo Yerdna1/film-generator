@@ -1710,7 +1710,11 @@
     "similarity": "Zosilnenie podobnosti",
     "similarityHint": "Ako closely sa má zhodovať s originálnym hlasovým vzorkou",
     "style": "Prehnanie štýlu",
-    "styleHint": "Zosilňte štýl originálneho rečníka (0 = neutrálne)"
+    "styleHint": "Zosilňte štýl originálneho rečníka (0 = neutrálne)",
+    "voiceSettings": "Nastavenia hlasu",
+    "assignVoices": "Priradiť hlasy",
+    "noVoice": "Bez hlasu",
+    "selectVoice": "Vybrať hlas"
   },
   "copy": {
     "characterPromptsTitle": "Kopírovať prompty postáv pre Gemini",
