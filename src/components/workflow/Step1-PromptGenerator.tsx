@@ -65,6 +65,7 @@ export function Step1PromptGenerator({
     handleApplyPreset,
     handleModelConfigChange,
     handleCloseModelConfigModal,
+    handleCancelModelConfigModal,
   } = handlers;
 
   const handleModelConfigChangeWrapper = (modelConfig: UnifiedModelConfig) => {
@@ -146,6 +147,7 @@ export function Step1PromptGenerator({
       <ModelConfigModal
         isOpen={isModelConfigModalOpen}
         onSubmit={handleCloseModelConfigModal}
+        onClose={handleCancelModelConfigModal}
         modelConfig={project.modelConfig}
         onConfigChange={handleModelConfigChangeWrapper}
         disabled={isReadOnly}

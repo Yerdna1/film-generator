@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 interface ModelConfigModalProps {
   isOpen: boolean;
   onSubmit: () => void;
+  onClose?: () => void;
   modelConfig?: UnifiedModelConfig;
   onConfigChange: (config: UnifiedModelConfig) => void;
   disabled?: boolean;
@@ -18,6 +19,7 @@ interface ModelConfigModalProps {
 export function ModelConfigModal({
   isOpen,
   onSubmit,
+  onClose,
   modelConfig,
   onConfigChange,
   disabled = false,
@@ -25,6 +27,12 @@ export function ModelConfigModal({
 }: ModelConfigModalProps) {
   console.log('[ModelConfigModal] Render:', { isOpen, modelConfig, disabled, isFreeUser });
   const t = useTranslations('step1.modelConfiguration.modal');
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onSubmit()}>
@@ -49,7 +57,7 @@ export function ModelConfigModal({
           />
         </div>
         <DialogFooter className="mt-6 gap-2">
-          <Button onClick={onSubmit} variant="outline">
+          <Button onClick={handleClose} variant="outline">
             {t('cancelButton')}
           </Button>
           <Button onClick={onSubmit} className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white">

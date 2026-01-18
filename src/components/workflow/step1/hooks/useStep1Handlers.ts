@@ -227,11 +227,18 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     }
   }, [setIsModelConfigModalOpen, pendingGenerateAction, setPendingGenerateAction]);
 
+  const handleCancelModelConfigModal = useCallback(() => {
+    setIsModelConfigModalOpen(false);
+    // Clear the pending action without executing it
+    setPendingGenerateAction(null);
+  }, [setIsModelConfigModalOpen, setPendingGenerateAction]);
+
   return {
     handleGeneratePrompt,
     handleSaveEditedPrompt,
     handleApplyPreset,
     handleModelConfigChange,
     handleCloseModelConfigModal,
+    handleCancelModelConfigModal,
   };
 }
