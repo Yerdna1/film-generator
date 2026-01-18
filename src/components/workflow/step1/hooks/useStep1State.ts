@@ -161,6 +161,7 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     // Subscription
     isPremiumUser,
     effectiveIsPremium,
+    isAdmin,
 
     // Form state
     isGenerating,

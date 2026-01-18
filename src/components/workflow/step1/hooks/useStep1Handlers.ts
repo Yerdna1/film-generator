@@ -13,6 +13,7 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     store,
     isPremiumUser,
     effectiveIsPremium,
+    isAdmin,
     isModelConfigModalOpen,
     setIsModelConfigModalOpen,
     pendingGenerateAction,
@@ -37,14 +38,16 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     // Explicit `true` (after modal closes) should skip the modal
     const skipModelConfigCheck = eventOrSkipCheck === true;
 
-    // Show model config modal for free users every time (unless skipped)
-    // Check actual subscription status (isPremiumUser), not effectiveIsPremium which includes admin
-    const isFreeUser = !isPremiumUser; // Use isPremiumUser directly instead of effectiveIsPremium
+    // Show model config modal for free users only (not premium and not admin)
+    // effectiveIsPremium includes both premium users AND admins
+    const isFreeUser = !effectiveIsPremium;
 
     console.log('[Step1] handleGeneratePrompt called:', {
       eventOrSkipCheck,
       skipModelConfigCheck,
       isPremiumUser,
+      effectiveIsPremium,
+      isAdmin,
       isFreeUser,
       shouldShowModal: !skipModelConfigCheck && isFreeUser,
     });

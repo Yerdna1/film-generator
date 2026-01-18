@@ -20,6 +20,7 @@ export interface Step1State {
   // Subscription
   isPremiumUser: boolean;
   effectiveIsPremium: boolean;
+  isAdmin: boolean;
 
   // Form state
   isGenerating: boolean;
