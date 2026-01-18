@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateMasterPrompt } from '@/lib/prompts/master-prompt';
 import type { UnifiedModelConfig } from '@/types/project';
 import { storyPresets } from '../story-presets';
 import type { Step1State } from './types';
@@ -12,12 +11,12 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
   const {
     project,
     store,
+    isPremiumUser,
     effectiveIsPremium,
     isModelConfigModalOpen,
     setIsModelConfigModalOpen,
     pendingGenerateAction,
     setPendingGenerateAction,
-    hasShownModelConfig,
     isGenerating,
     setIsGenerating,
     storyModel,
@@ -32,11 +31,26 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     setSelectedPresetId,
   } = props;
 
-  const handleGeneratePrompt = useCallback(async (skipModelConfigCheck = false) => {
-    // Show model config modal only for free users if not shown yet for this project (unless skipped)
-    // Admins and premium users skip this modal
-    const isFreeUser = !effectiveIsPremium;
-    if (!skipModelConfigCheck && isFreeUser && !hasShownModelConfig) {
+  const handleGeneratePrompt = useCallback(async (eventOrSkipCheck = false) => {
+    // Handle both direct calls and onClick events
+    // Event object from onClick should NOT skip the modal
+    // Explicit `true` (after modal closes) should skip the modal
+    const skipModelConfigCheck = eventOrSkipCheck === true;
+
+    // Show model config modal for free users every time (unless skipped)
+    // Check actual subscription status (isPremiumUser), not effectiveIsPremium which includes admin
+    const isFreeUser = !isPremiumUser; // Use isPremiumUser directly instead of effectiveIsPremium
+
+    console.log('[Step1] handleGeneratePrompt called:', {
+      eventOrSkipCheck,
+      skipModelConfigCheck,
+      isPremiumUser,
+      isFreeUser,
+      shouldShowModal: !skipModelConfigCheck && isFreeUser,
+    });
+
+    if (!skipModelConfigCheck && isFreeUser) {
+      console.log('[Step1] Opening model config modal');
       setIsModelConfigModalOpen(true);
       // Store the actual generation action to be called after modal closes
       setPendingGenerateAction(() => () => handleGeneratePrompt(true));
@@ -58,15 +72,6 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
       storyModel,
     };
 
-    // Generate the base master prompt template with current settings
-    const projectWithCurrentSettings = {
-      ...project,
-      settings: currentSettings
-    };
-
-    // Generate base prompt outside try block so it's available in catch block for fallback
-    const basePrompt = generateMasterPrompt(projectWithCurrentSettings.story, projectWithCurrentSettings.style, projectWithCurrentSettings.settings);
-
     try {
       // Small delay to ensure all settings are saved
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -84,7 +89,7 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...(modelToUse && { model: modelToUse }), // Pass model for premium users
-          prompt: `Based on the following story concept and settings, enhance and expand this prompt for generating a ${currentSettings.sceneCount}-scene animated short film.
+          prompt: `Generate a complete master prompt for a ${currentSettings.sceneCount}-scene animated short film based on the following details:
 
 Story Title: ${project.story.title}
 Genre: ${project.story.genre}
@@ -102,17 +107,14 @@ Technical Settings:
 - Characters: ${currentSettings.characterCount}
 - Scenes: ${currentSettings.sceneCount}
 
-Base prompt template:
-${basePrompt}
-
-Please enhance this prompt with:
-1. More detailed character descriptions (visual appearance, personality, motivations)
+Please generate a comprehensive master prompt that includes:
+1. Detailed character descriptions with visual appearance, personality, and motivations
 2. Scene breakdown with specific camera shots and compositions
 3. Text-to-Image prompts for each character and scene
 4. Image-to-Video prompts describing movements and actions
 5. Sample dialogue for each scene
 
-Format the output exactly like the base template but with richer, more detailed content. Keep the same structure with CHARACTER: and SCENE: sections.`,
+Format the output with clear CHARACTER: and SCENE: sections.`,
           systemPrompt: 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.',
         }),
       });
@@ -142,59 +144,44 @@ Format the output exactly like the base template but with richer, more detailed 
         }
       }
 
-      // Check for insufficient credits error
+      // Show insufficient credits error
       if (response.status === 402) {
         const errorData = await response.json();
-        console.warn('Insufficient credits for AI enhancement:', errorData);
+        setIsGenerating(false);
 
-        // Show warning toast
         toast({
           title: "Insufficient Credits",
-          description: "Using local generation instead. Upgrade your plan for AI enhancement.",
+          description: errorData.error || "You don't have enough credits to generate the master prompt. Please upgrade your plan.",
           variant: "destructive",
         });
-
-        // Fall back to local generation (free)
+        return;
       }
 
-      // Fallback to local generation if API fails or not enough credits
-      console.warn('Using local generation (no credits deducted)');
-      store.setMasterPrompt(project.id, basePrompt);
-      setEditedPrompt(basePrompt);
-
-      // Show fallback toast and auto-advance
-      toast({
-        title: "Step 1 Complete! 🎉",
-        description: "Base prompt created. Moving to Step 2...",
-      });
-
-      // Auto-advance to Step 2 after a short delay
-      setTimeout(() => {
-        store.nextStep(project.id);
-      }, 1500);
+      // Show error for failed API calls
+      if (!response.ok) {
+        setIsGenerating(false);
+        toast({
+          title: "Generation Failed",
+          description: "Failed to generate the master prompt. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
     } catch (error) {
       console.error('Error generating prompt:', error);
-      // Fallback to local generation with current settings (reuse basePrompt)
-      store.setMasterPrompt(project.id, basePrompt);
-      setEditedPrompt(basePrompt);
+      setIsGenerating(false);
 
-      // Show error toast and still auto-advance
+      // Show error toast
       toast({
-        title: "Step 1 Complete (Fallback)",
-        description: "Using local generation. Moving to Step 2...",
+        title: "Generation Error",
+        description: error instanceof Error ? error.message : "An error occurred while generating the master prompt. Please try again.",
         variant: "destructive",
       });
-
-      // Auto-advance to Step 2 after a short delay
-      setTimeout(() => {
-        store.nextStep(project.id);
-      }, 1500);
     }
 
     setIsGenerating(false);
   }, [
-    effectiveIsPremium,
-    hasShownModelConfig,
+    isPremiumUser,
     setIsModelConfigModalOpen,
     setPendingGenerateAction,
     aspectRatio,
@@ -233,14 +220,12 @@ Format the output exactly like the base template but with richer, more detailed 
 
   const handleCloseModelConfigModal = useCallback(() => {
     setIsModelConfigModalOpen(false);
-    // Mark as shown for this project
-    localStorage.setItem(`model-config-shown-${project.id}`, 'true');
     // Execute the pending generation action if exists
     if (pendingGenerateAction) {
       pendingGenerateAction();
       setPendingGenerateAction(null);
     }
-  }, [project.id, setIsModelConfigModalOpen, pendingGenerateAction, setPendingGenerateAction]);
+  }, [setIsModelConfigModalOpen, pendingGenerateAction, setPendingGenerateAction]);
 
   return {
     handleGeneratePrompt,

@@ -60,11 +60,6 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
   const [isModelConfigModalOpen, setIsModelConfigModalOpen] = useState(false);
   const [pendingGenerateAction, setPendingGenerateAction] = useState<(() => void) | null>(null);
 
-  // Check if model config has been shown for this project
-  const hasShownModelConfig = typeof window !== 'undefined'
-    ? localStorage.getItem(`model-config-shown-${project.id}`) === 'true'
-    : false;
-
   // New state for additional options - initialize from project settings
   // For free users, enforce defaults
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4'>(
@@ -164,6 +159,7 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     userConstants,
 
     // Subscription
+    isPremiumUser,
     effectiveIsPremium,
 
     // Form state
@@ -181,7 +177,6 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     setIsModelConfigModalOpen,
     pendingGenerateAction,
     setPendingGenerateAction,
-    hasShownModelConfig,
 
     // Settings
     aspectRatio,

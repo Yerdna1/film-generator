@@ -20,6 +20,8 @@ export function ModelConfigModal({
   onConfigChange,
   disabled = false,
 }: ModelConfigModalProps) {
+  console.log('[ModelConfigModal] Render:', { isOpen, modelConfig, disabled });
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onSubmit()}>
       <DialogContent

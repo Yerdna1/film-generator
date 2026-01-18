@@ -15,6 +15,7 @@ export interface Step1State {
   userConstants: any;
 
   // Subscription
+  isPremiumUser: boolean;
   effectiveIsPremium: boolean;
 
   // Form state
@@ -32,7 +33,6 @@ export interface Step1State {
   setIsModelConfigModalOpen: (value: boolean) => void;
   pendingGenerateAction: (() => void) | null;
   setPendingGenerateAction: (action: (() => void) | null) => void;
-  hasShownModelConfig: boolean;
 
   // Settings
   aspectRatio: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4';
