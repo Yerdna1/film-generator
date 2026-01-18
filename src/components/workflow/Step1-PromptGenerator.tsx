@@ -25,12 +25,13 @@ interface Step1Props {
   permissions?: ProjectPermissions | null;
   userRole?: ProjectRole | null;
   userGlobalRole?: string;
+  isAdmin?: boolean;
   isReadOnly?: boolean;
 }
 
 const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh'] as const;
 
-export function Step1PromptGenerator({ project: initialProject, userGlobalRole, isReadOnly = false }: Step1Props) {
+export function Step1PromptGenerator({ project: initialProject, userGlobalRole, isAdmin = false, isReadOnly = false }: Step1Props) {
   const t = useTranslations();
   const { data: session } = useSession();
   const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants, nextStep, updateModelConfig } = useProjectStore();
@@ -67,6 +68,9 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
     };
     fetchSubscription();
   }, [session]);
+
+  // Admins are always treated as premium users (bypass subscription check)
+  const effectiveIsPremium = isAdmin || isPremiumUser;
 
   // Fetch user's API keys
   useEffect(() => {
@@ -129,7 +133,7 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
 
   // Enforce free user defaults when subscription status changes
   useEffect(() => {
-    if (!isPremiumUser) {
+    if (!effectiveIsPremium) {
       setVideoLanguage('en');
       setStoryModel('gemini-3-pro');
       setVoiceProvider('gemini-tts');
@@ -144,7 +148,7 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
         updateSettings(project.id, { sceneCount: 12 });
       }
     }
-  }, [isPremiumUser, project.id, project.style, project.settings?.sceneCount, updateProject, updateSettings]);
+  }, [effectiveIsPremium, project.id, project.style, project.settings?.sceneCount, updateProject, updateSettings]);
 
   // Sync editedPrompt when masterPrompt changes
   useEffect(() => {
@@ -228,7 +232,7 @@ export function Step1PromptGenerator({ project: initialProject, userGlobalRole, 
 
       // Use the model from the unified model configuration if available
       const modelConfig = project.modelConfig;
-      const modelToUse = modelConfig?.llm?.model || (isPremiumUser ?
+      const modelToUse = modelConfig?.llm?.model || (effectiveIsPremium ?
         storyModel === 'gpt-4' ? 'openai/gpt-4-turbo' :
         storyModel === 'claude-sonnet-4.5' ? 'anthropic/claude-sonnet-4.5' :
         'google/gemini-2.0-flash-exp:free' : undefined);
@@ -432,7 +436,7 @@ Format the output exactly like the base template but with richer, more detailed 
         <SettingsPanel
           project={project}
           isReadOnly={isReadOnly}
-          isPremiumUser={isPremiumUser}
+          isPremiumUser={effectiveIsPremium}
           aspectRatio={aspectRatio}
           setAspectRatio={setAspectRatio}
           videoLanguage={videoLanguage}
@@ -480,7 +484,7 @@ Format the output exactly like the base template but with richer, more detailed 
             selectedPresetId={selectedPresetId}
             onApplyPreset={handleApplyPreset}
             isReadOnly={isReadOnly}
-            isPremiumUser={isPremiumUser}
+            isPremiumUser={effectiveIsPremium}
           />
 
           <MasterPromptSection

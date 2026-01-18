@@ -267,6 +267,8 @@ export async function getUserAccessibleProjectsSummary(userId: string) {
       createdAt: true,
       updatedAt: true,
       story: true,
+      settings: true,
+      masterPrompt: true,
       renderedVideoUrl: true,
       renderedDraftUrl: true,
       // Get first scene for thumbnail only
@@ -305,6 +307,8 @@ export async function getUserAccessibleProjectsSummary(userId: string) {
           createdAt: true,
           updatedAt: true,
           story: true,
+          settings: true,
+          masterPrompt: true,
           renderedVideoUrl: true,
           renderedDraftUrl: true,
           scenes: {

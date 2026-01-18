@@ -1,6 +1,7 @@
 import type { ProjectSettings, VoiceSettings, ApiConfig, UnifiedModelConfig } from '@/types/project';
 import type { StateCreator } from '../types';
 import { debounceSync } from '../utils';
+import { defaultSettings } from '../defaults';
 
 export interface SettingsSlice {
   updateSettings: (projectId: string, settings: Partial<ProjectSettings>) => void;
@@ -14,7 +15,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set, get) => ({
     const project = get().projects.find((p) => p.id === projectId);
     if (!project) return;
 
-    const updatedSettings = { ...project.settings, ...settings };
+    const updatedSettings = { ...(project.settings || defaultSettings), ...settings };
 
     set((state) => ({
       projects: state.projects.map((p) =>
@@ -83,7 +84,12 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set, get) => ({
     const project = get().projects.find((p) => p.id === projectId);
     if (!project) return;
 
-    const updatedVoiceSettings = { ...project.voiceSettings, ...settings };
+    const defaultVoiceSettings = {
+      language: 'en',
+      provider: 'elevenlabs',
+      characterVoices: {},
+    };
+    const updatedVoiceSettings = { ...(project.voiceSettings || defaultVoiceSettings), ...settings };
 
     set((state) => ({
       projects: state.projects.map((p) =>

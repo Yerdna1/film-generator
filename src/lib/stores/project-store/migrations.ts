@@ -23,7 +23,7 @@ export function createModelConfigFromLegacySettings(
       return apiConfig.openRouterModel;
     }
 
-    const storyModel = project.settings.storyModel || 'gemini-3-pro';
+    const storyModel = project.settings?.storyModel || 'gemini-3-pro';
     return storyModelMapping[storyModel] || 'google/gemini-2.0-flash-exp:free';
   })();
 
@@ -42,8 +42,8 @@ export function createModelConfigFromLegacySettings(
       model: apiConfig.kieImageModel || 'seedream/4-5-text-to-image',
       modalEndpoint: apiConfig.modalEndpoints?.imageEndpoint,
       characterAspectRatio: (userConstants?.characterAspectRatio || '1:1') as any,
-      sceneAspectRatio: (userConstants?.sceneAspectRatio || project.settings.aspectRatio || '16:9') as any,
-      sceneResolution: (userConstants?.sceneImageResolution || project.settings.imageResolution || '2k') as any,
+      sceneAspectRatio: (userConstants?.sceneAspectRatio || project.settings?.aspectRatio || '16:9') as any,
+      sceneResolution: (userConstants?.sceneImageResolution || project.settings?.imageResolution || '2k') as any,
     },
 
     // Video Generation Configuration
@@ -51,15 +51,15 @@ export function createModelConfigFromLegacySettings(
       provider: (apiConfig.videoProvider || 'kie') as any,
       model: apiConfig.kieVideoModel || 'grok-imagine/image-to-video',
       modalEndpoint: apiConfig.modalEndpoints?.videoEndpoint,
-      resolution: (userConstants?.videoResolution || project.settings.resolution || 'hd') as any,
+      resolution: (userConstants?.videoResolution || project.settings?.resolution || 'hd') as any,
     },
 
     // Text-to-Speech Configuration
     tts: {
-      provider: (apiConfig.ttsProvider || project.settings.voiceProvider || 'gemini-tts') as any,
+      provider: (apiConfig.ttsProvider || project.settings?.voiceProvider || 'gemini-tts') as any,
       model: apiConfig.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
       modalEndpoint: apiConfig.modalEndpoints?.ttsEndpoint,
-      defaultLanguage: project.settings.voiceLanguage || 'en',
+      defaultLanguage: project.settings?.voiceLanguage || 'en',
     },
 
     // Background Music Configuration

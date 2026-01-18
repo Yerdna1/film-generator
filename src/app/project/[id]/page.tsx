@@ -425,6 +425,7 @@ export default function ProjectWorkspacePage() {
       permissions,
       userRole,
       userGlobalRole,
+      isAdmin,
       isReadOnly,
       isAuthenticated,
     };
