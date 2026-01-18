@@ -313,6 +313,7 @@
       "settingPlaceholder": "Where does the story take place?",
       "generatePrompt": "Generate Master Prompt",
       "masterPrompt": "Master Prompt",
+      "noMasterPrompt": "Fill in the story details and click Generate",
       "editPrompt": "Edit Prompt",
       "storyDetails": "Story Details",
       "generatingTitle": "Generating Master Prompt",

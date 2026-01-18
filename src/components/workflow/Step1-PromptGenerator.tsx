@@ -131,6 +131,7 @@ export function Step1PromptGenerator({
             project={project}
             isReadOnly={isReadOnly}
             userGlobalRole={userGlobalRole}
+            isAdmin={isAdmin}
             isEditing={isEditing}
             editedPrompt={editedPrompt}
             setIsEditing={setIsEditing}

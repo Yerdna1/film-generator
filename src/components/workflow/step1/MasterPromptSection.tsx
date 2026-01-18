@@ -11,6 +11,7 @@ interface MasterPromptSectionProps {
   project: Project;
   isReadOnly: boolean;
   userGlobalRole?: string;
+  isAdmin?: boolean;
   isEditing: boolean;
   editedPrompt: string;
   setIsEditing: (editing: boolean) => void;
@@ -22,6 +23,7 @@ export function MasterPromptSection({
   project,
   isReadOnly,
   userGlobalRole,
+  isAdmin = false,
   isEditing,
   editedPrompt,
   setIsEditing,
@@ -30,8 +32,10 @@ export function MasterPromptSection({
 }: MasterPromptSectionProps) {
   const t = useTranslations();
 
-  // Only show master prompt to users with admin role in User table
-  if (userGlobalRole !== 'admin') {
+  // Only show master prompt to users with admin role in User table OR hardcoded admin
+  const canViewMasterPrompt = userGlobalRole === 'admin' || isAdmin;
+
+  if (!canViewMasterPrompt) {
     return null;
   }
 
@@ -100,7 +104,7 @@ export function MasterPromptSection({
         <div className="flex items-center justify-center h-[200px] text-muted-foreground/50">
           <div className="text-center">
             <Wand2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Fill in the story details and click Generate</p>
+            <p className="text-sm">{t('steps.prompt.noMasterPrompt')}</p>
           </div>
         </div>
       )}

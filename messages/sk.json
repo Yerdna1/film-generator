@@ -313,6 +313,7 @@
       "settingPlaceholder": "Kde sa príbeh odohráva?",
       "generatePrompt": "Generovať hlavný prompt",
       "masterPrompt": "Hlavný prompt",
+      "noMasterPrompt": "Vyplňte detaily príbehu a kliknite na Generovať",
       "editPrompt": "Upraviť prompt",
       "storyDetails": "Detaily príbehu",
       "generatingTitle": "Generujem hlavný prompt",
