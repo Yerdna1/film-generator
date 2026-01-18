@@ -442,7 +442,11 @@
         "t2iPrompt": "T2I Prompt",
         "i2vPrompt": "I2V Prompt"
       },
-      "unknown": "Neznáme"
+      "unknown": "Neznáme",
+      "deleteScene": "Odstrániť scénu",
+      "requestDeletion": "Požiadať o odstránenie",
+      "deletePending": "Žiadosť o odstránenie čaká",
+      "descriptionPlaceholder": "Opíšte, čo sa stane v tejto scéne..."
     },
     "videos": {
       "title": "Videá",
@@ -489,7 +493,12 @@
       "costEstimate": "Odhad nákladov",
       "remaining": "Zostáva",
       "totalCost": "Celková cena",
-      "scenesOnPage": "Scény {start}-{end} z {total}"
+      "scenesOnPage": "Scény {start}-{end} z {total}",
+      "deleteVideo": "Odstrániť video",
+      "requestDeletion": "Požiadať o odstránenie",
+      "status": {
+        "deletePending": "Žiadosť o odstránenie čaká"
+      }
     },
     "voiceover": {
       "title": "Hlas",
@@ -1625,9 +1634,6 @@
     },
     "currentBalance": "Aktuálny zostatok:"
   },
-  "collaboration": {
-    "loadingTeamInfo": "Načítavam informácie o tíme..."
-  },
   "api": {
     "keySaved": {
       "kie": "KIE AI API kľúč uložený",
@@ -1637,21 +1643,6 @@
     "generating": {
       "sceneImages": "Generujem obrázky scén...",
       "scenes": "Generujem scény..."
-    }
-  },
-  "steps": {
-    "scenes": {
-      "deleteScene": "Odstrániť scénu",
-      "requestDeletion": "Požiadať o odstránenie",
-      "deletePending": "Žiadosť o odstránenie čaká",
-      "descriptionPlaceholder": "Opíšte, čo sa stane v tejto scéne..."
-    },
-    "videos": {
-      "deleteVideo": "Odstrániť video",
-      "requestDeletion": "Požiadať o odstránenie",
-      "status": {
-        "deletePending": "Žiadosť o odstránenie čaká"
-      }
     }
   },
   "apiModals": {
@@ -1770,6 +1761,68 @@
     "pricePerMonth": "${price}/mes",
     "askAdminRegenerate": "Požiadajte admina o regeneráciu {count} {type}{plural} pomocou jeho kreditov.",
     "requestApprovalFor": "Požiadať o schválenie pre {count} {type}{plural}",
-    "itemsCount": "{count} položiek"
+    "itemsCount": "{count} položiek",
+    "insufficientCredits": {
+      "title": "Nedostatočné kredity",
+      "description": "Nemáte dostatok kreditov na vykonanie tejto akcie.",
+      "required": "Vyžadované kredity",
+      "yourBalance": "Váš zostatok",
+      "quickUpgrade": "Rýchla aktualizácia",
+      "creditsMonth": "kredity/mesiac",
+      "viewAllPlans": "Zobraziť všetky plány",
+      "or": "ALEBO"
+    },
+    "credits": {
+      "points": "body"
+    }
+  },
+  "statistics": {
+    "failedToFetch": "Nepodarilo sa získať štatistiky",
+    "failedToLoad": "Nepodarilo sa načítať štatistiky",
+    "failedToFetchProject": "Nepodarilo sa získať štatistiky projektu",
+    "title": "Štatistiky používania",
+    "subtitle": "Sledujte vaše API náklady a používanie",
+    "adminView": "Admin pohľad (Skutočné náklady)",
+    "signInRequired": "Prosím prihláste sa pre zobrazenie štatistík",
+    "retry": "Skúsiť znova",
+    "totalApiCost": "Celkové API náklady",
+    "totalOperations": "Celkový počet operácií",
+    "creditsSpent": "Utratené kredity",
+    "projects": "Projekty",
+    "costByType": "Náklady podľa typu",
+    "costByProvider": "Náklady podľa providera",
+    "costByProject": "Náklady podľa projektu",
+    "noUsageData": "Zatiaľ žiadne dáta o používaní",
+    "noProviderData": "Zatiaľ žiadne dáta o provideroch",
+    "noProjectCosts": "Zatiaľ žiadne náklady na projekty",
+    "noActivity": "Zatiaľ žiadna aktivita",
+    "recentActivity": "Nedávna aktivita",
+    "viewDetails": "Zobraziť detaily →",
+    "calls": "volania",
+    "transactionTypes": {
+      "image": "Obrázok",
+      "video": "Video",
+      "voiceover": "Voiceover",
+      "scene": "Scéna",
+      "character": "Postava",
+      "prompt": "Prompt",
+      "admin_bonus": "Admin bonus",
+      "admin_deduction": "Admin odpočet",
+      "subscription": "Predplatné"
+    },
+    "providers": {
+      "openrouter": "OpenRouter",
+      "gemini": "Google Gemini",
+      "gemini-tts": "Gemini TTS",
+      "elevenlabs": "ElevenLabs",
+      "grok": "Grok AI",
+      "kie": "Kie.ai",
+      "nanoBanana": "Nano Banana",
+      "claude": "Claude",
+      "modal": "Modal",
+      "modal-edit": "Modal Edit",
+      "modal-vectcut": "Modal VectCut",
+      "unknown": "Iné"
+    }
   }
 }

@@ -442,7 +442,11 @@
         "t2iPrompt": "T2I Prompt",
         "i2vPrompt": "I2V Prompt"
       },
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "deleteScene": "Delete scene",
+      "requestDeletion": "Request deletion",
+      "deletePending": "Deletion request pending",
+      "descriptionPlaceholder": "Describe what happens in this scene..."
     },
     "videos": {
       "title": "Videos",
@@ -489,7 +493,12 @@
       "costEstimate": "Cost Estimate",
       "remaining": "Remaining",
       "totalCost": "Total Cost",
-      "scenesOnPage": "Scenes {start}-{end} of {total}"
+      "scenesOnPage": "Scenes {start}-{end} of {total}",
+      "deleteVideo": "Delete video",
+      "requestDeletion": "Request deletion",
+      "status": {
+        "deletePending": "Deletion request pending"
+      }
     },
     "voiceover": {
       "title": "Voiceover",
@@ -1576,9 +1585,6 @@
     },
     "currentBalance": "Current balance:"
   },
-  "collaboration": {
-    "loadingTeamInfo": "Loading team info..."
-  },
   "api": {
     "keySaved": {
       "kie": "KIE AI API Key Saved",
@@ -1588,21 +1594,6 @@
     "generating": {
       "sceneImages": "Generating scene images...",
       "scenes": "Generating scenes..."
-    }
-  },
-  "steps": {
-    "scenes": {
-      "deleteScene": "Delete scene",
-      "requestDeletion": "Request deletion",
-      "deletePending": "Deletion request pending",
-      "descriptionPlaceholder": "Describe what happens in this scene..."
-    },
-    "videos": {
-      "deleteVideo": "Delete video",
-      "requestDeletion": "Request deletion",
-      "status": {
-        "deletePending": "Deletion request pending"
-      }
     }
   },
   "apiModals": {
@@ -1721,7 +1712,20 @@
     "pricePerMonth": "${price}/mo",
     "askAdminRegenerate": "Ask an admin to regenerate {count} {type}{plural} using their credits.",
     "requestApprovalFor": "Request Approval for {count} {type}{plural}",
-    "itemsCount": "{count} items"
+    "itemsCount": "{count} items",
+    "insufficientCredits": {
+      "title": "Insufficient Credits",
+      "description": "You don't have enough credits to complete this action.",
+      "required": "Credits required",
+      "yourBalance": "Your balance",
+      "quickUpgrade": "Quick Upgrade",
+      "creditsMonth": "credits/month",
+      "viewAllPlans": "View All Plans",
+      "or": "OR"
+    },
+    "credits": {
+      "points": "points"
+    }
   },
   "statistics": {
     "failedToFetch": "Failed to fetch statistics",
