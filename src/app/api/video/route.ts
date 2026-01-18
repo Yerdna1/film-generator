@@ -23,6 +23,8 @@ interface VideoGenerationRequest {
   sceneId?: string; // Optional scene ID for tracking
   skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
   ownerId?: string; // Use owner's settings instead of session user (for collaborator regeneration)
+  videoProvider?: VideoProvider; // Provider from project model config
+  model?: string; // Model ID from project model config (e.g., 'veo/3.1-text-to-video-fast-5s')
 }
 
 // Enhance I2V prompt with motion speed hints
@@ -308,7 +310,7 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    const { imageUrl, prompt, projectId, mode = 'normal', seed, isRegeneration = false, sceneId, skipCreditCheck = false, ownerId }: VideoGenerationRequest = await request.json();
+    const { imageUrl, prompt, projectId, mode = 'normal', seed, isRegeneration = false, sceneId, skipCreditCheck = false, ownerId, videoProvider: requestProvider, model: requestModel }: VideoGenerationRequest = await request.json();
 
     if (!imageUrl || !prompt) {
       return NextResponse.json({ error: 'Image URL and prompt are required' }, { status: 400 });
@@ -316,9 +318,9 @@ export async function POST(request: NextRequest) {
 
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
-    let videoProvider: VideoProvider = 'kie';
+    let videoProvider: VideoProvider = requestProvider || 'kie'; // Use provider from request body, fallback to 'kie'
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieVideoModel = 'grok-imagine/image-to-video'; // Default model
+    let kieVideoModel = requestModel || 'grok-imagine/image-to-video'; // Use model from request body, fallback to default
     let modalVideoEndpoint: string | null = null;
 
     // When ownerId is provided (collaborator regeneration), use owner's settings
@@ -331,9 +333,11 @@ export async function POST(request: NextRequest) {
       });
 
       if (userApiKeys) {
-        videoProvider = (userApiKeys.videoProvider as VideoProvider) || 'kie';
+        // Only use database values if not provided in request (for backward compatibility)
+        if (!requestProvider) videoProvider = (userApiKeys.videoProvider as VideoProvider) || 'kie';
         if (userApiKeys.kieApiKey) kieApiKey = userApiKeys.kieApiKey;
-        if (userApiKeys.kieVideoModel) kieVideoModel = userApiKeys.kieVideoModel;
+        // Only use database model if not provided in request (for backward compatibility)
+        if (!requestModel && userApiKeys.kieVideoModel) kieVideoModel = userApiKeys.kieVideoModel;
         modalVideoEndpoint = userApiKeys.modalVideoEndpoint;
       }
 
@@ -344,7 +348,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Video] Using provider: ${videoProvider}, projectId: ${projectId}, isRegeneration: ${isRegeneration}, skipCreditCheck: ${skipCreditCheck}, ownerId: ${ownerId || 'none'}`);
+    console.log(`[Video] Using provider: ${videoProvider}, model: ${kieVideoModel}, projectId: ${projectId}, isRegeneration: ${isRegeneration}, skipCreditCheck: ${skipCreditCheck}, ownerId: ${ownerId || 'none'}`);
 
     // For cost tracking:
     // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
@@ -404,6 +408,7 @@ export async function GET(request: NextRequest) {
     const sceneId = searchParams.get('sceneId') || undefined;
     const ownerId = searchParams.get('ownerId') || undefined;
     const skipCreditCheck = searchParams.get('skipCreditCheck') === 'true';
+    const model = searchParams.get('model') || undefined; // Model ID from query string
 
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
@@ -412,7 +417,7 @@ export async function GET(request: NextRequest) {
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieVideoModel = 'grok-imagine/image-to-video'; // Default model
+    let kieVideoModel = model || 'grok-imagine/image-to-video'; // Use model from query string, fallback to default
 
     // When ownerId is provided, use owner's settings
     const settingsUserId = ownerId || sessionUserId;
@@ -424,7 +429,8 @@ export async function GET(request: NextRequest) {
       if (userApiKeys?.kieApiKey) {
         kieApiKey = userApiKeys.kieApiKey;
       }
-      if (userApiKeys?.kieVideoModel) {
+      // Only use database model if not provided in query string (for backward compatibility)
+      if (!model && userApiKeys?.kieVideoModel) {
         kieVideoModel = userApiKeys.kieVideoModel;
       }
     }
@@ -439,6 +445,8 @@ export async function GET(request: NextRequest) {
     // - When skipCreditCheck is false (normal generation): track to session user
     const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
     const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
+
+    console.log(`[Video GET] Using model: ${kieVideoModel}, taskId: ${taskId}, projectId: ${projectId}`);
 
     const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, effectiveUserId, realCostUserId, download, isRegeneration, sceneId, kieVideoModel);
     return NextResponse.json({ taskId, ...result });

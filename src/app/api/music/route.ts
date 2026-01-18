@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
   try {
     const {
       prompt,
-      model = 'V4.5',
+      model: requestModel,  // Model ID from project config
       instrumental = true,
       title,
       style,
@@ -285,7 +285,10 @@ export async function POST(request: NextRequest) {
     const provider = requestProvider || userApiKeys?.musicProvider || 'piapi';
     const modalMusicEndpoint = userApiKeys?.modalMusicEndpoint;
 
-    console.log(`[Music] Using provider: ${provider}`);
+    // Determine which model to use
+    const kieMusicModel = requestModel || userApiKeys?.kieMusicModel || 'suno/v3-5-music';
+
+    console.log(`[Music] Using provider: ${provider}, model: ${kieMusicModel}`);
 
     // Handle Modal provider first (doesn't require API key)
     if (provider === 'modal') {
@@ -321,8 +324,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Get the model from user settings or use default
-      const modelId = userApiKeys?.kieMusicModel || 'suno/v3-5-music';
+      // Use the kieMusicModel (from request or user settings)
+      const modelId = kieMusicModel;
 
       // Pre-check credit balance
       const insufficientCredits = await requireCredits(userId, COSTS.MUSIC_GENERATION);
@@ -473,7 +476,8 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const modelId = userApiKeys?.kieMusicModel || 'suno/v3-5-music';
+      // Use the model from query string or user settings
+      const modelId = searchParams.get('model') || userApiKeys?.kieMusicModel || 'suno/v3-5-music';
 
       const result = await checkKieMusicStatus(
         taskId,

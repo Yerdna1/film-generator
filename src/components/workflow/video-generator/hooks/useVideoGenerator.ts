@@ -122,7 +122,8 @@ export function useVideoGenerator(initialProject: Project) {
   const pollForVideoCompletion = useCallback(async (
     taskId: string,
     sceneId: string,
-    isRegeneration: boolean = false
+    isRegeneration: boolean = false,
+    videoModel?: string // Add videoModel parameter
   ): Promise<string | null> => {
     const maxAttempts = 60;
     for (let i = 0; i < maxAttempts; i++) {
@@ -135,12 +136,13 @@ export function useVideoGenerator(initialProject: Project) {
       }));
 
       try {
-        // Pass isRegeneration and sceneId for credit tracking
+        // Pass isRegeneration, sceneId, and model for credit tracking
         const params = new URLSearchParams({
           taskId,
           projectId: project.id,
           isRegeneration: String(isRegeneration),
           sceneId,
+          ...(videoModel && { model: videoModel }), // Include model in polling
         });
         const response = await fetch(`/api/video?${params}`);
         if (response.ok) {
@@ -241,8 +243,8 @@ export function useVideoGenerator(initialProject: Project) {
         const data = await response.json();
 
         if (data.taskId && data.status === 'processing') {
-          // Pass isRegeneration from the response (set during POST)
-          const videoUrl = await pollForVideoCompletion(data.taskId, scene.id, data.isRegeneration || isRegeneration);
+          // Pass videoModel along with other parameters for polling
+          const videoUrl = await pollForVideoCompletion(data.taskId, scene.id, data.isRegeneration || isRegeneration, videoModel);
           if (videoUrl) {
             // Track when video was generated from which image version
             updateScene(project.id, scene.id, {

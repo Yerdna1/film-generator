@@ -27,6 +27,7 @@ interface ImageGenerationRequest {
   skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
   ownerId?: string; // Use owner's settings instead of session user (for collaborator regeneration)
   imageProvider?: ImageProvider; // Override the default provider from user settings
+  model?: string; // Model ID from project model config (for free users)
 }
 
 // Generate image using Gemini
@@ -557,7 +558,7 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false, ownerId, imageProvider: requestProvider }: ImageGenerationRequest = await request.json();
+    const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [], isRegeneration = false, sceneId, skipCreditCheck = false, ownerId, imageProvider: requestProvider, model: requestModel }: ImageGenerationRequest = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -565,10 +566,10 @@ export async function POST(request: NextRequest) {
 
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
-    let imageProvider: ImageProvider = 'gemini';
+    let imageProvider: ImageProvider = requestProvider || 'gemini';
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieImageModel = 'seedream/4-5-text-to-image'; // Default model
+    let kieImageModel = requestModel || 'seedream/4-5-text-to-image'; // Use model from request, fallback to default
     let modalImageEndpoint: string | null = null;
     let modalImageEditEndpoint: string | null = null;
 
@@ -582,8 +583,8 @@ export async function POST(request: NextRequest) {
       });
 
       if (userApiKeys) {
-        // Use request provider if specified, otherwise use user's preferred provider
-        imageProvider = (requestProvider || (userApiKeys.imageProvider as ImageProvider)) || 'gemini';
+        // Only use database provider if not provided in request (for backward compatibility)
+        if (!requestProvider) imageProvider = (userApiKeys.imageProvider as ImageProvider) || 'gemini';
 
         // Get provider-specific settings
         if (userApiKeys.geminiApiKey) {
@@ -592,7 +593,8 @@ export async function POST(request: NextRequest) {
         if (userApiKeys.kieApiKey) {
           kieApiKey = userApiKeys.kieApiKey;
         }
-        if (userApiKeys.kieImageModel) {
+        // Only use database model if not provided in request (for backward compatibility)
+        if (!requestModel && userApiKeys.kieImageModel) {
           kieImageModel = userApiKeys.kieImageModel;
         }
         modalImageEndpoint = userApiKeys.modalImageEndpoint;
@@ -607,7 +609,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Image] Using provider: ${imageProvider}, reference images: ${referenceImages.length}, skipCreditCheck: ${skipCreditCheck}, ownerId: ${ownerId || 'none'}`);
+    console.log(`[Image] Using provider: ${imageProvider}, model: ${kieImageModel}, reference images: ${referenceImages.length}, skipCreditCheck: ${skipCreditCheck}, ownerId: ${ownerId || 'none'}`);
 
     // For cost tracking:
     // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,

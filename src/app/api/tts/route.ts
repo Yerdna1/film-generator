@@ -23,6 +23,7 @@ interface TTSRequest {
   projectId?: string;
   provider?: TTSProvider;  // Allow overriding provider from UI
   skipCreditCheck?: boolean; // Skip credit check when user provides own API key
+  model?: string; // Model ID from project model config (for KIE TTS)
   // Voice customization settings
   voiceInstructions?: string;      // OpenAI: speaking style instructions
   voiceStability?: number;         // ElevenLabs: 0-1
@@ -470,6 +471,7 @@ export async function POST(request: NextRequest) {
       language = 'en',
       projectId,
       provider: requestedProvider,  // Provider from UI
+      model: requestModel,  // Model from UI
       skipCreditCheck = false,      // Skip credit check when using own API key
       voiceInstructions,             // OpenAI voice instructions
       voiceStability = 0.5,          // ElevenLabs stability
@@ -488,7 +490,7 @@ export async function POST(request: NextRequest) {
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     let openaiApiKey = process.env.OPENAI_API_KEY;
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieTtsModel = 'elevenlabs/text-to-dialogue-v3'; // Default model
+    let kieTtsModel = requestModel || 'elevenlabs/text-to-dialogue-v3'; // Use model from request, fallback to default
     let modalTtsEndpoint: string | null = null;
 
     if (sessionUserId) {
@@ -505,7 +507,10 @@ export async function POST(request: NextRequest) {
         if (userApiKeys.elevenLabsApiKey) elevenLabsApiKey = userApiKeys.elevenLabsApiKey;
         if (userApiKeys.openaiApiKey) openaiApiKey = userApiKeys.openaiApiKey;
         if (userApiKeys.kieApiKey) kieApiKey = userApiKeys.kieApiKey;
-        if (userApiKeys.kieTtsModel) kieTtsModel = userApiKeys.kieTtsModel;
+        // Only use database model if not provided in request (for backward compatibility)
+        if (!requestModel && userApiKeys.kieTtsModel) {
+          kieTtsModel = userApiKeys.kieTtsModel;
+        }
         modalTtsEndpoint = userApiKeys.modalTtsEndpoint;
       }
 
@@ -516,7 +521,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[TTS] Using provider: ${ttsProvider}${skipCreditCheck ? ' (skip credit check)' : ''}`);
+    console.log(`[TTS] Using provider: ${ttsProvider}, model: ${kieTtsModel}${skipCreditCheck ? ' (skip credit check)' : ''}`);
 
     // When skipCreditCheck is true, pass undefined userId to prevent credit spending
     const userIdForGeneration = skipCreditCheck ? undefined : sessionUserId;
