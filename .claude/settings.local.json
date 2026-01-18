@@ -93,7 +93,9 @@
       "Bash(npx dotenv-cli:*)",
       "Bash(tail:*)",
       "Bash(xargs:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(python3:*)",
+      "Bash(npm run lint)"
     ]
   }
 }

@@ -70,7 +70,8 @@ export function InsufficientCreditsModal({
   bulkRegenerationContext,
   onRequestApproval,
 }: InsufficientCreditsModalProps) {
-  const t = useTranslations();
+  const t = useTranslations('creditsModal');
+  const tError = useTranslations('error');
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [requestingApproval, setRequestingApproval] = useState(false);
@@ -127,12 +128,12 @@ export function InsufficientCreditsModal({
 
   const handleRequestApproval = async () => {
     if (!hasContext || !projectId) {
-      setApprovalError('Missing project context');
+      setApprovalError(tError('missingProjectContext'));
       return;
     }
 
     if (!targetType) {
-      setApprovalError('Missing target type');
+      setApprovalError(tError('missingTargetType'));
       return;
     }
 
@@ -145,7 +146,7 @@ export function InsufficientCreditsModal({
         : [regenerationContext!.sceneId];
 
       if (sceneIds.length === 0) {
-        setApprovalError('No scenes selected');
+        setApprovalError(tError('noScenesSelected'));
         return;
       }
 
@@ -170,7 +171,7 @@ export function InsufficientCreditsModal({
         // If JSON parsing fails, try to get text
         const text = await responseClone.text();
         console.error('Failed to parse response as JSON. Status:', response.status, 'Body:', text);
-        setApprovalError(`Request failed: ${response.status} - Invalid response`);
+        setApprovalError(tError('invalidResponse', { status: response.status }));
         return;
       }
 
@@ -181,7 +182,7 @@ export function InsufficientCreditsModal({
           data,
           url: response.url
         });
-        setApprovalError(data.error || `Request failed: ${response.status} ${response.statusText}`);
+        setApprovalError(data.error || tError('requestFailed', { status: response.status, statusText: response.statusText }));
         return;
       }
 
@@ -195,7 +196,7 @@ export function InsufficientCreditsModal({
       }, 2000);
     } catch (error) {
       console.error('Error submitting request:', error);
-      setApprovalError(error instanceof Error ? error.message : 'Failed to submit request');
+      setApprovalError(error instanceof Error ? error.message : tError('failedToSubmitRequest'));
     } finally {
       setRequestingApproval(false);
     }
@@ -252,7 +253,7 @@ export function InsufficientCreditsModal({
             <div>
               <div className="text-sm text-muted-foreground">
                 {t('insufficientCredits.required')}
-                {isBulk && <span className="text-xs ml-1">({sceneCount} items)</span>}
+                {isBulk && <span className="text-xs ml-1">({t('itemsCount', { count: sceneCount })})</span>}
               </div>
               <div className="text-lg font-semibold text-red-400">{actualRequired} {t('credits.points')}</div>
             </div>
@@ -285,7 +286,7 @@ export function InsufficientCreditsModal({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">${plan.price}/mo</span>
+                  <span className="font-semibold">{t('pricePerMonth', { price: plan.price })}</span>
                   {loading === key ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
@@ -321,7 +322,7 @@ export function InsufficientCreditsModal({
               {checkingPermissions && (
                 <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Checking permissions...</span>
+                  <span className="text-sm text-muted-foreground">{t('checkingPermissions')}</span>
                 </div>
               )}
 
@@ -332,11 +333,10 @@ export function InsufficientCreditsModal({
                     <Crown className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-amber-400">
-                        You are the project owner
+                        {t('youAreOwner')}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        As the project owner, you have full regeneration permissions but need credits to proceed.
-                        Purchase a plan above to continue generating content.
+                        {t('ownerNote')}
                       </p>
                     </div>
                   </div>
@@ -369,12 +369,16 @@ export function InsufficientCreditsModal({
                             </p>
                             <p className="text-sm text-muted-foreground mt-1">
                               {isBulk
-                                ? `Ask an admin to regenerate ${sceneCount} ${targetType}${sceneCount > 1 ? 's' : ''} using their credits.`
+                                ? t('askAdminRegenerate', {
+                                    count: sceneCount,
+                                    type: targetType || 'image',
+                                    plural: sceneCount > 1 ? 's' : ''
+                                  })
                                 : t('insufficientCredits.askAdmin', { type: targetType || 'image' })}
                             </p>
                             {isBulk ? (
                               <div className="mt-2 text-xs text-muted-foreground">
-                                <span className="font-medium">{sceneCount} scenes selected:</span>{' '}
+                                <span className="font-medium">{sceneCount} {t('scenesSelected')}</span>{' '}
                                 {bulkRegenerationContext.scenes
                                   .slice(0, 3)
                                   .map(s => `Scene ${s.number}`)
@@ -410,7 +414,11 @@ export function InsufficientCreditsModal({
                           <>
                             <UserCheck className="w-4 h-4 mr-2" />
                             {isBulk
-                              ? `Request Approval for ${sceneCount} ${targetType}${sceneCount > 1 ? 's' : ''}`
+                              ? t('requestApprovalFor', {
+                                  count: sceneCount,
+                                  type: targetType || 'image',
+                                  plural: sceneCount > 1 ? 's' : ''
+                                })
                               : t('insufficientCredits.requestAdminApproval')}
                           </>
                         )}

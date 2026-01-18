@@ -124,7 +124,7 @@ export function AddSceneDialog({
           <div className="space-y-2">
             <Label>{t('steps.scenes.sceneTitle')}</Label>
             <Input
-              placeholder="e.g., The Discovery"
+              placeholder={t('common.examples.sceneTitle')}
               value={newScene.title}
               onChange={(e) => setNewScene({ ...newScene, title: e.target.value })}
               className="glass border-white/10"
@@ -153,7 +153,7 @@ export function AddSceneDialog({
           <div className="space-y-2">
             <Label>{t('steps.scenes.sceneDescription')}</Label>
             <Textarea
-              placeholder="Describe what happens in this scene..."
+              placeholder={t('steps.scenes.descriptionPlaceholder')}
               value={newScene.description}
               onChange={(e) => setNewScene({ ...newScene, description: e.target.value })}
               className="glass border-white/10 min-h-[100px]"

@@ -100,7 +100,7 @@ function SceneCardComponent({
   onSelectRegeneration,
   onToggleLock,
 }: SceneCardProps) {
-  const t = useTranslations();
+  const t = useTranslations('steps');
 
   // Use shared card actions hook
   const cardActions = useCardActions({
@@ -185,7 +185,7 @@ function SceneCardComponent({
                         <Lock className="w-4 h-4 text-white/70" />
                       </div>
                       <p className="text-[10px] text-white/80 text-center px-2">
-                        {t('steps.scenes.signInToView')}
+                        {t('scenes.signInToView')}
                       </p>
                     </a>
                   </div>
@@ -226,12 +226,12 @@ function SceneCardComponent({
                   hasPendingDeletion={hasPendingDeletion}
                   approvedRegeneration={approvedRegeneration}
                   onRegenerationClick={() => cardActions.setShowRegenerationModal(true)}
-                  lockedLabel={t('steps.scenes.status.locked')}
-                  pendingLabel={t('steps.scenes.status.pending')}
-                  deletePendingLabel={t('steps.scenes.status.deletePending')}
-                  clickToRegenerateLabel={t('steps.scenes.status.clickToRegenerate')}
-                  clickToSelectLabel={t('steps.scenes.status.clickToSelectBest')}
-                  awaitingApprovalLabel={t('steps.scenes.status.awaitingApproval')}
+                  lockedLabel={t('scenes.status.locked')}
+                  pendingLabel={t('scenes.status.pending')}
+                  deletePendingLabel={t('scenes.status.deletePending')}
+                  clickToRegenerateLabel={t('scenes.status.clickToRegenerate')}
+                  clickToSelectLabel={t('scenes.status.clickToSelectBest')}
+                  awaitingApprovalLabel={t('scenes.status.awaitingApproval')}
                 />
               </div>
 
@@ -263,7 +263,7 @@ function SceneCardComponent({
                   >
                     <Sparkles className="w-full h-full text-emerald-400" />
                   </motion.div>
-                  <p className="text-xs text-white">{t('steps.characters.generating')}</p>
+                  <p className="text-xs text-white">{t('characters.generating')}</p>
                 </div>
               )}
             </div>
@@ -359,7 +359,7 @@ function SceneCardComponent({
                       onClick={cardActions.handleToggleLock}
                       disabled={cardActions.isTogglingLock}
                       className={`h-7 ${scene.locked ? 'text-amber-400 hover:text-amber-300' : 'text-muted-foreground hover:text-amber-400'}`}
-                      title={scene.locked ? t('steps.scenes.unlock') : t('steps.scenes.lock')}
+                      title={scene.locked ? t('scenes.unlock') : t('scenes.lock')}
                     >
                       {cardActions.isTogglingLock ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -379,7 +379,7 @@ function SceneCardComponent({
                     }}
                     className={`h-7 ${scene.locked ? 'text-amber-400' : hasPendingDeletion ? 'text-orange-400' : 'text-muted-foreground hover:text-red-400'}`}
                     disabled={hasPendingDeletion}
-                    title={scene.locked ? t('steps.scenes.status.locked') : hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete scene' : 'Request deletion'}
+                    title={scene.locked ? t('scenes.status.locked') : hasPendingDeletion ? t('scenes.deletePending') : canDeleteDirectly ? t('scenes.deleteScene') : t('scenes.requestDeletion')}
                   >
                     {scene.locked ? <Lock className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
                   </Button>
@@ -395,7 +395,7 @@ function SceneCardComponent({
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-emerald-400 flex items-center gap-1">
                       <ImageIcon className="w-3 h-3" />
-                      {t('steps.scenes.prompts.t2iPrompt')}
+                      {t('scenes.prompts.t2iPrompt')}
                     </Label>
                     <div className="flex items-center gap-0.5">
                       {!isReadOnly && (
@@ -426,7 +426,7 @@ function SceneCardComponent({
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-cyan-400 flex items-center gap-1">
                       <Film className="w-3 h-3" />
-                      {t('steps.scenes.prompts.i2vPrompt')}
+                      {t('scenes.prompts.i2vPrompt')}
                     </Label>
                     <CopyButton text={scene.imageToVideoPrompt} size="icon" className="h-5 w-5" />
                   </div>
@@ -442,14 +442,14 @@ function SceneCardComponent({
                   <div className="space-y-1">
                     <Label className="text-[10px] text-purple-400 flex items-center gap-1">
                       <MessageSquare className="w-3 h-3" />
-                      {t('steps.scenes.dialogue')}
+                      {t('scenes.dialogue')}
                     </Label>
                     <div className="glass rounded p-1.5 space-y-1">
                       {scene.dialogue.map((line, idx) => {
                         const character = characters.find((c) => c.id === line.characterId);
                         return (
                           <p key={idx} className="text-[10px]">
-                            <span className="font-medium text-purple-400">{character?.name || t('steps.scenes.unknown')}:</span>{' '}
+                            <span className="font-medium text-purple-400">{character?.name || t('scenes.unknown')}:</span>{' '}
                             <span className="text-muted-foreground">"{line.text}"</span>
                           </p>
                         );

@@ -36,6 +36,9 @@ interface ApiKeyModalProps {
 
 export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiKeyModalProps) {
   const t = useTranslations();
+  const tModal = useTranslations('apiModals.openRouter');
+  const tError = useTranslations('error');
+  const tCommon = useTranslations('common');
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>(FREE_OPENROUTER_MODELS[0].id);
   const [showKey, setShowKey] = useState(false);
@@ -48,19 +51,19 @@ export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiK
     setError('');
 
     if (!apiKey.trim()) {
-      setError('API key is required');
+      setError(tError('apiKeyRequired'));
       return;
     }
 
     if (!apiKey.startsWith('sk-or-v1-')) {
-      setError('Invalid OpenRouter API key format. It should start with "sk-or-v1-"');
+      setError(tError('invalidOpenRouterKeyFormat'));
       return;
     }
 
     try {
       await onSave(apiKey.trim(), selectedModel);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save API key');
+      setError(err instanceof Error ? err.message : tError('saveFailed'));
     }
   };
 
@@ -83,22 +86,22 @@ export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiK
           {/* Title */}
           <div className="text-center space-y-2">
             <h3 className="text-xl font-semibold text-foreground">
-              OpenRouter API Key Required
+              {tModal('title')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              To enhance your master prompt with AI, please enter your OpenRouter API key.
+              {tModal('description')}
             </p>
           </div>
 
           {/* Info Box */}
           <div className="glass rounded-lg p-4 space-y-2">
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">Get your API key:</span>
+              <span className="font-semibold text-foreground">{tModal('getApiKey')}</span>
             </p>
             <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Go to <span className="text-cyan-400">openrouter.ai/keys</span></li>
-              <li>Create a free account or sign in</li>
-              <li>Copy your API key (starts with sk-or-v1-)</li>
+              <li>{tModal('step1')} <span className="text-cyan-400">openrouter.ai/keys</span></li>
+              <li>{tModal('step2')}</li>
+              <li>{tModal('step3')}</li>
             </ol>
           </div>
 
@@ -106,13 +109,13 @@ export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiK
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="apiKey" className="text-xs">
-                OpenRouter API Key
+                {tModal('apiKeyLabel')}
               </Label>
               <div className="relative">
                 <Input
                   id="apiKey"
                   type={showKey ? 'text' : 'password'}
-                  placeholder="sk-or-v1-..."
+                  placeholder={tModal('apiKeyPlaceholder')}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   className="pr-10 glass border-white/10 focus:border-purple-500/50"
@@ -134,11 +137,11 @@ export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiK
             {/* Model Selector */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-xs">
-                Select FREE Model
+                {tModal('selectFreeModel')}
               </Label>
               <Select value={selectedModel} onValueChange={setSelectedModel} disabled={isLoading}>
                 <SelectTrigger className="glass border-white/10 focus:border-purple-500/50">
-                  <SelectValue placeholder="Select a model" />
+                  <SelectValue placeholder={tModal('selectModelPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="glass-strong border-white/10">
                   {FREE_OPENROUTER_MODELS.map((model) => (
@@ -152,7 +155,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiK
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                All models listed here are <span className="text-green-400 font-semibold">FREE</span> to use with your OpenRouter API key.
+                {tModal('freeModelsNote')}
               </p>
             </div>
 
@@ -165,7 +168,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiK
                 disabled={isLoading}
                 className="flex-1 border-white/10"
               >
-                Cancel
+                {tCommon('cancel')}
               </Button>
               <Button
                 type="submit"
@@ -175,12 +178,12 @@ export function ApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: ApiK
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {tModal('saving')}
                   </>
                 ) : (
                   <>
                     <Key className="w-4 h-4 mr-2" />
-                    Save & Generate
+                    {tModal('saveAndGenerate')}
                   </>
                 )}
               </Button>

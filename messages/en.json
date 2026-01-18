@@ -43,6 +43,16 @@
     "unknownDuration": "Unknown duration",
     "realCost": "Real Cost",
     "credits": "Credits",
+    "untitledStory": "Untitled Story",
+    "loadingDots": "...",
+    "unknownError": "Unknown error",
+    "retry": "Retry",
+    "errorOccurred": "An error occurred",
+    "failedToLoadPermissions": "Failed to load permissions",
+    "examples": {
+      "sceneTitle": "e.g., The Discovery",
+      "voiceSettings": "e.g., Speak warmly and cheerfully, with occasional laughter"
+    },
     "time": {
       "justNow": "Just now",
       "minutesAgo": "{minutes}m ago",
@@ -74,6 +84,12 @@
     "createAccount": "Create your account",
     "signInDescription": "Sign in to access your film projects",
     "signUpDescription": "Start creating amazing AI-generated films",
+    "emailPlaceholder": "name@example.com",
+    "passwordPlaceholder": "••••••••",
+    "invalidCredentials": "Invalid email or password",
+    "errorOccurred": "An error occurred. Please try again.",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "failedToRegister": "Failed to register",
     "pendingApproval": {
       "title": "Account Pending Approval",
       "description": "Thank you for registering! Your account is awaiting approval from an administrator.",
@@ -215,7 +231,16 @@
     "videos": "videos",
     "autoDetectedNotice": "Project structure auto-detected from files. You can edit the project name below.",
     "projectName": "Project Name",
-    "enterProjectName": "Enter project name"
+    "enterProjectName": "Enter project name",
+    "viewOnly": "View Only",
+    "visibility": "Project Visibility",
+    "publicProjectTooltip": "Public project - click to make private",
+    "privateProjectTooltip": "Private project - click to make public",
+    "public": "Public",
+    "private": "Private",
+    "publicVisibilityDescription": "Anyone can discover and view this project",
+    "privateVisibilityDescription": "Only team members can access",
+    "publicDiscoverNote": "This project appears in the public Discover page"
   },
   "workflow": {
     "step": "Step",
@@ -265,7 +290,12 @@
       "apiKeySet": "API Key Active",
       "apiKeyRequired": "API Key Required",
       "keySaved": "API Key saved successfully",
-      "keySaveFailed": "Failed to save API Key"
+      "keySaveFailed": "Failed to save API Key",
+      "modal": {
+        "title": "Model Configuration",
+        "description": "Configure AI models for generating your film. You can change these settings at any time.",
+        "confirmButton": "Confirm and Continue"
+      }
     }
   },
   "steps": {
@@ -1137,6 +1167,10 @@
     "apiKeyRequired": "API key required - configure below",
     "recommended": "Recommended",
     "selectModel": "Select Model",
+    "selectTtsModel": "Select a TTS model",
+    "selectImageModel": "Select an image model",
+    "selectVideoModel": "Select a video model",
+    "selectMusicModel": "Select a music model",
     "modelContext": "Context",
     "modelPricing": "Pricing",
     "currency": "Currency",
@@ -1161,6 +1195,7 @@
     "copyLink": "Copy Invite Link",
     "linkCopied": "Link copied!",
     "expiresIn": "Expires in {days} days",
+    "loadingTeamInfo": "Loading team info...",
     "roles": {
       "admin": "Admin",
       "collaborator": "Collaborator",
@@ -1412,7 +1447,286 @@
       "daysAgo": "{days}d ago"
     }
   },
+  "billing": {
+    "title": "Billing & Subscription",
+    "subtitle": "Manage your subscription and credits",
+    "plans": {
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "studio": "Studio"
+    },
+    "subscriptionActivated": "Subscription Activated!",
+    "creditsAdded": "Your credits have been added to your account.",
+    "creditBalance": "Credit Balance",
+    "available": "Available",
+    "totalSpent": "Total Spent",
+    "totalEarned": "Total Earned",
+    "availablePlans": "Available Plans",
+    "faq": "Frequently Asked Questions",
+    "howCreditsWork": "How do credits work?",
+    "howCreditsWorkAnswer": "Credits are used for AI generation: images, videos, voiceovers, and more. Each operation costs a certain amount of credits based on complexity.",
+    "creditsRollOver": "Do unused credits roll over?",
+    "creditsRollOverAnswer": "No. Credits reset at the beginning of each new month. Unused credits from the previous month do not carry over.",
+    "canCancelAnytime": "Can I cancel anytime?",
+    "canCancelAnytimeAnswer": "Yes, you can cancel your subscription at any time. You'll keep access until the end of your billing period.",
+    "paymentMethods": "What payment methods are accepted?",
+    "paymentMethodsAnswer": "We accept all major credit cards, debit cards, and various local payment methods through our payment provider Polar.",
+    "starter": "Starter",
+    "starterDesc": "For hobbyists",
+    "pro": "Pro",
+    "proDesc": "Most popular",
+    "studio": "Studio",
+    "studioDesc": "For creators",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "manageSubscription": "Manage Subscription",
+    "perMonth": "/month",
+    "credits": "credits",
+    "selectPlan": "Select Plan",
+    "active": "Active",
+    "canceled": "Canceled",
+    "renewsOn": "Renews on:",
+    "expiresOn": "Expires on",
+    "free": "Free",
+    "freePlan": "Free Plan",
+    "freeCredits": "free credits",
+    "subscriptionEnding": "Subscription Ending",
+    "subscriptionEndingDesc": "Your subscription will end on {date}. You will be downgraded to the Free plan.",
+    "nextBillingDate": "Next billing date",
+    "pastDue": "Past Due",
+    "planFeatures": {
+      "creditsOnSignup": "{credits} credits on signup",
+      "creditsPerMonth": "{credits} credits/month",
+      "basicFeatures": "Basic features",
+      "allAiModels": "All AI models",
+      "priorityGeneration": "Priority generation",
+      "highestPriority": "Highest priority",
+      "communitySupport": "Community support",
+      "emailSupport": "Email support",
+      "prioritySupport": "Priority support",
+      "dedicatedSupport": "Dedicated support",
+      "forHobbyists": "For hobbyists",
+      "forRegularUsers": "For regular users"
+    }
+  },
+  "roles": {
+    "admin": "Admin",
+    "collaborator": "Collaborator",
+    "viewer": "Viewer",
+    "reader": "Viewer"
+  },
+  "invite": {
+    "failedToLoad": "Failed to load invitation",
+    "failedToAccept": "Failed to accept invitation"
+  },
+  "admin": {
+    "failedToLoadData": "Failed to load admin data",
+    "invalidNumber": "Please enter a valid positive number",
+    "failedToUpdateCredits": "Failed to update credits",
+    "failedToUpdateUser": "Failed to update user",
+    "failedToUpdateApproval": "Failed to update user approval",
+    "failedToUpdateConfig": "Failed to update config",
+    "addCredits": "Add Credits",
+    "deductCredits": "Deduct Credits",
+    "setCredits": "Set Credits",
+    "noUsersFound": "No users found matching your search.",
+    "enterAmount": "Enter amount",
+    "newBalance": "New Balance",
+    "amount": "Amount",
+    "reasonOptional": "Reason (optional)",
+    "reasonPlaceholder": "e.g., Bonus for feedback, Refund, etc.",
+    "editStartingCredits": "Edit Starting Credits",
+    "startingCreditsDescription": "Set how many credits new users receive when they sign up.",
+    "startingCredits": "Starting Credits",
+    "purchaseCreditsNote": "Set to 0 to require users to purchase credits before using the app.",
+    "dashboard": "Admin Dashboard",
+    "manageUsers": "Manage users, credits, and app settings",
+    "appConfiguration": "App Configuration",
+    "globalSettings": "Global settings for the application",
+    "creditsForNewUsers": "Credits for new users",
+    "edit": "Edit",
+    "pendingApprovals": "Pending Approvals",
+    "newUsersWaiting": "New users waiting for your approval",
+    "noName": "No name",
+    "users": "Users",
+    "manageUserAccounts": "Manage user accounts and credits",
+    "searchUsers": "Search users by name or email...",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "blocked": "Blocked",
+      "admin": "Admin"
+    },
+    "actions": {
+      "unblock": "Unblock",
+      "block": "Block",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "fields": {
+      "balance": "Balance",
+      "totalSpent": "Total Spent",
+      "totalEarned": "Total Earned",
+      "realCost": "Real Cost",
+      "projects": "Projects",
+      "memberships": "Memberships",
+      "costMultiplier": "Cost Multiplier",
+      "joined": "Joined"
+    },
+    "currentBalance": "Current balance:"
+  },
+  "collaboration": {
+    "loadingTeamInfo": "Loading team info..."
+  },
+  "api": {
+    "keySaved": {
+      "kie": "KIE AI API Key Saved",
+      "openrouter": "OpenRouter API Key Saved"
+    },
+    "saveFailed": "Failed to Save API Key",
+    "generating": {
+      "sceneImages": "Generating scene images...",
+      "scenes": "Generating scenes..."
+    }
+  },
+  "steps": {
+    "scenes": {
+      "deleteScene": "Delete scene",
+      "requestDeletion": "Request deletion",
+      "deletePending": "Deletion request pending",
+      "descriptionPlaceholder": "Describe what happens in this scene..."
+    },
+    "videos": {
+      "deleteVideo": "Delete video",
+      "requestDeletion": "Request deletion",
+      "status": {
+        "deletePending": "Deletion request pending"
+      }
+    }
+  },
+  "apiModals": {
+    "openRouter": {
+      "title": "OpenRouter API Key Required",
+      "description": "To enhance your master prompt with AI, please enter your OpenRouter API key",
+      "getApiKey": "Get your API key:",
+      "step1": "Go to",
+      "step2": "Create a free account or sign in",
+      "step3": "Copy your API key (starts with sk-or-v1-)",
+      "selectFreeModel": "Select FREE Model",
+      "selectModelPlaceholder": "Select a model",
+      "freeModelsNote": "All models listed here are FREE to use with your OpenRouter API key.",
+      "apiKeyLabel": "OpenRouter API Key",
+      "apiKeyPlaceholder": "sk-or-v1-...",
+      "saving": "Saving...",
+      "saveAndGenerate": "Save & Generate"
+    },
+    "kie": {
+      "title": "KIE AI API Key Required",
+      "description": "Generate character images with KIE AI models using your own API key",
+      "getApiKey": "Get your API key:",
+      "step1": "Go to",
+      "step2": "Create a free account or sign in",
+      "step3": "Copy your API key from dashboard",
+      "creditsWarning": "Make sure your KIE AI account has credits before generating",
+      "modelAccessWarning": "Verify your account has access to the selected model. Some models require specific permissions.",
+      "selectModelLabel": "Select Image Model",
+      "selectModelPlaceholder": "Select a model",
+      "affordableModelsNote": "Most affordable models for character generation. Grok Imagine is cheapest!",
+      "apiKeyLabel": "KIE AI API Key",
+      "apiKeyPlaceholder": "Your KIE AI API key",
+      "creditsNote": "Images will use your KIE AI credits"
+    },
+    "kieVideo": {
+      "title": "KIE AI API Key for Videos",
+      "description": "Generate videos using KIE AI models with your own API key",
+      "getApiKey": "Get your API key:",
+      "step1": "Go to",
+      "step2": "Create a free account or sign in",
+      "step3": "Copy your API key from dashboard",
+      "creditsWarning": "Make sure your KIE AI account has enough credits before generating",
+      "modelAccessWarning": "Verify your account has access to the selected video model",
+      "selectModelLabel": "Select Video Model",
+      "selectModelPlaceholder": "Select a model",
+      "recommended": "Recommended",
+      "creditsPerVideo": "credits/video",
+      "costPerVideo": "per video",
+      "affordableModelsNote": "Most affordable models for video generation. Grok Imagine is cheapest!",
+      "apiKeyLabel": "KIE AI API Key",
+      "apiKeyPlaceholder": "Your KIE AI API key",
+      "saving": "Saving...",
+      "saveAndGenerate": "Save & Generate",
+      "creditsNote": "Videos will be generated using your KIE AI account credits"
+    }
+  },
+  "voice": {
+    "openaiInstructions": "OpenAI Instructions",
+    "elevenlabsSettings": "ElevenLabs Settings",
+    "instructionsLabel": "Voice Instructions (how should this character sound?)",
+    "instructionsPlaceholder": "e.g., Speak warmly and cheerfully, with occasional laughter",
+    "instructionsHint": "Describe the speaking style, emotion, pace, accent, or any vocal characteristics",
+    "stability": "Stability",
+    "stabilityHint": "Lower = more expressive/variable, Higher = more consistent",
+    "similarity": "Similarity Boost",
+    "similarityHint": "How closely to match the original voice sample",
+    "style": "Style Exaggeration",
+    "styleHint": "Amplify the style of the original speaker (0 = neutral)"
+  },
+  "copy": {
+    "characterPromptsTitle": "Copy Character Prompts for Gemini",
+    "promptsWebInterfaceTitle": "Copy Prompts for Gemini Web Interface",
+    "promptsCount": "{count} prompts • {images} already have images",
+    "close": "Close",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "hasImage": "Has Image"
+  },
+  "import": {
+    "parseError": "Failed to parse metadata.json: ",
+    "invalidJson": "Invalid JSON",
+    "defaultProjectName": "Imported Project",
+    "characterPrefix": "Character: ",
+    "characterSuffix": " character",
+    "scenePrefix": "Scene ",
+    "noValidFiles": "No valid files found. Expected: scene1.jpeg, video1.mp4, or character images.",
+    "failed": "Import failed",
+    "metadataFile": "metadata.json",
+    "characterFile": "character_name.jpeg",
+    "sceneFiles": "scene1.jpeg, scene2.jpeg, ...",
+    "videoFiles": "video1.mp4, video2.mp4, ...",
+    "characterImages": "{count} images",
+    "sceneImages": "{count} images"
+  },
+  "error": {
+    "apiKeyRequired": "API key is required",
+    "invalidApiKeyFormat": "Invalid API key format",
+    "invalidOpenRouterKeyFormat": "Invalid OpenRouter API key format. It should start with \"sk-or-v1-\"",
+    "invalidKieKeyFormat": "Invalid KIE AI API key format",
+    "saveFailed": "Failed to save API key",
+    "failedToSendInvitation": "Failed to send invitation",
+    "failedToCopyLink": "Failed to copy link",
+    "failedToSubmitRequest": "Failed to submit request",
+    "missingProjectContext": "Missing project context",
+    "missingTargetType": "Missing target type",
+    "noScenesSelected": "No scenes selected",
+    "invalidResponse": "Request failed: {status} - Invalid response",
+    "requestFailed": "Request failed: {status} {statusText}"
+  },
+  "creditsModal": {
+    "checkingPermissions": "Checking permissions...",
+    "youAreOwner": "You are the project owner",
+    "ownerNote": "As the project owner, you have full regeneration permissions but need credits to proceed. Purchase a plan above to continue generating content.",
+    "askAdmin": "Ask an admin to regenerate",
+    "scenesSelected": "scenes selected:",
+    "pricePerMonth": "${price}/mo",
+    "askAdminRegenerate": "Ask an admin to regenerate {count} {type}{plural} using their credits.",
+    "requestApprovalFor": "Request Approval for {count} {type}{plural}",
+    "itemsCount": "{count} items"
+  },
   "statistics": {
+    "failedToFetch": "Failed to fetch statistics",
+    "failedToLoad": "Failed to load statistics",
+    "failedToFetchProject": "Failed to fetch project statistics",
     "title": "Usage Statistics",
     "subtitle": "Track your API costs and usage",
     "adminView": "Admin View (Real Costs)",
@@ -1457,74 +1771,5 @@
       "modal-vectcut": "Modal VectCut",
       "unknown": "Other"
     }
-  },
-  "billing": {
-    "title": "Billing & Subscription",
-    "subtitle": "Manage your subscription and credits",
-    "plans": {
-      "free": "Free",
-      "starter": "Starter",
-      "pro": "Pro",
-      "studio": "Studio"
-    },
-    "subscriptionActivated": "Subscription Activated!",
-    "creditsAdded": "Your credits have been added to your account.",
-    "creditBalance": "Credit Balance",
-    "available": "Available",
-    "totalSpent": "Total Spent",
-    "totalEarned": "Total Earned",
-    "availablePlans": "Available Plans",
-    "faq": "Frequently Asked Questions",
-    "howCreditsWork": "How do credits work?",
-    "howCreditsWorkAnswer": "Credits are used for AI generation: images, videos, voiceovers, and more. Each operation costs a certain amount of credits based on complexity.",
-    "creditsRollOver": "Do unused credits roll over?",
-    "creditsRollOverAnswer": "No. Credits reset at the beginning of each new month. Unused credits from the previous month do not carry over.",
-    "canCancelAnytime": "Can I cancel anytime?",
-    "canCancelAnytimeAnswer": "Yes, you can cancel your subscription at any time. You'll keep access until the end of your billing period.",
-    "paymentMethods": "What payment methods are accepted?",
-    "paymentMethodsAnswer": "We accept all major credit cards, debit cards, and various local payment methods through our payment provider Polar.",
-    "starter": "Starter",
-    "starterDesc": "For hobbyists",
-    "pro": "Pro",
-    "proDesc": "Most popular",
-    "studio": "Studio",
-    "studioDesc": "For creators",
-    "currentPlan": "Current Plan",
-    "upgrade": "Upgrade",
-    "manageSubscription": "Manage Subscription",
-    "perMonth": "/month",
-    "credits": "credits",
-    "selectPlan": "Select Plan",
-    "active": "Active",
-    "canceled": "Canceled",
-    "renewsOn": "Renews on",
-    "expiresOn": "Expires on",
-    "free": "Free",
-    "freePlan": "Free Plan",
-    "freeCredits": "free credits",
-    "subscriptionEnding": "Subscription Ending",
-    "subscriptionEndingDesc": "Your subscription will end on {date}. You will be downgraded to the Free plan.",
-    "nextBillingDate": "Next billing date",
-    "pastDue": "Past Due",
-    "planFeatures": {
-      "creditsOnSignup": "{credits} credits on signup",
-      "creditsPerMonth": "{credits} credits/month",
-      "basicFeatures": "Basic features",
-      "allAiModels": "All AI models",
-      "priorityGeneration": "Priority generation",
-      "highestPriority": "Highest priority",
-      "communitySupport": "Community support",
-      "emailSupport": "Email support",
-      "prioritySupport": "Priority support",
-      "dedicatedSupport": "Dedicated support",
-      "forHobbyists": "For hobbyists",
-      "forRegularUsers": "For regular users"
-    }
-  },
-  "roles": {
-    "admin": "Admin",
-    "collaborator": "Collaborator",
-    "viewer": "Viewer",
-    "reader": "Viewer"
   }
 }

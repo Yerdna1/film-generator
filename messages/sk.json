@@ -48,6 +48,16 @@
       "minutesAgo": "pred {minutes}m",
       "hoursAgo": "pred {hours}h",
       "daysAgo": "pred {days}d"
+    },
+    "untitledStory": "Bezpätový príbeh",
+    "loadingDots": "...",
+    "unknownError": "Neznáma chyba",
+    "retry": "Skúsiť znova",
+    "errorOccurred": "Vyskytla sa chyba",
+    "failedToLoadPermissions": "Nepodarilo sa načítať oprávnenia",
+    "examples": {
+      "sceneTitle": "napr. Objav",
+      "voiceSettings": "napr. Hovorte teple a veselo, s občasným smiechom"
     }
   },
   "premium": {
@@ -81,7 +91,13 @@
       "explanation": "Administrátor bol upozornený o vašej registrácii. Keď bude váš účet schválený, dostanete e-mail.",
       "registeredAs": "Registrovaný ako:",
       "checkStatus": "Skontrolovať stav"
-    }
+    },
+    "emailPlaceholder": "meno@example.com",
+    "passwordPlaceholder": "••••••••",
+    "invalidCredentials": "Neplatný email alebo heslo",
+    "errorOccurred": "Vyskytla sa chyba. Skúste to znova.",
+    "passwordsDoNotMatch": "Heslá sa nezhodujú",
+    "failedToRegister": "Registrácia zlyhala"
   },
   "nav": {
     "dashboard": "Prehľad",
@@ -215,7 +231,16 @@
     "videos": "videí",
     "autoDetectedNotice": "Štruktúra projektu bola automaticky detegovaná zo súborov. Môžete upraviť názov projektu nižšie.",
     "projectName": "Názov projektu",
-    "enterProjectName": "Zadajte názov projektu"
+    "enterProjectName": "Zadajte názov projektu",
+    "viewOnly": "Iba zobrazenie",
+    "visibility": "Viditeľnosť projektu",
+    "publicProjectTooltip": "Verejný projekt - kliknite pre zmakenie na súkromný",
+    "privateProjectTooltip": "Súkromný projekt - kliknite pre zmakenie na verejný",
+    "public": "Verejný",
+    "private": "Súkromný",
+    "publicVisibilityDescription": "Každý môže objaviť a zobraziť tento projekt",
+    "privateVisibilityDescription": "Iba členovia tímu majú prístup",
+    "publicDiscoverNote": "Tento projekt sa zobrazuje na verejnej stránke Objavuj"
   },
   "workflow": {
     "step": "Krok",
@@ -265,7 +290,12 @@
       "apiKeySet": "API kľúč aktívny",
       "apiKeyRequired": "Vyžaduje sa API kľúč",
       "keySaved": "API kľúč úspešne uložený",
-      "keySaveFailed": "Nepodarilo sa uložiť API kľúč"
+      "keySaveFailed": "Nepodarilo sa uložiť API kľúč",
+      "modal": {
+        "title": "Konfigurácia modelov",
+        "description": "Nastavte modely AI pre generovanie vášho filmu. Tieto nastavenia môžete kedykoľvek zmeniť.",
+        "confirmButton": "Potvrdiť a pokračovať"
+      }
     }
   },
   "steps": {
@@ -1137,6 +1167,10 @@
     "apiKeyRequired": "API kľúč je potrebný - nakonfigurujte nižšie",
     "recommended": "Odporúčané",
     "selectModel": "Vyberte model",
+    "selectTtsModel": "Vyberte TTS model",
+    "selectImageModel": "Vyberte obrázkový model",
+    "selectVideoModel": "Vyberte video model",
+    "selectMusicModel": "Vyberte hudobný model",
     "modelContext": "Kontext",
     "modelPricing": "Cena",
     "currency": "Mena",
@@ -1161,6 +1195,7 @@
     "copyLink": "Kopírovať odkaz na pozvánku",
     "linkCopied": "Odkaz skopírovaný!",
     "expiresIn": "Vyprší za {days} dní",
+    "loadingTeamInfo": "Načítavam informácie o tíme...",
     "roles": {
       "admin": "Administrátor",
       "collaborator": "Spolupracovník",
@@ -1456,7 +1491,10 @@
       "modal-edit": "Modal Edit",
       "modal-vectcut": "Modal VectCut",
       "unknown": "Iné"
-    }
+    },
+    "failedToFetch": "Nepodarilo sa získať štatistiky",
+    "failedToLoad": "Nepodarilo sa načítať štatistiky",
+    "failedToFetchProject": "Nepodarilo sa získať štatistiky projektu"
   },
   "billing": {
     "title": "Fakturácia a predplatné",
@@ -1497,7 +1535,7 @@
     "selectPlan": "Vybrať plán",
     "active": "Aktívne",
     "canceled": "Zrušené",
-    "renewsOn": "Obnovuje sa",
+    "renewsOn": "Obnovuje sa:",
     "expiresOn": "Vyprší",
     "free": "Zadarmo",
     "freePlan": "Bezplatný plán",
@@ -1526,5 +1564,212 @@
     "collaborator": "Spolupracovník",
     "viewer": "Zobrazovateľ",
     "reader": "Zobrazovateľ"
+  },
+  "invite": {
+    "failedToLoad": "Nepodarilo sa načítať pozvánku",
+    "failedToAccept": "Nepodarilo sa prijať pozvánku"
+  },
+  "admin": {
+    "failedToLoadData": "Nepodarilo sa načítať admin dáta",
+    "invalidNumber": "Prosím zadajte platné kladné číslo",
+    "failedToUpdateCredits": "Nepodarilo sa aktualizovať kredity",
+    "failedToUpdateUser": "Nepodarilo sa aktualizovať používateľa",
+    "failedToUpdateApproval": "Nepodarilo sa aktualizovať schválenie používateľa",
+    "failedToUpdateConfig": "Nepodarilo sa aktualizovať konfiguráciu",
+    "addCredits": "Pridať kredity",
+    "deductCredits": "Odobrať kredity",
+    "setCredits": "Nastaviť kredity",
+    "noUsersFound": "Neboli nájdení žiadni používatelia podľa vášho vyhľadávania.",
+    "enterAmount": "Zadajte čiastku",
+    "newBalance": "Nový zostatok",
+    "amount": "Suma",
+    "reasonOptional": "Dôvod (voliteľné)",
+    "reasonPlaceholder": "napr. Bonus za spätnú väzbu, Refundácia, atď.",
+    "editStartingCredits": "Upraviť počiatočné kredity",
+    "startingCreditsDescription": "Nastavte, koľko kreditov dostanú noví používatelia pri registrácii.",
+    "startingCredits": "Počiatočné kredity",
+    "purchaseCreditsNote": "Nastavte na 0, aby ste vyžadovali od používateľov zakúpenie kreditov pred použitím aplikácie.",
+    "dashboard": "Admin Dashboard",
+    "manageUsers": "Spravujte používateľov, kredity a nastavenia aplikácie",
+    "appConfiguration": "Konfigurácia aplikácie",
+    "globalSettings": "Globálne nastavenia aplikácie",
+    "creditsForNewUsers": "Kredity pre nových používateľov",
+    "edit": "Upraviť",
+    "pendingApprovals": "Čakajúce schválenia",
+    "newUsersWaiting": "Noví používatelia čakajú na vaše schválenie",
+    "noName": "Bez mena",
+    "users": "Používatelia",
+    "manageUserAccounts": "Spravujte používateľské účty a kredity",
+    "searchUsers": "Hľadať používateľov podľa mena alebo e-mailu...",
+    "status": {
+      "pending": "Čaká",
+      "approved": "Schválený",
+      "blocked": "Blokovaný",
+      "admin": "Admin"
+    },
+    "actions": {
+      "unblock": "Odblokovať",
+      "block": "Blokovať",
+      "approve": "Schváliť",
+      "reject": "Odmietnuť"
+    },
+    "fields": {
+      "balance": "Zostatok",
+      "totalSpent": "Celkovo minuté",
+      "totalEarned": "Celkovo získané",
+      "realCost": "Skutočná cena",
+      "projects": "Projekty",
+      "memberships": "Členstvá",
+      "costMultiplier": "Násobič ceny",
+      "joined": "Pripojený"
+    },
+    "currentBalance": "Aktuálny zostatok:"
+  },
+  "collaboration": {
+    "loadingTeamInfo": "Načítavam informácie o tíme..."
+  },
+  "api": {
+    "keySaved": {
+      "kie": "KIE AI API kľúč uložený",
+      "openrouter": "OpenRouter API kľúč uložený"
+    },
+    "saveFailed": "Nepodarilo sa uložiť API kľúč",
+    "generating": {
+      "sceneImages": "Generujem obrázky scén...",
+      "scenes": "Generujem scény..."
+    }
+  },
+  "steps": {
+    "scenes": {
+      "deleteScene": "Odstrániť scénu",
+      "requestDeletion": "Požiadať o odstránenie",
+      "deletePending": "Žiadosť o odstránenie čaká",
+      "descriptionPlaceholder": "Opíšte, čo sa stane v tejto scéne..."
+    },
+    "videos": {
+      "deleteVideo": "Odstrániť video",
+      "requestDeletion": "Požiadať o odstránenie",
+      "status": {
+        "deletePending": "Žiadosť o odstránenie čaká"
+      }
+    }
+  },
+  "apiModals": {
+    "openRouter": {
+      "title": "Vyžaduje sa OpenRouter API kľúč",
+      "description": "Pre vylepšenie vášho hlavného promptu pomocou AI zadajte váš OpenRouter API kľúč",
+      "getApiKey": "Získajte váš API kľúč:",
+      "step1": "Choďte na",
+      "step2": "Vytvorte bezplatný účet alebo sa prihláste",
+      "step3": "Skopírujte váš API kľúč (začína s sk-or-v1-)",
+      "selectFreeModel": "Vyberte BEZPLATNÝ model",
+      "selectModelPlaceholder": "Vyberte model",
+      "freeModelsNote": "Všetky modely tu uvedené sú ZADARMO s vašim OpenRouter API kľúčom.",
+      "apiKeyLabel": "OpenRouter API kľúč",
+      "apiKeyPlaceholder": "sk-or-v1-...",
+      "saving": "Ukladám...",
+      "saveAndGenerate": "Uložiť a generovať"
+    },
+    "kie": {
+      "title": "Vyžaduje sa KIE AI API kľúč",
+      "description": "Generujte obrázky postáv pomocou KIE AI modelov s vlastným API kľúčom",
+      "getApiKey": "Získajte váš API kľúč:",
+      "step1": "Choďte na",
+      "step2": "Vytvorte bezplatný účet alebo sa prihláste",
+      "step3": "Skopírujte váš API kľúč z dashboardu",
+      "creditsWarning": "Uistite sa, že váš KIE AI účet má kredity pred generovaním",
+      "modelAccessWarning": "Overte, že váš účet má prístup k vybranému modelu. Niektoré modely vyžadujú špecifické oprávnenia.",
+      "selectModelLabel": "Vyberte obrázkový model",
+      "selectModelPlaceholder": "Vyberte model",
+      "affordableModelsNote": "Najlacnejšie modely pre generovanie postáv. Grok Imagine je najlacnejší!",
+      "apiKeyLabel": "KIE AI API kľúč",
+      "apiKeyPlaceholder": "Váš KIE AI API kľúč",
+      "creditsNote": "Obrázky použijú kredity z vášho KIE AI účtu"
+    },
+    "kieVideo": {
+      "title": "KIE AI API kľúč pre videá",
+      "description": "Generujte videá pomocou KIE AI modelov s vlastným API kľúčom",
+      "getApiKey": "Získajte váš API kľúč:",
+      "step1": "Choďte na",
+      "step2": "Vytvorte bezplatný účet alebo sa prihláste",
+      "step3": "Skopírujte váš API kľúč z dashboardu",
+      "creditsWarning": "Uistite sa, že váš KIE AI účet má dostatok kreditov pred generovaním",
+      "modelAccessWarning": "Overte, že váš účet má prístup k vybranému video modelu",
+      "selectModelLabel": "Vyberte video model",
+      "selectModelPlaceholder": "Vyberte model",
+      "recommended": "Odporúčané",
+      "creditsPerVideo": "kreditov/video",
+      "costPerVideo": "za video",
+      "affordableModelsNote": "Najlacnejšie modely pre generovanie videí. Grok Imagine je najlacnejší!",
+      "apiKeyLabel": "KIE AI API kľúč",
+      "apiKeyPlaceholder": "Váš KIE AI API kľúč",
+      "saving": "Ukladám...",
+      "saveAndGenerate": "Uložiť a generovať",
+      "creditsNote": "Videá budú generované pomocou kreditov z vášho KIE AI účtu"
+    }
+  },
+  "voice": {
+    "openaiInstructions": "OpenAI inštrukcie",
+    "elevenlabsSettings": "ElevenLabs nastavenia",
+    "instructionsLabel": "Hlasové inštrukcie (ako má táto postava znieť?)",
+    "instructionsPlaceholder": "napr. Hovorte teple a veselo, s občasným smiechom",
+    "instructionsHint": "Opíšte štýl hovorenia, emóciu, tempo, prízvuk alebo hlasové charakteristiky",
+    "stability": "Stabilita",
+    "stabilityHint": "Nižšia = výraznejšie/premenlivejšie, Vyššia = konzistentnejšie",
+    "similarity": "Zosilnenie podobnosti",
+    "similarityHint": "Ako closely sa má zhodovať s originálnym hlasovým vzorkou",
+    "style": "Prehnanie štýlu",
+    "styleHint": "Zosilňte štýl originálneho rečníka (0 = neutrálne)"
+  },
+  "copy": {
+    "characterPromptsTitle": "Kopírovať prompty postáv pre Gemini",
+    "promptsWebInterfaceTitle": "Kopírovať prompty pre Gemini webové rozhranie",
+    "promptsCount": "{count} promptov • {images} už má obrázky",
+    "close": "Zavrieť",
+    "copied": "Skopírované!",
+    "copy": "Kopírovať",
+    "hasImage": "Má obrázok"
+  },
+  "import": {
+    "parseError": "Nepodarilo sa spracovať metadata.json: ",
+    "invalidJson": "Neplatný JSON",
+    "defaultProjectName": "Importovaný projekt",
+    "characterPrefix": "Postava: ",
+    "characterSuffix": " postava",
+    "scenePrefix": "Scéna ",
+    "noValidFiles": "Neboli nájdené žiadne platné súbory. Očakávané: scene1.jpeg, video1.mp4, alebo obrázky postáv.",
+    "failed": "Import zlyhal",
+    "metadataFile": "metadata.json",
+    "characterFile": "character_name.jpeg",
+    "sceneFiles": "scene1.jpeg, scene2.jpeg, ...",
+    "videoFiles": "video1.mp4, video2.mp4, ...",
+    "characterImages": "{count} obrázkov",
+    "sceneImages": "{count} obrázkov"
+  },
+  "error": {
+    "apiKeyRequired": "Vyžaduje sa API kľúč",
+    "invalidApiKeyFormat": "Neplatný formát API kľúča",
+    "invalidOpenRouterKeyFormat": "Neplatný formát OpenRouter API kľúča. Mal by začínať s \"sk-or-v1-\"",
+    "invalidKieKeyFormat": "Neplatný formát KIE AI API kľúča",
+    "saveFailed": "Nepodarilo sa uložiť API kľúč",
+    "failedToSendInvitation": "Nepodarilo se odoslať pozvanie",
+    "failedToCopyLink": "Nepodarilo sa skopírovať odkaz",
+    "failedToSubmitRequest": "Nepodarilo sa odoslať žiadosť",
+    "missingProjectContext": "Chýba kontext projektu",
+    "missingTargetType": "Chýba cieľový typ",
+    "noScenesSelected": "Neboli vybrané žiadne scény",
+    "invalidResponse": "Žiadosť zlyhala: {status} - Neplatná odpoveď",
+    "requestFailed": "Žiadosť zlyhala: {status} {statusText}"
+  },
+  "creditsModal": {
+    "checkingPermissions": "Kontrolujem oprávnenia...",
+    "youAreOwner": "Ste vlastník projektu",
+    "ownerNote": "Ako vlastník projektu máte plné oprávnenia na regeneráciu, ale potrebujete kredity na pokračovanie. Kúpte si plán vyššie pre pokračovanie v generovaní obsahu.",
+    "askAdmin": "Požiadajte admina o regeneráciu",
+    "scenesSelected": "vybrané scény:",
+    "pricePerMonth": "${price}/mes",
+    "askAdminRegenerate": "Požiadajte admina o regeneráciu {count} {type}{plural} pomocou jeho kreditov.",
+    "requestApprovalFor": "Požiadať o schválenie pre {count} {type}{plural}",
+    "itemsCount": "{count} položiek"
   }
 }

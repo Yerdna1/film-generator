@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +19,7 @@ interface PromptsDialogProps {
 }
 
 export function PromptsDialog({ open, onOpenChange, scenes }: PromptsDialogProps) {
+  const t = useTranslations('copy');
   const scenesWithImages = scenes.filter(s => s.imageUrl).length;
 
   return (
@@ -26,7 +28,7 @@ export function PromptsDialog({ open, onOpenChange, scenes }: PromptsDialogProps
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Copy className="w-5 h-5 text-purple-400" />
-            Copy Prompts for Gemini Web Interface
+            {t('promptsWebInterfaceTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -43,10 +45,10 @@ export function PromptsDialog({ open, onOpenChange, scenes }: PromptsDialogProps
 
         <div className="flex justify-between items-center pt-4 border-t border-white/10">
           <div className="text-sm text-muted-foreground">
-            {scenes.length} prompts • {scenesWithImages} already have images
+            {t('promptsCount', { count: scenes.length, images: scenesWithImages })}
           </div>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/10">
-            Close
+            {t('close')}
           </Button>
         </div>
       </DialogContent>

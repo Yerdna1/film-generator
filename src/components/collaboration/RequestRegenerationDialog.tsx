@@ -75,7 +75,7 @@ export function RequestRegenerationDialog({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to submit request');
+        setError(data.error || t('error.failedToSubmitRequest'));
         return;
       }
 
@@ -88,7 +88,7 @@ export function RequestRegenerationDialog({
         handleClose();
       }, 3000);
     } catch (e) {
-      setError('Failed to submit request');
+      setError(t('error.failedToSubmitRequest'));
     } finally {
       setIsLoading(false);
     }

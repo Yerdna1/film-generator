@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button';
 import { ModelConfigurationPanel } from './ModelConfigurationPanel';
 import type { UnifiedModelConfig } from '@/types/project';
+import { useTranslations } from 'next-intl';
 
 interface ModelConfigModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function ModelConfigModal({
   isFreeUser = false,
 }: ModelConfigModalProps) {
   console.log('[ModelConfigModal] Render:', { isOpen, modelConfig, disabled, isFreeUser });
+  const t = useTranslations('step1.modelConfiguration.modal');
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onSubmit()}>
@@ -33,9 +35,9 @@ export function ModelConfigModal({
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Konfigurácia modelov</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Nastavte modely AI pre generovanie vášho filmu. Tieto nastavenia môžete kedykoľvek zmeniť.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4">
@@ -48,7 +50,7 @@ export function ModelConfigModal({
         </div>
         <DialogFooter className="mt-6">
           <Button onClick={onSubmit} className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white">
-            Potvrdiť a pokračovať
+            {t('confirmButton')}
           </Button>
         </DialogFooter>
       </DialogContent>

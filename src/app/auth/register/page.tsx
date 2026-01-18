@@ -47,7 +47,7 @@ export default function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
 
@@ -63,7 +63,7 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to register');
+        setError(data.error || t('auth.failedToRegister'));
         setIsLoading(false);
         return;
       }
@@ -84,7 +84,7 @@ export default function RegisterPage() {
         router.push('/');
       }
     } catch {
-      setError('An error occurred. Please try again.');
+      setError(t('auth.errorOccurred'));
       setIsLoading(false);
     }
   };

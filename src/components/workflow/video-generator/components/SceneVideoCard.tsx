@@ -129,7 +129,8 @@ export function SceneVideoCard({
   onSelectRegeneration,
   onToggleLock,
 }: SceneVideoCardProps) {
-  const t = useTranslations();
+  const t = useTranslations('steps');
+  const tCommon = useTranslations('common');
   const [showStaleWarning, setShowStaleWarning] = useState(false);
 
   // Use shared card actions hook
@@ -252,7 +253,7 @@ export function SceneVideoCard({
                 >
                   <Sparkles className="w-full h-full text-orange-400" />
                 </motion.div>
-                <p className="text-sm text-white mb-2">{t('steps.videos.generatingVideo')}</p>
+                <p className="text-sm text-white mb-2">{t('videos.generatingVideo')}</p>
                 <div className="w-32">
                   <Progress value={progress} className="h-1" />
                 </div>
@@ -271,10 +272,10 @@ export function SceneVideoCard({
                     <Lock className="w-5 h-5 text-white/70" />
                   </div>
                   <p className="text-xs text-white/80 text-center px-2">
-                    You need to sign in to see more
+                    {t('videos.signInToSeeMore')}
                   </p>
                   <span className="text-xs text-orange-400 mt-1 underline">
-                    Sign up free
+                    {t('videos.signUpFree')}
                   </span>
                 </a>
               ) : (
@@ -292,7 +293,7 @@ export function SceneVideoCard({
             {/* Scene Number Badge + Status Badges */}
             <div className="absolute top-2 left-2 flex items-center gap-1">
               <Badge className="bg-black/60 text-white border-0">
-                {t('steps.scenes.sceneLabel')} {scene.number || index + 1}
+                {t('scenes.sceneLabel')} {scene.number || index + 1}
               </Badge>
               <StatusBadges
                 isLocked={scene.locked}
@@ -300,12 +301,12 @@ export function SceneVideoCard({
                 hasPendingDeletion={hasPendingDeletion}
                 approvedRegeneration={approvedRegeneration}
                 onRegenerationClick={() => cardActions.setShowRegenerationModal(true)}
-                lockedLabel={t('steps.scenes.status.locked')}
+                lockedLabel={t('scenes.status.locked')}
               />
               {isVideoStale && !scene.locked && (
-                <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title={t('steps.videos.staleWarning.badge')}>
+                <Badge className="bg-orange-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 flex items-center gap-0.5" title={t('videos.staleWarning.badge')}>
                   <AlertTriangle className="w-2.5 h-2.5" />
-                  {t('steps.videos.staleWarning.badge')}
+                  {t('videos.staleWarning.badge')}
                 </Badge>
               )}
             </div>
@@ -392,7 +393,7 @@ export function SceneVideoCard({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{scene.locked ? t('steps.scenes.status.locked') : isVideoStale ? t('steps.videos.staleWarning.badge') : t('steps.videos.generateVideo')}</p>
+                          <p>{scene.locked ? t('scenes.status.locked') : isVideoStale ? t('videos.staleWarning.badge') : t('videos.generateVideo')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -420,7 +421,7 @@ export function SceneVideoCard({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{scene.locked ? t('steps.scenes.unlock') : t('steps.scenes.lock')}</p>
+                          <p>{scene.locked ? t('scenes.unlock') : t('scenes.lock')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -440,7 +441,7 @@ export function SceneVideoCard({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{t('common.download')}</p>
+                          <p>{tCommon('download')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -462,7 +463,7 @@ export function SceneVideoCard({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{hasPendingDeletion ? 'Deletion request pending' : canDeleteDirectly ? 'Delete video' : 'Request deletion'}</p>
+                          <p>{hasPendingDeletion ? t('videos.deletePending') : canDeleteDirectly ? t('videos.deleteVideo') : t('videos.requestDeletion')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -476,7 +477,7 @@ export function SceneVideoCard({
                   disabled
                 >
                   <ImageIcon className="w-3 h-3 mr-1" />
-                  {t('steps.videos.needsImage')}
+                  {t('videos.needsImage')}
                 </Button>
               ) : null}
             </div>

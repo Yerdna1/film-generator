@@ -37,7 +37,7 @@ export function VoiceSettingsDialog({
   onVoiceChange,
   onVoiceSettingsChange,
 }: VoiceSettingsDialogProps) {
-  const t = useTranslations();
+  const t = useTranslations('voice');
   const [expandedCharacter, setExpandedCharacter] = useState<string | null>(null);
 
   const isOpenAI = provider === 'openai-tts';
@@ -63,17 +63,17 @@ export function VoiceSettingsDialog({
       <DialogTrigger asChild>
         <Button variant="outline" className="border-white/10">
           <Settings className="w-4 h-4 mr-2" />
-          {t('steps.voiceover.voiceSettings')}
+          {t('voiceSettings')}
         </Button>
       </DialogTrigger>
       <DialogContent className="glass-strong border-white/10 max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {t('steps.voiceover.assignVoices')}
+            {t('assignVoices')}
             {hasVibeSettings && (
               <span className="text-xs text-violet-400 font-normal flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
-                {isOpenAI ? 'OpenAI Instructions' : 'ElevenLabs Settings'}
+                {isOpenAI ? t('openaiInstructions') : t('elevenlabsSettings')}
               </span>
             )}
           </DialogTitle>
@@ -106,7 +106,7 @@ export function VoiceSettingsDialog({
                           <div className={`w-1.5 h-1.5 rounded-full ${selectedGenderStyle.dot}`} />
                         )}
                         <p className={`text-xs ${character.voiceName ? selectedGenderStyle.text : 'text-muted-foreground'}`}>
-                          {character.voiceName || t('steps.voiceover.noVoice')}
+                          {character.voiceName || t('noVoice')}
                         </p>
                       </div>
                     </div>
@@ -117,7 +117,7 @@ export function VoiceSettingsDialog({
                       onValueChange={(val) => onVoiceChange(character.id, val)}
                     >
                       <SelectTrigger className="w-32 glass border-white/10">
-                        <SelectValue placeholder={t('steps.voiceover.selectVoice')} />
+                        <SelectValue placeholder={t('selectVoice')} />
                       </SelectTrigger>
                       <SelectContent className="glass-strong border-white/10 max-h-[300px]">
                         {voices.map((voice) => {
@@ -160,10 +160,10 @@ export function VoiceSettingsDialog({
                     {isOpenAI && (
                       <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">
-                          Voice Instructions (how should this character sound?)
+                          {t('instructionsLabel')}
                         </Label>
                         <Input
-                          placeholder="e.g., Speak warmly and cheerfully, with occasional laughter"
+                          placeholder={t('instructionsPlaceholder')}
                           value={character.voiceInstructions || ''}
                           onChange={(e) => onVoiceSettingsChange(character.id, {
                             voiceInstructions: e.target.value
@@ -171,7 +171,7 @@ export function VoiceSettingsDialog({
                           className="glass border-white/10 text-sm"
                         />
                         <p className="text-[10px] text-muted-foreground">
-                          Describe the speaking style, emotion, pace, accent, or any vocal characteristics
+                          {t('instructionsHint')}
                         </p>
                       </div>
                     )}
@@ -182,7 +182,7 @@ export function VoiceSettingsDialog({
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label className="text-xs text-muted-foreground">
-                              Stability
+                              {t('stability')}
                             </Label>
                             <span className="text-xs text-violet-400">
                               {Math.round((character.voiceStability ?? 0.5) * 100)}%
@@ -199,14 +199,14 @@ export function VoiceSettingsDialog({
                             className="w-full"
                           />
                           <p className="text-[10px] text-muted-foreground">
-                            Lower = more expressive/variable, Higher = more consistent
+                            {t('stabilityHint')}
                           </p>
                         </div>
 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label className="text-xs text-muted-foreground">
-                              Similarity Boost
+                              {t('similarity')}
                             </Label>
                             <span className="text-xs text-violet-400">
                               {Math.round((character.voiceSimilarityBoost ?? 0.75) * 100)}%
@@ -223,14 +223,14 @@ export function VoiceSettingsDialog({
                             className="w-full"
                           />
                           <p className="text-[10px] text-muted-foreground">
-                            How closely to match the original voice sample
+                            {t('similarityHint')}
                           </p>
                         </div>
 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label className="text-xs text-muted-foreground">
-                              Style Exaggeration
+                              {t('style')}
                             </Label>
                             <span className="text-xs text-violet-400">
                               {Math.round((character.voiceStyle ?? 0) * 100)}%
@@ -247,7 +247,7 @@ export function VoiceSettingsDialog({
                             className="w-full"
                           />
                           <p className="text-[10px] text-muted-foreground">
-                            Amplify the style of the original speaker (0 = neutral)
+                            {t('styleHint')}
                           </p>
                         </div>
                       </div>

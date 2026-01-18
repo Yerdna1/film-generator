@@ -106,7 +106,7 @@ export default function StatisticsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.details || data.error || 'Failed to fetch statistics');
+        throw new Error(data.details || data.error || t('failedToFetch'));
       }
 
       if (data.error) {
@@ -116,7 +116,7 @@ export default function StatisticsPage() {
       setStats(data);
     } catch (err) {
       console.error('Statistics fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load statistics');
+      setError(err instanceof Error ? err.message : t('failedToLoad'));
     } finally {
       setLoading(false);
     }

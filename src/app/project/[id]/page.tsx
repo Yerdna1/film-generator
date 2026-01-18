@@ -466,7 +466,7 @@ export default function ProjectWorkspacePage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1 md:gap-2">
                     <h1 className="font-semibold text-xs sm:text-sm md:text-base truncate">
-                      {project.story.title || 'Untitled Story'}
+                      {project.story.title || t('common.untitledStory')}
                     </h1>
                     <span className="text-muted-foreground hidden sm:inline">•</span>
                     <span className="text-xs md:text-sm text-muted-foreground truncate max-w-[120px] md:max-w-[200px] hidden sm:inline">
@@ -508,7 +508,7 @@ export default function ProjectWorkspacePage() {
               {!permissions?.canEdit && userRole && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-medium">
                   <Eye className="w-3 h-3" />
-                  <span>View Only</span>
+                  <span>{t('project.viewOnly')}</span>
                 </div>
               )}
 
@@ -524,7 +524,7 @@ export default function ProjectWorkspacePage() {
                       ? 'text-green-400 hover:text-green-300'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
-                  title={visibility === 'public' ? 'Public project - click to make private' : 'Private project - click to make public'}
+                  title={visibility === 'public' ? t('project.publicProjectTooltip') : t('project.privateProjectTooltip')}
                 >
                   {visibility === 'public' ? (
                     <Globe className="w-4 h-4" />
@@ -532,7 +532,7 @@ export default function ProjectWorkspacePage() {
                     <Lock className="w-4 h-4" />
                   )}
                   <span className="hidden sm:inline">
-                    {visibility === 'public' ? 'Public' : 'Private'}
+                    {visibility === 'public' ? t('project.public') : t('project.private')}
                   </span>
                 </Button>
               )}
@@ -799,7 +799,7 @@ export default function ProjectWorkspacePage() {
                     className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-0 shadow-lg shadow-green-500/30"
                   >
                     <span className="hidden sm:inline">{t('common.finish')}</span>
-                    <span className="sm:hidden">Finish</span>
+                    <span className="sm:hidden">{t('common.finish')}</span>
                   </Button>
                 </motion.div>
               )}
@@ -857,21 +857,21 @@ export default function ProjectWorkspacePage() {
                 {isLoadingPermissions && (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-muted-foreground">Loading team info...</span>
+                    <span className="ml-2 text-muted-foreground">{t('collaboration.loadingTeamInfo')}</span>
                   </div>
                 )}
 
                 {/* Error State - no role loaded */}
                 {!isLoadingPermissions && !userRole && (
                   <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center">
-                    <p className="text-red-400">Failed to load permissions</p>
+                    <p className="text-red-400">{t('common.failedToLoadPermissions')}</p>
                     <Button
                       variant="outline"
                       size="sm"
                       className="mt-2"
                       onClick={() => fetchProjectData(project.id)}
                     >
-                      Retry
+                      {t('common.retry')}
                     </Button>
                   </div>
                 )}
@@ -915,11 +915,11 @@ export default function ProjectWorkspacePage() {
                           <Lock className="w-5 h-5 text-muted-foreground" />
                         )}
                         <div>
-                          <p className="font-medium">Project Visibility</p>
+                          <p className="font-medium">{t('project.visibility')}</p>
                           <p className="text-sm text-muted-foreground">
                             {visibility === 'public'
-                              ? 'Anyone can discover and view this project'
-                              : 'Only team members can access'}
+                              ? t('project.publicVisibilityDescription')
+                              : t('project.privateVisibilityDescription')}
                           </p>
                         </div>
                       </div>
@@ -932,7 +932,7 @@ export default function ProjectWorkspacePage() {
                     {visibility === 'public' && (
                       <div className="text-xs text-green-400/70 flex items-center gap-1">
                         <Globe className="w-3 h-3" />
-                        This project appears in the public Discover page
+                        {t('project.publicDiscoverNote')}
                       </div>
                     )}
                   </div>

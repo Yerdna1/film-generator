@@ -100,7 +100,7 @@ export function CurrentPlan({
           {status === 'active' && currentPeriodEnd && !cancelAtPeriodEnd && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
-              {t('billing.renewsOn')}: {formatDate(currentPeriodEnd)}
+              {t('billing.renewsOn')} {formatDate(currentPeriodEnd)}
             </div>
           )}
 

@@ -10,6 +10,7 @@ interface LoadingModalProps {
 
 export function LoadingModal({ isOpen }: LoadingModalProps) {
   const t = useTranslations();
+  const commonT = useTranslations('common');
 
   if (!isOpen) return null;
 
@@ -42,7 +43,7 @@ export function LoadingModal({ isOpen }: LoadingModalProps) {
           <div className="w-full space-y-2">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{t('steps.prompt.analyzingStory')}</span>
-              <span>...</span>
+              <span>{commonT('loadingDots')}</span>
             </div>
             <div className="h-2 bg-white/10 rounded-full overflow-hidden">
               <motion.div

@@ -25,6 +25,9 @@ interface KieApiKeyModalProps {
 
 export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: KieApiKeyModalProps) {
   const t = useTranslations();
+  const tModal = useTranslations('apiModals.kie');
+  const tError = useTranslations('error');
+  const tCommon = useTranslations('common');
   const { models: imageModels, loading: modelsLoading } = useImageModels();
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -50,20 +53,20 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
     setError('');
 
     if (!apiKey.trim()) {
-      setError('API key is required');
+      setError(tError('apiKeyRequired'));
       return;
     }
 
     // Basic KIE AI key format validation (typically UUID-like)
     if (apiKey.length < 20) {
-      setError('Invalid KIE AI API key format');
+      setError(tError('invalidKieKeyFormat'));
       return;
     }
 
     try {
       await onSave(apiKey.trim(), selectedModel);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save API key');
+      setError(err instanceof Error ? err.message : tError('saveFailed'));
     }
   };
 
@@ -86,28 +89,28 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
           {/* Title */}
           <div className="text-center space-y-2">
             <h3 className="text-xl font-semibold text-foreground">
-              KIE AI API Key Required
+              {tModal('title')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Generate character images with KIE AI models using your own API key.
+              {tModal('description')}
             </p>
           </div>
 
           {/* Info Box */}
           <div className="glass rounded-lg p-4 space-y-2">
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">Get your API key:</span>
+              <span className="font-semibold text-foreground">{tModal('getApiKey')}</span>
             </p>
             <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Go to <span className="text-cyan-400">kie.ai</span></li>
-              <li>Create a free account or sign in</li>
-              <li>Copy your API key from dashboard</li>
+              <li>{tModal('step1')} <span className="text-cyan-400">kie.ai</span></li>
+              <li>{tModal('step2')}</li>
+              <li>{tModal('step3')}</li>
             </ol>
             <p className="text-xs text-amber-400 mt-2">
-              ⚠️ Make sure your KIE AI account has credits before generating
+              ⚠️ {tModal('creditsWarning')}
             </p>
             <p className="text-xs text-blue-400 mt-1">
-              💡 Verify your account has access to the selected model. Some models require specific permissions.
+              💡 {tModal('modelAccessWarning')}
             </p>
           </div>
 
@@ -116,11 +119,11 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
             {/* Model Selector */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-xs">
-                Select Image Model
+                {tModal('selectModelLabel')}
               </Label>
               <Select value={selectedModel} onValueChange={setSelectedModel} disabled={isLoading}>
                 <SelectTrigger className="glass border-white/10 focus:border-purple-500/50">
-                  <SelectValue placeholder="Select a model" />
+                  <SelectValue placeholder={tModal('selectModelPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="glass-strong border-white/10 max-h-80 overflow-y-auto">
                   {AFFORDABLE_KIE_MODELS.map((model) => {
@@ -146,20 +149,20 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Most affordable models for character generation. <span className="text-green-400 font-semibold">Grok Imagine is cheapest!</span>
+                {tModal('affordableModelsNote')}
               </p>
             </div>
 
             {/* API Key Input */}
             <div className="space-y-2">
               <Label htmlFor="apiKey" className="text-xs">
-                KIE AI API Key
+                {tModal('apiKeyLabel')}
               </Label>
               <div className="relative">
                 <Input
                   id="apiKey"
                   type={showKey ? 'text' : 'password'}
-                  placeholder="Your KIE AI API key"
+                  placeholder={tModal('apiKeyPlaceholder')}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   className="pr-10 glass border-white/10 focus:border-purple-500/50"
@@ -187,7 +190,7 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
                 disabled={isLoading}
                 className="flex-1 border-white/10"
               >
-                Cancel
+                {tCommon('cancel')}
               </Button>
               <Button
                 type="submit"
@@ -197,12 +200,12 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {tModal('saving')}
                   </>
                 ) : (
                   <>
                     <Key className="w-4 h-4 mr-2" />
-                    Save & Generate
+                    {tModal('saveAndGenerate')}
                   </>
                 )}
               </Button>
@@ -213,7 +216,7 @@ export function KieApiKeyModal({ isOpen, onClose, onSave, isLoading = false }: K
           <div className="glass rounded-lg p-3 border border-cyan-500/20">
             <p className="text-xs text-muted-foreground text-center">
               <Image className="w-3 h-3 inline mr-1 text-cyan-400" />
-              Images will use your KIE AI credits
+              {tModal('creditsNote')}
             </p>
           </div>
         </div>

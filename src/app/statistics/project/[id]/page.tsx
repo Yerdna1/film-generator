@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +57,7 @@ interface ProjectStatistics {
 }
 
 export default function ProjectStatisticsPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations('statistics');
   const { id: projectId } = use(params);
   const router = useRouter();
   const [stats, setStats] = useState<ProjectStatistics | null>(null);
@@ -69,12 +71,12 @@ export default function ProjectStatisticsPage({ params }: { params: Promise<{ id
         const response = await fetch(`/api/statistics/project/${projectId}`);
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Failed to fetch project statistics');
+          throw new Error(data.error || t('failedToFetchProject'));
         }
         const data = await response.json();
         setStats(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : t('common.errorOccurred'));
       } finally {
         setLoading(false);
       }

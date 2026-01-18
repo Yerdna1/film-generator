@@ -142,7 +142,7 @@ export function EditSceneDialog({
                             onEditSceneDataChange({ ...editSceneData, dialogue: newDialogue });
                           }}
                           className="glass border-white/10 text-sm"
-                          placeholder={`${character?.name || 'Character'}: dialogue...`}
+                          placeholder={t('steps.scenes.dialoguePlaceholder', { character: character?.name || 'Character' })}
                         />
                       </div>
                       <Button

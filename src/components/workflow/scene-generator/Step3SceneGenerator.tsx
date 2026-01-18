@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { formatCostCompact, getImageCost, ACTION_COSTS } from '@/lib/services/real-costs';
 import type { Project, ImageProvider } from '@/types/project';
 import type { RegenerationRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
@@ -47,6 +48,10 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   // Admin can lock/unlock scenes (owner or has canApproveRequests permission)
   const isAdmin = permissions?.canApproveRequests ?? true;
   const { apiConfig, setApiConfig } = useProjectStore();
+
+  // Setup translations
+  const t = useTranslations('api');
+  const tCommon = useTranslations('common');
 
   // Use SWR hook for API keys with deduplication (eliminates redundant fetches across components)
   const { imageProvider: apiKeysImageProvider, data: apiKeysData } = useApiKeys();
@@ -458,8 +463,8 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       setUserApiKeys(prev => prev ? { ...prev, hasKieKey: true, kieImageModel: model } : null);
       updateUserConstants({ characterImageProvider: 'kie' });
 
-      toast.success('KIE AI API Key Saved', {
-        description: 'Generating scene images...',
+      toast.success(t('keySaved.kie'), {
+        description: t('generating.sceneImages'),
       });
 
       setIsKieModalOpen(false);
@@ -477,8 +482,8 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         setPendingSceneGeneration(null);
       }
     } catch (error) {
-      toast.error('Failed to Save API Key', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+      toast.error(t('saveFailed'), {
+        description: error instanceof Error ? error.message : tCommon('unknownError'),
       });
       throw error;
     } finally {
@@ -557,8 +562,8 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
         throw new Error(error.error || 'Failed to save API key');
       }
 
-      toast.success('OpenRouter API Key Saved', {
-        description: 'Generating scenes...',
+      toast.success(t('keySaved.openrouter'), {
+        description: t('generating.scenes'),
       });
 
       setIsOpenRouterModalOpen(false);
@@ -569,8 +574,8 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
       setPendingSceneTextGeneration(false);
     } catch (error) {
-      toast.error('Failed to Save API Key', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+      toast.error(t('saveFailed'), {
+        description: error instanceof Error ? error.message : tCommon('unknownError'),
       });
       throw error;
     } finally {

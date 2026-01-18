@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
   Users,
@@ -37,6 +38,7 @@ const roleDescriptions: Record<ProjectRole, string> = {
 export default function InvitePage({ params }: InvitePageProps) {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
+  const t = useTranslations('invite');
   const [token, setToken] = useState<string | null>(null);
   const [invitation, setInvitation] = useState<ProjectInvitation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,13 +61,13 @@ export default function InvitePage({ params }: InvitePageProps) {
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || 'Failed to load invitation');
+          setError(data.error || t('failedToLoad'));
           return;
         }
 
         setInvitation(data.invitation);
       } catch (e) {
-        setError('Failed to load invitation');
+        setError(t('failedToLoad'));
       } finally {
         setIsLoading(false);
       }
@@ -87,7 +89,7 @@ export default function InvitePage({ params }: InvitePageProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to accept invitation');
+        setError(data.error || t('failedToAccept'));
         return;
       }
 
@@ -97,7 +99,7 @@ export default function InvitePage({ params }: InvitePageProps) {
         router.push(`/project/${data.projectId}`);
       }, 2000);
     } catch (e) {
-      setError('Failed to accept invitation');
+      setError(t('failedToAccept'));
     } finally {
       setIsProcessing(false);
     }

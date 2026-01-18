@@ -32,7 +32,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [error, setError] = useState(authError === 'CredentialsSignin' ? 'Invalid email or password' : '');
+  const [error, setError] = useState(authError === 'CredentialsSignin' ? t('auth.invalidCredentials') : '');
 
   // Check if Google OAuth is enabled via environment variable
   // TODO: Revert to env var check after fixing Vercel build cache issue
@@ -51,7 +51,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError(t('auth.invalidCredentials'));
         setIsLoading(false);
         return;
       }
@@ -59,7 +59,7 @@ export default function LoginPage() {
       router.push(callbackUrl);
       router.refresh();
     } catch {
-      setError('An error occurred. Please try again.');
+      setError(t('auth.errorOccurred'));
       setIsLoading(false);
     }
   };
@@ -125,7 +125,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 h-11 glass border-white/10 focus:border-purple-500/50"
@@ -149,7 +149,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder={t('auth.passwordPlaceholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 h-11 glass border-white/10 focus:border-purple-500/50"

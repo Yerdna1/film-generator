@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Users,
   CreditCard,
@@ -56,6 +57,8 @@ interface AppConfig {
 }
 
 export default function AdminPage() {
+  const t = useTranslations('admin');
+  const tCommon = useTranslations('common');
   const [users, setUsers] = useState<User[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +95,7 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to load admin data');
+      toast.error(t('failedToLoadData'));
     } finally {
       setLoading(false);
     }
@@ -107,7 +110,7 @@ export default function AdminPage() {
 
     const amount = parseInt(creditAmount);
     if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid positive number');
+      toast.error(t('invalidNumber'));
       return;
     }
 
@@ -135,11 +138,11 @@ export default function AdminPage() {
         window.dispatchEvent(new CustomEvent('credits-updated'));
       } else {
         console.error('Credit action failed:', data);
-        toast.error(data.details || data.error || 'Failed to update credits');
+        toast.error(data.details || data.error || t('failedToUpdateCredits'));
       }
     } catch (error) {
       console.error('Credit action error:', error);
-      toast.error('Failed to update credits');
+      toast.error(t('failedToUpdateCredits'));
     }
   };
 
@@ -163,7 +166,7 @@ export default function AdminPage() {
         toast.error(data.error);
       }
     } catch (error) {
-      toast.error('Failed to update user');
+      toast.error(t('failedToUpdateUser'));
     }
   };
 
@@ -186,14 +189,14 @@ export default function AdminPage() {
         toast.error(data.error);
       }
     } catch (error) {
-      toast.error('Failed to update user approval');
+      toast.error(t('failedToUpdateApproval'));
     }
   };
 
   const handleUpdateConfig = async () => {
     const credits = parseInt(startingCreditsInput);
     if (isNaN(credits) || credits < 0) {
-      toast.error('Please enter a valid non-negative number');
+      toast.error(t('invalidNumber'));
       return;
     }
 
@@ -214,7 +217,7 @@ export default function AdminPage() {
         toast.error(data.error);
       }
     } catch (error) {
-      toast.error('Failed to update config');
+      toast.error(t('failedToUpdateConfig'));
     }
   };
 
@@ -247,8 +250,8 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage users, credits, and app settings</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
+          <p className="text-muted-foreground mt-1">{t('manageUsers')}</p>
         </div>
         <Button onClick={fetchData} variant="outline" size="sm">
           <RefreshCw className="w-4 h-4 mr-2" />
@@ -264,8 +267,8 @@ export default function AdminPage() {
               <Settings className="w-5 h-5 text-purple-500" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">App Configuration</h2>
-              <p className="text-sm text-muted-foreground">Global settings for the application</p>
+              <h2 className="text-lg font-semibold">{t('appConfiguration')}</h2>
+              <p className="text-sm text-muted-foreground">{t('globalSettings')}</p>
             </div>
           </div>
         </div>
@@ -274,9 +277,9 @@ export default function AdminPage() {
           <div className="p-4 bg-background/50 rounded-lg border border-border/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Starting Credits</p>
+                <p className="text-sm text-muted-foreground">{t('startingCredits')}</p>
                 <p className="text-2xl font-bold">{config?.startingCredits ?? 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">Credits for new users</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('creditsForNewUsers')}</p>
               </div>
               <Button
                 variant="ghost"
@@ -286,7 +289,7 @@ export default function AdminPage() {
                   setConfigDialogOpen(true);
                 }}
               >
-                Edit
+                {t('edit')}
               </Button>
             </div>
           </div>
@@ -302,9 +305,9 @@ export default function AdminPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-amber-500">
-                Pending Approvals ({users.filter(u => !u.isApproved && u.role !== 'admin').length})
+                {t('pendingApprovals')} ({users.filter(u => !u.isApproved && u.role !== 'admin').length})
               </h2>
-              <p className="text-sm text-muted-foreground">New users waiting for your approval</p>
+              <p className="text-sm text-muted-foreground">{t('newUsersWaiting')}</p>
             </div>
           </div>
 
@@ -319,7 +322,7 @@ export default function AdminPage() {
                     {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-medium">{user.name || 'No name'}</p>
+                    <p className="font-medium">{user.name || t('noName')}</p>
                     <p className="text-sm text-muted-foreground">{user.email}</p>
                     <p className="text-xs text-muted-foreground">
                       Registered {new Date(user.createdAt).toLocaleDateString()}
@@ -333,7 +336,7 @@ export default function AdminPage() {
                     onClick={() => handleApproval(user, true)}
                   >
                     <UserCheck className="w-4 h-4 mr-1" />
-                    Approve
+                    {t('actions.approve')}
                   </Button>
                   <Button
                     size="sm"
@@ -342,7 +345,7 @@ export default function AdminPage() {
                     onClick={() => handleApproval(user, false)}
                   >
                     <XCircle className="w-4 h-4 mr-1" />
-                    Reject
+                    {t('actions.reject')}
                   </Button>
                 </div>
               </div>
@@ -359,8 +362,8 @@ export default function AdminPage() {
               <Users className="w-5 h-5 text-cyan-500" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">Users ({users.length})</h2>
-              <p className="text-sm text-muted-foreground">Manage user accounts and credits</p>
+              <h2 className="text-lg font-semibold">{t('users')} ({users.length})</h2>
+              <p className="text-sm text-muted-foreground">{t('manageUserAccounts')}</p>
             </div>
           </div>
         </div>
@@ -369,7 +372,7 @@ export default function AdminPage() {
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search users by name or email..."
+            placeholder={t('searchUsers')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -398,25 +401,25 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{user.name || 'No name'}</span>
+                      <span className="font-medium">{user.name || t('noName')}</span>
                       {!user.isApproved && user.role !== 'admin' && (
                         <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-500 rounded-full">
-                          Pending
+                          {t('status.pending')}
                         </span>
                       )}
                       {user.isApproved && user.role !== 'admin' && (
                         <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-500 rounded-full">
-                          Approved
+                          {t('status.approved')}
                         </span>
                       )}
                       {user.isBlocked && (
                         <span className="px-2 py-0.5 text-xs bg-red-500/20 text-red-500 rounded-full">
-                          Blocked
+                          {t('status.blocked')}
                         </span>
                       )}
                       {user.role === 'admin' && (
                         <span className="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-500 rounded-full">
-                          Admin
+                          {t('status.admin')}
                         </span>
                       )}
                     </div>
@@ -446,38 +449,38 @@ export default function AdminPage() {
                 <div className="px-4 pb-4 pt-2 border-t border-border/50">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Balance</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.balance')}</p>
                       <p className="font-medium">{user.credits.balance.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Spent</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.totalSpent')}</p>
                       <p className="font-medium">{user.credits.totalSpent.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Earned</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.totalEarned')}</p>
                       <p className="font-medium">{user.credits.totalEarned.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Real Cost</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.realCost')}</p>
                       <p className="font-medium">${user.credits.totalRealCost.toFixed(2)}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Projects</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.projects')}</p>
                       <p className="font-medium">{user.projectCount}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Memberships</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.memberships')}</p>
                       <p className="font-medium">{user.membershipCount}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Cost Multiplier</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.costMultiplier')}</p>
                       <p className="font-medium">{user.costMultiplier}x</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Joined</p>
+                      <p className="text-xs text-muted-foreground">{t('fields.joined')}</p>
                       <p className="font-medium">{new Date(user.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
@@ -493,7 +496,7 @@ export default function AdminPage() {
                       }}
                     >
                       <Plus className="w-4 h-4 mr-1" />
-                      Add Credits
+                      {t('addCredits')}
                     </Button>
                     <Button
                       size="sm"
@@ -505,7 +508,7 @@ export default function AdminPage() {
                       }}
                     >
                       <Minus className="w-4 h-4 mr-1" />
-                      Deduct Credits
+                      {t('deductCredits')}
                     </Button>
                     <Button
                       size="sm"
@@ -516,7 +519,7 @@ export default function AdminPage() {
                       }}
                     >
                       <DollarSign className="w-4 h-4 mr-1" />
-                      Set Credits
+                      {t('setCredits')}
                     </Button>
                     {/* Don't show block button for admin user */}
                     {user.email !== 'andrej.galad@gmail.com' && (
@@ -535,12 +538,12 @@ export default function AdminPage() {
                         {user.isBlocked ? (
                           <>
                             <CheckCircle className="w-4 h-4 mr-1" />
-                            Unblock
+                            {t('actions.unblock')}
                           </>
                         ) : (
                           <>
                             <Ban className="w-4 h-4 mr-1" />
-                            Block
+                            {t('actions.block')}
                           </>
                         )}
                       </Button>
@@ -553,7 +556,7 @@ export default function AdminPage() {
 
           {filteredUsers.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              No users found matching your search.
+              {t('noUsersFound')}
             </div>
           )}
         </div>
@@ -564,40 +567,40 @@ export default function AdminPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {creditAction === 'add' && 'Add Credits'}
-              {creditAction === 'deduct' && 'Deduct Credits'}
-              {creditAction === 'set' && 'Set Credits'}
+              {creditAction === 'add' && t('addCredits')}
+              {creditAction === 'deduct' && t('deductCredits')}
+              {creditAction === 'set' && t('setCredits')}
             </DialogTitle>
             <DialogDescription>
-              {creditAction === 'add' && `Add credits to ${selectedUser?.name || selectedUser?.email}`}
-              {creditAction === 'deduct' && `Deduct credits from ${selectedUser?.name || selectedUser?.email}`}
-              {creditAction === 'set' && `Set credit balance for ${selectedUser?.name || selectedUser?.email}`}
+              {creditAction === 'add' && `${t('addCredits')} ${selectedUser?.name || selectedUser?.email}`}
+              {creditAction === 'deduct' && `${t('deductCredits')} ${selectedUser?.name || selectedUser?.email}`}
+              {creditAction === 'set' && `${t('setCredits')} ${selectedUser?.name || selectedUser?.email}`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div>
               <label className="text-sm font-medium">
-                {creditAction === 'set' ? 'New Balance' : 'Amount'}
+                {creditAction === 'set' ? t('newBalance') : t('amount')}
               </label>
               <Input
                 type="number"
-                placeholder="Enter amount"
+                placeholder={t('enterAmount')}
                 value={creditAmount}
                 onChange={(e) => setCreditAmount(e.target.value)}
                 min="0"
               />
               {selectedUser && creditAction !== 'set' && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Current balance: {selectedUser.credits.balance.toLocaleString()}
+                  {t('currentBalance')} {selectedUser.credits.balance.toLocaleString()}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="text-sm font-medium">Reason (optional)</label>
+              <label className="text-sm font-medium">{t('reasonOptional')}</label>
               <Input
-                placeholder="e.g., Bonus for feedback, Refund, etc."
+                placeholder={t('reasonPlaceholder')}
                 value={creditReason}
                 onChange={(e) => setCreditReason(e.target.value)}
               />
@@ -606,12 +609,12 @@ export default function AdminPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreditDialogOpen(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button onClick={handleCreditAction}>
-              {creditAction === 'add' && 'Add Credits'}
-              {creditAction === 'deduct' && 'Deduct Credits'}
-              {creditAction === 'set' && 'Set Credits'}
+              {creditAction === 'add' && t('addCredits')}
+              {creditAction === 'deduct' && t('deductCredits')}
+              {creditAction === 'set' && t('setCredits')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -621,14 +624,14 @@ export default function AdminPage() {
       <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Starting Credits</DialogTitle>
+            <DialogTitle>{t('editStartingCredits')}</DialogTitle>
             <DialogDescription>
-              Set how many credits new users receive when they sign up.
+              {t('startingCreditsDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
-            <label className="text-sm font-medium">Starting Credits</label>
+            <label className="text-sm font-medium">{t('startingCredits')}</label>
             <Input
               type="number"
               placeholder="0"
@@ -637,16 +640,16 @@ export default function AdminPage() {
               min="0"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Set to 0 to require users to purchase credits before using the app.
+              {t('purchaseCreditsNote')}
             </p>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button onClick={handleUpdateConfig}>
-              Save
+              {tCommon('save')}
             </Button>
           </DialogFooter>
         </DialogContent>

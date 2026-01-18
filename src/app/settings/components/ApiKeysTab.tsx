@@ -155,7 +155,7 @@ export function ApiKeysTab({
                 onValueChange={onOpenRouterModelChange}
               >
                 <SelectTrigger className="w-full bg-muted/50 border-border">
-                  <SelectValue placeholder="Select a model" />
+                  <SelectValue placeholder={t('selectModel')} />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   {openRouterModels.map((model) => (
@@ -243,7 +243,7 @@ export function ApiKeysTab({
                   onValueChange={onKieTtsModelChange}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder="Select a TTS model" />
+                    <SelectValue placeholder={t('selectTtsModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {KIE_TTS_MODELS.map((model) => (
@@ -325,7 +325,7 @@ export function ApiKeysTab({
                   onValueChange={onKieImageModelChange}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder="Select an image model" />
+                    <SelectValue placeholder={t('selectImageModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {KIE_IMAGE_MODELS.map((model) => (
@@ -414,7 +414,7 @@ export function ApiKeysTab({
                   onValueChange={onKieVideoModelChange}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder="Select a video model" />
+                    <SelectValue placeholder={t('selectVideoModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {KIE_VIDEO_MODELS.map((model) => (
@@ -508,7 +508,7 @@ export function ApiKeysTab({
                   onValueChange={onKieMusicModelChange}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder="Select a music model" />
+                    <SelectValue placeholder={t('selectMusicModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {KIE_MUSIC_MODELS.map((model) => (

@@ -92,14 +92,14 @@ export function InviteMemberDialog({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to send invitation');
+        setError(data.error || t('error.failedToSendInvitation'));
         return;
       }
 
       setInviteLink(data.inviteLink);
       onInviteSent?.();
     } catch (e) {
-      setError('Failed to send invitation');
+      setError(t('error.failedToSendInvitation'));
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +113,7 @@ export function InviteMemberDialog({
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (e) {
-      console.error('Failed to copy link');
+      console.error(t('error.failedToCopyLink'));
     }
   };
 
@@ -161,7 +161,7 @@ export function InviteMemberDialog({
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="colleague@example.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     className="pl-10 bg-white/5 border-white/10"
                     required
                   />

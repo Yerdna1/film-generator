@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Copy, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import {
 import type { CopyPromptsDialogProps, CharacterPromptCardProps } from '../types';
 
 function CharacterPromptCard({ character, hasImage }: CharacterPromptCardProps) {
+  const t = useTranslations('copy');
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -30,7 +32,7 @@ function CharacterPromptCard({ character, hasImage }: CharacterPromptCardProps) 
             {hasImage && (
               <Badge variant="outline" className="border-green-500/30 text-green-400 text-[10px]">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
-                Has Image
+                {t('hasImage')}
               </Badge>
             )}
           </div>
@@ -47,12 +49,12 @@ function CharacterPromptCard({ character, hasImage }: CharacterPromptCardProps) 
           {copied ? (
             <>
               <CheckCircle2 className="w-4 h-4 mr-1" />
-              Copied!
+              {t('copied')}
             </>
           ) : (
             <>
               <Copy className="w-4 h-4 mr-1" />
-              Copy
+              {t('copy')}
             </>
           )}
         </Button>
@@ -62,13 +64,15 @@ function CharacterPromptCard({ character, hasImage }: CharacterPromptCardProps) 
 }
 
 export function CopyPromptsDialog({ open, onOpenChange, characters }: CopyPromptsDialogProps) {
+  const t = useTranslations('copy');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong border-white/10 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Copy className="w-5 h-5 text-purple-400" />
-            Copy Character Prompts for Gemini
+            {t('characterPromptsTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -85,10 +89,13 @@ export function CopyPromptsDialog({ open, onOpenChange, characters }: CopyPrompt
 
         <div className="flex justify-between items-center pt-4 border-t border-white/10">
           <div className="text-sm text-muted-foreground">
-            {characters.length} prompts • {characters.filter(c => c.imageUrl).length} already have images
+            {t('promptsCount', {
+              count: characters.length,
+              images: characters.filter(c => c.imageUrl).length
+            })}
           </div>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/10">
-            Close
+            {t('close')}
           </Button>
         </div>
       </DialogContent>
