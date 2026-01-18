@@ -7,6 +7,5 @@ export { DownloadAssets } from './DownloadAssets';
 export { PromptsPreview } from './PromptsPreview';
 export { NextSteps } from './NextSteps';
 export { CaptionEditor } from './CaptionEditor';
-export { BackgroundMusicEditor } from './BackgroundMusicEditor';
 export { MultiTrackTimeline } from './timeline';
 export { SceneList } from './SceneList';
