@@ -48,7 +48,10 @@ export function ModelConfigModal({
             isFreeUser={isFreeUser}
           />
         </div>
-        <DialogFooter className="mt-6">
+        <DialogFooter className="mt-6 gap-2">
+          <Button onClick={onSubmit} variant="outline">
+            {t('cancelButton')}
+          </Button>
           <Button onClick={onSubmit} className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white">
             {t('confirmButton')}
           </Button>

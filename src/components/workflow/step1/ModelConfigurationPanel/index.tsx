@@ -87,15 +87,7 @@ export function ModelConfigurationPanel({
 
   return (
     <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5" />
-          {t('step1.modelConfiguration.title')}
-        </CardTitle>
-        <CardDescription>
-          {t('step1.modelConfiguration.description')}
-        </CardDescription>
-      </CardHeader>
+
       <CardContent>
         {/* Kia API Key Section */}
         <KiaApiKeySection apiKeysData={apiKeysData} onSaveApiKey={handleSaveApiKey} />

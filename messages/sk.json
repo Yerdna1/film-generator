@@ -294,6 +294,7 @@
       "modal": {
         "title": "Konfigurácia modelov",
         "description": "Nastavte modely AI pre generovanie vášho filmu. Tieto nastavenia môžete kedykoľvek zmeniť.",
+        "cancelButton": "Zrušiť",
         "confirmButton": "Potvrdiť a pokračovať"
       }
     }

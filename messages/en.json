@@ -294,6 +294,7 @@
       "modal": {
         "title": "Model Configuration",
         "description": "Configure AI models for generating your film. You can change these settings at any time.",
+        "cancelButton": "Cancel",
         "confirmButton": "Confirm and Continue"
       }
     }
