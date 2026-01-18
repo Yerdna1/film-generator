@@ -30,6 +30,8 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     setEditedPrompt,
     setIsEditing,
     setSelectedPresetId,
+    setGeneratingModel,
+    setGeneratingProvider,
   } = props;
 
   const handleGeneratePrompt = useCallback(async (eventOrSkipCheck = false) => {
@@ -86,6 +88,19 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
         storyModel === 'claude-sonnet-4.5' ? 'anthropic/claude-sonnet-4.5' :
         'google/gemini-2.0-flash-exp:free' : undefined);
 
+      // Extract provider from model or use modelConfig provider
+      let providerToUse = modelConfig?.llm?.provider;
+      if (modelToUse && modelToUse.includes('/')) {
+        const [providerFromModel] = modelToUse.split('/');
+        if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'google' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
+          providerToUse = 'openrouter';
+        }
+      }
+
+      // Set the model and provider for display in loading modal
+      setGeneratingModel(modelToUse);
+      setGeneratingProvider(providerToUse);
+
       // Try to enhance with user's configured LLM provider
       const response = await fetch('/api/llm/prompt', {
         method: 'POST',
@@ -130,6 +145,8 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
           // Dispatch credits update event
           window.dispatchEvent(new CustomEvent('credits-updated'));
           setIsGenerating(false);
+          setGeneratingModel(undefined);
+          setGeneratingProvider(undefined);
 
           // Show success toast and auto-advance to Step 2
           toast({
@@ -144,6 +161,17 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
 
           console.log(`Master prompt enhanced via ${data.provider}, ${data.creditsUsed} credits used`);
           return;
+        } else {
+          // Response was ok but no text returned
+          setIsGenerating(false);
+          setGeneratingModel(undefined);
+          setGeneratingProvider(undefined);
+          toast({
+            title: "Generation Failed",
+            description: "Server returned an empty response. Please try again.",
+            variant: "destructive",
+          });
+          return;
         }
       }
 
@@ -151,6 +179,8 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
       if (response.status === 402) {
         const errorData = await response.json();
         setIsGenerating(false);
+        setGeneratingModel(undefined);
+        setGeneratingProvider(undefined);
 
         toast({
           title: "Insufficient Credits",
@@ -160,12 +190,22 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
         return;
       }
 
-      // Show error for failed API calls
+      // Show error for failed API calls with detailed error message
       if (!response.ok) {
+        let errorMessage = "Failed to generate the master prompt. Please try again.";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If parsing fails, use default message
+        }
         setIsGenerating(false);
+        setGeneratingModel(undefined);
+        setGeneratingProvider(undefined);
+
         toast({
           title: "Generation Failed",
-          description: "Failed to generate the master prompt. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
         return;
@@ -173,6 +213,8 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     } catch (error) {
       console.error('Error generating prompt:', error);
       setIsGenerating(false);
+      setGeneratingModel(undefined);
+      setGeneratingProvider(undefined);
 
       // Show error toast
       toast({
@@ -183,6 +225,8 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     }
 
     setIsGenerating(false);
+    setGeneratingModel(undefined);
+    setGeneratingProvider(undefined);
   }, [
     isPremiumUser,
     setIsModelConfigModalOpen,

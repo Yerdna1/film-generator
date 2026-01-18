@@ -153,18 +153,66 @@ export async function POST(request: NextRequest) {
       where: { userId },
     });
 
+    // Check if user is admin or premium
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, email: true },
+    });
+
+    // Check subscription status for premium users
+    const { getSubscription } = await import('@/lib/services/polar');
+    const subscription = await getSubscription(userId);
+    const isPremiumUser = subscription.status === 'active' && subscription.plan !== 'free';
+    const { LEGACY_ADMIN_EMAIL } = await import('@/lib/admin');
+    const isAdmin = user?.role === 'admin' || user?.email === LEGACY_ADMIN_EMAIL;
+
     // Default to OpenRouter if no preference set
-    const llmProvider = userApiKeys?.llmProvider || 'openrouter';
-    const openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
+    let llmProvider = userApiKeys?.llmProvider || 'openrouter';
+
+    // Determine OpenRouter API key:
+    // - If user has their own key in DB, use it
+    // - If user is premium/admin and no personal key, use default from env
+    // - If user is free and no personal key, they must add their own
+    let openRouterApiKey = userApiKeys?.openRouterApiKey;
+    if (!openRouterApiKey && (isPremiumUser || isAdmin)) {
+      // Premium/admin users can use the default fallback key
+      openRouterApiKey = process.env.OPENROUTER_API_KEY;
+      console.log(`[LLM Prompt] Using default OpenRouter key for ${isAdmin ? 'admin' : 'premium'} user`);
+    }
+
     // Use model from request if provided, otherwise use user's default
     const openRouterModel = model || userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
     const modalLlmEndpoint = userApiKeys?.modalLlmEndpoint;
     const geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
 
+    // For free users: derive provider from model parameter (e.g., "anthropic/claude-sonnet-4.5" → "openrouter")
+    // When a specific model is provided, override the database provider setting
+    // Exception: Free Gemini models should use Gemini directly, not OpenRouter
+    if (model && model.includes('/')) {
+      const [providerFromModel, modelName] = model.split('/');
+      // Check if it's a free Gemini model
+      const isFreeGeminiModel = providerFromModel === 'google' && (modelName?.includes('free') || modelName?.includes('flash'));
+
+      if (isFreeGeminiModel) {
+        // Use Gemini directly for free models
+        llmProvider = 'gemini';
+        console.log(`[LLM Prompt] Using Gemini directly for free model: ${model}`);
+      } else if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
+        // Use OpenRouter for paid models
+        llmProvider = 'openrouter';
+        console.log(`[LLM Prompt] Overriding provider to 'openrouter' based on model: ${model}`);
+      }
+    }
+
     // Validate API key/endpoint for selected provider
     if (llmProvider === 'openrouter' && !openRouterApiKey) {
       return NextResponse.json(
-        { error: 'OpenRouter API key is required. Please configure it in Settings.' },
+        {
+          error: 'OpenRouter API key is required. Premium users can use the default key, or add your own in Settings.',
+          requireApiKey: true,
+          isPremiumUser,
+          isAdmin
+        },
         { status: 400 }
       );
     }

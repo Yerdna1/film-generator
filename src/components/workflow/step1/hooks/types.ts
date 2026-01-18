@@ -31,6 +31,10 @@ export interface Step1State {
   setEditedPrompt: (value: string) => void;
   selectedPresetId: string | null;
   setSelectedPresetId: (value: string | null) => void;
+  generatingModel?: string;
+  setGeneratingModel: (value: string | undefined) => void;
+  generatingProvider?: string;
+  setGeneratingProvider: (value: string | undefined) => void;
 
   // Modal state
   isModelConfigModalOpen: boolean;

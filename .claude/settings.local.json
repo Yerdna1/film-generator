@@ -95,7 +95,17 @@
       "Bash(xargs:*)",
       "Bash(git log:*)",
       "Bash(python3:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(pm2 logs:*)",
+      "Bash(journalctl:*)",
+      "Bash(read:*)",
+      "Bash(if [ -n \"$OPENROUTER_KEY\" ])",
+      "Bash(then echo \"OPENROUTER_API_KEY=$OPENROUTER_KEY\")",
+      "Bash(else echo \"Skipped\")",
+      "Bash(fi:*)",
+      "Bash(if:*)",
+      "Bash(then grep -q \"OPENROUTER_API_KEY\" .env.example)",
+      "Bash(else echo \".env.example not found\")"
     ]
   }
 }

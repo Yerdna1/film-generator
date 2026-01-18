@@ -56,6 +56,10 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
   const [editedPrompt, setEditedPrompt] = useState(currentProject.masterPrompt || '');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
+  // Track current model and provider being used for generation
+  const [generatingModel, setGeneratingModel] = useState<string | undefined>();
+  const [generatingProvider, setGeneratingProvider] = useState<string | undefined>();
+
   // Model config modal state
   const [isModelConfigModalOpen, setIsModelConfigModalOpen] = useState(false);
   const [pendingGenerateAction, setPendingGenerateAction] = useState<(() => void) | null>(null);
@@ -172,6 +176,10 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     setEditedPrompt,
     selectedPresetId,
     setSelectedPresetId,
+    generatingModel,
+    setGeneratingModel,
+    generatingProvider,
+    setGeneratingProvider,
 
     // Modal state
     isModelConfigModalOpen,

@@ -57,6 +57,8 @@ export function Step1PromptGenerator({
     voiceProvider,
     setVoiceProvider,
     videoLanguages,
+    generatingModel,
+    generatingProvider,
   } = state;
 
   const {
@@ -142,7 +144,11 @@ export function Step1PromptGenerator({
       </div>
 
       {/* Loading Modal */}
-      <LoadingModal isOpen={isGenerating} />
+      <LoadingModal
+        isOpen={isGenerating}
+        model={generatingModel}
+        provider={generatingProvider}
+      />
 
       {/* Model Config Modal */}
       <ModelConfigModal

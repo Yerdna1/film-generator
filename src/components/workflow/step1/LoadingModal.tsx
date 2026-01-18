@@ -6,9 +6,11 @@ import { useTranslations } from 'next-intl';
 
 interface LoadingModalProps {
   isOpen: boolean;
+  model?: string;
+  provider?: string;
 }
 
-export function LoadingModal({ isOpen }: LoadingModalProps) {
+export function LoadingModal({ isOpen, model, provider }: LoadingModalProps) {
   const t = useTranslations();
   const commonT = useTranslations('common');
 
@@ -38,6 +40,24 @@ export function LoadingModal({ isOpen }: LoadingModalProps) {
             <p className="text-sm text-muted-foreground">
               {t('steps.prompt.generatingDescription')}
             </p>
+            {(model || provider) && (
+              <div className="mt-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {provider && (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="font-medium">Provider:</span>
+                      <span className="text-purple-400">{provider}</span>
+                    </div>
+                  )}
+                  {model && (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="font-medium">Model:</span>
+                      <span className="text-cyan-400">{model}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="w-full space-y-2">
