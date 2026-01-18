@@ -48,7 +48,7 @@ export interface ProjectActions {
   setMasterPrompt: (projectId: string, prompt: string) => void;
 
   // Character actions
-  addCharacter: (projectId: string, character: Omit<Character, 'id'>) => Promise<void>;
+  addCharacter: (projectId: string, character: Omit<Character, 'id'>) => Promise<Character>;
   updateCharacter: (projectId: string, characterId: string, updates: Partial<Character>) => Promise<void>;
   deleteCharacter: (projectId: string, characterId: string) => Promise<void>;
 

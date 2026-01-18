@@ -11,6 +11,7 @@ import {
   usePreviewPlayer,
   useBackgroundMusic,
   useVideoComposer,
+  useExportHandlers,
 } from '../export/hooks';
 
 // Components
@@ -53,6 +54,7 @@ export function Step6Export({
   const previewPlayer = usePreviewPlayer(project);
   const backgroundMusic = useBackgroundMusic(project);
   const videoComposer = useVideoComposer(project);
+  const exportHandlers = useExportHandlers(project);
 
   return (
     <div className="w-full max-w-[1920px] mx-auto space-y-2 px-1">
@@ -84,6 +86,8 @@ export function Step6Export({
           backgroundMusic={backgroundMusic}
           videoComposer={videoComposer}
           stats={stats}
+          project={project}
+          exportHandlers={exportHandlers}
         />
 
         {/* Side Panel Toggle (when closed) */}

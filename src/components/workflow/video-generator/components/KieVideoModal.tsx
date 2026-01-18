@@ -26,7 +26,7 @@ interface KieVideoModalProps {
 export function KieVideoModal({ isOpen, onClose, onSave, isLoading = false }: KieVideoModalProps) {
   const t = useTranslations();
   const [apiKey, setApiKey] = useState('');
-  const [models, setModels] = useState<KieModelConfig[]>([]);
+  const [models, setModels] = useState<any[]>([]);
   const [selectedModel, setSelectedModel] = useState('grok-imagine/image-to-video'); // Default to Grok Imagine (cheapest)
   const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState('');

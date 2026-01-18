@@ -14,17 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { KIE_TTS_MODELS, type KieModelConfig } from '@/lib/constants/kie-models';
+import { type KieModelConfig } from '@/lib/constants/kie-models';
 import { KIE_VOICES } from '../types';
 import type { Character } from '@/types/project';
-
-// Affordable KIE TTS models for free users (sorted by price)
-// Only include actual TTS models, not speech-to-text or audio processing models
-const AFFORDABLE_KIE_TTS_MODELS: KieModelConfig[] = [
-  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/text-to-speech-turbo-2-5')!, // 8 credits - cheapest TTS!
-  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/text-to-dialogue-v3')!, // 10 credits - recommended
-  KIE_TTS_MODELS.find(m => m.id === 'elevenlabs/text-to-speech-multilingual-v2')!, // 12 credits
-].filter(Boolean);
 
 interface VoiceAssignment {
   characterId: string;
@@ -50,9 +42,51 @@ export function KieTtsModal({
 }: KieTtsModalProps) {
   const t = useTranslations();
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState(AFFORDABLE_KIE_TTS_MODELS[0].id); // Default to cheapest
+  const [selectedModel, setSelectedModel] = useState(''); // Will be set when models load
   const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState('');
+  const [ttsModels, setTtsModels] = useState<KieModelConfig[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+  // Fetch TTS models from database
+  useEffect(() => {
+    const fetchModels = async () => {
+      setIsLoadingModels(true);
+      try {
+        const response = await fetch('/api/kie-models?type=tts');
+        if (response.ok) {
+          const data = await response.json();
+          // Convert DB models to KieModelConfig format
+          const models: KieModelConfig[] = data.models.map((m: any) => ({
+            id: m.modelId,
+            name: m.name,
+            description: m.description,
+            credits: m.creditsPer1000Chars,
+            cost: m.creditsPer1000Chars * 0.005,
+            modality: 'text-to-speech',
+            recommended: m.recommended,
+          }));
+          // Sort by credits (cheapest first)
+          models.sort((a, b) => a.credits - b.credits);
+          setTtsModels(models);
+          // Set default to cheapest model
+          if (models.length > 0 && !selectedModel) {
+            setSelectedModel(models[0].id);
+          }
+        } else {
+          console.error('Failed to fetch TTS models');
+        }
+      } catch (err) {
+        console.error('Error fetching TTS models:', err);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    if (isOpen && ttsModels.length === 0) {
+      fetchModels();
+    }
+  }, [isOpen]);
 
   // Initialize voice assignments from current assignments or defaults
   const [voiceAssignments, setVoiceAssignments] = useState<Record<string, string>>(() => {
@@ -101,7 +135,7 @@ export function KieTtsModal({
 
   if (!isOpen) return null;
 
-  const selectedModelConfig = AFFORDABLE_KIE_TTS_MODELS.find(m => m.id === selectedModel);
+  const selectedModelConfig = ttsModels.find(m => m.id === selectedModel);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +143,11 @@ export function KieTtsModal({
 
     if (!apiKey.trim()) {
       setError('API key is required');
+      return;
+    }
+
+    if (!selectedModel) {
+      setError('No TTS models available. Please contact support.');
       return;
     }
 
@@ -180,36 +219,48 @@ export function KieTtsModal({
               <Label htmlFor="model" className="text-xs">
                 Vyberte TTS model
               </Label>
-              <Select value={selectedModel} onValueChange={setSelectedModel} disabled={isLoading}>
-                <SelectTrigger className="glass border-white/10 focus:border-indigo-500/50">
-                  <SelectValue placeholder="Vyberte model" />
-                </SelectTrigger>
-                <SelectContent className="glass-strong border-white/10 max-h-80 overflow-y-auto">
-                  {AFFORDABLE_KIE_TTS_MODELS.map((model) => {
-                    const isSelected = selectedModel === model.id;
-                    return (
-                      <SelectItem key={model.id} value={model.id} className="cursor-pointer">
-                        <div className="flex flex-col gap-0.5 py-1">
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="font-medium text-foreground">{model.name}</span>
-                            {model.recommended && (
-                              <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">Odporúčané</span>
+              {isLoadingModels ? (
+                <div className="glass rounded-lg p-3 border border-white/10 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : ttsModels.length > 0 ? (
+                <Select value={selectedModel} onValueChange={setSelectedModel} disabled={isLoading}>
+                  <SelectTrigger className="glass border-white/10 focus:border-indigo-500/50">
+                    <SelectValue placeholder="Vyberte model" />
+                  </SelectTrigger>
+                  <SelectContent className="glass-strong border-white/10 max-h-80 overflow-y-auto">
+                    {ttsModels.map((model) => {
+                      const isSelected = selectedModel === model.id;
+                      return (
+                        <SelectItem key={model.id} value={model.id} className="cursor-pointer">
+                          <div className="flex flex-col gap-0.5 py-1">
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="font-medium text-foreground">{model.name}</span>
+                              {model.recommended && (
+                                <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">Odporúčané</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{model.credits} kreditov/1000 znakov</span>
+                              <span>•</span>
+                              <span>${model.cost.toFixed(2)} za 1000 znakov</span>
+                            </div>
+                            {model.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{model.credits} kreditov/1000 znakov</span>
-                            <span>•</span>
-                            <span>${model.cost.toFixed(2)} za 1000 znakov</span>
-                          </div>
-                          {model.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="glass rounded-lg p-3 border border-amber-500/20">
+                  <p className="text-xs text-amber-400">
+                    ⚠️ Nie sú k dispozícii žiadne TTS modely. Prosím, kontaktujte podporu.
+                  </p>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 Najlacnejšie TTS modely pre generovanie hlasového prejavu. <span className="text-green-400 font-semibold">ElevenLabs TTS Turbo je najlacnejší!</span>
               </p>
@@ -298,7 +349,7 @@ export function KieTtsModal({
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || !apiKey.trim()}
+                disabled={isLoading || !apiKey.trim() || !selectedModel || ttsModels.length === 0}
                 className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white border-0"
               >
                 {isLoading ? (

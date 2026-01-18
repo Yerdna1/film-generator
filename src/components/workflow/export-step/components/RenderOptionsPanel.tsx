@@ -12,6 +12,10 @@ import {
   Trash2,
   Sparkles,
   Upload,
+  Download,
+  FileJson,
+  FileText,
+  Scissors,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +26,8 @@ import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import type { useBackgroundMusic, useVideoComposer, Resolution } from '../../export/hooks';
-import type { Scene } from '@/types/project';
+import type { ExportHandlers } from '../../export/types';
+import type { Scene, Project } from '@/types/project';
 
 interface RenderOptionsPanelProps {
   isOpen: boolean;
@@ -35,6 +40,8 @@ interface RenderOptionsPanelProps {
   stats: {
     totalDuration: number;
   };
+  project: Project;
+  exportHandlers: ExportHandlers;
 }
 
 export function RenderOptionsPanel({
@@ -46,6 +53,8 @@ export function RenderOptionsPanel({
   backgroundMusic,
   videoComposer,
   stats,
+  project,
+  exportHandlers,
 }: RenderOptionsPanelProps) {
   const t = useTranslations();
 
@@ -91,10 +100,44 @@ export function RenderOptionsPanel({
 
                 {/* Endpoint not configured warning */}
                 {isAuthenticated && !videoComposer.hasEndpoint && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-3">
                     <p className="text-sm text-amber-600 dark:text-amber-400">
                       {t('steps.export.vectcutNotConfigured')}
                     </p>
+                    {/* Download Options */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Stiahnite si projektové súbory:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={exportHandlers.handleExportJSON}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-all"
+                        >
+                          <FileJson className="w-4 h-4 text-blue-400" />
+                          <span className="text-xs text-blue-600 dark:text-blue-400">JSON</span>
+                        </button>
+                        <button
+                          onClick={exportHandlers.handleExportMarkdown}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition-all"
+                        >
+                          <FileText className="w-4 h-4 text-green-400" />
+                          <span className="text-xs text-green-600 dark:text-green-400">Markdown</span>
+                        </button>
+                        <button
+                          onClick={exportHandlers.handleExportText}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all"
+                        >
+                          <Download className="w-4 h-4 text-amber-400" />
+                          <span className="text-xs text-amber-600 dark:text-amber-400">Text</span>
+                        </button>
+                        <button
+                          onClick={exportHandlers.handleExportCapCut}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-all"
+                        >
+                          <Scissors className="w-4 h-4 text-cyan-400" />
+                          <span className="text-xs text-cyan-600 dark:text-cyan-400">CapCut</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 

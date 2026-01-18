@@ -229,7 +229,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
   // Credit check wrapper for single video generation
   const handleGenerateVideoWithCreditCheck = useCallback(async (scene: any) => {
     // Check if user has KIE API key configured (either globally or for this project)
-    const hasKieApiKey = apiKeysData?.kieApiKey || project.modelConfig?.video?.provider === 'kie';
+    const hasKieApiKey = apiKeysData?.hasKieKey || project.modelConfig?.video?.provider === 'kie';
 
     // If user has own API key, skip credit check and modal
     if (hasKieApiKey) {
@@ -252,7 +252,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
   // Credit check wrapper for all videos generation
   const handleGenerateAllWithCreditCheck = useCallback(async () => {
     // Check if user has KIE API key configured (either globally or for this project)
-    const hasKieApiKey = apiKeysData?.kieApiKey || project.modelConfig?.video?.provider === 'kie';
+    const hasKieApiKey = apiKeysData?.hasKieKey || project.modelConfig?.video?.provider === 'kie';
 
     // If user has own API key, skip credit check and modal
     if (hasKieApiKey) {
@@ -275,7 +275,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
   // Credit check wrapper for selected videos generation
   const handleGenerateSelectedWithCreditCheck = useCallback(async () => {
     // Check if user has KIE API key configured (either globally or for this project)
-    const hasKieApiKey = apiKeysData?.kieApiKey || project.modelConfig?.video?.provider === 'kie';
+    const hasKieApiKey = apiKeysData?.hasKieKey || project.modelConfig?.video?.provider === 'kie';
 
     // If user has own API key, skip credit check and modal
     if (hasKieApiKey) {

@@ -504,7 +504,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
   // Wrapper for scene text generation with credit check
   const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {
     // Check if user has OpenRouter API key configured
-    const hasOpenRouterKey = apiKeysData?.openRouterApiKey || project.modelConfig?.llm?.provider === 'openrouter';
+    const hasOpenRouterKey = apiKeysData?.hasOpenRouterKey || project.modelConfig?.llm?.provider === 'openrouter';
 
     // If user has own API key, skip credit check and modal
     if (hasOpenRouterKey) {
