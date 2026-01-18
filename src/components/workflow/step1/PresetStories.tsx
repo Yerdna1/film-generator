@@ -37,34 +37,69 @@ export function PresetStories({ selectedPresetId, onApplyPreset, isReadOnly, isP
         <Clapperboard className="w-4 h-4 text-purple-400" />
         {t('presets.title')}
       </h3>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {storyPresets.map((preset) => {
           // Check if the preset's style is restricted for the user
           // Free users can only use 'disney-pixar' style
           const isLocked = !isPremiumUser && preset.style !== 'disney-pixar';
+          const isSelected = selectedPresetId === preset.id;
 
           return (
             <button
               key={preset.id}
               onClick={() => !isLocked && handleApply(preset)}
               disabled={isReadOnly || isLocked}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border-2 relative ${selectedPresetId === preset.id
-                  ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-300'
-                  : 'border-border bg-background text-foreground'
-                } ${!isLocked && !isReadOnly
-                  ? 'hover:border-purple-500/50 hover:bg-purple-500/5 cursor-pointer'
-                  : ''
-                } ${isLocked
-                  ? 'opacity-50 cursor-not-allowed border-dashed'
-                  : ''
-                }`}
+              className={`relative group overflow-hidden rounded-lg border-2 transition-all ${
+                isSelected
+                  ? 'border-purple-500 ring-2 ring-purple-500/50 shadow-lg shadow-purple-500/20'
+                  : 'border-border hover:border-purple-500/50'
+              } ${!isLocked && !isReadOnly ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'} ${
+                isLocked ? 'border-dashed' : ''
+              }`}
             >
-              <preset.icon className="w-3 h-3" />
-              <span>{t(preset.labelKey)}</span>
-              {isLocked && <Lock className="w-3 h-3 ml-1 text-muted-foreground" />}
-              {selectedPresetId === preset.id && (
-                <Check className="w-3 h-3 ml-0.5" />
-              )}
+              {/* Image Background */}
+              <div className={`relative h-24 bg-gradient-to-br ${preset.gradient} ${
+                isLocked ? 'opacity-50' : ''
+              }`}>
+                {/* Preset Image */}
+                <img
+                  src={preset.imageUrl}
+                  alt={t(preset.labelKey)}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="lazy"
+                />
+
+                {/* Gradient Overlay for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+                {/* Icon Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className={`p-3 rounded-full ${preset.iconBg} backdrop-blur-sm`}>
+                    <preset.icon className={`w-6 h-6 ${preset.iconColor}`} />
+                  </div>
+                </div>
+
+                {/* Lock Overlay */}
+                {isLocked && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                    <Lock className="w-5 h-5 text-white/80" />
+                  </div>
+                )}
+
+                {/* Selected Badge */}
+                {isSelected && (
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center z-10">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </div>
+
+              {/* Title */}
+              <div className="p-2 bg-background/95 backdrop-blur-sm">
+                <p className="text-xs font-medium text-center truncate">
+                  {t(preset.labelKey)}
+                </p>
+              </div>
             </button>
           );
         })}

@@ -13,6 +13,8 @@ export interface StoryPreset {
   icon: any;
   iconBg: string;
   iconColor: string;
+  gradient: string; // Gradient for image card
+  imageUrl: string; // Image URL for preset card
   style: StylePreset;
   story: Partial<StoryConfig>;
 }
@@ -31,6 +33,8 @@ export const storyPresets: StoryPreset[] = [
     icon: Sparkles,
     iconBg: 'bg-blue-500/20',
     iconColor: 'text-blue-500',
+    gradient: 'from-blue-400 via-purple-400 to-pink-400',
+    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=400&fit=crop', // Magical forest with glowing elements
     style: 'disney-pixar',
     story: {
       title: 'The Lost Spirit',
@@ -52,6 +56,8 @@ export const storyPresets: StoryPreset[] = [
     icon: Wand2,
     iconBg: 'bg-purple-500/20',
     iconColor: 'text-purple-500',
+    gradient: 'from-purple-400 via-pink-400 to-amber-400',
+    imageUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=400&fit=crop', // Inspiring cityscape
     style: 'disney-pixar',
     story: {
       title: 'Dream Big',
@@ -75,6 +81,8 @@ export const storyPresets: StoryPreset[] = [
     icon: Film,
     iconBg: 'bg-pink-500/20',
     iconColor: 'text-pink-500',
+    gradient: 'from-pink-500 via-rose-400 to-red-400',
+    imageUrl: 'https://images.unsplash.com/photo-1528164344705-47542687000d?w=400&h=400&fit=crop', // Japanese temple/spiritual scene
     style: 'anime',
     story: {
       title: 'Spirit Hunter',
@@ -96,6 +104,8 @@ export const storyPresets: StoryPreset[] = [
     icon: Sparkles,
     iconBg: 'bg-cyan-500/20',
     iconColor: 'text-cyan-500',
+    gradient: 'from-cyan-400 via-blue-400 to-indigo-500',
+    imageUrl: 'https://images.unsplash.com/photo-1614726365723-49cfae92782f?w=400&h=400&fit=crop', // Futuristic sci-fi scene
     style: 'anime',
     story: {
       title: 'Iron Academy',
@@ -119,6 +129,8 @@ export const storyPresets: StoryPreset[] = [
     icon: Camera,
     iconBg: 'bg-gray-500/20',
     iconColor: 'text-gray-500',
+    gradient: 'from-gray-600 via-gray-700 to-gray-900',
+    imageUrl: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=400&h=400&fit=crop', // Rainy city night noir
     style: 'realistic',
     story: {
       title: 'Shadows in the Rain',
@@ -140,6 +152,8 @@ export const storyPresets: StoryPreset[] = [
     icon: Film,
     iconBg: 'bg-amber-500/20',
     iconColor: 'text-amber-500',
+    gradient: 'from-amber-500 via-orange-500 to-yellow-600',
+    imageUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&h=400&fit=crop', // Coastal town sunset
     style: 'realistic',
     story: {
       title: 'The Long Way Home',

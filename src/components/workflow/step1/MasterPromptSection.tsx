@@ -70,7 +70,7 @@ export function MasterPromptSection({
             <Textarea
               value={editedPrompt}
               onChange={(e) => setEditedPrompt(e.target.value)}
-              className="min-h-[200px] glass border-white/10 focus:border-purple-500/50 font-mono text-xs"
+              className="min-h-[500px] max-h-[600px] glass border-white/10 focus:border-purple-500/50 font-mono text-sm"
             />
             <div className="flex justify-end gap-2">
               <Button
@@ -94,8 +94,8 @@ export function MasterPromptSection({
             </div>
           </div>
         ) : (
-          <div className="glass rounded-lg p-3 max-h-[300px] overflow-y-auto">
-            <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-mono leading-relaxed">
+          <div className="glass rounded-lg p-4 max-h-[600px] overflow-y-auto">
+            <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-mono leading-relaxed">
               {project.masterPrompt}
             </pre>
           </div>
