@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
 
         // Use KIE provider to generate image
         const provider = new KieImageProvider({
+          provider: 'kie',
           apiKey: kieApiKey,
           model: 'seedream/4-5-text-to-image',
         });
