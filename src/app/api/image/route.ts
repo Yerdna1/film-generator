@@ -268,15 +268,19 @@ async function generateWithKie(
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
   console.log(`[KIE] Generating image with model: ${modelId}`);
 
-  // Import KIE model configs
-  const { getKieModelById, formatKiePrice } = await import('@/lib/constants/kie-models');
-  const modelConfig = getKieModelById(modelId, 'image');
+  // Query model from database instead of constants file
+  const modelConfig = await prisma.kieImageModel.findUnique({
+    where: { modelId }
+  });
 
-  if (!modelConfig) {
+  if (!modelConfig || !modelConfig.isActive) {
     throw new Error(`Invalid KIE image model: ${modelId}`);
   }
 
-  console.log(`[KIE] Using model: ${modelConfig.name} - ${formatKiePrice(modelConfig.credits)}`);
+  // Use apiModelId for KIE.ai API call, fall back to modelId if not set
+  const apiModelId = modelConfig.apiModelId || modelConfig.modelId;
+  const costText = `${modelConfig.credits} credits ($${modelConfig.cost.toFixed(2)})`;
+  console.log(`[KIE] Using model: ${modelConfig.name} (${apiModelId}) - ${costText}`);
 
   try {
     // KIE AI unified task creation endpoint
@@ -289,13 +293,13 @@ async function generateWithKie(
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        model: modelId,
+        model: apiModelId, // Use apiModelId for KIE.ai API call
         input: {
           prompt: prompt,
           aspect_ratio: aspectRatio,
-          // Model-specific parameters can be added here based on modelId
-          ...(modelId.includes('ideogram') && { render_text: true }),
-          ...(modelId.includes('flux') && { guidance_scale: 7.5 }),
+          // Model-specific parameters can be added here based on apiModelId
+          ...(apiModelId.includes('ideogram') && { render_text: true }),
+          ...(apiModelId.includes('flux') && { guidance_scale: 7.5 }),
         },
       }),
     });
@@ -577,6 +581,8 @@ export async function POST(request: NextRequest) {
     // Otherwise use session user's settings
     const settingsUserId = ownerId || sessionUserId;
 
+    let userHasOwnApiKey = false; // Track if user has their own API key (declare outside block)
+
     if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: settingsUserId },
@@ -589,23 +595,39 @@ export async function POST(request: NextRequest) {
         // Get provider-specific settings
         if (userApiKeys.geminiApiKey) {
           geminiApiKey = userApiKeys.geminiApiKey;
+          userHasOwnApiKey = true;
         }
         if (userApiKeys.kieApiKey) {
           kieApiKey = userApiKeys.kieApiKey;
+          userHasOwnApiKey = true;
         }
         // Only use database model if not provided in request (for backward compatibility)
         if (!requestModel && userApiKeys.kieImageModel) {
           kieImageModel = userApiKeys.kieImageModel;
         }
-        modalImageEndpoint = userApiKeys.modalImageEndpoint;
-        modalImageEditEndpoint = userApiKeys.modalImageEditEndpoint;
+        if (userApiKeys.modalImageEndpoint) {
+          modalImageEndpoint = userApiKeys.modalImageEndpoint;
+          userHasOwnApiKey = true;
+        }
+        if (userApiKeys.modalImageEditEndpoint) {
+          modalImageEditEndpoint = userApiKeys.modalImageEditEndpoint;
+          userHasOwnApiKey = true;
+        }
       }
 
-      // Pre-check credit balance (skip if credits were prepaid by admin for collaborator regeneration)
-      if (!skipCreditCheck && sessionUserId) {
+      // Pre-check credit balance
+      // Skip if:
+      // 1. Credits were prepaid by admin for collaborator regeneration (skipCreditCheck)
+      // 2. User has their own API key (they're paying the provider directly, not using platform credits)
+      if (!skipCreditCheck && !userHasOwnApiKey && sessionUserId) {
         const creditCost = getImageCreditCost(resolution);
         const insufficientCredits = await requireCredits(sessionUserId, creditCost);
         if (insufficientCredits) return insufficientCredits;
+      }
+
+      // Log if user has their own API key
+      if (userHasOwnApiKey) {
+        console.log('[Image] User has own API key - skipping credit check and deduction');
       }
     }
 
@@ -615,7 +637,8 @@ export async function POST(request: NextRequest) {
     // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
     //   but we still want to track real API costs to the owner
     // - When skipCreditCheck is false (normal generation): track to session user
-    const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
+    // - When user has own API key: no credit deduction needed (they're paying provider directly)
+    const effectiveUserId = (skipCreditCheck || userHasOwnApiKey) ? undefined : sessionUserId; // For credit deduction
     const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
 
     // Route to appropriate provider

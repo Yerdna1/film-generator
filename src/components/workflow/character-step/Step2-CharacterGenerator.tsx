@@ -93,7 +93,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
   // Add character handler
   const handleAddCharacterWithImage = useCallback(async (data: CharacterFormData) => {
-    const newCharacter = handleAddCharacter(data);
+    const newCharacter = await handleAddCharacter(data);
     setIsAddingCharacter(false);
 
     // Determine image provider
@@ -106,19 +106,25 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
     // Generate image based on provider
     if (shouldGenerateWithKie) {
-      if (!userApiKeys?.hasKieKey) {
+      // Only show modal if we've confirmed user doesn't have a key (userApiKeys is not null and hasKieKey is false)
+      // If userApiKeys is still loading (null), proceed with generation
+      if (userApiKeys !== null && !userApiKeys.hasKieKey) {
         setModalReason('no-key');
         setIsKieModalOpen(true);
         setPendingCharacterGeneration(newCharacter);
         return;
       }
 
-      const hasCredits = creditsData && creditsData.credits.balance >= creditsNeeded;
-      if (!hasCredits) {
-        setModalReason('insufficient-credits');
-        setIsInsufficientCreditsModalOpen(true);
-        setPendingCharacterGeneration(newCharacter);
-        return;
+      // Only check credits if user doesn't have their own KIE API key
+      const hasOwnKey = userApiKeys?.hasKieKey;
+      if (!hasOwnKey) {
+        const hasCredits = creditsData && creditsData.credits.balance >= creditsNeeded;
+        if (!hasCredits) {
+          setModalReason('insufficient-credits');
+          setIsInsufficientCreditsModalOpen(true);
+          setPendingCharacterGeneration(newCharacter);
+          return;
+        }
       }
 
       // Generate with KIE
@@ -150,19 +156,26 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     if (!character.masterPrompt) return;
 
     if (characterImageProvider === 'kie') {
-      if (!userApiKeys?.hasKieKey) {
+      // Only show modal if we've confirmed user doesn't have a key (userApiKeys is not null and hasKieKey is false)
+      // If userApiKeys is still loading (null), proceed with generation
+      if (userApiKeys !== null && !userApiKeys.hasKieKey) {
         setModalReason('no-key');
         setIsKieModalOpen(true);
         setPendingCharacterGeneration(character);
         return;
       }
 
-      const hasCredits = creditsData && creditsData.credits.balance >= creditsNeeded;
-      if (!hasCredits) {
-        setModalReason('insufficient-credits');
-        setIsInsufficientCreditsModalOpen(true);
-        setPendingCharacterGeneration(character);
-        return;
+      // Only check credits if user doesn't have their own KIE API key
+      // If they have their own key, they're paying KIE directly, not using platform credits
+      const hasOwnKey = userApiKeys?.hasKieKey;
+      if (!hasOwnKey) {
+        const hasCredits = creditsData && creditsData.credits.balance >= creditsNeeded;
+        if (!hasCredits) {
+          setModalReason('insufficient-credits');
+          setIsInsufficientCreditsModalOpen(true);
+          setPendingCharacterGeneration(character);
+          return;
+        }
       }
     }
 
@@ -183,13 +196,17 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
   // Generate all images with credit check
   const handleGenerateAllWithCheck = useCallback(async () => {
-    const totalCreditsNeeded = characters.filter(c => !c.imageUrl).length * creditsNeeded;
-    const hasEnoughCredits = creditsData && creditsData.credits.balance >= totalCreditsNeeded;
+    // Only check credits if user doesn't have their own KIE API key
+    const hasOwnKey = userApiKeys?.hasKieKey;
+    if (characterImageProvider === 'kie' && !hasOwnKey) {
+      const totalCreditsNeeded = characters.filter(c => !c.imageUrl).length * creditsNeeded;
+      const hasEnoughCredits = creditsData && creditsData.credits.balance >= totalCreditsNeeded;
 
-    if (characterImageProvider === 'kie' && !hasEnoughCredits) {
-      setModalReason('insufficient-credits');
-      setIsInsufficientCreditsModalOpen(true);
-      return;
+      if (!hasEnoughCredits) {
+        setModalReason('insufficient-credits');
+        setIsInsufficientCreditsModalOpen(true);
+        return;
+      }
     }
 
     await handleGenerateAll();
@@ -201,6 +218,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     characterAspectRatio,
     characterImageModel,
     handleGenerateAll,
+    userApiKeys?.hasKieKey,
     setModalReason,
     setIsInsufficientCreditsModalOpen,
   ]);

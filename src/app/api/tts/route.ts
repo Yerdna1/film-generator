@@ -298,15 +298,19 @@ async function generateWithKie(
 ): Promise<{ audioUrl: string; cost: number; storage: string }> {
   console.log(`[KIE TTS] Generating with model: ${modelId}`);
 
-  // Import KIE model configs
-  const { getKieModelById, formatKiePrice } = await import('@/lib/constants/kie-models');
-  const modelConfig = getKieModelById(modelId, 'tts');
+  // Query model from database instead of constants file
+  const modelConfig = await prisma.kieTtsModel.findUnique({
+    where: { modelId }
+  });
 
-  if (!modelConfig) {
+  if (!modelConfig || !modelConfig.isActive) {
     throw new Error(`Invalid KIE TTS model: ${modelId}`);
   }
 
-  console.log(`[KIE TTS] Using model: ${modelConfig.name} - ${formatKiePrice(modelConfig.credits)}`);
+  // Use apiModelId for KIE.ai API call, fall back to modelId if not set
+  const apiModelId = modelConfig.apiModelId || modelConfig.modelId;
+  const costText = `${modelConfig.credits} credits ($${modelConfig.cost.toFixed(2)})`;
+  console.log(`[KIE TTS] Using model: ${modelConfig.name} (${apiModelId}) - ${costText}`);
   console.log(`[KIE TTS] Original voiceId: ${voiceId}`);
 
   // KIE expects voice names (like "Rachel", "George", "Laura"), not ElevenLabs IDs
@@ -320,15 +324,15 @@ async function generateWithKie(
     voice: voiceForKie,
   };
 
-  // Add model-specific parameters
-  if (modelId.includes('dialogue')) {
+  // Add model-specific parameters (use apiModelId for checking)
+  if (apiModelId.includes('dialogue')) {
     // For dialogue models, text should be an array
     inputData.dialogue = [{ text, voice: voiceForKie }];
     delete inputData.text;
     delete inputData.voice;
   }
 
-  if (voiceSettings && modelId.includes('elevenlabs')) {
+  if (voiceSettings && apiModelId.includes('elevenlabs')) {
     inputData.voice_settings = {
       stability: voiceSettings.stability ?? 0.5,
       similarity_boost: voiceSettings.similarityBoost ?? 0.75,
@@ -347,7 +351,7 @@ async function generateWithKie(
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        model: modelId,
+        model: apiModelId, // Use apiModelId for KIE.ai API call
         input: inputData,
       }),
     });
@@ -493,6 +497,8 @@ export async function POST(request: NextRequest) {
     let kieTtsModel = requestModel || 'elevenlabs/text-to-dialogue-v3'; // Use model from request, fallback to default
     let modalTtsEndpoint: string | null = null;
 
+    let userHasOwnApiKey = false; // Track if user has their own API key (declare outside block)
+
     if (sessionUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: sessionUserId },
@@ -503,28 +509,51 @@ export async function POST(request: NextRequest) {
         if (!requestedProvider) {
           ttsProvider = (userApiKeys.ttsProvider as TTSProvider) || 'gemini-tts';
         }
-        if (userApiKeys.geminiApiKey) geminiApiKey = userApiKeys.geminiApiKey;
-        if (userApiKeys.elevenLabsApiKey) elevenLabsApiKey = userApiKeys.elevenLabsApiKey;
-        if (userApiKeys.openaiApiKey) openaiApiKey = userApiKeys.openaiApiKey;
-        if (userApiKeys.kieApiKey) kieApiKey = userApiKeys.kieApiKey;
+        if (userApiKeys.geminiApiKey) {
+          geminiApiKey = userApiKeys.geminiApiKey;
+          userHasOwnApiKey = true;
+        }
+        if (userApiKeys.elevenLabsApiKey) {
+          elevenLabsApiKey = userApiKeys.elevenLabsApiKey;
+          userHasOwnApiKey = true;
+        }
+        if (userApiKeys.openaiApiKey) {
+          openaiApiKey = userApiKeys.openaiApiKey;
+          userHasOwnApiKey = true;
+        }
+        if (userApiKeys.kieApiKey) {
+          kieApiKey = userApiKeys.kieApiKey;
+          userHasOwnApiKey = true;
+        }
         // Only use database model if not provided in request (for backward compatibility)
         if (!requestModel && userApiKeys.kieTtsModel) {
           kieTtsModel = userApiKeys.kieTtsModel;
         }
-        modalTtsEndpoint = userApiKeys.modalTtsEndpoint;
+        if (userApiKeys.modalTtsEndpoint) {
+          modalTtsEndpoint = userApiKeys.modalTtsEndpoint;
+          userHasOwnApiKey = true;
+        }
       }
 
-      // Only check credits if not skipping credit check (user using own API key)
-      if (!skipCreditCheck) {
+      // Pre-check credit balance
+      // Skip if:
+      // 1. Credits were prepaid by admin for collaborator regeneration (skipCreditCheck)
+      // 2. User has their own API key (they're paying the provider directly, not using platform credits)
+      if (!skipCreditCheck && !userHasOwnApiKey) {
         const insufficientCredits = await requireCredits(sessionUserId, COSTS.VOICEOVER_LINE);
         if (insufficientCredits) return insufficientCredits;
+      }
+
+      // Log if user has their own API key
+      if (userHasOwnApiKey) {
+        console.log('[TTS] User has own API key - skipping credit check and deduction');
       }
     }
 
     console.log(`[TTS] Using provider: ${ttsProvider}, model: ${kieTtsModel}${skipCreditCheck ? ' (skip credit check)' : ''}`);
 
-    // When skipCreditCheck is true, pass undefined userId to prevent credit spending
-    const userIdForGeneration = skipCreditCheck ? undefined : sessionUserId;
+    // When skipCreditCheck is true OR user has own API key, pass undefined userId to prevent credit spending
+    const userIdForGeneration = (skipCreditCheck || userHasOwnApiKey) ? undefined : sessionUserId;
 
     if (ttsProvider === 'modal') {
       if (!modalTtsEndpoint) {

@@ -4,32 +4,14 @@ import type { StateCreator } from '../types';
 import { debounceSync } from '../utils';
 
 export interface CharacterSlice {
-  addCharacter: (projectId: string, character: Omit<Character, 'id'>) => Promise<void>;
+  addCharacter: (projectId: string, character: Omit<Character, 'id'>) => Promise<Character>;
   updateCharacter: (projectId: string, characterId: string, updates: Partial<Character>) => Promise<void>;
   deleteCharacter: (projectId: string, characterId: string) => Promise<void>;
 }
 
 export const createCharacterSlice: StateCreator<CharacterSlice> = (set, get) => ({
   addCharacter: async (projectId, character) => {
-    const tempId = uuidv4();
-    const newCharacter: Character = { ...character, id: tempId };
-
-    set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === projectId
-          ? { ...p, characters: [...p.characters, newCharacter], updatedAt: new Date().toISOString() }
-          : p
-      ),
-      currentProject:
-        state.currentProject?.id === projectId
-          ? {
-              ...state.currentProject,
-              characters: [...state.currentProject.characters, newCharacter],
-              updatedAt: new Date().toISOString(),
-            }
-          : state.currentProject,
-    }));
-
+    // Create character in database first to get the real ID
     try {
       const response = await fetch(`/api/projects/${projectId}/characters`, {
         method: 'POST',
@@ -37,32 +19,34 @@ export const createCharacterSlice: StateCreator<CharacterSlice> = (set, get) => 
         body: JSON.stringify(character),
       });
 
-      if (response.ok) {
-        const dbCharacter = await response.json();
-        set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  characters: p.characters.map((c) =>
-                    c.id === tempId ? dbCharacter : c
-                  ),
-                }
-              : p
-          ),
-          currentProject:
-            state.currentProject?.id === projectId
-              ? {
-                  ...state.currentProject,
-                  characters: state.currentProject.characters.map((c) =>
-                    c.id === tempId ? dbCharacter : c
-                  ),
-                }
-              : state.currentProject,
-        }));
+      if (!response.ok) {
+        throw new Error(`Failed to create character in DB: ${response.statusText}`);
       }
+
+      const dbCharacter: Character = await response.json();
+
+      // Update local state with the database character (has real DB ID)
+      set((state) => ({
+        projects: state.projects.map((p) =>
+          p.id === projectId
+            ? { ...p, characters: [...p.characters, dbCharacter], updatedAt: new Date().toISOString() }
+            : p
+        ),
+        currentProject:
+          state.currentProject?.id === projectId
+            ? {
+                ...state.currentProject,
+                characters: [...state.currentProject.characters, dbCharacter],
+                updatedAt: new Date().toISOString(),
+              }
+            : state.currentProject,
+      }));
+
+      // Return the database-confirmed character
+      return dbCharacter;
     } catch (error) {
-      console.error('Error syncing new character to DB:', error);
+      console.error('Error creating character in DB:', error);
+      throw error;
     }
   },
 

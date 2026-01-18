@@ -8,11 +8,10 @@ import type { CharacterFormData } from '../../character-generator/types';
 export function useCharacterManagement(projectId: string, projectStyle: StylePreset) {
   const { addCharacter, updateCharacter, deleteCharacter } = useProjectStore();
 
-  const handleAddCharacter = useCallback((data: CharacterFormData) => {
+  const handleAddCharacter = useCallback(async (data: CharacterFormData) => {
     const masterPrompt = generateCharacterPrompt(data, projectStyle);
 
-    const newCharacter: Character = {
-      id: crypto.randomUUID(),
+    const characterData: Omit<Character, 'id'> = {
       name: data.name,
       description: data.description,
       visualDescription: data.visualDescription,
@@ -22,10 +21,10 @@ export function useCharacterManagement(projectId: string, projectStyle: StylePre
       voiceName: '',
     };
 
-    // Add to store
-    addCharacter(projectId, newCharacter);
+    // Add to store (awaits DB creation and returns DB-confirmed character)
+    const dbCharacter = await addCharacter(projectId, characterData);
 
-    return newCharacter;
+    return dbCharacter;
   }, [projectId, projectStyle, addCharacter]);
 
   const handleUpdateCharacter = useCallback((characterId: string, data: Partial<Character>) => {

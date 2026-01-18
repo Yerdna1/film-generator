@@ -566,7 +566,8 @@ model UserConstants {
 
 model KieImageModel {
   id                String   @id @default(cuid())
-  modelId           String   @unique // e.g., "google-nano-banana-pro"
+  modelId           String   @unique // e.g., "google-nano-banana-pro" (internal DB ID)
+  apiModelId        String?  // e.g., "nano-banana-pro" (actual KIE.ai API model ID)
   name              String
   provider          String   // e.g., "Google", "Black Forest Labs"
   baseModel         String?  // e.g., "Gemini 3 Pro Image"
@@ -593,7 +594,8 @@ model KieImageModel {
 
 model KieVideoModel {
   id                      String   @id @default(cuid())
-  modelId                 String   @unique // e.g., "grok-imagine/image-to-video"
+  modelId                 String   @unique // e.g., "grok-imagine/image-to-video" (internal DB ID)
+  apiModelId              String?  // e.g., "grok-imagine/image-to-video" (actual KIE.ai API model ID)
   name                    String
   provider                String
   description             String?
@@ -635,7 +637,8 @@ model KieVideoModel {
 
 model KieTtsModel {
   id                    String   @id @default(cuid())
-  modelId               String   @unique // e.g., "elevenlabs/text-to-dialogue-v3"
+  modelId               String   @unique // e.g., "elevenlabs/text-to-dialogue-v3" (internal DB ID)
+  apiModelId            String?  // e.g., "elevenlabs/text-to-dialogue-v3" (actual KIE.ai API model ID)
   name                  String
   provider              String
   description           String?
@@ -667,7 +670,8 @@ model KieTtsModel {
 
 model KieMusicModel {
   id                    String   @id @default(cuid())
-  modelId               String   @unique // e.g., "suno/v3-5-music"
+  modelId               String   @unique // e.g., "suno/v3-5-music" (internal DB ID)
+  apiModelId            String?  // e.g., "suno/v3-5-music" (actual KIE.ai API model ID)
   name                  String
   provider              String
   description           String?
@@ -691,7 +695,8 @@ model KieMusicModel {
 
 model KieLlmModel {
   id                    String   @id @default(cuid())
-  modelId               String   @unique // e.g., "google/gemini-3-pro"
+  modelId               String   @unique // e.g., "google/gemini-3-pro" (internal DB ID)
+  apiModelId            String?  // e.g., "google/gemini-3-pro" (actual KIE.ai API model ID)
   name                  String
   provider              String
   description           String?

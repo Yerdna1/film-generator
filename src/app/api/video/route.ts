@@ -74,19 +74,30 @@ async function createKieTask(
     publicImageUrl = uploadResult.url;
   }
 
+  // Query model from database to get apiModelId
+  const modelConfig = await prisma.kieVideoModel.findUnique({
+    where: { modelId }
+  });
+
+  if (!modelConfig || !modelConfig.isActive) {
+    console.warn(`[Kie] Model ${modelId} not found in database, using original modelId`);
+  }
+
+  // Use apiModelId for KIE.ai API call, fall back to modelId if not set
+  const apiModelId = modelConfig?.apiModelId || modelId;
+  console.log(`[Kie] Creating video task with model: ${modelId} (API: ${apiModelId})`);
+
   const enhancedPrompt = enhancePromptForMotion(prompt);
   const effectiveMode = mode === 'spicy' ? 'normal' : mode;
 
   const requestBody: any = {
-    model: modelId,
+    model: apiModelId, // Use apiModelId for KIE.ai API call
     input: {
       image_urls: [publicImageUrl],
       prompt: enhancedPrompt,
       mode: effectiveMode,
     },
   };
-
-  console.log(`[Kie] Creating video task with model: ${modelId}`);
 
   if (seed !== undefined) {
     requestBody.input.seed = seed;
@@ -327,6 +338,8 @@ export async function POST(request: NextRequest) {
     // Otherwise use session user's settings
     const settingsUserId = ownerId || sessionUserId;
 
+    let userHasOwnApiKey = false; // Track if user has their own API key (declare outside block)
+
     if (settingsUserId) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: settingsUserId },
@@ -335,16 +348,30 @@ export async function POST(request: NextRequest) {
       if (userApiKeys) {
         // Only use database values if not provided in request (for backward compatibility)
         if (!requestProvider) videoProvider = (userApiKeys.videoProvider as VideoProvider) || 'kie';
-        if (userApiKeys.kieApiKey) kieApiKey = userApiKeys.kieApiKey;
+        if (userApiKeys.kieApiKey) {
+          kieApiKey = userApiKeys.kieApiKey;
+          userHasOwnApiKey = true;
+        }
         // Only use database model if not provided in request (for backward compatibility)
         if (!requestModel && userApiKeys.kieVideoModel) kieVideoModel = userApiKeys.kieVideoModel;
-        modalVideoEndpoint = userApiKeys.modalVideoEndpoint;
+        if (userApiKeys.modalVideoEndpoint) {
+          modalVideoEndpoint = userApiKeys.modalVideoEndpoint;
+          userHasOwnApiKey = true;
+        }
       }
 
-      // Pre-check credit balance (skip if credits were prepaid by admin for collaborator regeneration)
-      if (!skipCreditCheck && sessionUserId) {
+      // Pre-check credit balance
+      // Skip if:
+      // 1. Credits were prepaid by admin for collaborator regeneration (skipCreditCheck)
+      // 2. User has their own API key (they're paying the provider directly, not using platform credits)
+      if (!skipCreditCheck && !userHasOwnApiKey && sessionUserId) {
         const insufficientCredits = await requireCredits(sessionUserId, COSTS.VIDEO_GENERATION);
         if (insufficientCredits) return insufficientCredits;
+      }
+
+      // Log if user has their own API key
+      if (userHasOwnApiKey) {
+        console.log('[Video] User has own API key - skipping credit check and deduction');
       }
     }
 
@@ -354,7 +381,8 @@ export async function POST(request: NextRequest) {
     // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
     //   but we still want to track real API costs to the owner
     // - When skipCreditCheck is false (normal generation): track to session user
-    const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
+    // - When user has own API key: no credit deduction needed (they're paying provider directly)
+    const effectiveUserId = (skipCreditCheck || userHasOwnApiKey) ? undefined : sessionUserId; // For credit deduction
     const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
 
     if (videoProvider === 'modal') {

@@ -99,8 +99,21 @@ async function generateWithKie(
 ): Promise<{ taskId: string; status: string; message: string; projectId?: string }> {
   console.log(`[KIE] Generating music with model: ${modelId}`);
 
+  // Query model from database to get apiModelId
+  const modelConfig = await prisma.kieMusicModel.findUnique({
+    where: { modelId }
+  });
+
+  if (!modelConfig || !modelConfig.isActive) {
+    console.warn(`[Kie] Music model ${modelId} not found in database, using original modelId`);
+  }
+
+  // Use apiModelId for KIE.ai API call, fall back to modelId if not set
+  const apiModelId = modelConfig?.apiModelId || modelId;
+  console.log(`[KIE] Creating music task with model: ${modelId} (API: ${apiModelId})`);
+
   const requestBody = {
-    model: modelId,
+    model: apiModelId, // Use apiModelId for KIE.ai API call
     input: {
       prompt,
       instrumental,
@@ -204,9 +217,10 @@ async function checkKieMusicStatus(
     audioUrl = externalAudioUrl;
   }
 
-  // Get model-specific cost
-  const { getKieModelById } = await import('@/lib/constants/kie-models');
-  const modelConfig = getKieModelById(modelId, 'music');
+  // Get model-specific cost from database
+  const modelConfig = await prisma.kieMusicModel.findUnique({
+    where: { modelId }
+  });
   const realCost = modelConfig?.cost || 0.50; // Fallback to default
 
   if (status === 'complete' && userId) {
@@ -288,6 +302,9 @@ export async function POST(request: NextRequest) {
     // Determine which model to use
     const kieMusicModel = requestModel || userApiKeys?.kieMusicModel || 'suno/v3-5-music';
 
+    // Track if user has their own API keys (to skip credit check)
+    let userHasOwnApiKey = !!userApiKeys?.modalMusicEndpoint;
+
     console.log(`[Music] Using provider: ${provider}, model: ${kieMusicModel}`);
 
     // Handle Modal provider first (doesn't require API key)
@@ -303,13 +320,15 @@ export async function POST(request: NextRequest) {
       const fullPrompt = style ? `${style}: ${prompt}` : prompt;
 
       // Modal returns audio directly (synchronous)
+      // Skip credit deduction if user has their own endpoint
+      const effectiveUserId = userHasOwnApiKey ? undefined : userId;
       const result = await generateWithModal(
         fullPrompt,
         instrumental,
         title,
         undefined,
         modalMusicEndpoint,
-        userId
+        effectiveUserId
       );
       return NextResponse.json(result);
     }
@@ -324,12 +343,18 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      userHasOwnApiKey = true; // User has their own KIE API key
+
       // Use the kieMusicModel (from request or user settings)
       const modelId = kieMusicModel;
 
-      // Pre-check credit balance
-      const insufficientCredits = await requireCredits(userId, COSTS.MUSIC_GENERATION);
-      if (insufficientCredits) return insufficientCredits;
+      // Pre-check credit balance (skip if user has own API key)
+      if (!userHasOwnApiKey) {
+        const insufficientCredits = await requireCredits(userId, COSTS.MUSIC_GENERATION);
+        if (insufficientCredits) return insufficientCredits;
+      } else {
+        console.log('[Music] User has own KIE API key - skipping credit check and deduction');
+      }
 
       if (!prompt) {
         return NextResponse.json(
@@ -341,7 +366,7 @@ export async function POST(request: NextRequest) {
       // Build the full prompt with style if provided
       const fullPrompt = style ? `${style}: ${prompt}` : prompt;
 
-      // KIE returns task ID (asynchronous)
+      // KIE returns task ID (asynchronous) - pass undefined userId to skip credit deduction
       const result = await generateWithKie(
         fullPrompt,
         instrumental,
@@ -349,7 +374,7 @@ export async function POST(request: NextRequest) {
         request.headers.get('x-project-id') || undefined,
         kieApiKey,
         modelId,
-        userId
+        userHasOwnApiKey ? undefined : userId // Skip credit deduction if user has own API key
       );
       return NextResponse.json(result);
     }
@@ -370,9 +395,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Pre-check credit balance
-    const insufficientCredits = await requireCredits(userId, COSTS.MUSIC_GENERATION);
-    if (insufficientCredits) return insufficientCredits;
+    // Check if user has their own API key (not using platform default)
+    const isUsingOwnKey = !!(userApiKeys?.piapiApiKey && provider === 'piapi') ||
+                         !!(userApiKeys?.sunoApiKey && provider === 'suno');
+
+    if (isUsingOwnKey) {
+      userHasOwnApiKey = true;
+      console.log('[Music] User has own API key - skipping credit check and deduction');
+    }
+
+    // Pre-check credit balance (skip if user has own API key)
+    if (!userHasOwnApiKey) {
+      const insufficientCredits = await requireCredits(userId, COSTS.MUSIC_GENERATION);
+      if (insufficientCredits) return insufficientCredits;
+    }
 
     if (!prompt) {
       return NextResponse.json(
@@ -404,7 +440,6 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           prompt: fullPrompt,
-          model,
           customMode: false,
           instrumental,
           ...(title && { title }),

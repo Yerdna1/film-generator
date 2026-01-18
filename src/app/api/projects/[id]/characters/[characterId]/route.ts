@@ -45,6 +45,26 @@ export async function PUT(
       voiceName,
     } = body;
 
+    // Check if character exists first
+    const existingCharacter = await prisma.character.findUnique({
+      where: { id: characterId }
+    });
+
+    if (!existingCharacter) {
+      return NextResponse.json(
+        { error: 'Character not found. It may have been deleted or not yet saved.' },
+        { status: 404 }
+      );
+    }
+
+    // Verify character belongs to this project
+    if (existingCharacter.projectId !== projectId) {
+      return NextResponse.json(
+        { error: 'Character does not belong to this project' },
+        { status: 403 }
+      );
+    }
+
     const character = await prisma.character.update({
       where: { id: characterId },
       data: {
