@@ -202,6 +202,7 @@ model Project {
   settings      Json @default("{\"sceneCount\": 12, \"characterCount\": 2, \"aspectRatio\": \"16:9\", \"resolution\": \"hd\", \"imageResolution\": \"2k\", \"voiceLanguage\": \"sk\", \"voiceProvider\": \"gemini-tts\", \"storyModel\": \"claude-sonnet-4.5\"}")
   story         Json @default("{\"title\": \"\", \"concept\": \"\", \"genre\": \"adventure\", \"tone\": \"heartfelt\", \"setting\": \"\"}")
   voiceSettings Json @default("{\"language\": \"sk\", \"provider\": \"gemini-tts\", \"characterVoices\": {}}")
+  modelConfig   Json?
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   characters Character[]

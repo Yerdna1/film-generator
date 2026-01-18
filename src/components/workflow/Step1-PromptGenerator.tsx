@@ -1,10 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { useSession } from 'next-auth/react';
-import { useProjectStore } from '@/lib/stores/project-store';
-import { generateMasterPrompt } from '@/lib/prompts/master-prompt';
 import type { Project } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { SettingsPanel } from './step1/SettingsPanel';
@@ -12,12 +8,9 @@ import { StoryForm } from './step1/StoryForm';
 import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './step1/LoadingModal';
-import { ApiKeyModal } from './step1/ApiKeyModal';
-import { ModelConfigurationPanel } from './step1/ModelConfigurationPanel';
+import { ModelConfigModal } from './step1/ModelConfigModal';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
-import { storyPresets } from './step1/story-presets';
-import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { useStep1State, useStep1Handlers } from './step1/hooks';
 import type { UnifiedModelConfig } from '@/types/project';
 
 interface Step1Props {
@@ -29,402 +22,54 @@ interface Step1Props {
   isReadOnly?: boolean;
 }
 
-const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh'] as const;
-
-export function Step1PromptGenerator({ project: initialProject, userGlobalRole, isAdmin = false, isReadOnly = false }: Step1Props) {
+export function Step1PromptGenerator({
+  project: initialProject,
+  userGlobalRole,
+  isAdmin = false,
+  isReadOnly = false,
+}: Step1Props) {
   const t = useTranslations();
-  const { data: session } = useSession();
-  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants, nextStep, updateModelConfig } = useProjectStore();
-  const { toast } = useToast();
 
-  // Get live project data from store, but prefer initialProject for full data
-  // Store may contain summary data without settings/story details
-  const storeProject = projects.find(p => p.id === initialProject.id);
-  // Check for story.title to determine if we have full data (not just summary)
-  const hasFullData = storeProject?.story && typeof storeProject.story === 'object' && 'title' in storeProject.story;
-  const project = hasFullData ? storeProject : initialProject;
+  // Custom hooks for state and handlers
+  const state = useStep1State({ project: initialProject, isAdmin });
+  const handlers = useStep1Handlers(state);
 
-  // Subscription status - check if user has a paid plan
-  const [isPremiumUser, setIsPremiumUser] = useState(false);
+  const {
+    project,
+    effectiveIsPremium,
+    isGenerating,
+    isEditing,
+    editedPrompt,
+    setEditedPrompt,
+    setIsEditing,
+    selectedPresetId,
+    isModelConfigModalOpen,
+    aspectRatio,
+    setAspectRatio,
+    videoLanguage,
+    setVideoLanguage,
+    storyModel,
+    setStoryModel,
+    styleModel,
+    setStyleModel,
+    imageProvider,
+    setImageProvider,
+    voiceProvider,
+    setVoiceProvider,
+    videoLanguages,
+  } = state;
 
-  useEffect(() => {
-    const fetchSubscription = async () => {
-      if (!session) {
-        setIsPremiumUser(false);
-        return;
-      }
-      try {
-        const res = await fetch('/api/polar');
-        if (res.ok) {
-          const data = await res.json();
-          // Premium if plan is anything other than 'free'
-          const plan = data.subscription?.plan || 'free';
-          setIsPremiumUser(plan !== 'free');
-        }
-      } catch (error) {
-        console.error('Failed to fetch subscription:', error);
-        setIsPremiumUser(false);
-      }
-    };
-    fetchSubscription();
-  }, [session]);
+  const {
+    handleGeneratePrompt,
+    handleSaveEditedPrompt,
+    handleApplyPreset,
+    handleModelConfigChange,
+    handleCloseModelConfigModal,
+  } = handlers;
 
-  // Admins are always treated as premium users (bypass subscription check)
-  const effectiveIsPremium = isAdmin || isPremiumUser;
-
-  // Fetch user's API keys
-  useEffect(() => {
-    const fetchApiKeys = async () => {
-      if (!session) return;
-      try {
-        const res = await fetch('/api/user/api-keys');
-        if (res.ok) {
-          const data = await res.json();
-          setUserApiKeys({
-            hasOpenRouterKey: data.hasOpenRouterKey || false,
-            openRouterModel: data.openRouterModel || 'anthropic/claude-4.5-sonnet',
-            llmProvider: data.llmProvider || 'openrouter',
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch API keys:', error);
-      }
-    };
-    fetchApiKeys();
-  }, [session]);
-
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedPrompt, setEditedPrompt] = useState(project.masterPrompt || '');
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
-
-  // API key modal state
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
-  const [userApiKeys, setUserApiKeys] = useState<{
-    hasOpenRouterKey: boolean;
-    openRouterModel: string;
-    llmProvider: string;
-  } | null>(null);
-
-  // New state for additional options - initialize from project settings
-  // For free users, enforce defaults
-  const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4'>(
-    project.settings?.aspectRatio || '16:9'
-  );
-  const [videoLanguage, setVideoLanguage] = useState<typeof videoLanguages[number]>(
-    // Free users default to English
-    project.settings?.voiceLanguage || 'en'
-  );
-  const [storyModel, setStoryModel] = useState<'gpt-4' | 'claude-sonnet-4.5' | 'gemini-3-pro'>(
-    // Free users use default model
-    project.settings?.storyModel || 'gemini-3-pro'
-  );
-  const [styleModel, setStyleModel] = useState(
-    project.settings?.imageResolution === '4k' ? 'flux' : 'dall-e-3'
-  );
-  const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie'>(
-    // Free users use Gemini TTS
-    project.settings?.voiceProvider || 'gemini-tts'
-  );
-  const [imageProvider, setImageProvider] = useState<'gemini' | 'modal' | 'modal-edit' | 'kie'>(
-    (userConstants?.sceneImageProvider as 'gemini' | 'modal' | 'modal-edit' | 'kie' | undefined) || 'gemini'
-  );
-
-  // Enforce free user defaults when subscription status changes
-  useEffect(() => {
-    if (!effectiveIsPremium) {
-      setVideoLanguage('en');
-      setStoryModel('gemini-3-pro');
-      setVoiceProvider('gemini-tts');
-      setStyleModel('gemini');
-      setImageProvider('gemini');
-      // Enforce Disney/Pixar style for free users
-      if (project.style !== 'disney-pixar') {
-        updateProject(project.id, { style: 'disney-pixar' });
-      }
-      // Enforce max 12 scenes for free users
-      if ((project.settings?.sceneCount || 12) > 12) {
-        updateSettings(project.id, { sceneCount: 12 });
-      }
-    }
-  }, [effectiveIsPremium, project.id, project.style, project.settings?.sceneCount, updateProject, updateSettings]);
-
-  // Sync editedPrompt when masterPrompt changes
-  useEffect(() => {
-    if (project.masterPrompt) {
-      setEditedPrompt(project.masterPrompt);
-    }
-  }, [project.masterPrompt]);
-
-  // Update project settings when options change
-  useEffect(() => {
+  const handleModelConfigChangeWrapper = (modelConfig: UnifiedModelConfig) => {
     if (!isReadOnly && project.id) {
-      updateSettings(project.id, { aspectRatio });
-    }
-  }, [aspectRatio, project.id, updateSettings, isReadOnly]);
-
-  useEffect(() => {
-    if (!isReadOnly && project.id) {
-      updateSettings(project.id, { voiceLanguage: videoLanguage as 'sk' | 'en' });
-    }
-  }, [videoLanguage, project.id, updateSettings, isReadOnly]);
-
-  useEffect(() => {
-    if (!isReadOnly && project.id) {
-      // Map style model to image resolution
-      const imageResolution = styleModel === 'flux' ? '4k' :
-        styleModel === 'midjourney' ? '2k' : '1k';
-      updateSettings(project.id, { imageResolution });
-    }
-  }, [styleModel, project.id, updateSettings, isReadOnly]);
-
-  useEffect(() => {
-    if (!isReadOnly && project.id) {
-      updateSettings(project.id, { voiceProvider });
-    }
-  }, [voiceProvider, project.id, updateSettings, isReadOnly]);
-
-  useEffect(() => {
-    if (!isReadOnly && project.id) {
-      updateSettings(project.id, { storyModel });
-    }
-  }, [storyModel, project.id, updateSettings, isReadOnly]);
-
-  const handleGeneratePrompt = async (skipApiKeyCheck = false) => {
-    // Check if user has OpenRouter API key configured (unless skipped)
-    if (!skipApiKeyCheck) {
-      const needsApiKey = !userApiKeys?.hasOpenRouterKey && userApiKeys?.llmProvider === 'openrouter';
-
-      if (needsApiKey) {
-        setIsApiKeyModalOpen(true);
-        return;
-      }
-    }
-
-    setIsGenerating(true);
-
-    // Get current settings from project (they should already be synced via useEffect)
-    // Define outside try block for fallback access in catch
-    const currentSettings: import('@/types/project').ProjectSettings = {
-      aspectRatio,
-      resolution: (styleModel === 'flux' ? '4k' : 'hd') as 'hd' | '4k',
-      voiceLanguage: videoLanguage as 'sk' | 'en',
-      sceneCount: (project.settings?.sceneCount || 12) as 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360,
-      characterCount: project.settings?.characterCount || 3,
-      imageResolution: (styleModel === 'flux' ? '4k' : '2k') as '1k' | '2k' | '4k',
-      voiceProvider,
-      storyModel,
-    };
-
-    // Generate the base master prompt template with current settings
-    const projectWithCurrentSettings = {
-      ...project,
-      settings: currentSettings
-    };
-
-    // Generate base prompt outside try block so it's available in catch block for fallback
-    const basePrompt = generateMasterPrompt(projectWithCurrentSettings.story, projectWithCurrentSettings.style, projectWithCurrentSettings.settings);
-
-    try {
-      // Small delay to ensure all settings are saved
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Use the model from the unified model configuration if available
-      const modelConfig = project.modelConfig;
-      const modelToUse = modelConfig?.llm?.model || (effectiveIsPremium ?
-        storyModel === 'gpt-4' ? 'openai/gpt-4-turbo' :
-        storyModel === 'claude-sonnet-4.5' ? 'anthropic/claude-sonnet-4.5' :
-        'google/gemini-2.0-flash-exp:free' : undefined);
-
-      // Try to enhance with user's configured LLM provider
-      const response = await fetch('/api/llm/prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(modelToUse && { model: modelToUse }), // Pass model for premium users
-          prompt: `Based on the following story concept and settings, enhance and expand this prompt for generating a ${currentSettings.sceneCount}-scene animated short film.
-
-Story Title: ${project.story.title}
-Genre: ${project.story.genre}
-Tone: ${project.story.tone}
-Setting: ${project.story.setting}
-Concept: ${project.story.concept}
-Visual Style: ${project.style}
-
-Technical Settings:
-- Aspect Ratio: ${modelConfig?.image?.sceneAspectRatio || aspectRatio}
-- Video Language: ${modelConfig?.tts?.defaultLanguage || videoLanguage}
-- LLM Model: ${modelConfig?.llm?.model || storyModel}
-- Image Provider: ${modelConfig?.image?.provider || imageProvider}
-- Voice Provider: ${modelConfig?.tts?.provider || voiceProvider}
-- Characters: ${currentSettings.characterCount}
-- Scenes: ${currentSettings.sceneCount}
-
-Base prompt template:
-${basePrompt}
-
-Please enhance this prompt with:
-1. More detailed character descriptions (visual appearance, personality, motivations)
-2. Scene breakdown with specific camera shots and compositions
-3. Text-to-Image prompts for each character and scene
-4. Image-to-Video prompts describing movements and actions
-5. Sample dialogue for each scene
-
-Format the output exactly like the base template but with richer, more detailed content. Keep the same structure with CHARACTER: and SCENE: sections.`,
-          systemPrompt: 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.',
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.text) {
-          setMasterPrompt(project.id, data.text);
-          setEditedPrompt(data.text);
-          // Dispatch credits update event
-          window.dispatchEvent(new CustomEvent('credits-updated'));
-          setIsGenerating(false);
-
-          // Show success toast and auto-advance to Step 2
-          toast({
-            title: "Step 1 Complete! 🎉",
-            description: `Master prompt generated via ${data.provider}. ${data.creditsUsed} credits used. Moving to Step 2...`,
-          });
-
-          // Auto-advance to Step 2 after a short delay
-          setTimeout(() => {
-            nextStep(project.id);
-          }, 1500);
-
-          console.log(`Master prompt enhanced via ${data.provider}, ${data.creditsUsed} credits used`);
-          return;
-        }
-      }
-
-      // Check for insufficient credits error
-      if (response.status === 402) {
-        const errorData = await response.json();
-        console.warn('Insufficient credits for AI enhancement:', errorData);
-
-        // Show warning toast
-        toast({
-          title: "Insufficient Credits",
-          description: "Using local generation instead. Upgrade your plan for AI enhancement.",
-          variant: "destructive",
-        });
-
-        // Fall back to local generation (free)
-      }
-
-      // Fallback to local generation if API fails or not enough credits
-      console.warn('Using local generation (no credits deducted)');
-      setMasterPrompt(project.id, basePrompt);
-      setEditedPrompt(basePrompt);
-
-      // Show fallback toast and auto-advance
-      toast({
-        title: "Step 1 Complete! 🎉",
-        description: "Base prompt created. Moving to Step 2...",
-      });
-
-      // Auto-advance to Step 2 after a short delay
-      setTimeout(() => {
-        nextStep(project.id);
-      }, 1500);
-    } catch (error) {
-      console.error('Error generating prompt:', error);
-      // Fallback to local generation with current settings (reuse basePrompt)
-      setMasterPrompt(project.id, basePrompt);
-      setEditedPrompt(basePrompt);
-
-      // Show error toast and still auto-advance
-      toast({
-        title: "Step 1 Complete (Fallback)",
-        description: "Using local generation. Moving to Step 2...",
-        variant: "destructive",
-      });
-
-      // Auto-advance to Step 2 after a short delay
-      setTimeout(() => {
-        nextStep(project.id);
-      }, 1500);
-    }
-
-    setIsGenerating(false);
-  };
-
-  const handleSaveEditedPrompt = () => {
-    setMasterPrompt(project.id, editedPrompt);
-    setIsEditing(false);
-  };
-
-  const handleSaveApiKey = async (apiKey: string, model: string): Promise<void> => {
-    setIsSavingApiKey(true);
-
-    try {
-      // Save the API key and selected model
-      const response = await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          openRouterApiKey: apiKey,
-          openRouterModel: model,
-          llmProvider: 'openrouter',
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save API key');
-      }
-
-      // Update local state immediately
-      setUserApiKeys(prev => prev ? { ...prev, hasOpenRouterKey: true, openRouterModel: model } : null);
-
-      // Show success toast for API key save
-      toast({
-        title: "API Key Saved",
-        description: "Generating your master prompt...",
-      });
-
-      // Close modal
-      setIsApiKeyModalOpen(false);
-
-      // Small delay to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Now proceed with generation (skip API key check since we just saved it)
-      await handleGeneratePrompt(true);
-    } catch (error) {
-      // Show error toast
-      toast({
-        title: "Failed to Save API Key",
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive",
-      });
-      throw error; // Re-throw to let the modal handle it
-    } finally {
-      setIsSavingApiKey(false);
-    }
-  };
-
-  const handleApplyPreset = async (preset: typeof storyPresets[0]) => {
-    setSelectedPresetId(preset.id);
-    updateStory(project.id, preset.story);
-
-    // Sync project name with story title and style
-    updateProject(project.id, {
-      name: preset.story.title,
-      style: preset.style
-    });
-
-    // Auto-generate the master prompt
-    await handleGeneratePrompt();
-  };
-
-  const handleModelConfigChange = (modelConfig: UnifiedModelConfig) => {
-    if (!isReadOnly && project.id) {
-      updateModelConfig(project.id, modelConfig);
+      handleModelConfigChange(modelConfig);
     }
   };
 
@@ -449,9 +94,9 @@ Format the output exactly like the base template but with richer, more detailed 
           setImageProvider={setImageProvider}
           voiceProvider={voiceProvider}
           setVoiceProvider={setVoiceProvider}
-          updateProject={updateProject}
-          updateSettings={updateSettings}
-          updateUserConstants={updateUserConstants}
+          updateProject={state.store.updateProject}
+          updateSettings={state.store.updateSettings}
+          updateUserConstants={state.store.updateUserConstants}
           sceneOptions={sceneOptions}
           storyModels={storyModels}
           styleModels={styleModels}
@@ -461,21 +106,15 @@ Format the output exactly like the base template but with richer, more detailed 
           tones={tones}
         />
 
-        {/* Right Column - Model Config, Story Details, Presets & Master Prompt */}
+        {/* Right Column - Story Details, Presets & Master Prompt */}
         <div className="glass rounded-xl p-4 space-y-4 lg:col-span-3">
-          <ModelConfigurationPanel
-            modelConfig={project.modelConfig}
-            onConfigChange={handleModelConfigChange}
-            disabled={isReadOnly}
-          />
-
           <StoryForm
             project={project}
             isReadOnly={isReadOnly}
             isGenerating={isGenerating}
             onGeneratePrompt={handleGeneratePrompt}
-            updateStory={updateStory}
-            updateProject={updateProject}
+            updateStory={state.store.updateStory}
+            updateProject={state.store.updateProject}
             genres={genres}
             tones={tones}
           />
@@ -503,12 +142,13 @@ Format the output exactly like the base template but with richer, more detailed 
       {/* Loading Modal */}
       <LoadingModal isOpen={isGenerating} />
 
-      {/* API Key Modal */}
-      <ApiKeyModal
-        isOpen={isApiKeyModalOpen}
-        onClose={() => setIsApiKeyModalOpen(false)}
-        onSave={handleSaveApiKey}
-        isLoading={isSavingApiKey}
+      {/* Model Config Modal */}
+      <ModelConfigModal
+        isOpen={isModelConfigModalOpen}
+        onSubmit={handleCloseModelConfigModal}
+        modelConfig={project.modelConfig}
+        onConfigChange={handleModelConfigChangeWrapper}
+        disabled={isReadOnly}
       />
     </div>
   );
