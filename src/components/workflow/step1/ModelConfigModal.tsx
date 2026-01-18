@@ -11,6 +11,7 @@ interface ModelConfigModalProps {
   modelConfig?: UnifiedModelConfig;
   onConfigChange: (config: UnifiedModelConfig) => void;
   disabled?: boolean;
+  isFreeUser?: boolean;
 }
 
 export function ModelConfigModal({
@@ -19,8 +20,9 @@ export function ModelConfigModal({
   modelConfig,
   onConfigChange,
   disabled = false,
+  isFreeUser = false,
 }: ModelConfigModalProps) {
-  console.log('[ModelConfigModal] Render:', { isOpen, modelConfig, disabled });
+  console.log('[ModelConfigModal] Render:', { isOpen, modelConfig, disabled, isFreeUser });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onSubmit()}>
@@ -41,6 +43,7 @@ export function ModelConfigModal({
             modelConfig={modelConfig}
             onConfigChange={onConfigChange}
             disabled={disabled}
+            isFreeUser={isFreeUser}
           />
         </div>
         <DialogFooter className="mt-6">

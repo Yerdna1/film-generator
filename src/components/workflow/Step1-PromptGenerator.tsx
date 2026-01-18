@@ -149,6 +149,7 @@ export function Step1PromptGenerator({
         modelConfig={project.modelConfig}
         onConfigChange={handleModelConfigChangeWrapper}
         disabled={isReadOnly}
+        isFreeUser={!effectiveIsPremium}
       />
     </div>
   );
