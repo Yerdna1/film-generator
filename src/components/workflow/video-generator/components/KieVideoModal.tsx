@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Key, Eye, EyeOff, Loader2, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -14,17 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { KIE_VIDEO_MODELS, type KieModelConfig } from '@/lib/constants/kie-models';
-
-// Affordable KIE video models for free users (sorted by price)
-const AFFORDABLE_KIE_VIDEO_MODELS: KieModelConfig[] = [
-  KIE_VIDEO_MODELS.find(m => m.id === 'grok-imagine/image-to-video')!, // 40 credits - cheapest!
-  KIE_VIDEO_MODELS.find(m => m.id === 'kling/v2-1-image-to-video')!, // 50 credits
-  KIE_VIDEO_MODELS.find(m => m.id === 'kling/v2-2-image-to-video')!, // 55 credits
-  KIE_VIDEO_MODELS.find(m => m.id === 'kling/v2-3-image-to-video')!, // 60 credits
-  KIE_VIDEO_MODELS.find(m => m.id === 'kling/v2-4-image-to-video')!, // 65 credits
-  KIE_VIDEO_MODELS.find(m => m.id === 'hailuo/ai-image-to-video')!, // 60 credits
-].filter(Boolean);
+import type { KieModelConfig } from '@/lib/constants/kie-models';
 
 interface KieVideoModalProps {
   isOpen: boolean;
@@ -36,13 +26,37 @@ interface KieVideoModalProps {
 export function KieVideoModal({ isOpen, onClose, onSave, isLoading = false }: KieVideoModalProps) {
   const t = useTranslations();
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState(AFFORDABLE_KIE_VIDEO_MODELS[0].id); // Default to Grok Imagine (cheapest)
+  const [models, setModels] = useState<KieModelConfig[]>([]);
+  const [selectedModel, setSelectedModel] = useState('grok-imagine/image-to-video'); // Default to Grok Imagine (cheapest)
   const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState('');
 
+  // Fetch video models from database when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/kie-models/video')
+        .then(res => res.json())
+        .then(data => {
+          // Sort by cost (cheapest first) and filter for image-to-video models
+          const sortedModels = data
+            .filter((m: KieModelConfig) => m.modality?.includes('image-to-video'))
+            .sort((a: KieModelConfig, b: KieModelConfig) => a.credits - b.credits);
+          setModels(sortedModels);
+
+          // Set default to cheapest model if available
+          if (sortedModels.length > 0) {
+            setSelectedModel(sortedModels[0].modelId);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch KIE video models:', err);
+        });
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  const selectedModelConfig = AFFORDABLE_KIE_VIDEO_MODELS.find(m => m.id === selectedModel);
+  const selectedModelConfig = models.find(m => m.modelId === selectedModel);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,10 +136,10 @@ export function KieVideoModal({ isOpen, onClose, onSave, isLoading = false }: Ki
                   <SelectValue placeholder="Vyberte model" />
                 </SelectTrigger>
                 <SelectContent className="glass-strong border-white/10 max-h-80 overflow-y-auto">
-                  {AFFORDABLE_KIE_VIDEO_MODELS.map((model) => {
-                    const isSelected = selectedModel === model.id;
+                  {models.map((model) => {
+                    const isSelected = selectedModel === model.modelId;
                     return (
-                      <SelectItem key={model.id} value={model.id} className="cursor-pointer">
+                      <SelectItem key={model.modelId} value={model.modelId} className="cursor-pointer">
                         <div className="flex flex-col gap-0.5 py-1">
                           <div className="flex items-center justify-between gap-4">
                             <span className="font-medium text-foreground">{model.name}</span>

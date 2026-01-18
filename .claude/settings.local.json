@@ -90,7 +90,9 @@
       "mcp__playwright__browser_tabs",
       "Bash(git checkout:*)",
       "Bash(npx tsx:*)",
-      "Bash(npx dotenv-cli:*)"
+      "Bash(npx dotenv-cli:*)",
+      "Bash(tail:*)",
+      "Bash(xargs:*)"
     ]
   }
 }

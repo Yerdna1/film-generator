@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import type { Project } from '@/types/project';
 import type { RegenerationRequest, DeletionRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useVideoGenerator } from './hooks/useVideoGenerator';
-import { useCredits } from '@/contexts/CreditsContext';
+import { useCredits, useApiKeys } from '@/hooks';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import {
   VideoHeader,
@@ -29,6 +30,10 @@ interface Step4Props {
 
 export function Step4VideoGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step4Props) {
   const t = useTranslations();
+  const { data: session } = useSession();
+
+  // Fetch user's API keys
+  const { data: apiKeysData } = useApiKeys();
 
   const {
     // Project data
@@ -223,22 +228,74 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
 
   // Credit check wrapper for single video generation
   const handleGenerateVideoWithCreditCheck = useCallback(async (scene: any) => {
+    // Check if user has KIE API key configured (either globally or for this project)
+    const hasKieApiKey = apiKeysData?.kieApiKey || project.modelConfig?.video?.provider === 'kie';
+
+    // If user has own API key, skip credit check and modal
+    if (hasKieApiKey) {
+      await handleGenerateVideo(scene);
+      return;
+    }
+
+    // If apiKeysData is still loading (null), don't check credits yet
+    // Proceed with generation (API will check on backend)
+    if (apiKeysData === null) {
+      await handleGenerateVideo(scene);
+      return;
+    }
+
+    // Only check credits if user doesn't have their own API key
     setPendingVideoGeneration({ type: 'single', scene });
     setIsInsufficientCreditsModalOpen(true);
-  }, []);
+  }, [apiKeysData, project.modelConfig, handleGenerateVideo]);
 
   // Credit check wrapper for all videos generation
   const handleGenerateAllWithCreditCheck = useCallback(async () => {
+    // Check if user has KIE API key configured (either globally or for this project)
+    const hasKieApiKey = apiKeysData?.kieApiKey || project.modelConfig?.video?.provider === 'kie';
+
+    // If user has own API key, skip credit check and modal
+    if (hasKieApiKey) {
+      await handleGenerateAll();
+      return;
+    }
+
+    // If apiKeysData is still loading (null), don't check credits yet
+    // Proceed with generation (API will check on backend)
+    if (apiKeysData === null) {
+      await handleGenerateAll();
+      return;
+    }
+
+    // Only check credits if user doesn't have their own API key
     setPendingVideoGeneration({ type: 'all', scenes: scenesNeedingGeneration });
     setIsInsufficientCreditsModalOpen(true);
-  }, [scenesNeedingGeneration]);
+  }, [apiKeysData, project.modelConfig, handleGenerateAll, scenesNeedingGeneration]);
 
   // Credit check wrapper for selected videos generation
   const handleGenerateSelectedWithCreditCheck = useCallback(async () => {
+    // Check if user has KIE API key configured (either globally or for this project)
+    const hasKieApiKey = apiKeysData?.kieApiKey || project.modelConfig?.video?.provider === 'kie';
+
+    // If user has own API key, skip credit check and modal
+    if (hasKieApiKey) {
+      const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
+      await handleGenerateSelected();
+      return;
+    }
+
+    // If apiKeysData is still loading (null), don't check credits yet
+    // Proceed with generation (API will check on backend)
+    if (apiKeysData === null) {
+      await handleGenerateSelected();
+      return;
+    }
+
+    // Only check credits if user doesn't have their own API key
     const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
     setPendingVideoGeneration({ type: 'selected', scenes: selectedScenesArray });
     setIsInsufficientCreditsModalOpen(true);
-  }, [scenes, selectedScenes]);
+  }, [scenes, selectedScenes, apiKeysData, project.modelConfig, handleGenerateSelected]);
 
   // Proceed with generation using app credits
   const handleUseAppCredits = useCallback(async () => {
