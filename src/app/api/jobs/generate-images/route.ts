@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId, aspectRatio = '16:9', resolution = '2k', limit } = body;
-    console.log('[Jobs] Request body:', { projectId, aspectRatio, resolution, limit });
+    const { projectId, aspectRatio = '16:9', resolution = '2k', limit, sceneIds } = body;
+    console.log('[Jobs] Request body:', { projectId, aspectRatio, resolution, limit, sceneIds });
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
@@ -41,18 +41,31 @@ export async function POST(request: NextRequest) {
     }
     console.log('[Jobs] Project found:', project.scenes.length, 'scenes,', project.characters.length, 'characters');
 
-    // Get scenes that need images
-    let scenesWithoutImages = project.scenes.filter(s => !s.imageUrl);
-    console.log('[Jobs] Scenes without images:', scenesWithoutImages.length);
+    // Get scenes to process
+    let scenesToProcess;
 
-    if (scenesWithoutImages.length === 0) {
-      return NextResponse.json({ error: 'All scenes already have images' }, { status: 400 });
-    }
+    if (sceneIds && sceneIds.length > 0) {
+      // Specific scenes requested (single or multiple)
+      scenesToProcess = project.scenes.filter(s => sceneIds.includes(s.id));
+      console.log('[Jobs] Processing specific scenes:', scenesToProcess.length);
 
-    // Apply limit if specified (for batch generation)
-    if (limit && limit > 0 && limit < scenesWithoutImages.length) {
-      scenesWithoutImages = scenesWithoutImages.slice(0, limit);
-      console.log('[Jobs] Limited to first', limit, 'scenes');
+      if (scenesToProcess.length === 0) {
+        return NextResponse.json({ error: 'No valid scenes found' }, { status: 400 });
+      }
+    } else {
+      // Batch mode - get scenes without images
+      scenesToProcess = project.scenes.filter(s => !s.imageUrl);
+      console.log('[Jobs] Scenes without images:', scenesToProcess.length);
+
+      if (scenesToProcess.length === 0) {
+        return NextResponse.json({ error: 'All scenes already have images' }, { status: 400 });
+      }
+
+      // Apply limit if specified (for batch generation)
+      if (limit && limit > 0 && limit < scenesToProcess.length) {
+        scenesToProcess = scenesToProcess.slice(0, limit);
+        console.log('[Jobs] Limited to first', limit, 'scenes');
+      }
     }
 
     // Create job record
@@ -61,7 +74,7 @@ export async function POST(request: NextRequest) {
       data: {
         projectId,
         userId: session.user.id,
-        totalScenes: scenesWithoutImages.length,
+        totalScenes: scenesToProcess.length,
         status: 'pending',
       },
     });
@@ -84,7 +97,7 @@ export async function POST(request: NextRequest) {
         projectId,
         userId: session.user.id,
         batchId: job.id,
-        scenes: scenesWithoutImages.map(s => ({
+        scenes: scenesToProcess.map(s => ({
           sceneId: s.id,
           sceneNumber: s.number,
           prompt: s.textToImagePrompt,
@@ -96,12 +109,12 @@ export async function POST(request: NextRequest) {
     });
     console.log('[Jobs] Inngest event sent successfully');
 
-    console.log(`[Jobs] Started batch ${job.id} with ${scenesWithoutImages.length} scenes`);
+    console.log(`[Jobs] Started batch ${job.id} with ${scenesToProcess.length} scenes`);
 
     return NextResponse.json({
       jobId: job.id,
-      totalScenes: scenesWithoutImages.length,
-      message: 'Image generation started in background',
+      totalScenes: scenesToProcess.length,
+      message: scenesToProcess.length === 1 ? 'Image generation started' : 'Image generation started in background',
     });
   } catch (error) {
     console.error('[Jobs] Error starting image generation job:', error);

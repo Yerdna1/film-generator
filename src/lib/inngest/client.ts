@@ -67,4 +67,26 @@ export type InngestEvents = {
       sceneCount: number;
     };
   };
+  'video/generate.batch': {
+    data: {
+      projectId: string;
+      userId: string;
+      jobId: string;
+      scenes: Array<{
+        sceneId: string;
+        sceneNumber: number;
+        imageUrl: string;
+        prompt: string;
+      }>;
+      videoMode?: string;
+      videoProvider?: string;
+      videoModel?: string;
+    };
+  };
+  'video/batch.cancel': {
+    data: {
+      jobId: string;
+      batchId?: string;
+    };
+  };
 };

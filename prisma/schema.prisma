@@ -335,6 +335,28 @@ model SceneGenerationJob {
   @@index([status])
 }
 
+// Video generation job for background processing via Inngest
+model VideoGenerationJob {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  status          String    @default("pending") // pending, processing, completed, completed_with_errors, failed, cancelled
+  totalVideos     Int
+  completedVideos Int       @default(0)
+  failedVideos    Int       @default(0)
+  progress        Int       @default(0) // 0-100
+  errorDetails    String?   @db.Text
+  videoProvider   String?   // kie, modal
+  videoModel      String?   // specific model used
+  createdAt       DateTime  @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
 // Video composition job for rendering final videos with VectCutAPI
 model VideoCompositionJob {
   id              String    @id @default(cuid())

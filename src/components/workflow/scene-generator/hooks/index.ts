@@ -50,7 +50,7 @@ export function useSceneGenerator(initialProject: Project) {
   const polling = useScenePolling(project);
   const uiState = useSceneUIState(scenes);
   const editing = useSceneEditing(project, uiState.setEditingScene);
-  const imageGen = useImageGeneration(project, sceneAspectRatio, imageResolution, imageProvider, imageModel);
+  const imageGen = useImageGeneration(project, sceneAspectRatio, imageResolution as ImageResolution);
 
   // Scene generation state
   const [isGeneratingScenes, setIsGeneratingScenes] = useState(false);
@@ -135,19 +135,23 @@ export function useSceneGenerator(initialProject: Project) {
 
   // Cancel scene generation
   const handleCancelSceneGeneration = useCallback(async () => {
-    const sceneJobPollRef = { current: null } as React.MutableRefObject<NodeJS.Timeout | null>;
-    await imageGen.handleCancelSceneGeneration(polling.sceneJobId, setIsGeneratingScenes, (val) => {/* Do nothing, handled by polling */}, sceneJobPollRef);
-  }, [polling.sceneJobId, imageGen]);
+    if (polling.sceneJobId) {
+      // TODO: Implement scene generation cancellation through Inngest
+      console.log('Scene generation cancellation not yet implemented');
+      setIsGeneratingScenes(false);
+    }
+  }, [polling.sceneJobId]);
 
   // Wrapper for background generation that passes polling data
   const handleStartBackgroundGeneration = useCallback(async (limit?: number) => {
-    await imageGen.handleStartBackgroundGeneration(limit, polling.backgroundJobId, polling.startPolling);
-  }, [imageGen, polling.backgroundJobId, polling.startPolling]);
+    // With unified Inngest approach, all generation is background generation
+    await imageGen.handleGenerateAllSceneImages();
+  }, [imageGen]);
 
   // Wrapper for batch generation
   const handleGenerateBatch = useCallback((batchSize: number) => {
-    imageGen.handleGenerateBatch(batchSize, handleStartBackgroundGeneration);
-  }, [imageGen, handleStartBackgroundGeneration]);
+    imageGen.handleGenerateBatch(batchSize);
+  }, [imageGen]);
 
   // Scene job start time ref for timeout tracking
   const sceneJobStartTime = useRef<number | null>(null);
@@ -185,7 +189,7 @@ export function useSceneGenerator(initialProject: Project) {
     clearSelection: uiState.clearSelection,
     selectAllWithImages: uiState.selectAllWithImages,
     selectAll: (scenes: Project['scenes']) => uiState.selectAll(scenes || []),
-    handleRegenerateSelected: () => imageGen.handleRegenerateSelected(uiState.selectedScenes, uiState.setSelectedScenes),
+    handleRegenerateSelected: () => imageGen.handleRegenerateSelected(uiState.selectedScenes),
 
     // Background Job State (Inngest) - for images
     backgroundJobId: polling.backgroundJobId,

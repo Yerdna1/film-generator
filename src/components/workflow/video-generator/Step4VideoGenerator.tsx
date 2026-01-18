@@ -61,6 +61,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
 
     // Helpers
     getSceneStatus,
+    getCachedVideoUrl,
     buildFullI2VPrompt,
     videoBlobCache,
 
@@ -77,6 +78,12 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
     selectAllWithoutVideos,
     clearSelection,
     handleGenerateSelected,
+
+    // Background generation
+    backgroundJobId,
+    backgroundJobStatus,
+    startBackgroundGeneration,
+    cancelBackgroundJob,
   } = useVideoGenerator(initialProject);
 
   // Determine if user can delete directly (admin) or must request (collaborator)
@@ -344,11 +351,11 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
       // Process pending generation with KIE key
       if (pendingVideoGeneration) {
         if (pendingVideoGeneration.type === 'single' && pendingVideoGeneration.scene) {
-          await handleGenerateVideo(pendingVideoGeneration.scene, true); // Pass skipCreditCheck=true
+          await handleGenerateVideo(pendingVideoGeneration.scene);
         } else if (pendingVideoGeneration.type === 'all' && pendingVideoGeneration.scenes) {
-          await handleGenerateAll(true); // Pass skipCreditCheck=true
+          await handleGenerateAll();
         } else if (pendingVideoGeneration.type === 'selected' && pendingVideoGeneration.scenes) {
-          await handleGenerateSelected(true); // Pass skipCreditCheck=true
+          await handleGenerateSelected();
         }
         setPendingVideoGeneration(null);
       }
@@ -396,10 +403,10 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         {paginatedScenes.map((scene, index) => {
           const status = getSceneStatus(scene.id);
-          const progress = videoStates[scene.id]?.progress || 0;
+          const progress = 0; // Progress is now tracked by Inngest jobs
           const actualIndex = startIndex + index;
           const cachedVideoUrl = scene.videoUrl
-            ? videoBlobCache.current.get(scene.videoUrl) || scene.videoUrl
+            ? getCachedVideoUrl(scene.videoUrl)
             : undefined;
 
           // Find the index of this scene among scenes that have videos (for auth restriction)
@@ -475,6 +482,10 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
           onClearSelection={clearSelection}
           onGenerateSelected={handleGenerateSelectedWithCreditCheck}
           onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
+          backgroundJobId={backgroundJobId}
+          backgroundJobStatus={backgroundJobStatus}
+          onStartBackgroundGeneration={startBackgroundGeneration}
+          onCancelBackgroundJob={cancelBackgroundJob}
         />
       )}
 

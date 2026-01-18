@@ -373,14 +373,14 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
     // If user has own API key, skip credit check and modal
     if (hasKieApiKey) {
-      await handleGenerateSceneImage(scene, true); // skipCreditCheck=true
+      await handleGenerateSceneImage(scene.id); // skipCreditCheck=true
       return;
     }
 
     // If userApiKeys is still loading (null), don't check credits yet
     // Proceed with generation (API will check on backend)
     if (userApiKeys === null) {
-      await handleGenerateSceneImage(scene, false);
+      await handleGenerateSceneImage(scene.id);
       return;
     }
 
@@ -391,7 +391,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
     if (hasCredits) {
       // User has enough credits, proceed with generation
-      await handleGenerateSceneImage(scene, false);
+      await handleGenerateSceneImage(scene.id);
     } else {
       // Show insufficient credits modal
       setPendingSceneGeneration({ type: 'single', scene });
@@ -409,14 +409,14 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
     // If user has own API key, skip credit check and modal
     if (hasKieApiKey) {
-      await handleGenerateAllSceneImages(true); // skipCreditCheck=true
+      await handleGenerateAllSceneImages(); // skipCreditCheck=true
       return;
     }
 
     // If userApiKeys is still loading (null), don't check credits yet
     // Proceed with generation (API will check on backend)
     if (userApiKeys === null) {
-      await handleGenerateAllSceneImages(false);
+      await handleGenerateAllSceneImages();
       return;
     }
 
@@ -427,7 +427,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
     if (hasCredits) {
       // User has enough credits, proceed with generation
-      await handleGenerateAllSceneImages(false);
+      await handleGenerateAllSceneImages();
     } else {
       // Show insufficient credits modal
       setPendingSceneGeneration({ type: 'all', scenes: scenesNeedingImages });
@@ -474,10 +474,10 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
       if (pendingSceneGeneration) {
         if (pendingSceneGeneration.type === 'single' && pendingSceneGeneration.scene) {
           const scene = pendingSceneGeneration.scene;
-          await handleGenerateSceneImage(scene, true); // Pass skipCreditCheck=true
+          await handleGenerateSceneImage(scene.id); // Pass skipCreditCheck=true
         } else if (pendingSceneGeneration.type === 'all' && pendingSceneGeneration.scenes) {
           // Generate all images using KIE key (skip credit check)
-          await handleGenerateAllSceneImages(true);
+          await handleGenerateAllSceneImages();
         }
         setPendingSceneGeneration(null);
       }
@@ -498,7 +498,7 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
     setIsInsufficientCreditsModalOpen(false);
 
     if (pendingSceneGeneration.type === 'single' && pendingSceneGeneration.scene) {
-      await handleGenerateSceneImage(pendingSceneGeneration.scene);
+      await handleGenerateSceneImage(pendingSceneGeneration.scene.id);
     } else if (pendingSceneGeneration.type === 'all' && pendingSceneGeneration.scenes) {
       await handleGenerateAllSceneImages();
     }

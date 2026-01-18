@@ -1,251 +1,43 @@
+'use client';
+
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useCredits } from '@/contexts/CreditsContext';
 import { useProjectStore } from '@/lib/stores/project-store';
-import type { Project, Scene } from '@/types/project';
-import type { ImageResolution, AspectRatio } from '@/types/project';
-import { fetchWithRetry, MAX_RETRIES } from './utils';
+import { useCredits } from '@/contexts/CreditsContext';
+import type { ImageGenerationJob } from '@/types/job';
+import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
 
-interface ImageGenerationHookResult {
-  isGeneratingAllImages: boolean;
-  generatingImageForScene: string | null;
-  failedScenes: number[];
-  handleGenerateSceneImage: (scene: Scene, skipCreditCheck?: boolean) => Promise<void>;
-  handleGenerateAllSceneImages: (skipCreditCheck?: boolean) => Promise<void>;
-  handleStopImageGeneration: () => void;
-  handleRegenerateAllImages: () => Promise<void>;
-  handleRegenerateSelected: (selectedScenes: Set<string>, setSelectedScenes: (setter: (prev: Set<string>) => Set<string>) => void) => Promise<void>;
-  handleStartBackgroundGeneration: (limit?: number, backgroundJobId?: string | null, startPolling?: (jobId: string) => void) => Promise<void>;
-  handleGenerateBatch: (batchSize: number, handleStartBg: (limit?: number) => Promise<void>) => void;
-  handleCancelSceneGeneration: (sceneJobId: string | null, setIsGenerating: (value: boolean) => void, setSceneJobId: (value: string | null) => void, sceneJobPollRef: React.MutableRefObject<NodeJS.Timeout | null>) => Promise<void>;
-  isVisibleRef: React.MutableRefObject<boolean>;
-}
+type GeneratingImageState = {
+  [sceneId: string]: boolean;
+};
 
+// Simplified hook that always uses Inngest for all image generation
 export function useImageGeneration(
-  project: Project,
-  sceneAspectRatio: AspectRatio,
-  imageResolution: ImageResolution,
-  imageProvider?: string,
-  imageModel?: string
-): ImageGenerationHookResult {
+  project: { id: string; scenes?: any[]; characters?: any[] },
+  sceneAspectRatio: AspectRatio = '16:9',
+  imageResolution: ImageResolution = '2k'
+) {
   const { updateScene } = useProjectStore();
-  const { handleApiResponse, handleBulkApiResponse } = useCredits();
+  const { handleApiResponse } = useCredits();
 
-  const [isGeneratingAllImages, setIsGeneratingAllImages] = useState(false);
-  const [generatingImageForScene, setGeneratingImageForScene] = useState<string | null>(null);
-  const stopGenerationRef = useRef(false);
-  const isVisibleRef = useRef(true);
-  const [failedScenes, setFailedScenes] = useState<number[]>([]);
+  // Image generation state
+  const [generatingImages, setGeneratingImages] = useState<GeneratingImageState>({});
+  const [failedScenes, setFailedScenes] = useState<string[]>([]);
 
-  // Track page visibility
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      isVisibleRef.current = document.visibilityState === 'visible';
-      console.log(`[Visibility] Tab is now ${isVisibleRef.current ? 'visible' : 'hidden'}`);
-    };
+  // Background job state
+  const [backgroundJobId, setBackgroundJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<ImageGenerationJob | null>(null);
+  const jobPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  // Start image generation for specific scenes using Inngest
+  const generateImages = useCallback(async (sceneIds: string[]) => {
+    if (sceneIds.length === 0) return;
 
-  // Generate image for a single scene with retry logic
-  const handleGenerateSceneImage = useCallback(async (scene: Scene, skipCreditCheck = false) => {
-    if (!scene.textToImagePrompt?.trim()) {
-      alert('This scene has no prompt. Please regenerate the prompt first or edit the scene.');
-      return;
-    }
-
-    setGeneratingImageForScene(scene.id);
-
-    try {
-      const referenceImages = project.characters
-        .filter((c) => c.imageUrl)
-        .map((c) => ({
-          name: c.name,
-          imageUrl: c.imageUrl!,
-        }));
-
-      // Detect if this is a regeneration (scene already has an image)
-      const isRegeneration = !!scene.imageUrl;
-
-      const response = await fetchWithRetry(
-        '/api/image',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: scene.textToImagePrompt,
-            aspectRatio: sceneAspectRatio,
-            resolution: imageResolution,
-            projectId: project.id,
-            referenceImages,
-            isRegeneration,
-            sceneId: scene.id,
-            skipCreditCheck, // Skip credit check when user provides own API key
-            ...(imageProvider && { imageProvider }), // Include provider if specified
-            ...(imageModel && { model: imageModel }), // Include model if specified
-          }),
-        },
-        MAX_RETRIES
-      );
-
-      // Pass regeneration context so user can request admin approval if insufficient credits
-      const isInsufficientCredits = await handleApiResponse(response, {
-        projectId: project.id,
-        sceneId: scene.id,
-        sceneName: scene.title,
-        sceneNumber: scene.number,
-        targetType: 'image',
-        imageUrl: scene.imageUrl,
-      });
-      if (isInsufficientCredits) {
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-        throw new Error(errorData?.error || errorData?.message || 'Failed to generate image');
-      }
-
-      const { imageUrl } = await response.json();
-      await updateScene(project.id, scene.id, { imageUrl });
-
-      window.dispatchEvent(new CustomEvent('credits-updated'));
-    } catch (error) {
-      console.error('Error generating scene image:', error);
-      alert(`Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setGeneratingImageForScene(null);
-    }
-  }, [project, sceneAspectRatio, imageResolution, handleApiResponse, updateScene]);
-
-  // Generate all scene images with retry logic and visibility handling
-  const handleGenerateAllSceneImages = useCallback(async (skipCreditCheck = false) => {
-    if (isGeneratingAllImages) {
-      console.log('Generation already in progress, ignoring duplicate call');
-      return;
-    }
-
-    const scenesWithoutImages = (project.scenes || []).filter((s) => !s.imageUrl);
-    if (scenesWithoutImages.length === 0) {
-      alert('All scenes already have images');
-      return;
-    }
-
-    const referenceImages = project.characters
-      .filter((c) => c.imageUrl)
-      .map((c) => ({
-        name: c.name,
-        imageUrl: c.imageUrl!,
-      }));
-
-    setIsGeneratingAllImages(true);
-    stopGenerationRef.current = false;
-    const newFailedScenes: number[] = [];
-
-    try {
-      for (const scene of scenesWithoutImages) {
-        if (stopGenerationRef.current) {
-          console.log('Image generation stopped by user');
-          break;
-        }
-
-        setGeneratingImageForScene(scene.id);
-        console.log(`[Scene ${scene.number}] Starting image generation... (tab visible: ${isVisibleRef.current}, skipCreditCheck: ${skipCreditCheck})`);
-
-        try {
-          const response = await fetchWithRetry(
-            '/api/image',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                prompt: scene.textToImagePrompt,
-                aspectRatio: sceneAspectRatio,
-                resolution: imageResolution,
-                projectId: project.id,
-                referenceImages,
-                isRegeneration: false, // These are all new generations (scenes without images)
-                sceneId: scene.id,
-                skipCreditCheck, // Skip credit check when user provides own API key
-              }),
-            },
-            MAX_RETRIES
-          );
-
-          const isInsufficientCredits = await handleApiResponse(response);
-          if (isInsufficientCredits) {
-            break;
-          }
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-            const errorMessage = errorData?.error || errorData?.message || 'Unknown error';
-            console.error(`[Scene ${scene.number}] Failed: ${errorMessage}`);
-            newFailedScenes.push(scene.number);
-            continue;
-          }
-
-          const { imageUrl } = await response.json();
-          await updateScene(project.id, scene.id, { imageUrl });
-          console.log(`[Scene ${scene.number}] Image saved to DB`);
-
-          window.dispatchEvent(new CustomEvent('credits-updated'));
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[Scene ${scene.number}] Error after retries: ${errorMessage}`);
-          newFailedScenes.push(scene.number);
-        }
-
-        // Small delay between scenes
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    } catch (error) {
-      console.error('Error generating scene images:', error);
-    } finally {
-      setGeneratingImageForScene(null);
-      setIsGeneratingAllImages(false);
-      stopGenerationRef.current = false;
-      setFailedScenes(newFailedScenes);
-
-      // Show summary of failed scenes if any
-      if (newFailedScenes.length > 0) {
-        alert(`Generation complete. ${newFailedScenes.length} scene(s) failed: ${newFailedScenes.join(', ')}. You can retry by clicking "Generate All Images" again.`);
-      }
-    }
-  }, [project, isGeneratingAllImages, sceneAspectRatio, imageResolution, handleApiResponse, updateScene]);
-
-  // Stop image generation
-  const handleStopImageGeneration = useCallback(() => {
-    stopGenerationRef.current = true;
-    console.log('Stop image generation requested');
-  }, []);
-
-  // Handle regenerate all images
-  const handleRegenerateAllImages = useCallback(async () => {
-    // Clear all existing images first
-    for (const scene of project.scenes || []) {
-      if (scene.imageUrl) {
-        await updateScene(project.id, scene.id, { imageUrl: undefined });
-      }
-    }
-    // Small delay to ensure state updates
-    await new Promise(resolve => setTimeout(resolve, 100));
-    // Now generate all
-    handleGenerateAllSceneImages();
-  }, [project.id, project.scenes, updateScene, handleGenerateAllSceneImages]);
-
-  // Start background generation (Inngest) - works even when tab is closed
-  const handleStartBackgroundGeneration = useCallback(async (limit?: number, backgroundJobId?: string | null | undefined, startPolling?: (jobId: string) => void) => {
-    if (backgroundJobId) {
-      alert('A background job is already running. Please wait for it to complete.');
-      return;
-    }
-
-    const scenesWithoutImages = (project.scenes || []).filter((s) => !s.imageUrl);
-    if (scenesWithoutImages.length === 0) {
-      alert('All scenes already have images');
-      return;
-    }
+    // Update UI to show generating state
+    const newGeneratingState: GeneratingImageState = {};
+    sceneIds.forEach(id => {
+      newGeneratingState[id] = true;
+    });
+    setGeneratingImages(prev => ({ ...prev, ...newGeneratingState }));
 
     try {
       const response = await fetch('/api/jobs/generate-images', {
@@ -255,169 +47,239 @@ export function useImageGeneration(
           projectId: project.id,
           aspectRatio: sceneAspectRatio,
           resolution: imageResolution,
-          limit,
+          sceneIds, // Pass specific scene IDs
         }),
       });
 
+      const isInsufficientCredits = await handleApiResponse(response);
+      if (isInsufficientCredits) {
+        // Clear generating state on error
+        sceneIds.forEach(id => {
+          setGeneratingImages(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        });
+        return;
+      }
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to start background generation');
+        throw new Error(error.error || 'Failed to start image generation');
       }
 
-      const { jobId, totalScenes } = await response.json();
+      const { jobId } = await response.json();
+      setBackgroundJobId(jobId);
 
-      if (startPolling) {
-        startPolling(jobId);
+      // Start polling immediately
+      pollJobStatus(jobId);
+
+      // For single images, don't show the alert
+      if (sceneIds.length === 1) {
+        console.log(`[Image Generation] Started job ${jobId} for single scene`);
+      } else {
+        alert(`Started generating ${sceneIds.length} images. Progress will be shown below.`);
       }
-
-      console.log(`[Background] Started job ${jobId} for ${totalScenes} scenes`);
-      alert(`Background generation started for ${totalScenes} images. You can safely close this tab - generation will continue on the server.`);
 
     } catch (error) {
-      console.error('Error starting background generation:', error);
-      alert(`Failed to start background generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [project, sceneAspectRatio, imageResolution]);
+      console.error('Error starting image generation:', error);
+      alert(`Failed to start image generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
 
-  // Generate a batch of images (limited number)
-  const handleGenerateBatch = useCallback((batchSize: number, handleStartBg: (limit?: number) => Promise<void>) => {
-    handleStartBg(batchSize);
-  }, []);
+      // Clear generating state on error
+      sceneIds.forEach(id => {
+        setGeneratingImages(prev => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      });
+    }
+  }, [project.id, sceneAspectRatio, imageResolution, handleApiResponse]);
+
+  // Generate image for a single scene
+  const handleGenerateSceneImage = useCallback(async (sceneId: string) => {
+    await generateImages([sceneId]);
+  }, [generateImages]);
+
+  // Generate all images without images
+  const handleGenerateAllSceneImages = useCallback(async () => {
+    const scenesWithoutImages = (project.scenes || [])
+      .filter(s => !s.imageUrl)
+      .map(s => s.id);
+
+    if (scenesWithoutImages.length === 0) {
+      alert('All scenes already have images');
+      return;
+    }
+
+    await generateImages(scenesWithoutImages);
+  }, [project.scenes, generateImages]);
+
+  // Generate batch of images
+  const handleGenerateBatch = useCallback(async (batchSize: number) => {
+    const scenesWithoutImages = (project.scenes || [])
+      .filter(s => !s.imageUrl)
+      .slice(0, batchSize)
+      .map(s => s.id);
+
+    if (scenesWithoutImages.length === 0) {
+      alert('All scenes already have images');
+      return;
+    }
+
+    await generateImages(scenesWithoutImages);
+  }, [project.scenes, generateImages]);
 
   // Regenerate selected scenes
-  const handleRegenerateSelected = useCallback(async (selectedScenes: Set<string>, setSelectedScenes: (setter: (prev: Set<string>) => Set<string>) => void) => {
-    if (selectedScenes.size === 0) return;
+  const handleRegenerateSelected = useCallback(async (selectedScenes: Set<string>) => {
+    const sceneIds = Array.from(selectedScenes);
+    if (sceneIds.length === 0) return;
 
-    const scenesToRegenerate = (project.scenes || []).filter(s => selectedScenes.has(s.id));
-    if (scenesToRegenerate.length === 0) return;
+    await generateImages(sceneIds);
+  }, [generateImages]);
 
-    setIsGeneratingAllImages(true);
-    stopGenerationRef.current = false;
+  // Regenerate all images
+  const handleRegenerateAllImages = useCallback(async () => {
+    const allSceneIds = (project.scenes || []).map(s => s.id);
+    if (allSceneIds.length === 0) return;
 
-    // Get character reference images for consistency
-    const referenceImages = project.characters
-      .filter((c) => c.imageUrl)
-      .map((c) => ({
-        name: c.name,
-        imageUrl: c.imageUrl!,
-      }));
+    const confirmRegenerate = window.confirm(
+      `This will regenerate ALL ${allSceneIds.length} images. Are you sure?`
+    );
+    if (!confirmRegenerate) return;
 
-    // Prepare bulk context for the case of insufficient credits
-    const bulkContext = {
-      projectId: project.id,
-      scenes: scenesToRegenerate.map(s => ({
-        id: s.id,
-        title: s.title,
-        number: s.number,
-        imageUrl: s.imageUrl,
-      })),
-      targetType: 'image' as const,
+    await generateImages(allSceneIds);
+  }, [project.scenes, generateImages]);
+
+  // Poll job status
+  const pollJobStatus = useCallback(async (jobId: string) => {
+    // Clear any existing polling
+    if (jobPollingIntervalRef.current) {
+      clearInterval(jobPollingIntervalRef.current);
+    }
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/jobs/generate-images?jobId=${jobId}`);
+        if (!response.ok) throw new Error('Failed to fetch job status');
+
+        const job = await response.json() as ImageGenerationJob;
+        setJobStatus(job);
+
+        // Update generating state based on job progress
+        if (job.status === 'processing') {
+          // Keep the generating state for scenes being processed
+        } else if (job.status === 'completed' || job.status === 'failed' || job.status === 'completed_with_errors') {
+          // Clear all generating states
+          setGeneratingImages({});
+
+          // Clear polling
+          if (jobPollingIntervalRef.current) {
+            clearInterval(jobPollingIntervalRef.current);
+            jobPollingIntervalRef.current = null;
+          }
+
+          // Clear job ID
+          setBackgroundJobId(null);
+
+          // Refresh the page to show updated images
+          if (job.status === 'completed' || job.status === 'completed_with_errors') {
+            window.location.reload();
+          }
+
+          // Show completion message (but not for single image generation)
+          const totalScenes = job.totalScenes || 0;
+          if (totalScenes > 1) {
+            if (job.status === 'completed') {
+              alert(`All ${job.completedScenes} images generated successfully!`);
+            } else if (job.status === 'completed_with_errors') {
+              alert(`Generation complete: ${job.completedScenes} succeeded, ${job.failedScenes || 0} failed.`);
+            } else if (job.status === 'failed' && job.errorDetails) {
+              alert(`Image generation failed: ${job.errorDetails}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error polling job status:', error);
+      }
     };
 
-    try {
-      for (const scene of scenesToRegenerate) {
-        if (stopGenerationRef.current) break;
+    // Poll immediately
+    poll();
 
-        setGeneratingImageForScene(scene.id);
-
-        try {
-          const response = await fetchWithRetry(
-            '/api/image',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                prompt: scene.textToImagePrompt,
-                aspectRatio: sceneAspectRatio,
-                resolution: imageResolution,
-                projectId: project.id,
-                referenceImages,
-                isRegeneration: true, // This is always a regeneration
-                sceneId: scene.id,
-              }),
-            },
-            MAX_RETRIES
-          );
-
-          // Use bulk handler to show all selected scenes in the modal
-          const isInsufficientCredits = await handleBulkApiResponse(response, bulkContext);
-          if (isInsufficientCredits) {
-            break;
-          }
-
-          if (!response.ok) {
-            console.error(`Error regenerating scene ${scene.number}: API returned ${response.status}`);
-            continue;
-          }
-
-          const data = await response.json();
-          if (data.imageUrl) {
-            await updateScene(project.id, scene.id, { imageUrl: data.imageUrl });
-            // Remove from selection after successful regeneration
-            setSelectedScenes((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(scene.id);
-              return newSet;
-            });
-          }
-
-          window.dispatchEvent(new CustomEvent('credits-updated'));
-        } catch (error) {
-          console.error(`Error regenerating scene ${scene.number}:`, error);
-        }
-
-        setGeneratingImageForScene(null);
-      }
-    } finally {
-      setIsGeneratingAllImages(false);
-      setGeneratingImageForScene(null);
-    }
-  }, [project, sceneAspectRatio, imageResolution, handleBulkApiResponse, updateScene]);
-
-  // Cancel scene generation job
-  const handleCancelSceneGeneration = useCallback(async (sceneJobId: string | null, setIsGenerating: (value: boolean) => void, setSceneJobId: (value: string | null) => void, sceneJobPollRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
-    if (!sceneJobId) return;
-
-    try {
-      const response = await fetch(`/api/jobs/generate-scenes?jobId=${sceneJobId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to cancel scene generation');
-      }
-
-      // Stop polling
-      if (sceneJobPollRef.current) {
-        clearInterval(sceneJobPollRef.current);
-        sceneJobPollRef.current = null;
-      }
-
-      // Reset state
-      setSceneJobId(null);
-      setIsGenerating(false);
-
-      alert('Scene generation has been cancelled.');
-    } catch (error) {
-      console.error('Error cancelling scene generation:', error);
-      alert(`Failed to cancel scene generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    // Then poll every 2 seconds
+    jobPollingIntervalRef.current = setInterval(poll, 2000);
   }, []);
 
+  // Start polling if we have a job ID
+  const startPolling = useCallback((jobId: string) => {
+    setBackgroundJobId(jobId);
+    pollJobStatus(jobId);
+  }, [pollJobStatus]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (jobPollingIntervalRef.current) {
+        clearInterval(jobPollingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Check for active jobs on mount
+  useEffect(() => {
+    const checkActiveJobs = async () => {
+      try {
+        const response = await fetch(`/api/jobs/generate-images?projectId=${project.id}`);
+        if (response.ok) {
+          const { activeJob } = await response.json();
+          if (activeJob) {
+            setBackgroundJobId(activeJob.id);
+            setJobStatus(activeJob);
+            pollJobStatus(activeJob.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking active jobs:', error);
+      }
+    };
+
+    checkActiveJobs();
+  }, [project.id, pollJobStatus]);
+
+  // Helper to check if a scene is generating
+  const isSceneGenerating = useCallback((sceneId: string): boolean => {
+    return generatingImages[sceneId] || false;
+  }, [generatingImages]);
+
+  // Helper to check if any generation is happening
+  const isGeneratingAny = useCallback((): boolean => {
+    return Object.keys(generatingImages).length > 0 || backgroundJobId !== null;
+  }, [generatingImages, backgroundJobId]);
+
   return {
-    isGeneratingAllImages,
-    generatingImageForScene,
+    // State
+    generatingImages,
     failedScenes,
+    backgroundJobId,
+    jobStatus,
+    generatingImageForScene: null, // Deprecated - using generatingImages instead
+    isGeneratingAllImages: isGeneratingAny(), // For compatibility
+
+    // Actions
     handleGenerateSceneImage,
     handleGenerateAllSceneImages,
-    handleStopImageGeneration,
-    handleRegenerateAllImages,
-    handleRegenerateSelected,
-    handleStartBackgroundGeneration,
     handleGenerateBatch,
-    handleCancelSceneGeneration,
-    isVisibleRef,
+    handleRegenerateSelected,
+    handleRegenerateAllImages,
+    handleStartBackgroundGeneration: handleGenerateAllSceneImages, // Alias for compatibility
+    handleStopImageGeneration: () => {}, // No longer needed with Inngest
+    handleCancelSceneGeneration: async () => {}, // No longer needed
+    startPolling,
+
+    // Helpers
+    isSceneGenerating,
+    isGeneratingAny,
   };
 }

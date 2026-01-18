@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ExternalLink, Zap, Square, RefreshCw } from 'lucide-react';
+import { ExternalLink, Zap, Square, RefreshCw, Cloud, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
 import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
+import { Progress } from '@/components/ui/progress';
 import type { VideoMode } from '../types';
 
 interface VideoQuickActionsProps {
@@ -32,6 +33,17 @@ interface VideoQuickActionsProps {
   onClearSelection?: () => void;
   onGenerateSelected?: () => void;
   onRequestRegeneration?: () => void;
+  // Background generation props
+  backgroundJobId?: string | null;
+  backgroundJobStatus?: {
+    status: string;
+    progress: number;
+    totalVideos: number;
+    completedVideos: number;
+    failedVideos: number;
+  } | null;
+  onStartBackgroundGeneration?: (limit?: number) => void;
+  onCancelBackgroundJob?: () => void;
 }
 
 export function VideoQuickActions({
@@ -50,6 +62,10 @@ export function VideoQuickActions({
   onClearSelection,
   onGenerateSelected,
   onRequestRegeneration,
+  backgroundJobId,
+  backgroundJobStatus,
+  onStartBackgroundGeneration,
+  onCancelBackgroundJob,
 }: VideoQuickActionsProps) {
   const t = useTranslations();
 
@@ -148,7 +164,53 @@ export function VideoQuickActions({
             </Badge>
           </Button>
         )}
+
+        {/* Background Generation */}
+        {onStartBackgroundGeneration && !isGeneratingAll && scenesNeedingGeneration > 0 && (
+          <Button
+            variant="outline"
+            className="border-white/10 hover:bg-white/5"
+            disabled={backgroundJobId !== null}
+            onClick={() => onStartBackgroundGeneration()}
+          >
+            <Cloud className="w-4 h-4 mr-2" />
+            Generate in Background
+          </Button>
+        )}
       </div>
+
+      {/* Background Job Status */}
+      {backgroundJobId && backgroundJobStatus && (
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium">
+                Background Generation: {backgroundJobStatus.completedVideos}/{backgroundJobStatus.totalVideos} videos
+              </span>
+            </div>
+            {onCancelBackgroundJob && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onCancelBackgroundJob}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          <Progress value={backgroundJobStatus.progress} className="h-2" />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>Status: {backgroundJobStatus.status}</span>
+            {backgroundJobStatus.failedVideos > 0 && (
+              <span className="text-red-400">
+                {backgroundJobStatus.failedVideos} failed
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
