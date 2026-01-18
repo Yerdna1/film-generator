@@ -92,7 +92,8 @@
       "Bash(npx tsx:*)",
       "Bash(npx dotenv-cli:*)",
       "Bash(tail:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(git log:*)"
     ]
   }
 }
