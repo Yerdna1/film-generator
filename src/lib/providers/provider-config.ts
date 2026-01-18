@@ -64,9 +64,10 @@ export interface ProviderConfigOptions {
 /**
  * Resolves provider configuration with the following priority:
  * 1. Request-specific provider override
- * 2. User settings from database (if settingsUserId provided)
- * 3. Owner settings from database (if ownerId provided)
- * 4. Default from environment variables
+ * 2. Project model configuration (if projectId provided)
+ * 3. User settings from database (if settingsUserId provided)
+ * 4. Owner settings from database (if ownerId provided)
+ * 5. Default from environment variables
  */
 export async function getProviderConfig(
   options: ProviderConfigOptions
@@ -79,10 +80,35 @@ export async function getProviderConfig(
   let endpoint: string | undefined;
   let model: string | undefined;
   let userSettings: any = null;
+  let projectModelConfig: any = null;
 
   // Priority 1: Request provider is already set
 
-  // Priority 2 & 3: Database settings
+  // Priority 2: Check project model configuration if projectId is provided
+  if (projectId && !provider) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        modelConfig: true,
+      },
+    });
+
+    if (project?.modelConfig) {
+      projectModelConfig = project.modelConfig as any;
+      // Check if project has a specific provider configured for this type
+      if (projectModelConfig[type]?.provider) {
+        provider = projectModelConfig[type].provider as ProviderType;
+        model = projectModelConfig[type]?.model;
+
+        // If project is configured to use KIE, it means user has provided their API key
+        if (provider === 'kie') {
+          userHasOwnApiKey = true;
+        }
+      }
+    }
+  }
+
+  // Priority 3 & 4: Database settings
   const userIdToCheck = settingsUserId || ownerId || userId;
   if (userIdToCheck) {
     userSettings = await prisma.apiKeys.findUnique({
@@ -126,10 +152,17 @@ export async function getProviderConfig(
           userHasOwnApiKey = true;
         }
       }
+
+      // Special case: If project is configured to use KIE but no API key found yet,
+      // and user has a KIE API key in their settings, use it
+      if (provider === 'kie' && !apiKey && userSettings.kieApiKey) {
+        apiKey = userSettings.kieApiKey;
+        userHasOwnApiKey = true;
+      }
     }
   }
 
-  // Priority 4: Environment defaults
+  // Priority 5: Environment defaults
   if (!provider) {
     // Set default provider based on type
     switch (type) {
@@ -168,7 +201,7 @@ export async function getProviderConfig(
   }
 
   // Get model configuration for KIE providers
-  if (provider === 'kie' && (type === 'video' || type === 'music')) {
+  if (provider === 'kie') {
     model = await getKieModel(type, model);
   }
 
@@ -255,8 +288,20 @@ async function getKieModel(
 ): Promise<string | undefined> {
   if (requestModel) {
     // Check if we need to map the model ID to API model ID
-    if (type === 'video') {
+    if (type === 'image') {
+      const modelConfig = await prisma.kieImageModel.findUnique({
+        where: { modelId: requestModel },
+        select: { apiModelId: true },
+      });
+      return modelConfig?.apiModelId || requestModel;
+    } else if (type === 'video') {
       const modelConfig = await prisma.kieVideoModel.findUnique({
+        where: { modelId: requestModel },
+        select: { apiModelId: true },
+      });
+      return modelConfig?.apiModelId || requestModel;
+    } else if (type === 'tts') {
+      const modelConfig = await prisma.kieTtsModel.findUnique({
         where: { modelId: requestModel },
         select: { apiModelId: true },
       });

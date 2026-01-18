@@ -77,9 +77,37 @@ export async function POST(request: NextRequest) {
 
     // Send event to Inngest
     console.log('[Jobs/Scenes] Sending event to Inngest...');
-    await inngest.send({
-      name: 'scenes/generate.batch',
-      data: {
+    try {
+      await inngest.send({
+        name: 'scenes/generate.batch',
+        data: {
+          projectId,
+          userId: session.user.id,
+          jobId: job.id,
+          story,
+          characters,
+          style,
+          sceneCount,
+        },
+      });
+      console.log('[Jobs/Scenes] Inngest event sent successfully');
+    } catch (inngestError) {
+      console.error('[Jobs/Scenes] Failed to send to Inngest:', inngestError);
+
+      // Fallback: Generate scenes synchronously when Inngest is not available
+      console.log('[Jobs/Scenes] Falling back to synchronous scene generation...');
+
+      // Import the synchronous generation function
+      const { generateScenesSynchronously } = await import('@/lib/inngest/functions/generate-scenes');
+
+      // Update job status to processing
+      await prisma.sceneGenerationJob.update({
+        where: { id: job.id },
+        data: { status: 'processing' },
+      });
+
+      // Generate scenes synchronously
+      await generateScenesSynchronously({
         projectId,
         userId: session.user.id,
         jobId: job.id,
@@ -87,9 +115,10 @@ export async function POST(request: NextRequest) {
         characters,
         style,
         sceneCount,
-      },
-    });
-    console.log('[Jobs/Scenes] Inngest event sent successfully');
+      });
+
+      console.log('[Jobs/Scenes] Synchronous generation completed');
+    }
 
     return NextResponse.json({
       jobId: job.id,

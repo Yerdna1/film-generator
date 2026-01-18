@@ -363,25 +363,72 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
   // Wrapper for image generation with credit check
   const handleGenerateSceneImageWithCreditCheck = useCallback(async (scene: Scene) => {
+    // Check if user has KIE API key configured (either globally or for this project)
+    const hasKieApiKey = userApiKeys?.hasKieKey || project.modelConfig?.image?.provider === 'kie';
+
+    // If user has own API key, skip credit check and modal
+    if (hasKieApiKey) {
+      await handleGenerateSceneImage(scene, true); // skipCreditCheck=true
+      return;
+    }
+
+    // If userApiKeys is still loading (null), don't check credits yet
+    // Proceed with generation (API will check on backend)
+    if (userApiKeys === null) {
+      await handleGenerateSceneImage(scene, false);
+      return;
+    }
+
+    // Only check credits if user doesn't have their own API key
     const creditsNeeded = getImageCreditCost(imageResolution);
     const currentCredits = creditsData?.credits.balance || 0;
+    const hasCredits = currentCredits >= creditsNeeded;
 
-    // Always show Insufficient Credits modal giving user choice
-    setPendingSceneGeneration({ type: 'single', scene });
-    setIsInsufficientCreditsModalOpen(true);
-  }, [creditsData, imageResolution]);
+    if (hasCredits) {
+      // User has enough credits, proceed with generation
+      await handleGenerateSceneImage(scene, false);
+    } else {
+      // Show insufficient credits modal
+      setPendingSceneGeneration({ type: 'single', scene });
+      setIsInsufficientCreditsModalOpen(true);
+    }
+  }, [creditsData, imageResolution, userApiKeys, project.modelConfig, handleGenerateSceneImage]);
 
   // Wrapper for "Generate All" with credit check
   const handleGenerateAllWithCreditCheck = useCallback(async () => {
     const scenesNeedingImages = scenes.filter(s => !s.imageUrl);
     if (scenesNeedingImages.length === 0) return;
 
+    // Check if user has KIE API key configured (either globally or for this project)
+    const hasKieApiKey = userApiKeys?.hasKieKey || project.modelConfig?.image?.provider === 'kie';
+
+    // If user has own API key, skip credit check and modal
+    if (hasKieApiKey) {
+      await handleGenerateAllSceneImages(true); // skipCreditCheck=true
+      return;
+    }
+
+    // If userApiKeys is still loading (null), don't check credits yet
+    // Proceed with generation (API will check on backend)
+    if (userApiKeys === null) {
+      await handleGenerateAllSceneImages(false);
+      return;
+    }
+
+    // Only check credits if user doesn't have their own API key
     const creditsNeeded = getImageCreditCost(imageResolution) * scenesNeedingImages.length;
     const currentCredits = creditsData?.credits.balance || 0;
+    const hasCredits = currentCredits >= creditsNeeded;
 
-    setPendingSceneGeneration({ type: 'all', scenes: scenesNeedingImages });
-    setIsInsufficientCreditsModalOpen(true);
-  }, [creditsData, imageResolution, scenes]);
+    if (hasCredits) {
+      // User has enough credits, proceed with generation
+      await handleGenerateAllSceneImages(false);
+    } else {
+      // Show insufficient credits modal
+      setPendingSceneGeneration({ type: 'all', scenes: scenesNeedingImages });
+      setIsInsufficientCreditsModalOpen(true);
+    }
+  }, [creditsData, imageResolution, scenes, userApiKeys, project.modelConfig, handleGenerateAllSceneImages]);
 
   // Wrap to prevent click event from being passed as argument
   const handleGenerateImages = useInngest
@@ -456,16 +503,39 @@ export function Step3SceneGenerator({ project: initialProject, permissions, user
 
   // Wrapper for scene text generation with credit check
   const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {
+    // Check if user has OpenRouter API key configured
+    const hasOpenRouterKey = apiKeysData?.openRouterApiKey || project.modelConfig?.llm?.provider === 'openrouter';
+
+    // If user has own API key, skip credit check and modal
+    if (hasOpenRouterKey) {
+      await handleGenerateAllScenes(true); // skipCreditCheck=true
+      return;
+    }
+
+    // If apiKeysData is still loading (null), don't check credits yet
+    // Proceed with generation (API will check on backend)
+    if (apiKeysData === null) {
+      await handleGenerateAllScenes(false);
+      return;
+    }
+
+    // Only check credits if user doesn't have their own API key
     const sceneCount = projectSettings.sceneCount || 12;
     const creditsNeeded = ACTION_COSTS.scene.claude * sceneCount;
     const currentCredits = creditsData?.credits.balance || 0;
+    const hasCredits = currentCredits >= creditsNeeded;
 
     setSceneTextCreditsNeeded(creditsNeeded);
 
-    // Always show Insufficient Credits modal giving user choice
-    setPendingSceneTextGeneration(true);
-    setIsInsufficientCreditsModalOpen(true);
-  }, [creditsData, projectSettings.sceneCount]);
+    if (hasCredits) {
+      // User has enough credits, proceed with generation
+      await handleGenerateAllScenes(false);
+    } else {
+      // Show insufficient credits modal
+      setPendingSceneTextGeneration(true);
+      setIsInsufficientCreditsModalOpen(true);
+    }
+  }, [creditsData, projectSettings.sceneCount, apiKeysData, project.modelConfig, handleGenerateAllScenes]);
 
   // Save OpenRouter API key handler
   const handleSaveOpenRouterKey = async (apiKey: string, model: string): Promise<void> => {

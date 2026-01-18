@@ -55,6 +55,10 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const characterImageProvider = (modelConfig?.image?.provider || userConstants?.characterImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
   const characterImageModel = modelConfig?.image?.model || 'seedream/4-5-text-to-image';
 
+  // Check if project is configured to use KIE with an API key
+  // When a project uses KIE provider, it means the user has configured their API key for it
+  const projectHasKieApiKey = modelConfig?.image?.provider === 'kie';
+
   // Custom hooks
   const {
     handleAddCharacter,
@@ -106,34 +110,33 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
     // Generate image based on provider
     if (shouldGenerateWithKie) {
-      // Only show modal if we've confirmed user doesn't have a key (userApiKeys is not null and hasKieKey is false)
-      // If userApiKeys is still loading (null), proceed with generation
-      if (userApiKeys !== null && !userApiKeys.hasKieKey) {
+      // Check if user has KIE API key configured either globally or for this project
+      const hasKieApiKey = userApiKeys?.hasKieKey || projectHasKieApiKey;
+
+      // Only show modal if we've confirmed user doesn't have a key
+      if (!projectHasKieApiKey && userApiKeys !== null && !userApiKeys.hasKieKey) {
         setModalReason('no-key');
         setIsKieModalOpen(true);
-        setPendingCharacterGeneration(null);
+        setPendingCharacterGeneration(newCharacter);
         return;
       }
 
       // Only check credits if user doesn't have their own KIE API key
-      const hasOwnKey = userApiKeys?.hasKieKey;
-      if (!hasOwnKey) {
+      if (!hasKieApiKey) {
         const hasCredits = creditsData && creditsData.credits.balance >= creditsNeeded;
         if (!hasCredits) {
           setModalReason('insufficient-credits');
           setIsInsufficientCreditsModalOpen(true);
-          setPendingCharacterGeneration(null);
+          setPendingCharacterGeneration(newCharacter);
           return;
         }
       }
 
-      // TODO: Fix character generation after handleAddCharacter refactor
-      // The newCharacter variable is void because handleAddCharacter doesn't return the created character
-      // This needs to be refactored to properly get the newly created character
-      // await generateCharacterImage(newCharacter);
+      // Generate with KIE
+      await generateCharacterImage(newCharacter);
     } else {
-      // TODO: Fix character generation after handleAddCharacter refactor
-      // generateCharacterImage(newCharacter);
+      // Generate with default provider
+      generateCharacterImage(newCharacter);
     }
   }, [
     handleAddCharacter,
@@ -144,6 +147,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     updateSettings,
     project.id,
     userApiKeys?.hasKieKey,
+    projectHasKieApiKey,
     creditsData,
     creditsNeeded,
     generateCharacterImage,
@@ -158,9 +162,11 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     if (!character.masterPrompt) return;
 
     if (characterImageProvider === 'kie') {
-      // Only show modal if we've confirmed user doesn't have a key (userApiKeys is not null and hasKieKey is false)
-      // If userApiKeys is still loading (null), proceed with generation
-      if (userApiKeys !== null && !userApiKeys.hasKieKey) {
+      // Check if user has KIE API key configured either globally or for this project
+      const hasKieApiKey = userApiKeys?.hasKieKey || projectHasKieApiKey;
+
+      // Only show modal if we've confirmed user doesn't have a key
+      if (!projectHasKieApiKey && userApiKeys !== null && !userApiKeys.hasKieKey) {
         setModalReason('no-key');
         setIsKieModalOpen(true);
         setPendingCharacterGeneration(character);
@@ -169,8 +175,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
       // Only check credits if user doesn't have their own KIE API key
       // If they have their own key, they're paying KIE directly, not using platform credits
-      const hasOwnKey = userApiKeys?.hasKieKey;
-      if (!hasOwnKey) {
+      if (!hasKieApiKey) {
         const hasCredits = creditsData && creditsData.credits.balance >= creditsNeeded;
         if (!hasCredits) {
           setModalReason('insufficient-credits');
@@ -187,6 +192,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     characterAspectRatio,
     characterImageModel,
     userApiKeys?.hasKieKey,
+    projectHasKieApiKey,
     creditsData,
     creditsNeeded,
     generateCharacterImage,
@@ -198,9 +204,11 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
   // Generate all images with credit check
   const handleGenerateAllWithCheck = useCallback(async () => {
+    // Check if user has KIE API key configured either globally or for this project
+    const hasKieApiKey = userApiKeys?.hasKieKey || projectHasKieApiKey;
+
     // Only check credits if user doesn't have their own KIE API key
-    const hasOwnKey = userApiKeys?.hasKieKey;
-    if (characterImageProvider === 'kie' && !hasOwnKey) {
+    if (characterImageProvider === 'kie' && !hasKieApiKey) {
       const totalCreditsNeeded = characters.filter(c => !c.imageUrl).length * creditsNeeded;
       const hasEnoughCredits = creditsData && creditsData.credits.balance >= totalCreditsNeeded;
 
@@ -221,6 +229,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     characterImageModel,
     handleGenerateAll,
     userApiKeys?.hasKieKey,
+    projectHasKieApiKey,
     setModalReason,
     setIsInsufficientCreditsModalOpen,
   ]);
