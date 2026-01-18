@@ -1,0 +1,74 @@
+{
+  "id": "film-generator-env",
+  "name": "Film Generator - Local",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "sessionToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true,
+      "description": "NextAuth session token (auto-captured from login cookie)"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "sceneId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "characterId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "memberId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "inviteId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

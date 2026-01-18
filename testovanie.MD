@@ -19,6 +19,17 @@ password: NovyClen2
 ------------------------------
 
 
+meno: NovyClen4
+
+login: novyclen4@azet.sk
+password: NovyClen4
+
+33 by mal dostat
+
+------------------------------
+
+
+
 
 
 

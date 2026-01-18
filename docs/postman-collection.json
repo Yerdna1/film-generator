@@ -1,0 +1,1474 @@
+{
+  "info": {
+    "name": "Film Generator API",
+    "description": "Complete API collection for Film Generator application with authentication, projects, scenes, characters, and AI generation endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "sessionToken",
+      "value": "",
+      "type": "string",
+      "description": "NextAuth session token from cookie (get after login)"
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sceneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "characterId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "javascript/exec",
+        "exec": [
+          "// Auto-add session cookie to all requests",
+          "const token = pm.collectionVariables.get('sessionToken');",
+          "console.log('Session token from variable:', token ? token.substring(0, 20) + '...' : 'NOT SET');",
+          "",
+          "if (token) {",
+          "  // Remove existing Cookie header if present",
+          "  const existingHeader = pm.request.headers.getHeader('Cookie');",
+          "  if (existingHeader) {",
+          "    pm.request.headers.remove({",
+          "      key: 'Cookie'",
+          "    });",
+          "  }",
+          "  ",
+          "  // Add fresh Cookie header",
+          "  pm.request.headers.add({",
+          "    key: 'Cookie',",
+          "    value: 'next-auth.session-token=' + token",
+          "  });",
+          "  ",
+          "  console.log('Cookie header added:', 'next-auth.session-token=' + token.substring(0, 20) + '...');",
+          "} else {",
+          "  console.error('ERROR: sessionToken variable is not set! Please login first.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login (Credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "javascript/exec",
+                "exec": [
+                  "// After successful login, capture the session token from cookies",
+                  "if (pm.response.code === 200 || pm.response.code === 204) {",
+                  "  // Get cookies from response",
+                  "  const cookies = pm.response.cookies.toArray();",
+                  "  ",
+                  "  // Find the next-auth session token",
+                  "  const sessionCookie = cookies.find(c => c.name.includes('session-token'));",
+                  "  ",
+                  "  if (sessionCookie) {",
+                  "    pm.collectionVariables.set('sessionToken', sessionCookie.value);",
+                  "    console.log('Session token saved:', sessionCookie.value.substring(0, 20) + '...');",
+                  "  } else {",
+                  "    console.log('No session cookie found. Make sure login was successful.');",
+                  "    console.log('Response cookies:', cookies);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signin"]
+            },
+            "description": "Login using email and password credentials. The session token will be automatically saved from the response cookie."
+          }
+        },
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "session"]
+            },
+            "description": "Get current session information"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signout"]
+            },
+            "description": "Logout and clear session"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Get All Projects",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().length > 0) {",
+                  "  pm.collectionVariables.set('projectId', pm.response.json()[0].id);",
+                  "}"
+                ],
+                "type": "javascript/exec"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects?refresh=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects"],
+              "query": [
+                {
+                  "key": "refresh",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Get all projects for the authenticated user (owned + shared)"
+          }
+        },
+        {
+          "name": "Get Public Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/public",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "public"]
+            },
+            "description": "Get all public projects"
+          }
+        },
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('projectId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "javascript/exec"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Awesome Film\",\n  \"style\": \"disney-pixar\",\n  \"settings\": {\n    \"sceneCount\": 12,\n    \"characterCount\": 2,\n    \"aspectRatio\": \"16:9\",\n    \"resolution\": \"hd\",\n    \"voiceLanguage\": \"sk\",\n    \"voiceProvider\": \"gemini-tts\"\n  },\n  \"story\": {\n    \"title\": \"The Adventure\",\n    \"concept\": \"A hero embarks on an epic journey\",\n    \"genre\": \"adventure\",\n    \"tone\": \"heartfelt\",\n    \"setting\": \"Magical forest\"\n  },\n  \"voiceSettings\": {\n    \"language\": \"sk\",\n    \"provider\": \"gemini-tts\",\n    \"characterVoices\": {}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Create a new project"
+          }
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}"]
+            },
+            "description": "Get a single project with all details"
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"style\": \"anime-studio\",\n  \"currentStep\": 2,\n  \"story\": {\n    \"title\": \"Updated Story\",\n    \"concept\": \"Updated concept\",\n    \"genre\": \"comedy\",\n    \"tone\": \"lighthearted\",\n    \"setting\": \"Urban city\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}"]
+            },
+            "description": "Update project details"
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}"]
+            },
+            "description": "Delete a project (soft delete)"
+          }
+        },
+        {
+          "name": "Get Project Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/statistics/project/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "statistics", "project", "{{projectId}}"]
+            },
+            "description": "Get statistics for a specific project"
+          }
+        },
+        {
+          "name": "Export Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/export?format=json",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "export"],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "json",
+                  "description": "Export format: json, markdown, or zip"
+                }
+              ]
+            },
+            "description": "Export project data in various formats"
+          }
+        },
+        {
+          "name": "Import Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Imported Project\",\n  \"data\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "import"]
+            },
+            "description": "Import project from JSON"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scenes",
+      "item": [
+        {
+          "name": "Get Project Scenes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const scenes = pm.response.json().scenes;",
+                  "  if (scenes && scenes.length > 0) {",
+                  "    pm.collectionVariables.set('sceneId', scenes[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "javascript/exec"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/scenes?page=1&limit=12&withDialogue=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "scenes"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "12"
+                },
+                {
+                  "key": "withDialogue",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Get scenes for a project with pagination"
+          }
+        },
+        {
+          "name": "Create Scene",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": 1,\n  \"title\": \"Opening Scene\",\n  \"description\": \"The hero begins their journey\",\n  \"textToImagePrompt\": \"A brave hero standing at the edge of a magical forest, Disney Pixar style, vibrant colors, cinematic lighting\",\n  \"imageToVideoPrompt\": \"Gentle camera pan, wind blowing through leaves, hero looking determined\",\n  \"cameraShot\": \"wide\",\n  \"duration\": 6,\n  \"dialogue\": [\n    {\n      \"characterId\": \"char-1\",\n      \"text\": \"This is where my journey begins.\",\n      \"voiceId\": \"Aoede\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/scenes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "scenes"]
+            },
+            "description": "Create a new scene in the project"
+          }
+        },
+        {
+          "name": "Batch Update Scenes",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenes\": [\n    {\n      \"id\": \"{{sceneId}}\",\n      \"number\": 1,\n      \"title\": \"Updated Scene\",\n      \"description\": \"Updated description\",\n      \"textToImagePrompt\": \"Updated prompt\",\n      \"cameraShot\": \"medium\",\n      \"duration\": 6\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/scenes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "scenes"]
+            },
+            "description": "Batch update or create scenes (safe upsert)"
+          }
+        },
+        {
+          "name": "Get Scene by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/scenes/{{sceneId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "scenes", "{{sceneId}}"]
+            },
+            "description": "Get a single scene by ID"
+          }
+        },
+        {
+          "name": "Update Scene",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Scene Title\",\n  \"description\": \"Updated scene description\",\n  \"textToImagePrompt\": \"Updated image generation prompt\",\n  \"imageToVideoPrompt\": \"Updated video generation prompt\",\n  \"cameraShot\": \"close-up\",\n  \"duration\": 8,\n  \"locked\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/scenes/{{sceneId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "scenes", "{{sceneId}}"]
+            },
+            "description": "Update a specific scene"
+          }
+        },
+        {
+          "name": "Lock/Unlock Scene",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locked\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/scenes/{{sceneId}}/lock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "scenes", "{{sceneId}}", "lock"]
+            },
+            "description": "Lock or unlock a scene to prevent edits"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Characters",
+      "item": [
+        {
+          "name": "Get Project Characters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const characters = pm.response.json();",
+                  "  if (characters && characters.length > 0) {",
+                  "    pm.collectionVariables.set('characterId', characters[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "javascript/exec"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/characters",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "characters"]
+            },
+            "description": "Get all characters for a project"
+          }
+        },
+        {
+          "name": "Create Character",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hero\",\n  \"description\": \"A brave young adventurer with a heart of gold\",\n  \"appearance\": \"Young adult, brave expression, wearing adventure gear, Disney Pixar style\",\n  \"imageUrl\": null,\n  \"voiceId\": \"Aoede\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/characters",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "characters"]
+            },
+            "description": "Create a new character for the project"
+          }
+        },
+        {
+          "name": "Update Character",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{characterId}}\",\n  \"name\": \"Updated Hero Name\",\n  \"description\": \"Updated character description\",\n  \"appearance\": \"Updated appearance description\",\n  \"voiceId\": \"Charon\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/characters/{{characterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "characters", "{{characterId}}"]
+            },
+            "description": "Update a character"
+          }
+        },
+        {
+          "name": "Delete Character",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/characters/{{characterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "characters", "{{characterId}}"]
+            },
+            "description": "Delete a character"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Generation - Image",
+      "item": [
+        {
+          "name": "Generate Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"A brave hero standing at the edge of a magical forest, Disney Pixar style, vibrant colors, cinematic lighting, wide shot\",\n  \"aspectRatio\": \"16:9\",\n  \"resolution\": \"2k\",\n  \"projectId\": \"{{projectId}}\",\n  \"referenceImages\": [],\n  \"imageProvider\": \"gemini\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "image"]
+            },
+            "description": "Generate image using AI (Gemini, KIE, Modal, Modal-Edit)\n\nProviders:\n- gemini: Google Gemini 3 Pro\n- kie: KIE AI (various models)\n- modal: Self-hosted Modal\n- modal-edit: Modal with reference images for consistency"
+          }
+        },
+        {
+          "name": "Generate Image with Reference (Character Consistency)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"The hero walking through the magical forest, determined expression, same character as before\",\n  \"aspectRatio\": \"16:9\",\n  \"resolution\": \"2k\",\n  \"projectId\": \"{{projectId}}\",\n  \"referenceImages\": [\n    {\n      \"name\": \"Hero Character\",\n      \"imageUrl\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\"\n    }\n  ],\n  \"imageProvider\": \"modal-edit\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "image"]
+            },
+            "description": "Generate image with reference images for character consistency (uses Modal-Edit)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Generation - Video",
+      "item": [
+        {
+          "name": "Generate Video (Create Task)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://example.com/scene-image.png\",\n  \"prompt\": \"Gentle camera movement, leaves rustling in the wind, hero looking toward the horizon with determination, smooth motion, cinematic flow\",\n  \"projectId\": \"{{projectId}}\",\n  \"mode\": \"normal\",\n  \"seed\": 42\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/video",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "video"]
+            },
+            "description": "Create a video generation task (returns taskId for polling)\n\nModes:\n- fun: Creative/expressive motion\n- normal: Standard motion\n- spicy: More dramatic motion"
+          }
+        },
+        {
+          "name": "Check Video Status (Poll)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/video?taskId=task-abc123&projectId={{projectId}}&download=true&isRegeneration=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "video"],
+              "query": [
+                {
+                  "key": "taskId",
+                  "value": "task-abc123",
+                  "description": "Task ID from POST /api/video response"
+                },
+                {
+                  "key": "projectId",
+                  "value": "{{projectId}}"
+                },
+                {
+                  "key": "download",
+                  "value": "true",
+                  "description": "Download and process video when complete"
+                },
+                {
+                  "key": "isRegeneration",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Poll for video generation status\n\nResponse states:\n- processing: Still generating\n- complete: Video ready, includes videoUrl\n- error: Generation failed"
+          }
+        },
+        {
+          "name": "Compose Final Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"scenes\": [\n    {\n      \"sceneId\": \"{{sceneId}}\",\n      \"videoUrl\": \"https://example.com/scene1.mp4\",\n      \"duration\": 6,\n      \"transition\": {\n        \"type\": \"fade\",\n        \"duration\": 0.5\n      }\n    }\n  ],\n  \"musicUrl\": \"https://example.com/background-music.mp3\",\n  \"musicVolume\": 0.3,\n  \"outputFormat\": \"mp4\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/video/compose",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "video", "compose"]
+            },
+            "description": "Compose all scenes into a final video with music and transitions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Generation - TTS (Voiceover)",
+      "item": [
+        {
+          "name": "Generate Speech (TTS)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"This is where my journey begins. Into the unknown, with hope in my heart.\",\n  \"voiceId\": \"Aoede\",\n  \"voiceName\": \"Aoede\",\n  \"language\": \"sk\",\n  \"projectId\": \"{{projectId}}\",\n  \"provider\": \"gemini-tts\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tts"]
+            },
+            "description": "Generate speech from text using TTS\n\nProviders:\n- gemini-tts: Google Gemini TTS (default)\n- elevenlabs: ElevenLabs TTS\n- openai-tts: OpenAI gpt-4o-mini-tts\n- kie: KIE AI ElevenLabs\n- modal: Self-hosted Modal TTS\n\nVoice Settings (ElevenLabs/KIE):\n- voiceStability: 0-1 (default 0.5)\n- voiceSimilarityBoost: 0-1 (default 0.75)\n- voiceStyle: 0-1 (default 0.5)"
+          }
+        },
+        {
+          "name": "Generate Speech (ElevenLabs with settings)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello, this is a test of the ElevenLabs voice generation.\",\n  \"voiceId\": \"pNInz6obpgDQGcFmaJgB\",\n  \"language\": \"en\",\n  \"projectId\": \"{{projectId}}\",\n  \"provider\": \"elevenlabs\",\n  \"voiceStability\": 0.5,\n  \"voiceSimilarityBoost\": 0.75,\n  \"voiceStyle\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tts"]
+            },
+            "description": "Generate speech with ElevenLabs voice customization"
+          }
+        },
+        {
+          "name": "Generate Speech (OpenAI with instructions)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Ahoj! Toto je skúška slovenského hlasového generátora.\",\n  \"voiceId\": \"alloy\",\n  \"language\": \"sk\",\n  \"projectId\": \"{{projectId}}\",\n  \"provider\": \"openai-tts\",\n  \"voiceInstructions\": \"Speak in Slovak with natural pronunciation and intonation, friendly and warm tone\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tts"]
+            },
+            "description": "Generate speech with OpenAI TTS and custom voice instructions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Generation - Music",
+      "item": [
+        {
+          "name": "Generate Music (Create Task)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Epic orchestral adventure music with building intensity, heroic theme, cinematic soundtrack\",\n  \"instrumental\": true,\n  \"title\": \"Hero's Journey\",\n  \"style\": \"Epic Cinematic\",\n  \"provider\": \"piapi\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/music",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "music"]
+            },
+            "description": "Create a music generation task\n\nProviders:\n- piapi: PiAPI Suno integration (default)\n- suno: Direct Suno API\n- kie: KIE AI Suno integration\n- modal: Self-hosted Modal music generation\n\nResponse returns taskId for polling"
+          }
+        },
+        {
+          "name": "Check Music Status (Poll)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/music?taskId=music-task-abc&projectId={{projectId}}&download=true&provider=piapi",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "music"],
+              "query": [
+                {
+                  "key": "taskId",
+                  "value": "music-task-abc"
+                },
+                {
+                  "key": "projectId",
+                  "value": "{{projectId}}"
+                },
+                {
+                  "key": "download",
+                  "value": "true"
+                },
+                {
+                  "key": "provider",
+                  "value": "piapi"
+                }
+              ]
+            },
+            "description": "Poll for music generation status\n\nResponse states:\n- processing: Still generating\n- complete: Music ready, includes audioUrl and title\n- error: Generation failed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "LLM - Story & Scenes",
+      "item": [
+        {
+          "name": "Generate Story Prompt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"concept\": \"A young chef discovers a magical cookbook that brings recipes to life\",\n  \"genre\": \"family fantasy\",\n  \"tone\": \"heartwarming\",\n  \"setting\": \"Cozy bakery in a small town\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/llm/prompt",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "llm", "prompt"]
+            },
+            "description": "Generate a detailed story prompt from a basic concept"
+          }
+        },
+        {
+          "name": "Generate Scenes from Story",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"story\": \"Our hero, a young baker named Maya, discovers an ancient cookbook in her grandmother's bakery. When she reads a recipe aloud, the dish magically appears! She must learn to control this power while keeping it secret from the skeptical food critic next door.\",\n  \"sceneCount\": 12,\n  \"style\": \"disney-pixar\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/claude/scenes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "claude", "scenes"]
+            },
+            "description": "Generate scenes from a story description using Claude AI"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Project Members & Permissions",
+      "item": [
+        {
+          "name": "Get Project Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "members"]
+            },
+            "description": "Get all members of a project with their roles"
+          }
+        },
+        {
+          "name": "Add Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"collaborator@example.com\",\n  \"role\": \"collaborator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "members"]
+            },
+            "description": "Add a member to the project\n\nRoles:\n- admin: Full permissions\n- collaborator: Can edit, regenerate\n- reader: View only"
+          }
+        },
+        {
+          "name": "Update Member Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/members/{{memberId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "members", "{{memberId}}"]
+            },
+            "description": "Update a member's role"
+          }
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/members/{{memberId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "members", "{{memberId}}"]
+            },
+            "description": "Remove a member from the project"
+          }
+        },
+        {
+          "name": "Get Your Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/members/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "members", "me"]
+            },
+            "description": "Get your permissions for a project"
+          }
+        },
+        {
+          "name": "Get Project Permissions Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "permissions"]
+            },
+            "description": "Get permission summary for all members"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invitations",
+      "item": [
+        {
+          "name": "Create Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"role\": \"collaborator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/invitations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "invitations"]
+            },
+            "description": "Create an invitation for a new member"
+          }
+        },
+        {
+          "name": "Get Project Invitations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/invitations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "invitations"]
+            },
+            "description": "Get all invitations for a project"
+          }
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/invitations/accept/{{token}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invitations", "accept", "{{token}}"]
+            },
+            "description": "Accept a project invitation"
+          }
+        },
+        {
+          "name": "Decline Invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/invitations/decline/{{token}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invitations", "decline", "{{token}}"]
+            },
+            "description": "Decline a project invitation"
+          }
+        },
+        {
+          "name": "Cancel Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/invitations/{{inviteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "invitations", "{{inviteId}}"]
+            },
+            "description": "Cancel a pending invitation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Regeneration Requests",
+      "item": [
+        {
+          "name": "Get Regeneration Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/regeneration-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "regeneration-requests"]
+            },
+            "description": "Get all regeneration requests for a project"
+          }
+        },
+        {
+          "name": "Create Regeneration Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sceneId\": \"{{sceneId}}\",\n  \"type\": \"image\",\n  \"reason\": \"Need better character consistency\",\n  \"newPrompt\": \"A brave hero standing at the edge of a magical forest, same character design, improved consistency\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/regeneration-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "regeneration-requests"]
+            },
+            "description": "Request regeneration of an image/video"
+          }
+        },
+        {
+          "name": "Get Request Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/regeneration-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "regeneration-requests", "{{requestId}}"]
+            },
+            "description": "Get details of a specific regeneration request"
+          }
+        },
+        {
+          "name": "Approve Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/regeneration-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "regeneration-requests", "{{requestId}}"]
+            },
+            "description": "Approve a regeneration request (admin only)"
+          }
+        },
+        {
+          "name": "Bulk Process Requests",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\",\n  \"requestIds\": [\"request-1\", \"request-2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}/regeneration-requests/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "regeneration-requests", "bulk"]
+            },
+            "description": "Process multiple regeneration requests at once"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications"]
+            },
+            "description": "Get all notifications for the current user"
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "{{notificationId}}", "read"]
+            },
+            "description": "Mark a notification as read"
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Credits & Billing",
+      "item": [
+        {
+          "name": "Get User Credits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/credits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "credits"]
+            },
+            "description": "Get current credit balance and history"
+          }
+        },
+        {
+          "name": "Get Credit Costs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/costs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "costs"]
+            },
+            "description": "Get credit costs for all operations"
+          }
+        },
+        {
+          "name": "Get Polar Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/polar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polar"]
+            },
+            "description": "Get Polar subscription status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get User Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "status"]
+            },
+            "description": "Get current user status and approval"
+          }
+        },
+        {
+          "name": "Get User API Keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "api-keys"]
+            },
+            "description": "Get user's saved API keys"
+          }
+        },
+        {
+          "name": "Update API Keys",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"geminiApiKey\": \"YOUR_GEMINI_API_KEY\",\n  \"elevenLabsApiKey\": \"YOUR_ELEVENLABS_API_KEY\",\n  \"openaiApiKey\": \"YOUR_OPENAI_API_KEY\",\n  \"kieApiKey\": \"YOUR_KIE_API_KEY\",\n  \"piapiApiKey\": \"YOUR_PIAPI_API_KEY\",\n  \"sunoApiKey\": \"YOUR_SUNO_API_KEY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "api-keys"]
+            },
+            "description": "Update user's API keys for AI providers"
+          }
+        },
+        {
+          "name": "Get App Constants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/constants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "constants"]
+            },
+            "description": "Get app constants and configuration"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Endpoints",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            },
+            "description": "Get all users (admin only)"
+          }
+        },
+        {
+          "name": "Update User Approval",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isApproved\": true,\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"]
+            },
+            "description": "Approve/reject user and set role (admin only)"
+          }
+        },
+        {
+          "name": "Clear Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/clear-cache",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "clear-cache"]
+            },
+            "description": "Clear all application caches (admin only)"
+          }
+        },
+        {
+          "name": "Get App Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/app-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "app-config"]
+            },
+            "description": "Get application configuration (admin only)"
+          }
+        },
+        {
+          "name": "Update App Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"defaultImageProvider\": \"gemini\",\n  \"defaultVideoProvider\": \"kie\",\n  \"defaultTtsProvider\": \"gemini-tts\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/app-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "app-config"]
+            },
+            "description": "Update application configuration (admin only)"
+          }
+        },
+        {
+          "name": "Get Approval Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/approvals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "approvals"]
+            },
+            "description": "Get pending user approval requests (admin only)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Get Global Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/statistics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "statistics"]
+            },
+            "description": "Get global platform statistics (admin only)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Showcase",
+      "item": [
+        {
+          "name": "Get Showcase Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/showcase",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "showcase"]
+            },
+            "description": "Get featured showcase projects"
+          }
+        }
+      ]
+    }
+  ]
+}
