@@ -1,15 +1,15 @@
 import { useCallback } from 'react';
 import type { DeletionRequest, RegenerationRequest, PromptEditRequest } from '@/types/collaboration';
-import type { RequestType } from '../types';
+import type { RequestType, ProjectInfo } from '../types';
 
 interface UseApprovalActionsProps {
-  setDeletionRequests: React.Dispatch<React.SetStateAction<(DeletionRequest & { project?: unknown })[]>>;
-  setRegenerationRequests: React.Dispatch<React.SetStateAction<(RegenerationRequest & { project?: unknown })[]>>;
-  setPromptEditRequests: React.Dispatch<React.SetStateAction<(PromptEditRequest & { project?: unknown })[]>>;
+  setDeletionRequests: React.Dispatch<React.SetStateAction<(DeletionRequest & { project?: ProjectInfo })[]>>;
+  setRegenerationRequests: React.Dispatch<React.SetStateAction<(RegenerationRequest & { project?: ProjectInfo })[]>>;
+  setPromptEditRequests: React.Dispatch<React.SetStateAction<(PromptEditRequest & { project?: ProjectInfo })[]>>;
   setProcessingIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  filteredDeletions: (DeletionRequest & { project?: unknown })[];
-  filteredRegenerations: (RegenerationRequest & { project?: unknown })[];
-  filteredPromptEdits: (PromptEditRequest & { project?: unknown })[];
+  filteredDeletions: (DeletionRequest & { project?: ProjectInfo })[];
+  filteredRegenerations: (RegenerationRequest & { project?: ProjectInfo })[];
+  filteredPromptEdits: (PromptEditRequest & { project?: ProjectInfo })[];
 }
 
 export const useApprovalActions = ({
