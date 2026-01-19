@@ -14,7 +14,7 @@ interface FinalApprovalSectionProps {
   expandedLogs: Set<string>;
   setExpandedLogs: React.Dispatch<React.SetStateAction<Set<string>>>;
   onAction: (request: RegenerationRequest, action: 'final_approve' | 'final_reject') => void;
-  t: (key: string, params?: Record<string, unknown>) => string;
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
 }
 
 const LogIcon = ({ type }: { type: string }) => {

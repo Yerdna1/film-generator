@@ -214,13 +214,14 @@ export function Step3SceneGenerator({
 
   // Wrapper for scene text generation with credit check
   const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {
-    const hasOpenRouterKey = apiKeysData?.hasOpenRouterKey || project.modelConfig?.llm?.provider === 'openrouter';
+    // Only bypass credit check if user actually has an OpenRouter API key stored
+    const hasOpenRouterKey = apiKeysData?.hasOpenRouterKey;
     if (hasOpenRouterKey) {
       await handleGenerateAllScenes(true);
       return;
     }
 
-    // Check credits first (creditsData is independent of apiKeysData)
+    // Check credits first BEFORE any other logic
     const sceneCount = projectSettings.sceneCount || 12;
     const creditsNeeded = ACTION_COSTS.scene.claude * sceneCount;
     const currentCredits = creditsData?.credits.balance || 0;
@@ -228,15 +229,15 @@ export function Step3SceneGenerator({
     setSceneTextCreditsNeeded(creditsNeeded);
 
     if (!hasCredits) {
-      // Set pending flag and show OpenRouter modal directly when no credits (Pokročilé nastavenia)
+      // Show modal and STOP - don't proceed to generation
       setPendingSceneTextGeneration(true);
       setIsOpenRouterModalOpen(true);
       return;
     }
 
-    // If apiKeysData is still loading but we have credits, proceed
+    // Only proceed if we have credits
     await handleGenerateAllScenes(false);
-  }, [creditsData, projectSettings.sceneCount, apiKeysData, project.modelConfig, handleGenerateAllScenes]);
+  }, [creditsData, projectSettings.sceneCount, apiKeysData, handleGenerateAllScenes]);
 
   // Save KIE API key handler
   const handleSaveKieApiKey = useCallback(async (apiKey: string, model: string): Promise<void> => {

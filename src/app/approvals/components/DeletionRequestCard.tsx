@@ -9,7 +9,7 @@ interface DeletionRequestCardProps {
   request: DeletionRequest & { project?: { id: string; name: string } };
   processingIds: Set<string>;
   onAction: (request: DeletionRequest, action: 'approved' | 'rejected') => void;
-  t: (key: string, params?: Record<string, unknown>) => string;
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
 }
 
 export const DeletionRequestCard = ({ request, processingIds, onAction, t }: DeletionRequestCardProps) => {

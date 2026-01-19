@@ -8,7 +8,7 @@ interface FiltersProps {
   setFilterUser: (value: string) => void;
   projects: Array<{ id: string; name: string }>;
   users: Array<{ id: string; name: string }>;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
 }
 
 export const Filters = ({

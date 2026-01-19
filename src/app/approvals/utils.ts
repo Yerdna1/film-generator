@@ -1,6 +1,6 @@
 import type { LogEntry } from './types';
 
-export const formatDate = (dateString: string, t: (key: string, params?: Record<string, unknown>) => string) => {
+export const formatDate = (dateString: string, t: (key: string, params?: Record<string, string | number | Date>) => string) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();

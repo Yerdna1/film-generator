@@ -10,7 +10,7 @@ interface RegenerationRequestCardProps {
   request: RegenerationRequest & { project?: { id: string; name: string } };
   processingIds: Set<string>;
   onAction: (request: RegenerationRequest, approved: boolean) => void;
-  t: (key: string, params?: Record<string, unknown>) => string;
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
 }
 
 export const RegenerationRequestCard = ({ request, processingIds, onAction, t }: RegenerationRequestCardProps) => {

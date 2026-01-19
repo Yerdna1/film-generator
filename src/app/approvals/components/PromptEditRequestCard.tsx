@@ -12,7 +12,7 @@ interface PromptEditRequestCardProps {
   setExpandedDiffs: React.Dispatch<React.SetStateAction<Set<string>>>;
   fieldLabels: Record<string, string>;
   onAction: (request: PromptEditRequest, action: 'approve' | 'revert') => void;
-  t: (key: string, params?: Record<string, unknown>) => string;
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
 }
 
 export const PromptEditRequestCard = ({
