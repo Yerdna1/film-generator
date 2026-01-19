@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project } from '@/types/project';
+import { toast } from 'sonner';
 
 interface PollingHookResult {
   // Background job state (Inngest) - for images
@@ -18,6 +19,8 @@ interface PollingHookResult {
   // Actions
   startPolling: (jobId: string) => void;
   startSceneJobPolling: (jobId: string) => void;
+  stopSceneJobPolling: () => void;
+  stopBackgroundJobPolling: () => void;
   checkExistingJobs: () => Promise<void>;
 }
 
@@ -113,11 +116,13 @@ export function useScenePolling(project: Project): PollingHookResult {
 
             // Show completion message
             if (job.status === 'completed') {
-              alert(`All ${job.completedScenes} images generated successfully!`);
+              toast.success(`All ${job.completedScenes} images generated successfully!`);
             } else if (job.status === 'completed_with_errors') {
-              alert(`Generation complete: ${job.completedScenes} succeeded, ${job.failedScenes} failed.`);
+              toast.warning(`Generation complete: ${job.completedScenes} succeeded, ${job.failedScenes} failed.`);
             } else {
-              alert('Image generation failed. Please try again.');
+              toast.error('Image generation failed', {
+                description: 'Please try again.',
+              });
             }
 
             setBackgroundJobId(null);
@@ -176,12 +181,27 @@ export function useScenePolling(project: Project): PollingHookResult {
 
             // Show completion message
             if (job.status === 'completed') {
-              alert(`All ${job.completedScenes} scenes generated successfully!`);
+              toast.success(`All ${job.completedScenes} scenes generated successfully!`);
             } else if (job.status === 'cancelled') {
               // Don't show alert for cancelled jobs as user already knows
               console.log('[Scenes] Job was cancelled');
             } else {
-              alert(`Scene generation failed: ${job.errorDetails || 'Unknown error'}`);
+              const errorMessage = job.errorDetails || 'Unknown error';
+
+              if (errorMessage.includes('Insufficient credits')) {
+                toast.error('Insufficient Credits', {
+                  description: 'Your OpenRouter account has insufficient credits. Please add credits at openrouter.ai.',
+                  duration: 8000,
+                  action: {
+                    label: 'Add Credits',
+                    onClick: () => window.open('https://openrouter.ai/credits', '_blank'),
+                  },
+                });
+              } else {
+                toast.error('Scene generation failed', {
+                  description: errorMessage,
+                });
+              }
             }
 
             setSceneJobId(null);
@@ -197,6 +217,29 @@ export function useScenePolling(project: Project): PollingHookResult {
     poll();
     sceneJobPollRef.current = setInterval(poll, 3000);
   }, [refreshProjectData]);
+
+  // Stop polling for scene generation job
+  const stopSceneJobPolling = useCallback(() => {
+    if (sceneJobPollRef.current) {
+      clearInterval(sceneJobPollRef.current);
+      sceneJobPollRef.current = null;
+    }
+    setSceneJobId(null);
+    setSceneJobStatus(null);
+    setSceneJobProgress(0);
+    sceneJobStartTime.current = null;
+  }, []);
+
+  // Stop polling for background job
+  const stopBackgroundJobPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setBackgroundJobId(null);
+    setBackgroundJobStatus(null);
+    setBackgroundJobProgress(0);
+  }, []);
 
   // Check for existing background job on mount (only if job was running)
   useEffect(() => {
@@ -293,6 +336,8 @@ export function useScenePolling(project: Project): PollingHookResult {
     // Actions
     startPolling,
     startSceneJobPolling,
+    stopSceneJobPolling,
+    stopBackgroundJobPolling,
     checkExistingJobs,
   };
 }

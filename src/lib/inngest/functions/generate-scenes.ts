@@ -1,4 +1,5 @@
 import { inngest } from '../client';
+import { NonRetriableError } from 'inngest';
 import { prisma } from '@/lib/db/prisma';
 import { spendCredits, COSTS } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
@@ -176,7 +177,7 @@ export const generateScenesBatch = inngest.createFunction(
         continue;
       }
 
-      const batchScenes = await step.run(`generate-batch-${batchIndex + 1}`, async () => {
+      const batchResult = await step.run(`generate-batch-${batchIndex + 1}`, async (): Promise<{ success: boolean; scenes?: any[]; error?: string }> => {
         console.log(`[Inngest Scenes] Generating batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}`);
 
         const prompt = `Generate scenes ${startScene} to ${endScene} (${batchSize} scenes) for a 3D animated short film.
@@ -302,7 +303,8 @@ Return ONLY the JSON array.`;
           } catch (openRouterError: any) {
             // Check if it's an insufficient credits error
             if (openRouterError.message?.includes('Insufficient credits')) {
-              throw new Error(`OpenRouter API error: Your OpenRouter account has insufficient credits. Please add credits at https://openrouter.ai/settings/credits and try again.`);
+              console.error('[Inngest Scenes] Insufficient credits error:', openRouterError);
+              return { success: false, error: 'Insufficient credits. Please add credits at openrouter.ai.' };
             }
             throw openRouterError; // Re-throw other errors
           }
@@ -319,7 +321,7 @@ Return ONLY the JSON array.`;
         if (cleanResponse.endsWith('```')) cleanResponse = cleanResponse.slice(0, -3);
         cleanResponse = cleanResponse.trim();
 
-        let scenes;
+        let scenes: any[];
         try {
           scenes = JSON.parse(cleanResponse);
         } catch (parseError1) {
@@ -362,8 +364,28 @@ Return ONLY the JSON array.`;
         }
 
         console.log(`[Inngest Scenes] Batch ${batchIndex + 1} generated ${scenes.length} scenes`);
-        return scenes;
+        return { success: true, scenes };
       });
+
+      // Check if batch generation failed with a non-retriable error
+      const result = batchResult as { success: boolean; scenes?: any[]; error?: string };
+
+      if (result && !result.success && result.error) {
+        // If it's a credit error or other fatal error, fail the job and stop
+        await step.run('fail-job-fatal-error', async () => {
+          await prisma.sceneGenerationJob.update({
+            where: { id: jobId },
+            data: {
+              status: 'failed',
+              errorDetails: result.error
+            },
+          });
+        });
+
+        throw new NonRetriableError(result.error);
+      }
+
+      const batchScenes = result.scenes || [];
 
       // Save this batch to DB immediately (so we don't lose progress if later batch fails)
       await step.run(`save-batch-${batchIndex + 1}`, async () => {

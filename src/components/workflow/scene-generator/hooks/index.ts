@@ -8,6 +8,7 @@ import { useScenePolling } from './useScenePolling';
 import { useSceneUIState } from './useSceneUIState';
 import { useSceneEditing } from './useSceneEditing';
 import { useImageGeneration } from './useImageGeneration';
+import { toast } from 'sonner';
 
 export function useSceneGenerator(initialProject: Project) {
   const { projects, deleteScene, updateSettings } = useProjectStore();
@@ -58,12 +59,16 @@ export function useSceneGenerator(initialProject: Project) {
   // Generate all scenes with AI via Inngest background job
   const handleGenerateAllScenes = useCallback(async (skipCreditCheck = false) => {
     if (characters.length === 0) {
-      alert('Please add characters in Step 2 first');
+      toast.error('No characters found', {
+        description: 'Please add characters in Step 2 to generate scenes.',
+      });
       return;
     }
 
     if (polling.sceneJobId) {
-      alert('A scene generation job is already running. Please wait for it to complete.');
+      toast.warning('Generation in progress', {
+        description: 'A scene generation job is already running. Please wait for it to complete.',
+      });
       return;
     }
 
@@ -102,16 +107,28 @@ export function useSceneGenerator(initialProject: Project) {
       });
 
       if (!response.ok) {
-        let errorMessage = 'Failed to start scene generation';
+        let errorData: any = {};
         try {
-          const error = await response.json();
-          errorMessage = error.error || errorMessage;
-          console.log('[Scenes] Server error:', error);
+          errorData = await response.json();
         } catch (jsonError) {
-          // Response body isn't valid JSON
-          errorMessage = `Server error (${response.status}): ${response.statusText}`;
           console.log('[Scenes] Could not parse error response:', jsonError);
         }
+
+        // Handle 409 Conflict (Job already running)
+        if (response.status === 409 && errorData.jobId) {
+          console.log('[Scenes] Found existing job, resuming polling:', errorData.jobId);
+          polling.startSceneJobPolling(errorData.jobId);
+          toast.info('Resuming existing generation', {
+            description: 'Found an active background job.',
+          });
+          return; // Exit successfully
+        }
+
+        let errorMessage = errorData.error || 'Failed to start scene generation';
+        if (!errorData.error && !errorData.message) {
+          errorMessage = `Server error (${response.status}): ${response.statusText}`;
+        }
+
         throw new Error(errorMessage);
       }
 
@@ -121,26 +138,60 @@ export function useSceneGenerator(initialProject: Project) {
 
       console.log(`[Scenes] Started background job ${jobId} for ${totalScenes} scenes`);
 
+      setIsGeneratingScenes(false);
     } catch (error) {
       console.error('[Scenes] Error starting scene generation:', error);
-      console.error('[Scenes] Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      alert(`Failed to start scene generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Check for specific error types
+      if (errorMessage.includes('insufficient credits') || errorMessage.includes('Insufficient credits')) {
+        toast.error('Insufficient Credits', {
+          description: 'Your OpenRouter account has insufficient credits. Please add credits at openrouter.ai.',
+          duration: 8000,
+          action: {
+            label: 'Add Credits',
+            onClick: () => window.open('https://openrouter.ai/credits', '_blank'),
+          },
+        });
+      } else {
+        toast.error('Failed to start scene generation', {
+          description: errorMessage,
+        });
+      }
+
       setIsGeneratingScenes(false);
     }
   }, [project, characters, polling]);
 
   // Cancel scene generation
+  // Cancel scene generation
   const handleCancelSceneGeneration = useCallback(async () => {
     if (polling.sceneJobId) {
-      // TODO: Implement scene generation cancellation through Inngest
-      console.log('Scene generation cancellation not yet implemented');
-      setIsGeneratingScenes(false);
+      try {
+        console.log('[Scenes] Cancelling scene generation job:', polling.sceneJobId);
+
+        // Cancel the job on the server
+        const response = await fetch(`/api/jobs/generate-scenes?jobId=${polling.sceneJobId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to cancel scene generation');
+        }
+
+        console.log('[Scenes] Job cancelled successfully');
+
+        // Stop local polling and clear state
+        polling.stopSceneJobPolling();
+        setIsGeneratingScenes(false);
+
+      } catch (error) {
+        console.error('Failed to cancel scene generation:', error);
+        toast.error('Failed to stop generation');
+      }
     }
-  }, [polling.sceneJobId]);
+  }, [polling]);
 
   // Wrapper for background generation that passes polling data
   const handleStartBackgroundGeneration = useCallback(async (limit?: number) => {

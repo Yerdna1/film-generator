@@ -247,7 +247,11 @@
     "of": "of",
     "complete": "Complete",
     "inProgress": "In Progress",
-    "pending": "Pending"
+    "pending": "Pending",
+    "validation": {
+      "noCharactersTitle": "No Characters Created",
+      "noCharactersDescription": "Please create at least one character before proceeding to the next step."
+    }
   },
   "step1": {
     "modelConfiguration": {

@@ -247,7 +247,11 @@
     "of": "z",
     "complete": "Dokončené",
     "inProgress": "Prebieha",
-    "pending": "Čaká"
+    "pending": "Čaká",
+    "validation": {
+      "noCharactersTitle": "Žiadne vytvorené postavy",
+      "noCharactersDescription": "Pred pokračovaním na ďalší krok vytvorte aspoň jednu postavu."
+    }
   },
   "step1": {
     "modelConfiguration": {

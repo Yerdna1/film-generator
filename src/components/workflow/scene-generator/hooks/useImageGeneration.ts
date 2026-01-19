@@ -82,12 +82,16 @@ export function useImageGeneration(
       if (sceneIds.length === 1) {
         console.log(`[Image Generation] Started job ${jobId} for single scene`);
       } else {
-        alert(`Started generating ${sceneIds.length} images. Progress will be shown below.`);
+        toast.info(`Started generating ${sceneIds.length} images`, {
+          description: 'Progress will be shown below.',
+        });
       }
 
     } catch (error) {
       console.error('Error starting image generation:', error);
-      alert(`Failed to start image generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error('Failed to start image generation', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
 
       // Clear generating state on error
       sceneIds.forEach(id => {
@@ -112,7 +116,7 @@ export function useImageGeneration(
       .map(s => s.id);
 
     if (scenesWithoutImages.length === 0) {
-      alert('All scenes already have images');
+      toast.info('All scenes already have images');
       return;
     }
 
@@ -127,7 +131,7 @@ export function useImageGeneration(
       .map(s => s.id);
 
     if (scenesWithoutImages.length === 0) {
-      alert('All scenes already have images');
+      toast.info('All scenes already have images');
       return;
     }
 
@@ -319,8 +323,38 @@ export function useImageGeneration(
     handleRegenerateSelected,
     handleRegenerateAllImages,
     handleStartBackgroundGeneration: handleGenerateAllSceneImages, // Alias for compatibility
-    handleStopImageGeneration: () => {}, // No longer needed with Inngest
-    handleCancelSceneGeneration: async () => {}, // No longer needed
+    handleStopImageGeneration: async () => {
+      if (backgroundJobId) {
+        try {
+          // Cancel the job on the server
+          await fetch(`/api/jobs/generate-images?jobId=${backgroundJobId}`, {
+            method: 'DELETE',
+          });
+
+          // Stop local polling
+          if (jobPollingIntervalRef.current) {
+            clearInterval(jobPollingIntervalRef.current);
+            jobPollingIntervalRef.current = null;
+          }
+
+          // Clear local state
+          setBackgroundJobId(null);
+          setJobStatus(null);
+          setGeneratingImages({});
+
+          if (toastIdRef.current) {
+            toast.dismiss(toastIdRef.current);
+            toastIdRef.current = null;
+          }
+
+          toast.info('Image generation stopped');
+        } catch (error) {
+          console.error('Failed to stop image generation:', error);
+          toast.error('Failed to stop generation');
+        }
+      }
+    },
+    handleCancelSceneGeneration: async () => { }, // No longer needed
     startPolling,
 
     // Helpers

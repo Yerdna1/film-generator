@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { MembersPanel } from '@/components/collaboration/MembersPanel';
@@ -54,6 +55,7 @@ export default function ProjectWorkspacePage() {
   const router = useRouter();
   const t = useTranslations();
   const { data: session } = useSession();
+  const { toast } = useToast();
   const { getProject, setCurrentProject, setCurrentStep, nextStep, previousStep, isLoading, addSharedProject, updateProject } = useProjectStore();
 
   // Get user from session
@@ -309,6 +311,25 @@ export default function ProjectWorkspacePage() {
     }
   };
 
+  // Handle next step with validation
+  const handleNextStep = (projectId: string) => {
+    // Step 2 Validation: Check for characters
+    if (project.currentStep === 2) {
+      const hasCharacters = project.characters && project.characters.length > 0;
+      if (!hasCharacters) {
+        toast({
+          title: t('workflow.validation.noCharactersTitle'),
+          description: t('workflow.validation.noCharactersDescription'),
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Proceed to next step
+    nextStep(projectId);
+  };
+
   return (
     <div className="min-h-screen overflow-hidden flex flex-col">
       {/* Project Header */}
@@ -348,7 +369,7 @@ export default function ProjectWorkspacePage() {
       <ProjectBottomNav
         project={project}
         previousStep={previousStep}
-        nextStep={nextStep}
+        nextStep={handleNextStep}
         onComplete={handleProjectComplete}
         t={t}
       />

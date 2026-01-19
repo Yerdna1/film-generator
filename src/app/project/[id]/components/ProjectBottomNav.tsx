@@ -88,7 +88,10 @@ export function ProjectBottomNav({
                             >
                                 <Button
                                     onClick={() => nextStep(project.id)}
-                                    className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-purple-500/30"
+                                    className={`${project.currentStep === 2 && (!project.characters || project.characters.length === 0)
+                                            ? 'bg-gray-600 hover:bg-gray-500 text-white/50 border-0 shadow-none'
+                                            : 'bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-purple-500/30'
+                                        }`}
                                 >
                                     {t('common.next')}
                                     <ChevronRight className="w-4 h-4 ml-2" />
