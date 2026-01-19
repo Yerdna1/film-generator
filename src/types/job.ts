@@ -10,6 +10,8 @@ export interface ImageGenerationJob {
   failedScenes: number;
   progress: number; // 0-100
   errorDetails?: string | null;
+  imageProvider?: string | null;
+  imageModel?: string | null;
   createdAt: Date;
   startedAt?: Date | null;
   completedAt?: Date | null;
@@ -41,6 +43,8 @@ export interface SceneGenerationJob {
   completedScenes: number;
   progress: number; // 0-100
   errorDetails?: string | null;
+  llmProvider?: string | null;
+  llmModel?: string | null;
   createdAt: Date;
   startedAt?: Date | null;
   completedAt?: Date | null;

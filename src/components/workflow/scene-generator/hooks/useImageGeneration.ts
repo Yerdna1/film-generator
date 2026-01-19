@@ -5,6 +5,8 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import type { ImageGenerationJob } from '@/types/job';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
+import { toast } from 'sonner';
+import { getProviderDisplayName, getModelDisplayName, formatDuration } from '@/lib/llm/toast-utils';
 
 type GeneratingImageState = {
   [sceneId: string]: boolean;
@@ -27,6 +29,7 @@ export function useImageGeneration(
   const [backgroundJobId, setBackgroundJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<ImageGenerationJob | null>(null);
   const jobPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const toastIdRef = useRef<string | number | null>(null);
 
   // Start image generation for specific scenes using Inngest
   const generateImages = useCallback(async (sceneIds: string[]) => {
@@ -169,6 +172,15 @@ export function useImageGeneration(
 
         // Update generating state based on job progress
         if (job.status === 'processing') {
+          // Show loading toast with provider/model info if not already shown
+          if (!toastIdRef.current && job.imageProvider && job.imageModel) {
+            const providerDisplay = getProviderDisplayName(job.imageProvider);
+            const modelDisplay = getModelDisplayName(job.imageModel);
+
+            toastIdRef.current = toast.loading('Generating images...', {
+              description: `${providerDisplay} ${modelDisplay}`,
+            });
+          }
           // Keep the generating state for scenes being processed
         } else if (job.status === 'completed' || job.status === 'failed' || job.status === 'completed_with_errors') {
           // Clear all generating states
@@ -183,21 +195,49 @@ export function useImageGeneration(
           // Clear job ID
           setBackgroundJobId(null);
 
-          // Refresh the page to show updated images
-          if (job.status === 'completed' || job.status === 'completed_with_errors') {
-            window.location.reload();
+          // Calculate duration
+          let duration = null;
+          if (job.startedAt && job.completedAt) {
+            const startTime = new Date(job.startedAt).getTime();
+            const endTime = new Date(job.completedAt).getTime();
+            duration = endTime - startTime;
           }
 
-          // Show completion message (but not for single image generation)
-          const totalScenes = job.totalScenes || 0;
-          if (totalScenes > 1) {
-            if (job.status === 'completed') {
-              alert(`All ${job.completedScenes} images generated successfully!`);
-            } else if (job.status === 'completed_with_errors') {
-              alert(`Generation complete: ${job.completedScenes} succeeded, ${job.failedScenes || 0} failed.`);
-            } else if (job.status === 'failed' && job.errorDetails) {
-              alert(`Image generation failed: ${job.errorDetails}`);
+          // Show completion toast with provider/model/duration
+          if (toastIdRef.current) {
+            const providerDisplay = job.imageProvider ? getProviderDisplayName(job.imageProvider) : 'Provider';
+            const modelDisplay = job.imageModel ? getModelDisplayName(job.imageModel) : 'Model';
+            const durationFormatted = duration ? formatDuration(duration) : null;
+
+            let description = `${providerDisplay} ${modelDisplay}`;
+            if (durationFormatted) {
+              description += ` • ${durationFormatted}`;
             }
+
+            if (job.status === 'completed') {
+              toast.success('Images generated!', {
+                id: toastIdRef.current,
+                description,
+              });
+            } else if (job.status === 'completed_with_errors') {
+              toast.warning('Generation completed with errors', {
+                id: toastIdRef.current,
+                description: `${description} • ${job.failedScenes || 0} failed`,
+              });
+            } else if (job.status === 'failed') {
+              toast.error('Image generation failed', {
+                id: toastIdRef.current,
+                description: job.errorDetails || description,
+              });
+            }
+            toastIdRef.current = null;
+          }
+
+          // Refresh the page to show updated images
+          if (job.status === 'completed' || job.status === 'completed_with_errors') {
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000); // Wait 2 seconds to let user see the toast
           }
         }
       } catch (error) {
@@ -223,6 +263,11 @@ export function useImageGeneration(
     return () => {
       if (jobPollingIntervalRef.current) {
         clearInterval(jobPollingIntervalRef.current);
+      }
+      // Dismiss toast on unmount
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+        toastIdRef.current = null;
       }
     };
   }, []);

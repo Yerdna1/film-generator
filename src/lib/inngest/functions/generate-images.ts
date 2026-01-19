@@ -195,11 +195,30 @@ export const generateImagesBatch = inngest.createFunction(
 
     console.log(`[Inngest] Starting batch ${batchId} with ${scenes.length} scenes (parallel: ${PARALLEL_IMAGES})`);
 
-    // Update batch status to processing
+    // Determine provider and model
+    const userApiKeys = await step.run('get-user-api-keys', async () => {
+      return await prisma.apiKeys.findUnique({
+        where: { userId },
+      });
+    });
+
+    const imageProvider = userApiKeys?.imageProvider || 'gemini';
+    const imageModel = imageProvider === 'modal' || imageProvider === 'modal-edit'
+      ? 'modal'
+      : userApiKeys?.kieImageModel || 'imagen-3.0-generate-001';
+
+    console.log(`[Inngest] Using provider: ${imageProvider}, model: ${imageModel}`);
+
+    // Update batch status to processing with provider/model
     await step.run('update-batch-status-processing', async () => {
       await prisma.imageGenerationJob.update({
         where: { id: batchId },
-        data: { status: 'processing', startedAt: new Date() },
+        data: {
+          status: 'processing',
+          startedAt: new Date(),
+          imageProvider,
+          imageModel,
+        },
       });
     });
 

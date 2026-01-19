@@ -12,6 +12,8 @@
  * Users only need an API key from https://openrouter.ai
  */
 
+import { withLLMToast } from '@/lib/llm/wrapper';
+
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -82,38 +84,47 @@ export async function callOpenRouter(
   model: string = DEFAULT_OPENROUTER_MODEL,
   maxTokens: number = 8192
 ): Promise<string> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://film-generator.vercel.app',
-      'X-Title': 'Film Generator',
-    },
-    body: JSON.stringify({
+  return withLLMToast(
+    {
+      provider: 'openrouter',
       model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.7,
-    } as OpenRouterRequest),
-  });
+      action: 'LLM Call',
+    },
+    async () => {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://film-generator.vercel.app',
+          'X-Title': 'Film Generator',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.7,
+        } as OpenRouterRequest),
+      });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.error?.message || response.statusText;
-    throw new Error(`OpenRouter API error: ${errorMessage}`);
-  }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || response.statusText;
+        throw new Error(`OpenRouter API error: ${errorMessage}`);
+      }
 
-  const data: OpenRouterResponse = await response.json();
+      const data: OpenRouterResponse = await response.json();
 
-  if (!data.choices || data.choices.length === 0) {
-    throw new Error('No response from OpenRouter');
-  }
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('No response from OpenRouter');
+      }
 
-  return data.choices[0].message.content;
+      return data.choices[0].message.content;
+    }
+  );
 }
 
 /**

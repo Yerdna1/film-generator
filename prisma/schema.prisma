@@ -307,6 +307,8 @@ model ImageGenerationJob {
   failedScenes    Int       @default(0)
   progress        Int       @default(0) // 0-100
   errorDetails    String?   @db.Text
+  imageProvider   String?   // gemini, modal, kie
+  imageModel      String?   // specific model used
   createdAt       DateTime  @default(now())
   startedAt       DateTime?
   completedAt     DateTime?
@@ -326,6 +328,8 @@ model SceneGenerationJob {
   completedScenes Int       @default(0)
   progress        Int       @default(0) // 0-100
   errorDetails    String?   @db.Text
+  llmProvider     String?   // openrouter, claude-sdk, modal, gemini
+  llmModel        String?   // specific model used
   createdAt       DateTime  @default(now())
   startedAt       DateTime?
   completedAt     DateTime?

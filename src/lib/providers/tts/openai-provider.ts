@@ -1,6 +1,7 @@
 import { BaseTTSProvider } from './base-tts-provider';
 import { ProviderAuthError, ProviderValidationError, ProviderError, ProviderRateLimitError, TTSGenerationRequest } from '../types';
 import { RegisterProvider } from '../provider-factory';
+import { withLLMToast } from '@/lib/llm/wrapper';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1';
 
@@ -63,49 +64,58 @@ export class OpenAITTSProvider extends BaseTTSProvider {
     const actualFormat = supportedFormats.includes(responseFormat) ? responseFormat : 'mp3';
 
     try {
-      const response = await fetch(`${OPENAI_API_URL}/audio/speech`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const audioData = await withLLMToast(
+        {
+          provider: 'openai-tts',
           model,
-          input: text,
-          voice: selectedVoice,
-          response_format: actualFormat,
-          speed: voiceSettings?.speed || 1.0,
-        }),
-      });
+          action: 'Speech Generation',
+        },
+        async () => {
+          const response = await fetch(`${OPENAI_API_URL}/audio/speech`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.config.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model,
+              input: text,
+              voice: selectedVoice,
+              response_format: actualFormat,
+              speed: voiceSettings?.speed || 1.0,
+            }),
+          });
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: { message: response.statusText } }));
-        if (response.status === 429) {
-          throw new ProviderRateLimitError(
-            'OpenAI rate limit exceeded',
-            this.name,
-            60000
-          );
-        }
-        if (response.status === 400) {
-          throw new ProviderValidationError(
-            error.error?.message || 'Invalid request parameters',
-            this.name
-          );
-        }
-        throw new ProviderError(
-          error.error?.message || 'TTS generation failed',
-          'GENERATION_ERROR',
-          this.name,
-          { status: response.status, error }
-        );
-      }
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: { message: response.statusText } }));
+            if (response.status === 429) {
+              throw new ProviderRateLimitError(
+                'OpenAI rate limit exceeded',
+                this.name,
+                60000
+              );
+            }
+            if (response.status === 400) {
+              throw new ProviderValidationError(
+                error.error?.message || 'Invalid request parameters',
+                this.name
+              );
+            }
+            throw new ProviderError(
+              error.error?.message || 'TTS generation failed',
+              'GENERATION_ERROR',
+              this.name,
+              { status: response.status, error }
+            );
+          }
 
-      // Get audio data
-      const audioBuffer = Buffer.from(await response.arrayBuffer());
+          // Get audio data
+          return Buffer.from(await response.arrayBuffer());
+        }
+      );
 
       return {
-        audio: audioBuffer,
+        audio: audioData,
         format: actualFormat,
       };
     } catch (error) {

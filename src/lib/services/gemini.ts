@@ -1,6 +1,8 @@
 // Google Gemini API Service
 // Handles text generation, image generation, and TTS
 
+import { withLLMToast } from '@/lib/llm/wrapper';
+
 export interface GeminiResponse {
   text?: string;
   imageUrl?: string;
@@ -19,39 +21,50 @@ export async function generateText(
   prompt: string,
   config: GeminiConfig
 ): Promise<GeminiResponse> {
+  const model = config.model || 'gemini-2.0-flash';
+
   try {
-    const response = await fetch(
-      `${GEMINI_API_URL}/models/${config.model || 'gemini-2.0-flash'}:generateContent?key=${config.apiKey}`,
+    return await withLLMToast(
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
+        provider: 'gemini',
+        model,
+        action: 'Text Generation',
+      },
+      async () => {
+        const response = await fetch(
+          `${GEMINI_API_URL}/models/${model}:generateContent?key=${config.apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
             },
-          ],
-          generationConfig: {
-            temperature: 0.9,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-          },
-        }),
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [{ text: prompt }],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.9,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 8192,
+              },
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to generate text');
+        }
+
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        return { text };
       }
     );
-
-    if (!response.ok) {
-      const error = await response.json();
-      return { error: error.message || 'Failed to generate text' };
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    return { text };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Unknown error' };
   }
@@ -63,41 +76,50 @@ export async function generateImage(
   aspectRatio: string = '16:9'
 ): Promise<GeminiResponse> {
   try {
-    // Using Imagen through Gemini API
-    const response = await fetch(
-      `${GEMINI_API_URL}/models/imagen-3.0-generate-001:predict?key=${config.apiKey}`,
+    return await withLLMToast(
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instances: [
-            {
-              prompt: prompt,
+        provider: 'gemini',
+        model: 'imagen-3.0-generate-001',
+        action: 'Image Generation',
+      },
+      async () => {
+        // Using Imagen through Gemini API
+        const response = await fetch(
+          `${GEMINI_API_URL}/models/imagen-3.0-generate-001:predict?key=${config.apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
             },
-          ],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: aspectRatio,
-          },
-        }),
+            body: JSON.stringify({
+              instances: [
+                {
+                  prompt: prompt,
+                },
+              ],
+              parameters: {
+                sampleCount: 1,
+                aspectRatio: aspectRatio,
+              },
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to generate image');
+        }
+
+        const data = await response.json();
+        const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
+
+        if (imageBase64) {
+          return { imageUrl: `data:image/png;base64,${imageBase64}` };
+        }
+
+        throw new Error('No image generated');
       }
     );
-
-    if (!response.ok) {
-      const error = await response.json();
-      return { error: error.message || 'Failed to generate image' };
-    }
-
-    const data = await response.json();
-    const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
-
-    if (imageBase64) {
-      return { imageUrl: `data:image/png;base64,${imageBase64}` };
-    }
-
-    return { error: 'No image generated' };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Unknown error' };
   }
@@ -112,53 +134,62 @@ export async function generateSpeech(
   }
 ): Promise<GeminiResponse> {
   try {
-    // Using Gemini 2.5 Pro for TTS (Slovak support)
-    const response = await fetch(
-      `${GEMINI_API_URL}/models/gemini-2.5-pro:generateContent?key=${config.apiKey}`,
+    return await withLLMToast(
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
+        provider: 'gemini-tts',
+        model: 'gemini-2.5-pro',
+        action: 'Speech Generation',
+      },
+      async () => {
+        // Using Gemini 2.5 Pro for TTS (Slovak support)
+        const response = await fetch(
+          `${GEMINI_API_URL}/models/gemini-2.5-pro:generateContent?key=${config.apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
                 {
-                  text: `Generate speech audio for the following text in ${
-                    voiceConfig?.languageCode === 'sk' ? 'Slovak' : 'English'
-                  }: "${text}"`,
+                  parts: [
+                    {
+                      text: `Generate speech audio for the following text in ${
+                        voiceConfig?.languageCode === 'sk' ? 'Slovak' : 'English'
+                      }: "${text}"`,
+                    },
+                  ],
                 },
               ],
-            },
-          ],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: voiceConfig?.voiceName || 'Aoede',
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: voiceConfig?.voiceName || 'Aoede',
+                    },
+                  },
                 },
               },
-            },
-          },
-        }),
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to generate speech');
+        }
+
+        const data = await response.json();
+        const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+
+        if (audioData) {
+          return { audioUrl: `data:${audioData.mimeType};base64,${audioData.data}` };
+        }
+
+        throw new Error('No audio generated');
       }
     );
-
-    if (!response.ok) {
-      const error = await response.json();
-      return { error: error.message || 'Failed to generate speech' };
-    }
-
-    const data = await response.json();
-    const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-
-    if (audioData) {
-      return { audioUrl: `data:${audioData.mimeType};base64,${audioData.data}` };
-    }
-
-    return { error: 'No audio generated' };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Unknown error' };
   }

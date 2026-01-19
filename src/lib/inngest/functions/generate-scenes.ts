@@ -98,6 +98,17 @@ export const generateScenesBatch = inngest.createFunction(
 
     console.log(`[Inngest Scenes] LLM config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}, hasUserOpenRouterKey=${!!openRouterApiKey}, userSelectedModel=${userSelectedOpenRouterModel || 'none'}`);
 
+    // Update job with LLM provider and model
+    await step.run('update-job-with-llm-info', async () => {
+      await prisma.sceneGenerationJob.update({
+        where: { id: jobId },
+        data: {
+          llmProvider,
+          llmModel,
+        },
+      });
+    });
+
     // Validate provider settings
     if (llmProvider === 'openrouter' && !openRouterApiKey) {
       await step.run('update-job-failed-no-key', async () => {

@@ -7,6 +7,8 @@ import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 import type { Project, Scene } from '@/types/project';
 import type { VideoMode } from '../types';
 import type { VideoGenerationJob } from '@/types/job';
+import { toast } from 'sonner';
+import { getProviderDisplayName, getModelDisplayName, formatDuration } from '@/lib/llm/toast-utils';
 
 // Simplified hook that always uses Inngest for all video generation
 export function useVideoGenerator(initialProject: Project) {
@@ -29,6 +31,7 @@ export function useVideoGenerator(initialProject: Project) {
   const [backgroundJobId, setBackgroundJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<VideoGenerationJob | null>(null);
   const jobPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const toastIdRef = useRef<string | number | null>(null);
 
   // Video cache
   const videoBlobCache = useRef<Map<string, string>>(new Map());
@@ -160,6 +163,15 @@ export function useVideoGenerator(initialProject: Project) {
 
         // Update generating state based on job progress
         if (job.status === 'processing') {
+          // Show loading toast with provider/model info if not already shown
+          if (!toastIdRef.current && job.videoProvider && job.videoModel) {
+            const providerDisplay = getProviderDisplayName(job.videoProvider);
+            const modelDisplay = getModelDisplayName(job.videoModel);
+
+            toastIdRef.current = toast.loading('Generating videos...', {
+              description: `${providerDisplay} ${modelDisplay}`,
+            });
+          }
           // Keep the generating state
         } else if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled' || job.status === 'completed_with_errors') {
           // Clear all generating states
@@ -174,16 +186,54 @@ export function useVideoGenerator(initialProject: Project) {
           // Clear job ID
           setBackgroundJobId(null);
 
-          // Refresh the page to show updated videos
-          if (job.status === 'completed' || job.status === 'completed_with_errors') {
-            window.location.reload();
+          // Calculate duration
+          let duration = null;
+          if (job.startedAt && job.completedAt) {
+            const startTime = new Date(job.startedAt).getTime();
+            const endTime = new Date(job.completedAt).getTime();
+            duration = endTime - startTime;
           }
 
-          // Show completion message
-          if (job.status === 'failed' && job.errorDetails) {
-            alert(`Video generation failed: ${job.errorDetails}`);
-          } else if (job.status === 'completed_with_errors' && job.errorDetails) {
-            alert(`Video generation completed with errors: ${job.errorDetails}`);
+          // Show completion toast with provider/model/duration
+          if (toastIdRef.current) {
+            const providerDisplay = job.videoProvider ? getProviderDisplayName(job.videoProvider) : 'Provider';
+            const modelDisplay = job.videoModel ? getModelDisplayName(job.videoModel) : 'Model';
+            const durationFormatted = duration ? formatDuration(duration) : null;
+
+            let description = `${providerDisplay} ${modelDisplay}`;
+            if (durationFormatted) {
+              description += ` • ${durationFormatted}`;
+            }
+
+            if (job.status === 'completed') {
+              toast.success('Videos generated!', {
+                id: toastIdRef.current,
+                description,
+              });
+            } else if (job.status === 'completed_with_errors') {
+              toast.warning('Generation completed with errors', {
+                id: toastIdRef.current,
+                description: `${description} • ${job.failedVideos || 0} failed`,
+              });
+            } else if (job.status === 'failed') {
+              toast.error('Video generation failed', {
+                id: toastIdRef.current,
+                description: job.errorDetails || description,
+              });
+            } else if (job.status === 'cancelled') {
+              toast.info('Video generation cancelled', {
+                id: toastIdRef.current,
+                description,
+              });
+            }
+            toastIdRef.current = null;
+          }
+
+          // Refresh the page to show updated videos
+          if (job.status === 'completed' || job.status === 'completed_with_errors') {
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000); // Wait 2 seconds to let user see the toast
           }
         }
       } catch (error) {
@@ -203,6 +253,11 @@ export function useVideoGenerator(initialProject: Project) {
     return () => {
       if (jobPollingIntervalRef.current) {
         clearInterval(jobPollingIntervalRef.current);
+      }
+      // Dismiss toast on unmount
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+        toastIdRef.current = null;
       }
     };
   }, []);
