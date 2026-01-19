@@ -72,6 +72,7 @@ export function MusicTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="PiAPI"
             apiKeyName="piApiKey"
             hasKey={!!apiKeysData?.hasPiApiKey}
+            maskedKey={apiKeysData?.piapiApiKey}
             onSave={onSaveApiKey}
           />
         )}
@@ -80,6 +81,7 @@ export function MusicTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="Suno"
             apiKeyName="sunoApiKey"
             hasKey={!!apiKeysData?.hasSunoKey}
+            maskedKey={apiKeysData?.sunoApiKey}
             onSave={onSaveApiKey}
           />
         )}
@@ -88,6 +90,7 @@ export function MusicTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="KIE.ai"
             apiKeyName="kieApiKey"
             hasKey={!!apiKeysData?.hasKieKey}
+            maskedKey={apiKeysData?.kieApiKey}
             onSave={onSaveApiKey}
           />
         )}

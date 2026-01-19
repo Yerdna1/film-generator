@@ -84,6 +84,7 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="ElevenLabs"
             apiKeyName="elevenLabsApiKey"
             hasKey={!!apiKeysData?.hasElevenLabsKey}
+            maskedKey={apiKeysData?.elevenLabsApiKey}
             onSave={onSaveApiKey}
           />
         )}
@@ -92,6 +93,7 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="OpenAI"
             apiKeyName="openaiApiKey"
             hasKey={!!apiKeysData?.hasOpenAIKey}
+            maskedKey={apiKeysData?.openaiApiKey}
             onSave={onSaveApiKey}
           />
         )}
@@ -100,6 +102,7 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="KIE.ai"
             apiKeyName="kieApiKey"
             hasKey={!!apiKeysData?.hasKieKey}
+            maskedKey={apiKeysData?.kieApiKey}
             onSave={onSaveApiKey}
           />
         )}

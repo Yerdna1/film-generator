@@ -86,6 +86,7 @@ export function ImageTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="KIE.ai"
             apiKeyName="kieApiKey"
             hasKey={!!apiKeysData?.hasKieKey}
+            maskedKey={apiKeysData?.kieApiKey}
             onSave={onSaveApiKey}
           />
         )}

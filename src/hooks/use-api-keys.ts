@@ -19,6 +19,17 @@ export interface ApiKeysData {
   modalVideoEndpoint?: string;
   modalMusicEndpoint?: string;
   // API keys (masked or presence indicators)
+  kieApiKey?: string;
+  openRouterApiKey?: string;
+  elevenLabsApiKey?: string;
+  geminiApiKey?: string;
+  piapiApiKey?: string;
+  openaiApiKey?: string;
+  grokApiKey?: string;
+  claudeApiKey?: string;
+  nanoBananaApiKey?: string;
+  sunoApiKey?: string;
+  // Boolean flags for key presence
   hasOpenRouterKey?: boolean;
   hasElevenLabsKey?: boolean;
   hasGeminiKey?: boolean;

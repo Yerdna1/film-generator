@@ -238,7 +238,7 @@ export interface Project {
 }
 
 // LLM Provider selection - OpenRouter is default (works everywhere including Vercel)
-export type LLMProvider = 'openrouter' | 'claude-sdk' | 'modal';
+export type LLMProvider = 'openrouter' | 'claude-sdk' | 'modal' | 'kie' | 'gemini';
 
 // Music Provider selection - PiAPI is default (unified API for Suno/Udio)
 export type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import type { TabProps } from '../types';
 import type { VideoProvider, UnifiedModelConfig, Resolution } from '@/types/project';
@@ -23,6 +24,13 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
   const t = useTranslations();
   const { models: videoModels } = useVideoModels();
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Filter states
+  const [modalityFilter, setModalityFilter] = useState<string>('all');
+  const [qualityFilter, setQualityFilter] = useState<string>('all');
+  const [durationFilter, setDurationFilter] = useState<string>('all');
+  const [providerFilter, setProviderFilter] = useState<string>('all');
+  const [priceFilter, setPriceFilter] = useState<string>('all');
 
   const updateVideo = (updates: Partial<UnifiedModelConfig['video']>) => {
     onUpdateConfig({ video: { ...config.video, ...updates } });
@@ -48,18 +56,70 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
     { value: 'modal', label: 'Modal', badge: 'Self-hosted' },
   ];
 
-  // Model options - use database models for KIE, static models for others
-  const modelOptions = config.video.provider === 'kie'
-    ? videoModels.map(model => ({
-      value: model.modelId,
-      label: model.name,
-      badge: `${model.credits} credits`,
-    }))
-    : (VIDEO_MODELS[config.video.provider as keyof typeof VIDEO_MODELS] || []).map(model => ({
+  // Modality color mapping
+  const modalityColors: Record<string, { bg: string; text: string; border: string }> = {
+    'text-to-video': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+    'image-to-video': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+    'video-to-video': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  };
+
+  // Extract unique filter values from models
+  const availableModalities = ['all', ...Array.from(new Set(videoModels.flatMap(m => m.modality || [])))];
+  const availableQualities = ['all', ...Array.from(new Set(videoModels.map(m => m.quality).filter(Boolean)))];
+  const availableDurations = ['all', ...Array.from(new Set(videoModels.flatMap(m => m.supportedDurations || [])))];
+  const availableProviders = ['all', ...Array.from(new Set(videoModels.map(m => m.provider).filter(Boolean)))];
+  const priceOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'free', label: 'Free' },
+    { value: 'cheap', label: '< 30 credits' },
+    { value: 'moderate', label: '30-50 credits' },
+    { value: 'expensive', label: '> 50 credits' },
+  ];
+
+  // Apply filters
+  const filteredModels = config.video.provider === 'kie'
+    ? videoModels.filter(model => {
+      const modalityMatch = modalityFilter === 'all' || model.modality?.includes(modalityFilter);
+      const qualityMatch = qualityFilter === 'all' || model.quality === qualityFilter;
+      const durationMatch = durationFilter === 'all' || model.supportedDurations?.includes(durationFilter);
+      const providerMatch = providerFilter === 'all' || model.provider === providerFilter;
+
+      let priceMatch = true;
+      if (priceFilter === 'free') priceMatch = model.credits === 0;
+      else if (priceFilter === 'cheap') priceMatch = model.credits < 30;
+      else if (priceFilter === 'moderate') priceMatch = model.credits >= 30 && model.credits <= 50;
+      else if (priceFilter === 'expensive') priceMatch = model.credits > 50;
+
+      return modalityMatch && qualityMatch && durationMatch && providerMatch && priceMatch;
+    })
+    : videoModels;
+
+  // Group filtered models by modality
+  const groupedModels = config.video.provider === 'kie'
+    ? filteredModels.reduce((acc, model) => {
+      const modality = model.modality?.[0] || 'other';
+      if (!acc[modality]) {
+        acc[modality] = [];
+      }
+      acc[modality].push({
+        value: model.modelId,
+        label: model.name,
+        badge: `${model.credits} credits`,
+        modality,
+      });
+      return acc;
+    }, {} as Record<string, Array<{ value: string; label: string; badge: string; modality: string }>>)
+    : {};
+
+  // Flat model options for non-KIE providers
+  const flatModelOptions = config.video.provider !== 'kie'
+    ? (VIDEO_MODELS[config.video.provider as keyof typeof VIDEO_MODELS] || []).map(model => ({
       value: model.id,
       label: model.name,
       badge: undefined as string | undefined,
-    }));
+      modality: undefined,
+    }))
+    : [];
 
   // Export resolution options
   const exportResolutionOptions = [
@@ -67,9 +127,131 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
     { value: '4k', label: '4K (2160p)' },
   ];
 
+  // Helper to get modality display name
+  const getModalityLabel = (modality: string) => {
+    const labels: Record<string, string> = {
+      'text-to-video': 'Text to Video',
+      'image-to-video': 'Image to Video',
+      'video-to-video': 'Video to Video',
+    };
+    return labels[modality] || modality;
+  };
+
   return (
     <TabsContent value="video" className="space-y-4 pt-4 overflow-hidden">
       <div className="grid gap-4">
+        {/* Filters - Only for KIE provider */}
+        {config.video.provider === 'kie' && (
+          <div className="space-y-3 p-3 bg-muted/20 rounded-lg border border-border/50">
+            {/* Modality Filter */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Modality</Label>
+              <div className="flex flex-wrap gap-2">
+                {availableModalities.map((modality) => (
+                  <button
+                    key={modality}
+                    onClick={() => setModalityFilter(modality)}
+                    className={cn(
+                      "px-2.5 py-1 text-[10px] rounded-full border transition-all duration-200",
+                      modalityFilter === modality
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/50"
+                    )}
+                  >
+                    {modality === 'all' ? 'All' : getModalityLabel(modality)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Provider and Price Filters */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Provider</Label>
+                <div className="flex flex-wrap gap-2">
+                  {availableProviders.map((provider) => (
+                    <button
+                      key={provider}
+                      onClick={() => setProviderFilter(provider)}
+                      className={cn(
+                        "px-2.5 py-1 text-[10px] rounded-full border transition-all duration-200",
+                        providerFilter === provider
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/50"
+                      )}
+                    >
+                      {provider === 'all' ? 'All' : provider}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Price</Label>
+                <div className="flex flex-wrap gap-2">
+                  {priceOptions.map((price) => (
+                    <button
+                      key={price.value}
+                      onClick={() => setPriceFilter(price.value)}
+                      className={cn(
+                        "px-2.5 py-1 text-[10px] rounded-full border transition-all duration-200",
+                        priceFilter === price.value
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/50"
+                      )}
+                    >
+                      {price.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Quality Filter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Quality</Label>
+                <div className="flex flex-wrap gap-2">
+                  {availableQualities.map((quality) => (
+                    <button
+                      key={quality as string}
+                      onClick={() => setQualityFilter(quality as string)}
+                      className={cn(
+                        "px-2.5 py-1 text-[10px] rounded-full border transition-all duration-200",
+                        qualityFilter === quality
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/50"
+                      )}
+                    >
+                      {quality === 'all' ? 'All' : quality}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Duration Filter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Duration</Label>
+                <div className="flex flex-wrap gap-2">
+                  {availableDurations.map((duration) => (
+                    <button
+                      key={duration}
+                      onClick={() => setDurationFilter(duration)}
+                      className={cn(
+                        "px-2.5 py-1 text-[10px] rounded-full border transition-all duration-200",
+                        durationFilter === duration
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/50"
+                      )}
+                    >
+                      {duration === 'all' ? 'All' : duration}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Provider & Model Selection - Side by side with labels on top */}
         <div className="flex gap-2 items-start">
           <div className="space-y-1 shrink-0">
@@ -111,15 +293,38 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
                   <SelectValue className="truncate" placeholder="Select model" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="max-h-[400px] max-w-[400px]">
-                {modelOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="max-w-full">
-                    <div className="flex items-center gap-2 max-w-full overflow-hidden">
-                      <span className="truncate flex-1">{option.label}</span>
-                      {option.badge && <Badge variant="outline" className="text-[10px] py-0 px-1 h-4 shrink-0">{option.badge}</Badge>}
-                    </div>
-                  </SelectItem>
-                ))}
+              <SelectContent className="max-h-[400px] max-w-[450px]">
+                {config.video.provider === 'kie' ? (
+                  // Grouped by modality for KIE
+                  Object.entries(groupedModels).map(([modality, models]) => {
+                    const colors = modalityColors[modality] || { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' };
+                    return (
+                      <div key={modality} className="mb-2 last:mb-0">
+                        <div className={`px-2 py-1.5 text-xs font-semibold ${colors.bg} ${colors.text} border-b ${colors.border} sticky top-0 z-10`}>
+                          {getModalityLabel(modality)}
+                        </div>
+                        {models.map((option) => (
+                          <SelectItem key={option.value} value={option.value} className="max-w-full pl-4">
+                            <div className="flex items-center gap-2 max-w-full overflow-hidden">
+                              <span className="truncate flex-1">{option.label}</span>
+                              {option.badge && <Badge variant="outline" className="text-[10px] py-0 px-1 h-4 shrink-0">{option.badge}</Badge>}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
+                    );
+                  })
+                ) : (
+                  // Flat list for other providers
+                  flatModelOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="max-w-full">
+                      <div className="flex items-center gap-2 max-w-full overflow-hidden">
+                        <span className="truncate flex-1">{option.label}</span>
+                        {option.badge && <Badge variant="outline" className="text-[10px] py-0 px-1 h-4 shrink-0">{option.badge}</Badge>}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -131,6 +336,7 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             provider="KIE.ai"
             apiKeyName="kieApiKey"
             hasKey={!!apiKeysData?.hasKieKey}
+            maskedKey={apiKeysData?.kieApiKey}
             onSave={onSaveApiKey}
           />
         )}

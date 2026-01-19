@@ -3,11 +3,11 @@ import type { UnifiedModelConfig } from '@/types/project';
 // Default configurations
 export const DEFAULT_CONFIG: UnifiedModelConfig = {
   llm: {
-    provider: 'openrouter',
-    model: 'google/gemini-2.0-flash-exp:free',
+    provider: 'kie',
+    model: '', // Will be set to cheapest model from database
   },
   image: {
-    provider: 'kie', // Changed to kie for free users
+    provider: 'kie',
     characterAspectRatio: '1:1',
     sceneAspectRatio: '16:9',
     sceneResolution: '2k',
@@ -17,11 +17,11 @@ export const DEFAULT_CONFIG: UnifiedModelConfig = {
     resolution: 'hd',
   },
   tts: {
-    provider: 'kie', // Changed to kie for free users
+    provider: 'kie',
     defaultLanguage: 'en',
   },
   music: {
-    provider: 'kie', // Changed to kie for free users
+    provider: 'kie',
   },
 };
 
@@ -42,6 +42,7 @@ export const LLM_MODELS = {
   gemini: [
     { id: 'gemini-pro', name: 'Gemini Pro', badge: 'FREE' },
   ],
+  kie: [], // KIE models now loaded from database via useLlmModels hook
 };
 
 export const IMAGE_MODELS: Record<string, { id: string; name: string; badge: string }[]> = {

@@ -175,3 +175,41 @@ export function useMusicModels() {
 
   return { models, loading, error };
 }
+
+export interface KieLlmModel {
+  id: string;
+  modelId: string;
+  name: string;
+  provider: string;
+  description?: string;
+  credits: number;
+  cost: number;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  modality?: string[];
+}
+
+// Hook to fetch LLM models
+export function useLlmModels() {
+  const [models, setModels] = useState<KieLlmModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const response = await fetch('/api/kie-models?type=llm');
+        if (!response.ok) throw new Error('Failed to fetch LLM models');
+        const data = await response.json();
+        setModels(data.models || []);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchModels();
+  }, []);
+
+  return { models, loading, error };
+}
