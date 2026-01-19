@@ -95,16 +95,15 @@ export function Footer() {
               </div>
               <div>
                 <h3 className="text-lg font-bold bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent">
-                  ArtFlowly (AI Story)
+                  ArtFlowly
                 </h3>
                 <p className="text-[10px] text-white/40 -mt-1 tracking-wider uppercase">
-                  ArtFlowly (AI Story), Create with AI
+                  Create with AI
                 </p>
               </div>
             </Link>
             <p className="text-white/50 text-sm max-w-md leading-relaxed">
-              Create stunning AI-powered stories in minutes. From story generation to final export,
-              our platform handles everything with professional-grade quality.
+              {t('footer.description')}
             </p>
           </div>
 
