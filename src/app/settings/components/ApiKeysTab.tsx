@@ -121,8 +121,8 @@ export function ApiKeysTab({
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onLLMProviderChange(option.id)}
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${llmProvider === option.id
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-border hover:border-border bg-muted/50'
+                  ? 'border-emerald-500 bg-emerald-500/10'
+                  : 'border-border hover:border-border bg-muted/50'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -191,8 +191,8 @@ export function ApiKeysTab({
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onTTSProviderChange(option.id)}
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${ttsProvider === option.id
-                    ? 'border-violet-500 bg-violet-500/10'
-                    : 'border-border hover:border-border bg-muted/50'
+                  ? 'border-violet-500 bg-violet-500/10'
+                  : 'border-border hover:border-border bg-muted/50'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -271,8 +271,8 @@ export function ApiKeysTab({
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onImageProviderChange(option.id)}
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${imageProvider === option.id
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-border hover:border-border bg-muted/50'
+                  ? 'border-blue-500 bg-blue-500/10'
+                  : 'border-border hover:border-border bg-muted/50'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -358,8 +358,8 @@ export function ApiKeysTab({
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onVideoProviderChange(option.id)}
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${videoProvider === option.id
-                    ? 'border-orange-500 bg-orange-500/10'
-                    : 'border-border hover:border-border bg-muted/50'
+                  ? 'border-orange-500 bg-orange-500/10'
+                  : 'border-border hover:border-border bg-muted/50'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -450,8 +450,8 @@ export function ApiKeysTab({
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onMusicProviderChange(option.id)}
                 className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${musicProvider === option.id
-                    ? 'border-pink-500 bg-pink-500/10'
-                    : 'border-border hover:border-border bg-muted/50'
+                  ? 'border-pink-500 bg-pink-500/10'
+                  : 'border-border hover:border-border bg-muted/50'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -528,7 +528,7 @@ export function ApiKeysTab({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {modalEndpointConfigs.map((endpoint) => {
                 // Map endpoint id to the correct key in ModalEndpoints
                 const endpointKeyMap: Record<string, keyof ModalEndpoints> = {
@@ -591,7 +591,7 @@ export function ApiKeysTab({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {apiProviders.map((provider, index) => (
               <ApiProviderCard
                 key={provider.key}
