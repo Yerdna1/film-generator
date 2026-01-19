@@ -209,14 +209,12 @@ export function Header() {
                       {t('nav.statistics')}
                     </Link>
                   </DropdownMenuItem>
-                  {(isAdmin || (subscriptionPlan && subscriptionPlan !== 'free')) && (
-                    <DropdownMenuItem className="cursor-pointer text-white/80 hover:text-white hover:bg-white/5" asChild>
-                      <Link href="/settings">
-                        <Settings className="w-4 h-4 mr-2" />
-                        {t('nav.settings')}
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem className="cursor-pointer text-white/80 hover:text-white hover:bg-white/5" asChild>
+                    <Link href="/settings">
+                      <Settings className="w-4 h-4 mr-2" />
+                      {t('nav.settings')}
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer text-white/80 hover:text-white hover:bg-white/5" asChild>
                     <Link href="/billing">
                       <CreditCard className="w-4 h-4 mr-2" />

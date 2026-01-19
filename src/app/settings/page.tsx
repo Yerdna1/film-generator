@@ -81,7 +81,7 @@ export default function SettingsPage() {
 
   const isAdmin = session?.user?.email === 'andrej.galad@gmail.com';
 
-  // Check subscription and redirect FREE users
+  // Check subscription status (no longer redirects FREE users)
   useEffect(() => {
     if (status === 'loading') return;
 
@@ -90,29 +90,19 @@ export default function SettingsPage() {
       return;
     }
 
-    // Fetch subscription plan
+    // Fetch subscription plan (for display purposes, not access control)
     fetch('/api/polar')
       .then((res) => res.json())
       .then((data) => {
         const plan = data.subscription?.plan || 'free';
         setSubscriptionPlan(plan);
-
-        // Redirect FREE users (unless admin) to billing page
-        if (plan === 'free' && !isAdmin) {
-          router.push('/billing');
-        } else {
-          setLoading(false);
-        }
+        setLoading(false);
       })
       .catch(() => {
-        // On error, assume free and redirect
-        if (!isAdmin) {
-          router.push('/billing');
-        } else {
-          setLoading(false);
-        }
+        setSubscriptionPlan('free');
+        setLoading(false);
       });
-  }, [session, status, router, isAdmin]);
+  }, [session, status, router]);
 
   // Show loading while checking subscription
   if (loading || status === 'loading') {
