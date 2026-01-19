@@ -51,23 +51,27 @@ export function LLMTab({ config, apiKeysData, disabled, onUpdateConfig, onSaveAp
   return (
     <TabsContent value="llm" className="space-y-4 pt-4 overflow-hidden">
       <div className="grid gap-4">
-        {/* Provider & Model Selection */}
-        <div className="grid gap-4 grid-cols-[1fr,3fr]">
-          <CompactSelect
-            label={t('step1.modelConfiguration.llm.provider')}
-            value={config.llm.provider}
-            onChange={(value) => updateLLM({ provider: value as LLMProvider })}
-            options={providerOptions}
-            disabled={disabled}
-          />
+        {/* Provider & Model Selection - Side by side with labels on top */}
+        <div className="flex gap-2 items-start">
+          <div className="space-y-1 shrink-0">
+            <CompactSelect
+              label={t('step1.modelConfiguration.llm.provider')}
+              value={config.llm.provider}
+              onChange={(value) => updateLLM({ provider: value as LLMProvider })}
+              options={providerOptions}
+              disabled={disabled}
+            />
+          </div>
 
-          <CompactSelect
-            label={t('step1.modelConfiguration.llm.model')}
-            value={config.llm.model}
-            onChange={(value) => updateLLM({ model: value })}
-            options={modelOptions}
-            disabled={disabled}
-          />
+          <div className="space-y-1 flex-1 min-w-0">
+            <CompactSelect
+              label={t('step1.modelConfiguration.llm.model')}
+              value={config.llm.model}
+              onChange={(value) => updateLLM({ model: value })}
+              options={modelOptions}
+              disabled={disabled}
+            />
+          </div>
         </div>
 
         {/* API Key Input */}

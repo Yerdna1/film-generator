@@ -1,14 +1,11 @@
 import { useTranslations } from 'next-intl';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TabsContent } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import type { TabProps } from '../types';
 import type { TTSProvider, UnifiedModelConfig } from '@/types/project';
 import {
   TTS_MODELS,
   ApiKeyInput,
-  ProviderSelect
+  CompactSelect
 } from '../../model-config';
 import { useTtsModels, type KieTtsModel } from '@/hooks/use-kie-models';
 
@@ -32,37 +29,57 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
   // since the model has specific supported languages
   const isKieModelSelected = config.tts.provider === 'kie' && !!modelConfig;
 
-  const getProviderBadge = (provider: string, hasKey: boolean) => {
-    if (!hasKey && provider !== 'gemini' && provider !== 'gemini-tts') {
-      return <Badge variant="outline" className="ml-2 text-xs text-amber-600 border-amber-200 bg-amber-50">Key Needed</Badge>;
-    }
-    return null;
-  };
+  // Provider options
+  const providerOptions = [
+    { value: 'gemini-tts', label: 'Gemini TTS', badge: 'Free' },
+    { value: 'elevenlabs', label: 'ElevenLabs', badge: undefined },
+    { value: 'openai-tts', label: 'OpenAI TTS', badge: undefined },
+    { value: 'kie', label: 'KIE AI', badge: undefined },
+    { value: 'modal', label: 'Modal', badge: 'Self-hosted' },
+  ];
+
+  // Model options
+  const modelOptions = [
+    ...(TTS_MODELS[config.tts.provider as keyof typeof TTS_MODELS] || []).map(model => ({
+      value: model.id,
+      label: model.name,
+      badge: undefined as string | undefined,
+    })),
+    ...(config.tts.provider === 'kie' ? ttsModels.map(model => ({
+      value: model.modelId,
+      label: model.name,
+      badge: `${model.credits} credits`,
+    })) : []),
+  ];
 
   return (
     <TabsContent value="voice" className="space-y-4 pt-4">
       <div className="grid gap-4">
-        <ProviderSelect
-          label={t('step1.modelConfiguration.voice.provider')}
-          value={config.tts.provider}
-          onChange={(value) => updateTTS({ provider: value as TTSProvider })}
-          disabled={disabled}
-          isFreeUser={isFreeUser}
-        >
-          <SelectItem value="gemini-tts">Gemini TTS (Free)</SelectItem>
-          <SelectItem value="elevenlabs">
-            ElevenLabs
-            {getProviderBadge('elevenlabs', !!apiKeysData?.hasElevenLabsKey)}
-          </SelectItem>
-          <SelectItem value="openai-tts">OpenAI TTS</SelectItem>
-          <SelectItem value="kie">
-            KIE AI
-            {getProviderBadge('kie', !!apiKeysData?.hasKieKey)}
-          </SelectItem>
-          <SelectItem value="modal">Modal (Self-hosted)</SelectItem>
-        </ProviderSelect>
+        {/* Provider & Model Selection - Side by side with labels on top */}
+        <div className="flex gap-2 items-start">
+          <div className="space-y-1 shrink-0">
+            <CompactSelect
+              label={t('step1.modelConfiguration.voice.provider')}
+              value={config.tts.provider}
+              onChange={(value) => updateTTS({ provider: value as TTSProvider })}
+              options={providerOptions}
+              disabled={disabled}
+            />
+          </div>
 
-        {config.tts.provider === 'elevenlabs' && (
+          <div className="space-y-1 flex-1 min-w-0">
+            <CompactSelect
+              label={t('step1.modelConfiguration.voice.model')}
+              value={selectedModelId}
+              onChange={(value: string) => updateTTS({ model: value })}
+              options={modelOptions}
+              disabled={disabled}
+            />
+          </div>
+        </div>
+
+        {/* API Key Inputs */}
+        {config.tts.provider === 'elevenlabs' && isFreeUser && (
           <ApiKeyInput
             provider="ElevenLabs"
             apiKeyName="elevenLabsApiKey"
@@ -70,7 +87,7 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             onSave={onSaveApiKey}
           />
         )}
-        {config.tts.provider === 'openai-tts' && (
+        {config.tts.provider === 'openai-tts' && isFreeUser && (
           <ApiKeyInput
             provider="OpenAI"
             apiKeyName="openaiApiKey"
@@ -78,7 +95,7 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             onSave={onSaveApiKey}
           />
         )}
-        {config.tts.provider === 'kie' && !isFreeUser && (
+        {config.tts.provider === 'kie' && isFreeUser && (
           <ApiKeyInput
             provider="KIE.ai"
             apiKeyName="kieApiKey"
@@ -86,32 +103,6 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
             onSave={onSaveApiKey}
           />
         )}
-
-        <div>
-          <Label>{t('step1.modelConfiguration.voice.model')}</Label>
-          <Select
-            value={selectedModelId}
-            onValueChange={(value: string) => updateTTS({ model: value })}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TTS_MODELS[config.tts.provider as keyof typeof TTS_MODELS]?.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.name}
-                </SelectItem>
-              ))}
-              {/* Show KIE TTS models from database */}
-              {config.tts.provider === 'kie' && ttsModels.map((model) => (
-                <SelectItem key={model.modelId} value={model.modelId}>
-                  {model.name} ({model.credits} credits)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
 
         {/* Model info for KIE provider */}
         {config.tts.provider === 'kie' && modelConfig && (
@@ -127,32 +118,28 @@ export function VoiceTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
           </div>
         )}
 
-        <div>
-          <Label>{t('step1.modelConfiguration.voice.defaultLanguage')} {isKieModelSelected && <span className="text-xs text-muted-foreground">(set by model)</span>}</Label>
-          <Select
-            value={config.tts.defaultLanguage}
-            onValueChange={(value) => updateTTS({ defaultLanguage: value as any })}
-            disabled={disabled || isKieModelSelected}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="sk">Slovak</SelectItem>
-              <SelectItem value="cs">Czech</SelectItem>
-              <SelectItem value="de">German</SelectItem>
-              <SelectItem value="es">Spanish</SelectItem>
-              <SelectItem value="fr">French</SelectItem>
-              <SelectItem value="it">Italian</SelectItem>
-              <SelectItem value="ja">Japanese</SelectItem>
-              <SelectItem value="ko">Korean</SelectItem>
-              <SelectItem value="pt">Portuguese</SelectItem>
-              <SelectItem value="ru">Russian</SelectItem>
-              <SelectItem value="zh">Chinese</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
+        <CompactSelect
+          label={`${t('step1.modelConfiguration.voice.defaultLanguage')}${isKieModelSelected ? ' (set by model)' : ''}`}
+          value={config.tts.defaultLanguage || 'en'}
+          onChange={(value) => updateTTS({ defaultLanguage: value as any })}
+          options={[
+            { value: 'en', label: 'English' },
+            { value: 'sk', label: 'Slovak' },
+            { value: 'cs', label: 'Czech' },
+            { value: 'de', label: 'German' },
+            { value: 'es', label: 'Spanish' },
+            { value: 'fr', label: 'French' },
+            { value: 'it', label: 'Italian' },
+            { value: 'ja', label: 'Japanese' },
+            { value: 'ko', label: 'Korean' },
+            { value: 'pt', label: 'Portuguese' },
+            { value: 'ru', label: 'Russian' },
+            { value: 'zh', label: 'Chinese' },
+          ]}
+          disabled={disabled || isKieModelSelected}
+          hint={isKieModelSelected ? "Set by model" : undefined}
+        />
       </div>
     </TabsContent>
   );

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -48,14 +51,15 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
   // Model options - use database models for KIE, static models for others
   const modelOptions = config.video.provider === 'kie'
     ? videoModels.map(model => ({
-        value: model.modelId,
-        label: model.name,
-        badge: `${model.credits} credits`,
-      }))
+      value: model.modelId,
+      label: model.name,
+      badge: `${model.credits} credits`,
+    }))
     : (VIDEO_MODELS[config.video.provider as keyof typeof VIDEO_MODELS] || []).map(model => ({
-        value: model.id,
-        label: model.name,
-      }));
+      value: model.id,
+      label: model.name,
+      badge: undefined as string | undefined,
+    }));
 
   // Export resolution options
   const exportResolutionOptions = [
@@ -66,31 +70,59 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
   return (
     <TabsContent value="video" className="space-y-4 pt-4 overflow-hidden">
       <div className="grid gap-4">
-        {/* Provider & Model Selection */}
-        <div className="grid gap-4 grid-cols-[1fr,3fr]">
-          <CompactSelect
-            label={t('step1.modelConfiguration.video.provider')}
-            value={config.video.provider}
-            onChange={(value) => updateVideo({ provider: value as VideoProvider })}
-            options={providerOptions}
-            disabled={disabled}
-          />
+        {/* Provider & Model Selection - Side by side with labels on top */}
+        <div className="flex gap-2 items-start">
+          <div className="space-y-1 shrink-0">
+            <Label className="text-xs font-medium">{t('step1.modelConfiguration.video.provider')}</Label>
+            <Select value={config.video.provider} onValueChange={(value) => updateVideo({ provider: value as VideoProvider })} disabled={disabled}>
+              <SelectTrigger className="h-8 text-sm w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {providerOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{option.label}</span>
+                      {option.badge && <Badge variant="outline" className="text-[10px] py-0 px-1 h-4">{option.badge}</Badge>}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <CompactSelect
-            label={t('step1.modelConfiguration.video.model')}
-            value={selectedModelId}
-            onChange={(value) => {
-              const newModel = videoModels.find(m => m.modelId === value);
-              updateVideo({
-                model: value,
-                videoDuration: newModel?.defaultDuration || '5s',
-                videoResolution: newModel?.defaultResolution || '720p',
-                videoAspectRatio: newModel?.defaultAspectRatio || '16:9',
-              });
-            }}
-            options={modelOptions}
-            disabled={disabled}
-          />
+          <div className="space-y-1 flex-1 min-w-0">
+            <Label className="text-xs font-medium">{t('step1.modelConfiguration.video.model')}</Label>
+            <Select
+              value={selectedModelId}
+              onValueChange={(value) => {
+                const newModel = videoModels.find(m => m.modelId === value);
+                updateVideo({
+                  model: value,
+                  videoDuration: newModel?.defaultDuration || '5s',
+                  videoResolution: newModel?.defaultResolution || '720p',
+                  videoAspectRatio: newModel?.defaultAspectRatio || '16:9',
+                });
+              }}
+              disabled={disabled}
+            >
+              <SelectTrigger className="h-8 text-sm overflow-hidden">
+                <div className="flex-1 overflow-hidden">
+                  <SelectValue className="truncate" placeholder="Select model" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="max-h-[400px] max-w-[400px]">
+                {modelOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="max-w-full">
+                    <div className="flex items-center gap-2 max-w-full overflow-hidden">
+                      <span className="truncate flex-1">{option.label}</span>
+                      {option.badge && <Badge variant="outline" className="text-[10px] py-0 px-1 h-4 shrink-0">{option.badge}</Badge>}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* API Key Input */}
@@ -103,16 +135,6 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
           />
         )}
 
-        {/* Export Resolution */}
-        <CompactSelect
-          label="Export Resolution"
-          value={config.video.resolution}
-          onChange={(value) => updateVideo({ resolution: value as Resolution })}
-          options={exportResolutionOptions}
-          disabled={disabled}
-          hint="Final render quality"
-        />
-
         {/* Model Info */}
         {modelConfig && (
           <ModelInfo
@@ -124,84 +146,6 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
           />
         )}
 
-        {/* Advanced Settings */}
-        {config.video.provider === 'kie' && modelConfig && (
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ChevronDown className={cn(
-                "h-3 w-3 mr-1 transition-transform",
-                showAdvanced && "rotate-180"
-              )} />
-              Advanced Settings
-            </Button>
-
-            {showAdvanced && (
-              <div className="grid gap-3 mt-3 p-3 bg-muted/20 rounded-lg">
-                {/* Duration */}
-                {modelConfig.supportedDurations?.length > 0 && (
-                  <CompactSelect
-                    label="Duration"
-                    value={currentDuration}
-                    onChange={(value) => updateVideo({ videoDuration: value as VideoDuration })}
-                    options={VIDEO_DURATIONS
-                      .filter(d => modelConfig.supportedDurations?.includes(d.value as VideoDuration))
-                      .map(d => ({
-                        value: d.value,
-                        label: d.label,
-                      }))}
-                    disabled={disabled || !!modelConfig.length}
-                    hint={modelConfig.length ? "Set by model" : undefined}
-                  />
-                )}
-
-                {/* Resolution Grid */}
-                {modelConfig.supportedResolutions?.length > 0 && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <CompactSelect
-                      label="Video Resolution"
-                      value={currentResolution}
-                      onChange={(value) => {
-                        const allowedDurations = modelConfig.resolutionDurationConstraints?.[value as VideoResolution];
-                        const newDuration = allowedDurations?.includes(currentDuration)
-                          ? currentDuration
-                          : (modelConfig.defaultDuration || '5s');
-                        updateVideo({
-                          videoResolution: value as VideoResolution,
-                          videoDuration: newDuration as VideoDuration,
-                        });
-                      }}
-                      options={KIE_VIDEO_RESOLUTIONS
-                        .filter(r => modelConfig.supportedResolutions?.includes(r.value as VideoResolution))
-                        .map(r => ({
-                          value: r.value,
-                          label: r.label,
-                        }))}
-                      disabled={disabled}
-                    />
-
-                    <CompactSelect
-                      label="Aspect Ratio"
-                      value={currentAspectRatio}
-                      onChange={(value) => updateVideo({ videoAspectRatio: value as VideoAspectRatio })}
-                      options={VIDEO_ASPECT_RATIOS
-                        .filter(ar => modelConfig.supportedAspectRatios?.includes(ar.value as VideoAspectRatio))
-                        .map(ar => ({
-                          value: ar.value,
-                          label: ar.label,
-                        }))}
-                      disabled={disabled}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </TabsContent>
   );

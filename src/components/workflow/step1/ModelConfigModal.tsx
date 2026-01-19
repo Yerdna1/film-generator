@@ -39,7 +39,7 @@ export function ModelConfigModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        className="max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto p-0 gap-0 bg-background/95 backdrop-blur-md"
+        className="w-[98vw] max-w-[700px] sm:max-w-[700px] max-h-[95vh] overflow-y-auto p-0 gap-0 bg-background/95 backdrop-blur-md"
         showCloseButton={false}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}

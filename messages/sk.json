@@ -272,9 +272,9 @@
         "sceneResolution": "Rozlíšenie scén"
       },
       "video": {
-        "provider": "Poskytovateľ videa",
-        "model": "Model videa",
-        "resolution": "Rozlíšenie videa"
+        "provider": "Poskytovateľ",
+        "model": "Model",
+        "resolution": "Rozlíšenie"
       },
       "voice": {
         "provider": "Poskytovateľ hlasu",

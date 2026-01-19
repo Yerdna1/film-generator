@@ -57,23 +57,27 @@ export function ImageTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
   return (
     <TabsContent value="image" className="space-y-4 pt-4 overflow-hidden">
       <div className="grid gap-4">
-        {/* Provider & Model Selection */}
-        <div className="grid gap-4 grid-cols-[1fr,3fr]">
-          <CompactSelect
-            label={t('step1.modelConfiguration.image.provider')}
-            value={config.image.provider}
-            onChange={(value) => updateImage({ provider: value as ImageProvider })}
-            options={providerOptions}
-            disabled={disabled}
-          />
+        {/* Provider & Model Selection - Side by side with labels on top */}
+        <div className="flex gap-2 items-start">
+          <div className="space-y-1 shrink-0">
+            <CompactSelect
+              label={t('step1.modelConfiguration.image.provider')}
+              value={config.image.provider}
+              onChange={(value) => updateImage({ provider: value as ImageProvider })}
+              options={providerOptions}
+              disabled={disabled}
+            />
+          </div>
 
-          <CompactSelect
-            label={t('step1.modelConfiguration.image.model')}
-            value={selectedModelId}
-            onChange={(value) => updateImage({ model: value })}
-            options={modelOptions}
-            disabled={disabled}
-          />
+          <div className="space-y-1 flex-1 min-w-0">
+            <CompactSelect
+              label={t('step1.modelConfiguration.image.model')}
+              value={selectedModelId}
+              onChange={(value) => updateImage({ model: value })}
+              options={modelOptions}
+              disabled={disabled}
+            />
+          </div>
         </div>
 
         {/* API Key Input */}
