@@ -69,12 +69,12 @@ export function LandingPage() {
               transition={{ delay: 0.3, duration: 0.8 }}
               className="text-5xl md:text-7xl lg:text-8xl font-bold mb-8 leading-[0.95] tracking-tight"
             >
-              <span className="text-white">Create </span>
+              <span className="text-white">{tLanding('heroTitle.part1')}</span>
               <span className="bg-gradient-to-r from-violet-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-                AI Stories
+                {tLanding('heroTitle.accent')}
               </span>
               <br />
-              <span className="text-white">in Minutes</span>
+              <span className="text-white">{tLanding('heroTitle.part2')}</span>
             </motion.h1>
 
             <motion.p

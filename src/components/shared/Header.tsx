@@ -108,19 +108,19 @@ export function Header() {
               whileTap={{ scale: 0.95 }}
               className="relative"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 via-pink-500 to-orange-500 p-[2px]">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 via-pink-500 to-orange-500 p-[2px]">
                 <div className={`w-full h-full rounded-[10px] ${isLandingPage ? 'bg-black/80' : 'bg-background/90'} flex items-center justify-center`}>
-                  <Film className="w-5 h-5 text-violet-400" />
+                  <Film className="w-6 h-6 text-violet-400" />
                 </div>
               </div>
               {/* Glow effect */}
               <div className="absolute inset-0 rounded-xl bg-violet-500/20 blur-xl group-hover:bg-violet-500/40 transition-all duration-300" />
             </motion.div>
             <div className="hidden sm:block">
-              <h1 className={`text-lg font-bold ${isLandingPage ? 'bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent' : 'gradient-text'}`}>
-                AI Story
+              <h1 className={`text-xl font-bold ${isLandingPage ? 'bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent' : 'gradient-text'}`}>
+                ArtFlowly
               </h1>
-              <p className={`text-[10px] ${mutedColor} -mt-1 tracking-wider uppercase`}>
+              <p className={`text-xs ${mutedColor} -mt-1 tracking-wider uppercase`}>
                 Create with AI
               </p>
             </div>

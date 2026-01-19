@@ -1019,6 +1019,11 @@
   },
   "landing": {
     "badge": "Tvorba filmov s AI",
+    "heroTitle": {
+      "part1": "Vytvárajte ",
+      "accent": "AI príbehy",
+      "part2": "za pár minút"
+    },
     "title": "Vytvorte úžasné krátke filmy s AI",
     "subtitle": "Premeňte svoje nápady na príbehy na ohromujúce animované filmy. Generujte postavy, scény, videá a hlasové komentáre pomocou AI.",
     "getStarted": "Začnite zadarmo",
@@ -1031,7 +1036,7 @@
       "title": "Všetko, čo potrebujete na tvorbu",
       "subtitle": "Profesionálne AI nástroje pre každý krok filmovej produkcie",
       "storyGeneration": {
-        "title": "AI Generovanie príbehu",
+        "title": "Generovanie ArtFlowly (AI Story)",
         "description": "Premeňte svoje nápady na kompletné filmové scenáre pomocou AI rozprávania."
       },
       "characterDesign": {
@@ -1073,7 +1078,7 @@
     },
     "cta": {
       "titlePre": "Pripravení vytvoriť svoj prvý",
-      "titleAccent": " AI príbeh",
+      "titleAccent": " ArtFlowly (AI Story)",
       "titlePost": "?",
       "subtitle": "Pridajte sa k tisíckam tvorcov, ktorí už používajú našu platformu.\nZačnite tvoriť zadarmo ešte dnes.",
       "button": "Začať zadarmo",

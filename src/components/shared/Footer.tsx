@@ -63,7 +63,7 @@ export function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Film className="w-4 h-4 text-violet-400" />
-              <span>AI Story</span>
+              <span>ArtFlowly</span>
               <span className="text-muted-foreground/50">© {new Date().getFullYear()}</span>
             </div>
             <div className="flex items-center gap-4">
@@ -95,10 +95,10 @@ export function Footer() {
               </div>
               <div>
                 <h3 className="text-lg font-bold bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent">
-                  AI Story
+                  ArtFlowly (AI Story)
                 </h3>
                 <p className="text-[10px] text-white/40 -mt-1 tracking-wider uppercase">
-                  Create with AI
+                  ArtFlowly (AI Story), Create with AI
                 </p>
               </div>
             </Link>
@@ -150,7 +150,7 @@ export function Footer() {
         <div className="border-t border-white/5 mt-12 pt-8">
           <div className="flex items-center justify-center">
             <p className="text-white/40 text-sm">
-              © {new Date().getFullYear()} AI Story. All rights reserved.
+              © {new Date().getFullYear()} ArtFlowly (AI Story). All rights reserved.
             </p>
           </div>
         </div>

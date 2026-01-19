@@ -1019,6 +1019,11 @@
   },
   "landing": {
     "badge": "AI-Powered Film Creation",
+    "heroTitle": {
+      "part1": "Create ",
+      "accent": "AI Stories",
+      "part2": "in Minutes"
+    },
     "title": "Create Amazing Short Films with AI",
     "subtitle": "Transform your story ideas into stunning animated films. Generate characters, scenes, videos, and voiceovers with the power of AI.",
     "getStarted": "Get Started Free",
@@ -1031,7 +1036,7 @@
       "title": "Everything you need to create",
       "subtitle": "Professional-grade AI tools for every step of film production",
       "storyGeneration": {
-        "title": "AI Story Generation",
+        "title": "ArtFlowly (AI Story) Generation",
         "description": "Transform your ideas into complete film scripts with AI-powered storytelling."
       },
       "characterDesign": {
@@ -1073,7 +1078,7 @@
     },
     "cta": {
       "titlePre": "Ready to create your first",
-      "titleAccent": " AI story",
+      "titleAccent": " ArtFlowly (AI Story)",
       "titlePost": "?",
       "subtitle": "Join thousands of creators already using our platform.\nStart creating for free today.",
       "button": "Get Started Free",

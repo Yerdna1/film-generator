@@ -100,7 +100,7 @@ export function VideoShowcase({ videos }: VideoShowcaseProps) {
                         {/* Video title */}
                         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
                             <h3 className="text-xl font-semibold text-white">{activeVideo.title}</h3>
-                            <p className="text-white/60 text-sm">Created with AI Story</p>
+                            <p className="text-white/60 text-sm">Created with ArtFlowly</p>
                         </div>
                     </>
                 )}
@@ -135,8 +135,8 @@ export function VideoShowcase({ videos }: VideoShowcaseProps) {
                                 setIsPlaying(false);
                             }}
                             className={`relative rounded-lg overflow-hidden border-2 transition-all ${index === activeIndex
-                                    ? 'border-violet-500 scale-105'
-                                    : 'border-white/10 opacity-60 hover:opacity-100'
+                                ? 'border-violet-500 scale-105'
+                                : 'border-white/10 opacity-60 hover:opacity-100'
                                 }`}
                         >
                             <div className="w-24 md:w-32 aspect-video relative">

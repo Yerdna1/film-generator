@@ -8,9 +8,9 @@ import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Story | Create AI-Powered Stories & Videos",
+  title: "ArtFlowly | Create AI-Powered Stories & Videos",
   description: "Create stunning AI-powered stories and videos in minutes. Generate scripts, characters, scenes, and professional-quality animated films with AI.",
-  keywords: ["AI story", "AI video", "story generator", "AI animation", "animated films", "video generation"],
+  keywords: ["ArtFlowly", "AI story", "AI video", "story generator", "AI animation", "animated films", "video generation"],
 };
 
 export default async function RootLayout({
