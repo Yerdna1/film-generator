@@ -285,7 +285,6 @@ export function Step3SceneGenerator({
       }
       toast.success(t('keySaved.openrouter'), { description: t('generating.scenes') });
       setIsOpenRouterModalOpen(false);
-      setIsInsufficientCreditsModalOpen(false);
       await handleGenerateAllScenes(true);
       setPendingSceneTextGeneration(false);
     } catch (error) {

@@ -176,22 +176,23 @@ export const generateScenesBatch = inngest.createFunction(
       });
 
       // Check if batch generation failed with a non-retriable error
-      if (batchResult && !batchResult.success && batchResult.error) {
+      if (batchResult && !batchResult.success && 'error' in batchResult) {
+        const errorMessage = batchResult.error;
         // If it's a credit error or other fatal error, fail the job and stop
         await step.run('fail-job-fatal-error', async () => {
           await prisma.sceneGenerationJob.update({
             where: { id: jobId },
             data: {
               status: 'failed',
-              errorDetails: batchResult.error
+              errorDetails: errorMessage
             },
           });
         });
 
-        throw new NonRetriableError(batchResult.error);
+        throw new NonRetriableError(errorMessage);
       }
 
-      const batchScenes = batchResult.scenes || [];
+      const batchScenes = (batchResult && 'scenes' in batchResult) ? batchResult.scenes : [];
 
       // Save this batch to DB immediately (so we don't lose progress if later batch fails)
       await step.run(`save-batch-${batchIndex + 1}`, async () => {
