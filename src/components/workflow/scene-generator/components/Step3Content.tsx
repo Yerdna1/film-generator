@@ -374,23 +374,25 @@ export function Step3Content({
         }}
       />
 
-      {/* Insufficient Credits Modal */}
-      <InsufficientCreditsModal
-        isOpen={isInsufficientCreditsModalOpen}
-        onClose={() => setIsInsufficientCreditsModalOpen(false)}
-        onOpenKieModal={() => {
-          setIsInsufficientCreditsModalOpen(false);
-          setIsKieModalOpen(true);
-        }}
-        onOpenRouterModal={() => {
-          setIsInsufficientCreditsModalOpen(false);
-          setIsOpenRouterModalOpen(true);
-        }}
-        onUseAppCredits={pendingSceneTextGeneration ? handleUseAppCreditsForScenes : handleUseAppCredits}
-        creditsNeeded={pendingSceneTextGeneration ? sceneTextCreditsNeeded : getImageCreditCost(imageResolution as any)}
-        currentCredits={creditsData?.credits.balance}
-        generationType={pendingSceneTextGeneration ? 'text' : 'image'}
-      />
+      {/* Insufficient Credits Modal - hide when scene text generation is pending (OpenRouter modal will show instead) */}
+      {!pendingSceneTextGeneration && (
+        <InsufficientCreditsModal
+          isOpen={isInsufficientCreditsModalOpen}
+          onClose={() => setIsInsufficientCreditsModalOpen(false)}
+          onOpenKieModal={() => {
+            setIsInsufficientCreditsModalOpen(false);
+            setIsKieModalOpen(true);
+          }}
+          onOpenRouterModal={() => {
+            setIsInsufficientCreditsModalOpen(false);
+            setIsOpenRouterModalOpen(true);
+          }}
+          onUseAppCredits={handleUseAppCredits}
+          creditsNeeded={getImageCreditCost(imageResolution as any)}
+          currentCredits={creditsData?.credits.balance}
+          generationType="image"
+        />
+      )}
 
       {/* KIE AI API Key Modal */}
       <KieApiKeyModal

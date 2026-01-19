@@ -232,6 +232,7 @@ export function Step3SceneGenerator({
       // Show modal and STOP - don't proceed to generation
       setPendingSceneTextGeneration(true);
       setIsOpenRouterModalOpen(true);
+      setIsInsufficientCreditsModalOpen(false); // Close any existing insufficient credits modal
       return;
     }
 
