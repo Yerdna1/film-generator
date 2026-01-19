@@ -8,10 +8,11 @@ import { StoryForm } from './step1/StoryForm';
 import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './step1/LoadingModal';
-import { ModelConfigModal } from './step1/ModelConfigModal';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
 import { useStep1State, useStep1Handlers } from './step1/hooks';
 import type { UnifiedModelConfig } from '@/types/project';
+import { useApiKeys } from '@/hooks/use-api-keys';
+import { toast } from 'sonner';
 
 interface Step1Props {
   project: Project;
@@ -34,6 +35,9 @@ export function Step1PromptGenerator({
   const state = useStep1State({ project: initialProject, isAdmin });
   const handlers = useStep1Handlers(state);
 
+  // API Keys hook
+  const { data: apiKeysData, mutate: mutateApiKeys } = useApiKeys();
+
   const {
     project,
     effectiveIsPremium,
@@ -43,7 +47,6 @@ export function Step1PromptGenerator({
     setEditedPrompt,
     setIsEditing,
     selectedPresetId,
-    isModelConfigModalOpen,
     aspectRatio,
     setAspectRatio,
     videoLanguage,
@@ -66,13 +69,29 @@ export function Step1PromptGenerator({
     handleSaveEditedPrompt,
     handleApplyPreset,
     handleModelConfigChange,
-    handleCloseModelConfigModal,
-    handleCancelModelConfigModal,
   } = handlers;
 
   const handleModelConfigChangeWrapper = (modelConfig: UnifiedModelConfig) => {
     if (!isReadOnly && project.id) {
       handleModelConfigChange(modelConfig);
+    }
+  };
+
+  const handleSaveApiKey = async (keyName: string, value: string) => {
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [keyName]: value }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save API key');
+
+      toast.success(t('step1.modelConfiguration.keySaved'));
+      mutateApiKeys();
+    } catch (error) {
+      toast.error(t('step1.modelConfiguration.keySaveFailed'));
+      console.error(error);
     }
   };
 
@@ -84,29 +103,20 @@ export function Step1PromptGenerator({
         <SettingsPanel
           project={project}
           isReadOnly={isReadOnly}
-          isPremiumUser={effectiveIsPremium}
           aspectRatio={aspectRatio}
           setAspectRatio={setAspectRatio}
           videoLanguage={videoLanguage}
           setVideoLanguage={setVideoLanguage as (lang: string | ((prev: string) => string)) => void}
-          storyModel={storyModel}
-          setStoryModel={setStoryModel}
           styleModel={styleModel}
           setStyleModel={setStyleModel}
-          imageProvider={imageProvider}
-          setImageProvider={setImageProvider}
-          voiceProvider={voiceProvider}
-          setVoiceProvider={setVoiceProvider}
           updateProject={state.store.updateProject}
           updateSettings={state.store.updateSettings}
-          updateUserConstants={state.store.updateUserConstants}
           sceneOptions={sceneOptions}
-          storyModels={storyModels}
           styleModels={styleModels}
           videoLanguages={videoLanguages}
-          voiceProviders={voiceProviders}
-          genres={genres}
-          tones={tones}
+          modelConfig={project.modelConfig}
+          onModelConfigChange={handleModelConfigChangeWrapper}
+          isPremiumUser={effectiveIsPremium}
         />
 
         {/* Right Column - Story Details, Presets & Master Prompt */}
@@ -150,16 +160,6 @@ export function Step1PromptGenerator({
         provider={generatingProvider}
       />
 
-      {/* Model Config Modal */}
-      <ModelConfigModal
-        isOpen={isModelConfigModalOpen}
-        onSubmit={handleCloseModelConfigModal}
-        onClose={handleCancelModelConfigModal}
-        modelConfig={project.modelConfig}
-        onConfigChange={handleModelConfigChangeWrapper}
-        disabled={isReadOnly}
-        isFreeUser={!effectiveIsPremium}
-      />
     </div>
   );
 }

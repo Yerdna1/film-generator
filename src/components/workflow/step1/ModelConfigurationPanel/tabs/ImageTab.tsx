@@ -1,16 +1,13 @@
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TabsContent } from '@/components/ui/tabs';
+import { ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { TabProps } from '../types';
 import type { ImageProvider, UnifiedModelConfig, AspectRatio } from '@/types/project';
-import {
-  IMAGE_MODELS,
-  ASPECT_RATIOS,
-  ApiKeyInput,
-  ProviderSelect
-} from '../../model-config';
-import { useImageModels, type KieImageModel } from '@/hooks/use-kie-models';
+import { IMAGE_MODELS, ASPECT_RATIOS, ApiKeyInput, CompactSelect, ModelInfo } from '../../model-config';
+import { useImageModels } from '@/hooks/use-kie-models';
 
 interface ImageTabProps extends TabProps {
   isFreeUser?: boolean;
@@ -18,7 +15,8 @@ interface ImageTabProps extends TabProps {
 
 export function ImageTab({ config, apiKeysData, disabled, onUpdateConfig, onSaveApiKey, isFreeUser }: ImageTabProps) {
   const t = useTranslations();
-  const { models: imageModels, loading: modelsLoading } = useImageModels();
+  const { models: imageModels } = useImageModels();
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const updateImage = (updates: Partial<UnifiedModelConfig['image']>) => {
     onUpdateConfig({ image: { ...config.image, ...updates } });
@@ -27,28 +25,59 @@ export function ImageTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
   // Get the selected model configuration
   const selectedModelId = config.image.model || IMAGE_MODELS[config.image.provider as keyof typeof IMAGE_MODELS]?.[0]?.id;
   const modelConfig = imageModels.find(m => m.modelId === selectedModelId);
-
-  // When a KIE model is selected, aspect ratio combo boxes should be disabled
-  // since the model has specific supported aspect ratios
   const isKieModelSelected = config.image.provider === 'kie' && !!modelConfig;
 
-  return (
-    <TabsContent value="image" className="space-y-4 pt-4">
-      <div className="grid gap-4">
-        <ProviderSelect
-          label={t('step1.modelConfiguration.image.provider')}
-          value={config.image.provider}
-          onChange={(value) => updateImage({ provider: value as ImageProvider })}
-          disabled={disabled}
-          isFreeUser={isFreeUser}
-        >
-          <SelectItem value="gemini">Gemini (Free)</SelectItem>
-          <SelectItem value="kie">KIE AI</SelectItem>
-          <SelectItem value="modal">Modal (Self-hosted)</SelectItem>
-          <SelectItem value="modal-edit">Modal Edit</SelectItem>
-        </ProviderSelect>
+  // Provider options
+  const providerOptions = [
+    { value: 'gemini', label: 'Gemini', badge: 'Free' },
+    { value: 'kie', label: 'KIE AI' },
+    { value: 'modal', label: 'Modal', badge: 'Self-hosted' },
+    { value: 'modal-edit', label: 'Modal Edit' },
+  ];
 
-        {config.image.provider === 'kie' && !isFreeUser && (
+  // Model options
+  const modelOptions = [
+    ...(IMAGE_MODELS[config.image.provider as keyof typeof IMAGE_MODELS] || []).map(model => ({
+      value: model.id,
+      label: model.name,
+    })),
+    ...(config.image.provider === 'kie' ? imageModels.map(model => ({
+      value: model.modelId,
+      label: model.name,
+      badge: `${model.credits} credits`,
+    })) : []),
+  ];
+
+  // Aspect ratio options
+  const aspectRatioOptions = ASPECT_RATIOS.map(ar => ({
+    value: ar.value,
+    label: ar.label,
+  }));
+
+  return (
+    <TabsContent value="image" className="space-y-4 pt-4 overflow-hidden">
+      <div className="grid gap-4">
+        {/* Provider & Model Selection */}
+        <div className="grid gap-4 grid-cols-[1fr,3fr]">
+          <CompactSelect
+            label={t('step1.modelConfiguration.image.provider')}
+            value={config.image.provider}
+            onChange={(value) => updateImage({ provider: value as ImageProvider })}
+            options={providerOptions}
+            disabled={disabled}
+          />
+
+          <CompactSelect
+            label={t('step1.modelConfiguration.image.model')}
+            value={selectedModelId}
+            onChange={(value) => updateImage({ model: value })}
+            options={modelOptions}
+            disabled={disabled}
+          />
+        </div>
+
+        {/* API Key Input */}
+        {config.image.provider === 'kie' && isFreeUser && (
           <ApiKeyInput
             provider="KIE.ai"
             apiKeyName="kieApiKey"
@@ -57,86 +86,55 @@ export function ImageTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
           />
         )}
 
-        <div>
-          <Label>{t('step1.modelConfiguration.image.model')}</Label>
-          <Select
-            value={selectedModelId}
-            onValueChange={(value: string) => updateImage({ model: value })}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {IMAGE_MODELS[config.image.provider as keyof typeof IMAGE_MODELS]?.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.name}
-                </SelectItem>
-              ))}
-              {/* Show KIE image models from database */}
-              {config.image.provider === 'kie' && imageModels.map((model) => (
-                <SelectItem key={model.modelId} value={model.modelId}>
-                  {model.name} ({model.credits} credits)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Model info for KIE provider */}
-        {config.image.provider === 'kie' && modelConfig && (
-          <div className="text-xs text-muted-foreground space-y-1 p-3 glass rounded-lg">
-            <p><strong>Model:</strong> {modelConfig.name}</p>
-            <p><strong>Cost:</strong> {modelConfig.credits} credits (${modelConfig.cost.toFixed(2)}) per image</p>
-            {modelConfig.description && (
-              <p><strong>Description:</strong> {modelConfig.description}</p>
-            )}
-            {modelConfig.keyFeatures && modelConfig.keyFeatures.length > 0 && (
-              <p><strong>Features:</strong> {modelConfig.keyFeatures.join(', ')}</p>
-            )}
-          </div>
+        {/* Model Info */}
+        {modelConfig && (
+          <ModelInfo
+            name={modelConfig.name}
+            credits={modelConfig.credits}
+            cost={modelConfig.cost}
+            description={modelConfig.description}
+            details={modelConfig.keyFeatures?.length ? `Features: ${modelConfig.keyFeatures.join(', ')}` : undefined}
+          />
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>{t('step1.modelConfiguration.image.characterAspectRatio')} {isKieModelSelected && <span className="text-xs text-muted-foreground">(set by model)</span>}</Label>
-            <Select
-              value={config.image.characterAspectRatio}
-              onValueChange={(value) => updateImage({ characterAspectRatio: value as AspectRatio })}
-              disabled={disabled || isKieModelSelected}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ASPECT_RATIOS.map((ratio) => (
-                  <SelectItem key={ratio.value} value={ratio.value}>
-                    {ratio.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Advanced Settings */}
+        <div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <ChevronDown className={cn(
+              "h-3 w-3 mr-1 transition-transform",
+              showAdvanced && "rotate-180"
+            )} />
+            Aspect Ratios
+          </Button>
 
-          <div>
-            <Label>{t('step1.modelConfiguration.image.sceneAspectRatio')} {isKieModelSelected && <span className="text-xs text-muted-foreground">(set by model)</span>}</Label>
-            <Select
-              value={config.image.sceneAspectRatio}
-              onValueChange={(value) => updateImage({ sceneAspectRatio: value as AspectRatio })}
-              disabled={disabled || isKieModelSelected}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ASPECT_RATIOS.map((ratio) => (
-                  <SelectItem key={ratio.value} value={ratio.value}>
-                    {ratio.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {showAdvanced && (
+            <div className="grid gap-3 mt-3 p-3 bg-muted/20 rounded-lg">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <CompactSelect
+                  label={t('step1.modelConfiguration.image.characterAspectRatio')}
+                  value={config.image.characterAspectRatio}
+                  onChange={(value) => updateImage({ characterAspectRatio: value as AspectRatio })}
+                  options={aspectRatioOptions}
+                  disabled={disabled || isKieModelSelected}
+                  hint={isKieModelSelected ? "Set by model" : undefined}
+                />
+
+                <CompactSelect
+                  label={t('step1.modelConfiguration.image.sceneAspectRatio')}
+                  value={config.image.sceneAspectRatio}
+                  onChange={(value) => updateImage({ sceneAspectRatio: value as AspectRatio })}
+                  options={aspectRatioOptions}
+                  disabled={disabled || isKieModelSelected}
+                  hint={isKieModelSelected ? "Set by model" : undefined}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </TabsContent>

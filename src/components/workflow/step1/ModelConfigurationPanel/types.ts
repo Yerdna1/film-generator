@@ -8,6 +8,7 @@ export interface TabProps {
   disabled?: boolean;
   onUpdateConfig: (updates: Partial<UnifiedModelConfig>) => void;
   onSaveApiKey: (keyName: string, value: string) => Promise<void>;
+  isFreeUser?: boolean;
 }
 
 export interface ModelConfigurationPanelProps {
@@ -15,6 +16,7 @@ export interface ModelConfigurationPanelProps {
   onConfigChange: (config: UnifiedModelConfig) => void;
   disabled?: boolean;
   isFreeUser?: boolean;
+  isInModal?: boolean;
 }
 
 export type UpdateFunction<T> = (updates: Partial<T>) => void;

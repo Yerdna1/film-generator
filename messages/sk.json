@@ -292,10 +292,9 @@
       "keySaved": "API kľúč úspešne uložený",
       "keySaveFailed": "Nepodarilo sa uložiť API kľúč",
       "modal": {
-        "title": "Konfigurácia modelov",
-        "description": "Nastavte modely AI pre generovanie vášho filmu. Tieto nastavenia môžete kedykoľvek zmeniť.",
+        "title": "Pokročilé nastavenia",
         "cancelButton": "Zrušiť",
-        "confirmButton": "Potvrdiť a pokračovať"
+        "confirmButton": "Uložiť"
       }
     }
   },
@@ -702,7 +701,11 @@
     "styleModel": "Model štýlu",
     "allModels": "Všetky modely",
     "imageProvider": "Poskytovateľ obrázkov",
-    "styleExamples": "Príklady štýlov"
+    "styleExamples": "Príklady štýlov",
+    "llmProvider": "Poskytovateľ LLM",
+    "llmModel": "LLM Model",
+    "musicProvider": "Poskytovateľ hudby",
+    "advanced": "Pokročilé"
   },
   "errors": {
     "generic": "Niečo sa pokazilo. Skúste to znova.",

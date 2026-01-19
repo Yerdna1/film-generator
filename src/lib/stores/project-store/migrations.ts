@@ -105,11 +105,18 @@ export async function migrateProjectModelConfig(
     const response = await fetch(`/api/projects/${project.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ modelConfig }),
     });
 
     if (!response.ok) {
-      console.error('Failed to save model config migration to database');
+      const errorData = await response.json().catch(() => null);
+      console.error('Failed to save model config migration to database:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        projectId: project.id,
+      });
     }
   } catch (error) {
     console.error('Error saving model config migration:', error);

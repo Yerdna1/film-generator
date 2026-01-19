@@ -1,0 +1,31 @@
+-- CreateTable
+CREATE TABLE "OrganizationApiKeys" (
+    "id" TEXT NOT NULL,
+    "geminiApiKey" TEXT,
+    "grokApiKey" TEXT,
+    "kieApiKey" TEXT,
+    "elevenLabsApiKey" TEXT,
+    "claudeApiKey" TEXT,
+    "openaiApiKey" TEXT,
+    "nanoBananaApiKey" TEXT,
+    "sunoApiKey" TEXT,
+    "openRouterApiKey" TEXT,
+    "piapiApiKey" TEXT,
+    "openRouterModel" TEXT NOT NULL DEFAULT 'anthropic/claude-4.5-sonnet',
+    "kieImageModel" TEXT DEFAULT 'seedream/4-5-text-to-image',
+    "kieVideoModel" TEXT DEFAULT 'grok-imagine/image-to-video',
+    "kieTtsModel" TEXT DEFAULT 'elevenlabs/text-to-dialogue-v3',
+    "kieMusicModel" TEXT DEFAULT 'suno/v3-5-music',
+    "modalLlmEndpoint" TEXT,
+    "modalTtsEndpoint" TEXT,
+    "modalImageEndpoint" TEXT,
+    "modalImageEditEndpoint" TEXT,
+    "modalVideoEndpoint" TEXT,
+    "modalMusicEndpoint" TEXT,
+    "modalVectcutEndpoint" TEXT,
+    "lastUpdatedBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "OrganizationApiKeys_pkey" PRIMARY KEY ("id")
+);

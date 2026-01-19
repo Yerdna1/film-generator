@@ -36,12 +36,6 @@ export interface Step1State {
   generatingProvider?: string;
   setGeneratingProvider: (value: string | undefined) => void;
 
-  // Modal state
-  isModelConfigModalOpen: boolean;
-  setIsModelConfigModalOpen: (value: boolean) => void;
-  pendingGenerateAction: (() => void) | null;
-  setPendingGenerateAction: (action: (() => void) | null) => void;
-
   // Settings
   aspectRatio: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4';
   setAspectRatio: (value: '16:9' | '21:9' | '4:3' | '1:1' | '9:16' | '3:4') => void;

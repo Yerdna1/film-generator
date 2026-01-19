@@ -1,7 +1,8 @@
 'use client';
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 import { ModelConfigurationPanel } from './ModelConfigurationPanel';
 import type { UnifiedModelConfig } from '@/types/project';
 import { useTranslations } from 'next-intl';
@@ -25,45 +26,47 @@ export function ModelConfigModal({
   disabled = false,
   isFreeUser = false,
 }: ModelConfigModalProps) {
-  console.log('[ModelConfigModal] Render:', { isOpen, modelConfig, disabled, isFreeUser });
   const t = useTranslations('step1.modelConfiguration.modal');
 
   const handleClose = () => {
     if (onClose) {
       onClose();
+    } else {
+      onSubmit();
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onSubmit()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        className="max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto p-0 gap-0 bg-background/95 backdrop-blur-md"
         showCloseButton={false}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>
-            {t('description')}
-          </DialogDescription>
+        <DialogHeader className="px-8 py-4 border-b bg-background/50">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-base font-medium">{t('title')}</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="h-7 w-7 rounded-full hover:bg-accent"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </DialogHeader>
-        <div className="mt-4">
+
+        <div className="px-8 py-6">
           <ModelConfigurationPanel
             modelConfig={modelConfig}
             onConfigChange={onConfigChange}
             disabled={disabled}
             isFreeUser={isFreeUser}
+            isInModal={true}
           />
         </div>
-        <DialogFooter className="mt-6 gap-2">
-          <Button onClick={handleClose} variant="outline">
-            {t('cancelButton')}
-          </Button>
-          <Button onClick={onSubmit} className="bg-gradient-to-r from-purple-600 to-cyan-600 text-white">
-            {t('confirmButton')}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

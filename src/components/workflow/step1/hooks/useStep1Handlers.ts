@@ -14,10 +14,6 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     isPremiumUser,
     effectiveIsPremium,
     isAdmin,
-    isModelConfigModalOpen,
-    setIsModelConfigModalOpen,
-    pendingGenerateAction,
-    setPendingGenerateAction,
     isGenerating,
     setIsGenerating,
     storyModel,
@@ -34,33 +30,9 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     setGeneratingProvider,
   } = props;
 
-  const handleGeneratePrompt = useCallback(async (eventOrSkipCheck = false) => {
-    // Handle both direct calls and onClick events
-    // Event object from onClick should NOT skip the modal
-    // Explicit `true` (after modal closes) should skip the modal
-    const skipModelConfigCheck = eventOrSkipCheck === true;
-
-    // Show model config modal for free users only (not premium and not admin)
-    // effectiveIsPremium includes both premium users AND admins
-    const isFreeUser = !effectiveIsPremium;
-
-    console.log('[Step1] handleGeneratePrompt called:', {
-      eventOrSkipCheck,
-      skipModelConfigCheck,
-      isPremiumUser,
-      effectiveIsPremium,
-      isAdmin,
-      isFreeUser,
-      shouldShowModal: !skipModelConfigCheck && isFreeUser,
-    });
-
-    if (!skipModelConfigCheck && isFreeUser) {
-      console.log('[Step1] Opening model config modal');
-      setIsModelConfigModalOpen(true);
-      // Store the actual generation action to be called after modal closes
-      setPendingGenerateAction(() => () => handleGeneratePrompt(true));
-      return;
-    }
+  const handleGeneratePrompt = useCallback(async () => {
+    // No more modal for any users - all configuration is in the left panel
+    console.log('[Step1] handleGeneratePrompt called');
 
     setIsGenerating(true);
 
@@ -229,8 +201,6 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     setGeneratingProvider(undefined);
   }, [
     isPremiumUser,
-    setIsModelConfigModalOpen,
-    setPendingGenerateAction,
     aspectRatio,
     videoLanguage,
     storyModel,
@@ -265,27 +235,12 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     store.updateModelConfig(project.id, modelConfig);
   }, [store, project.id]);
 
-  const handleCloseModelConfigModal = useCallback(() => {
-    setIsModelConfigModalOpen(false);
-    // Execute the pending generation action if exists
-    if (pendingGenerateAction) {
-      pendingGenerateAction();
-      setPendingGenerateAction(null);
-    }
-  }, [setIsModelConfigModalOpen, pendingGenerateAction, setPendingGenerateAction]);
-
-  const handleCancelModelConfigModal = useCallback(() => {
-    setIsModelConfigModalOpen(false);
-    // Clear the pending action without executing it
-    setPendingGenerateAction(null);
-  }, [setIsModelConfigModalOpen, setPendingGenerateAction]);
+  // Modal-related functions removed - all configuration is now in the left panel
 
   return {
     handleGeneratePrompt,
     handleSaveEditedPrompt,
     handleApplyPreset,
     handleModelConfigChange,
-    handleCloseModelConfigModal,
-    handleCancelModelConfigModal,
   };
 }

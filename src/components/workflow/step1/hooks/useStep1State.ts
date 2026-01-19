@@ -60,9 +60,6 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
   const [generatingModel, setGeneratingModel] = useState<string | undefined>();
   const [generatingProvider, setGeneratingProvider] = useState<string | undefined>();
 
-  // Model config modal state
-  const [isModelConfigModalOpen, setIsModelConfigModalOpen] = useState(false);
-  const [pendingGenerateAction, setPendingGenerateAction] = useState<(() => void) | null>(null);
 
   // New state for additional options - initialize from project settings
   // For free users, enforce defaults
@@ -88,24 +85,8 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     (userConstants?.sceneImageProvider as 'gemini' | 'modal' | 'modal-edit' | 'kie' | undefined) || 'gemini'
   );
 
-  // Enforce free user defaults when subscription status changes
-  useEffect(() => {
-    if (!effectiveIsPremium) {
-      setVideoLanguage('en');
-      setStoryModel('gemini-3-pro');
-      setVoiceProvider('gemini-tts');
-      setStyleModel('gemini');
-      setImageProvider('gemini');
-      // Enforce Disney/Pixar style for free users
-      if (currentProject.style !== 'disney-pixar') {
-        updateProject(currentProject.id, { style: 'disney-pixar' });
-      }
-      // Enforce max 12 scenes for free users
-      if ((currentProject.settings?.sceneCount || 12) > 12) {
-        updateSettings(currentProject.id, { sceneCount: 12 });
-      }
-    }
-  }, [effectiveIsPremium, currentProject.id, currentProject.style, currentProject.settings?.sceneCount, updateProject, updateSettings]);
+  // All users can now select any model/style - no enforcement needed
+  // Premium/admin users will use organization API keys, free users will use their own
 
   // Sync editedPrompt when masterPrompt changes
   useEffect(() => {
@@ -181,11 +162,6 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     generatingProvider,
     setGeneratingProvider,
 
-    // Modal state
-    isModelConfigModalOpen,
-    setIsModelConfigModalOpen,
-    pendingGenerateAction,
-    setPendingGenerateAction,
 
     // Settings
     aspectRatio,

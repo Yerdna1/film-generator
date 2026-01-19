@@ -16,42 +16,21 @@ export function ModelConfigurationPanel({
   modelConfig,
   onConfigChange,
   disabled = false,
-  isFreeUser = false
+  isFreeUser = false,
+  isInModal = false
 }: ModelConfigurationPanelProps) {
   const t = useTranslations();
   const { data: apiKeysData, mutate } = useApiKeys();
 
-  // Initialize config with proper providers for free users
+  // Initialize config - all users can now select any provider
   const getInitialConfig = () => {
-    const baseConfig = modelConfig || DEFAULT_CONFIG;
-    if (isFreeUser) {
-      return {
-        ...baseConfig,
-        image: { ...baseConfig.image, provider: 'kie' as const },
-        video: { ...baseConfig.video, provider: 'kie' as const },
-        tts: { ...baseConfig.tts, provider: 'kie' as const },
-        music: { ...baseConfig.music, provider: 'kie' as const },
-      };
-    }
-    return baseConfig;
+    return modelConfig || DEFAULT_CONFIG;
   };
 
   const [config, setConfig] = useState<UnifiedModelConfig>(getInitialConfig);
 
-  // Update config when isFreeUser status changes
-  useEffect(() => {
-    if (isFreeUser) {
-      const updatedConfig = {
-        ...config,
-        image: { ...config.image, provider: 'kie' as const },
-        video: { ...config.video, provider: 'kie' as const },
-        tts: { ...config.tts, provider: 'kie' as const },
-        music: { ...config.music, provider: 'kie' as const },
-      };
-      setConfig(updatedConfig);
-      onConfigChange(updatedConfig);
-    }
-  }, [isFreeUser]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Config updates are handled by user selection
+  // All users can select any provider now
 
   const updateConfig = (updates: Partial<UnifiedModelConfig>) => {
     const newConfig = { ...config, ...updates };
@@ -83,51 +62,84 @@ export function ModelConfigurationPanel({
     disabled,
     onUpdateConfig: updateConfig,
     onSaveApiKey: handleSaveApiKey,
+    isFreeUser,
   };
+
+  const content = (
+    <>
+      {/* Only show API key section for free users */}
+      {isFreeUser && !isInModal && (
+        <KiaApiKeySection apiKeysData={apiKeysData} onSaveApiKey={handleSaveApiKey} />
+      )}
+
+      {/* For premium/admin users, show a notice - but not in modal */}
+      {!isFreeUser && !isInModal && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-lg border border-purple-500/20">
+          <p className="text-sm text-muted-foreground">
+            {t('step1.modelConfiguration.premiumNotice')}
+          </p>
+        </div>
+      )}
+
+      <Tabs defaultValue="llm" className="w-full">
+        <TabsList className="grid w-full grid-cols-5 mb-6 h-14">
+          <TabsTrigger value="llm" className="flex items-center gap-2 data-[state=active]:text-purple-600 text-sm">
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden lg:inline">{t('step1.modelConfiguration.tabs.llm')}</span>
+            <span className="lg:hidden">AI</span>
+          </TabsTrigger>
+          <TabsTrigger value="image" className="flex items-center gap-2 data-[state=active]:text-purple-600 text-sm">
+            <ImageIcon className="h-4 w-4" />
+            <span className="hidden lg:inline">{t('step1.modelConfiguration.tabs.image')}</span>
+            <span className="lg:hidden">Image</span>
+          </TabsTrigger>
+          <TabsTrigger value="video" className="flex items-center gap-2 data-[state=active]:text-purple-600 text-sm">
+            <Video className="h-4 w-4" />
+            <span className="hidden lg:inline">{t('step1.modelConfiguration.tabs.video')}</span>
+            <span className="lg:hidden">Video</span>
+          </TabsTrigger>
+          <TabsTrigger value="voice" className="flex items-center gap-2 data-[state=active]:text-purple-600 text-sm">
+            <Mic className="h-4 w-4" />
+            <span className="hidden lg:inline">{t('step1.modelConfiguration.tabs.voice')}</span>
+            <span className="lg:hidden">Voice</span>
+          </TabsTrigger>
+          <TabsTrigger value="music" className="flex items-center gap-2 data-[state=active]:text-purple-600 text-sm">
+            <Music className="h-4 w-4" />
+            <span className="hidden lg:inline">{t('step1.modelConfiguration.tabs.music')}</span>
+            <span className="lg:hidden">Music</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <LLMTab {...tabProps} />
+        <ImageTab {...tabProps} />
+        <VideoTab {...tabProps} />
+        <VoiceTab {...tabProps} />
+        <MusicTab {...tabProps} />
+      </Tabs>
+    </>
+  );
+
+  if (isInModal) {
+    return content;
+  }
 
   return (
     <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>{t('step1.modelConfiguration.title')}</CardTitle>
+        <CardDescription>
+          {!isFreeUser ? (
+            <div className="flex items-center gap-2">
+              <span className="text-green-500">✓</span>
+              <span>{t('step1.modelConfiguration.organizationKeysActive')}</span>
+            </div>
+          ) : (
+            t('step1.modelConfiguration.description')
+          )}
+        </CardDescription>
+      </CardHeader>
 
-      <CardContent>
-        {/* Kia API Key Section */}
-        <KiaApiKeySection apiKeysData={apiKeysData} onSaveApiKey={handleSaveApiKey} />
-
-        <Tabs defaultValue="llm" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="llm" className="flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('step1.modelConfiguration.tabs.llm')}</span>
-              <span className="sm:hidden">LLM</span>
-            </TabsTrigger>
-            <TabsTrigger value="image" className="flex items-center gap-1.5">
-              <ImageIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('step1.modelConfiguration.tabs.image')}</span>
-              <span className="sm:hidden">Image</span>
-            </TabsTrigger>
-            <TabsTrigger value="video" className="flex items-center gap-1.5">
-              <Video className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('step1.modelConfiguration.tabs.video')}</span>
-              <span className="sm:hidden">Video</span>
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="flex items-center gap-1.5">
-              <Mic className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('step1.modelConfiguration.tabs.voice')}</span>
-              <span className="sm:hidden">Voice</span>
-            </TabsTrigger>
-            <TabsTrigger value="music" className="flex items-center gap-1.5">
-              <Music className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('step1.modelConfiguration.tabs.music')}</span>
-              <span className="sm:hidden">Music</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <LLMTab {...tabProps} />
-          <ImageTab {...tabProps} isFreeUser={isFreeUser} />
-          <VideoTab {...tabProps} isFreeUser={isFreeUser} />
-          <VoiceTab {...tabProps} isFreeUser={isFreeUser} />
-          <MusicTab {...tabProps} isFreeUser={isFreeUser} />
-        </Tabs>
-      </CardContent>
+      <CardContent>{content}</CardContent>
     </Card>
   );
 }

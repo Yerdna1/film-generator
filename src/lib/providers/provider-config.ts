@@ -65,9 +65,10 @@ export interface ProviderConfigOptions {
  * Resolves provider configuration with the following priority:
  * 1. Request-specific provider override
  * 2. Project model configuration (if projectId provided)
- * 3. User settings from database (if settingsUserId provided)
- * 4. Owner settings from database (if ownerId provided)
- * 5. Default from environment variables
+ * 3. Organization API keys (for premium/admin users)
+ * 4. User settings from database (if settingsUserId provided)
+ * 5. Owner settings from database (if ownerId provided)
+ * 6. Default from environment variables
  */
 export async function getProviderConfig(
   options: ProviderConfigOptions
@@ -108,8 +109,49 @@ export async function getProviderConfig(
     }
   }
 
-  // Priority 3 & 4: Database settings
+  // Priority 3: Check for organization API keys (for premium/admin users)
+  let orgSettings: any = null;
   const userIdToCheck = settingsUserId || ownerId || userId;
+
+  if (userIdToCheck) {
+    // First check if user is premium or admin
+    const user = await prisma.user.findUnique({
+      where: { id: userIdToCheck },
+      include: {
+        subscription: true,
+      },
+    });
+
+    const isAdmin = user?.role === 'admin';
+    const isPremium = user?.subscription?.plan && user.subscription.plan !== 'free';
+
+    if (isAdmin || isPremium) {
+      // Check for organization API keys
+      orgSettings = await prisma.organizationApiKeys.findFirst({
+        select: {
+          geminiApiKey: true,
+          kieApiKey: true,
+          elevenLabsApiKey: true,
+          openaiApiKey: true,
+          piapiApiKey: true,
+          sunoApiKey: true,
+          openRouterApiKey: true,
+          modalLlmEndpoint: true,
+          modalTtsEndpoint: true,
+          modalImageEndpoint: true,
+          modalImageEditEndpoint: true,
+          modalVideoEndpoint: true,
+          modalMusicEndpoint: true,
+          kieImageModel: true,
+          kieVideoModel: true,
+          kieTtsModel: true,
+          kieMusicModel: true,
+        },
+      });
+    }
+  }
+
+  // Priority 4 & 5: User's own settings
   if (userIdToCheck) {
     userSettings = await prisma.apiKeys.findUnique({
       where: { userId: userIdToCheck },
@@ -142,22 +184,44 @@ export async function getProviderConfig(
       }
     }
 
-    if (userSettings && provider) {
-      // Get API key for the provider
-      const dbMapping = DB_PROVIDER_MAP[type];
-      if (dbMapping?.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields]) {
-        const apiKeyField = dbMapping.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields];
-        apiKey = userSettings[apiKeyField as keyof typeof userSettings] as string;
-        if (apiKey) {
-          userHasOwnApiKey = true;
+    if (provider) {
+      // First try to get API key from organization settings for premium/admin users
+      if (orgSettings) {
+        const dbMapping = DB_PROVIDER_MAP[type];
+        if (dbMapping?.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields]) {
+          const apiKeyField = dbMapping.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields];
+          apiKey = orgSettings[apiKeyField as keyof typeof orgSettings] as string;
+
+          // Organization keys are not user's own keys
+          if (apiKey) {
+            userHasOwnApiKey = false;
+          }
+        }
+
+        // Special case for KIE
+        if (provider === 'kie' && !apiKey && orgSettings.kieApiKey) {
+          apiKey = orgSettings.kieApiKey;
+          userHasOwnApiKey = false;
         }
       }
 
-      // Special case: If project is configured to use KIE but no API key found yet,
-      // and user has a KIE API key in their settings, use it
-      if (provider === 'kie' && !apiKey && userSettings.kieApiKey) {
-        apiKey = userSettings.kieApiKey;
-        userHasOwnApiKey = true;
+      // If no org key found or user is not premium/admin, try user's own settings
+      if (!apiKey && userSettings) {
+        const dbMapping = DB_PROVIDER_MAP[type];
+        if (dbMapping?.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields]) {
+          const apiKeyField = dbMapping.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields];
+          apiKey = userSettings[apiKeyField as keyof typeof userSettings] as string;
+          if (apiKey) {
+            userHasOwnApiKey = true;
+          }
+        }
+
+        // Special case: If project is configured to use KIE but no API key found yet,
+        // and user has a KIE API key in their settings, use it
+        if (provider === 'kie' && !apiKey && userSettings.kieApiKey) {
+          apiKey = userSettings.kieApiKey;
+          userHasOwnApiKey = true;
+        }
       }
     }
   }
@@ -190,6 +254,16 @@ export async function getProviderConfig(
 
   // Get Modal endpoints if applicable
   if (provider === 'modal' || provider === 'modal-edit') {
+    // First check organization endpoints for premium/admin users
+    const orgEndpoints = orgSettings ? {
+      modalImageEndpoint: orgSettings.modalImageEndpoint,
+      modalImageEditEndpoint: orgSettings.modalImageEditEndpoint,
+      modalVideoEndpoint: orgSettings.modalVideoEndpoint,
+      modalTtsEndpoint: orgSettings.modalTtsEndpoint,
+      modalMusicEndpoint: orgSettings.modalMusicEndpoint,
+    } : undefined;
+
+    // Then check user's own endpoints
     const userEndpoints = userSettings ? {
       modalImageEndpoint: userSettings.modalImageEndpoint,
       modalImageEditEndpoint: userSettings.modalImageEditEndpoint,
@@ -197,7 +271,9 @@ export async function getProviderConfig(
       modalTtsEndpoint: userSettings.modalTtsEndpoint,
       modalMusicEndpoint: userSettings.modalMusicEndpoint,
     } : undefined;
-    endpoint = await getModalEndpoint(type, projectId, userEndpoints);
+
+    // Prefer organization endpoints, fallback to user endpoints
+    endpoint = await getModalEndpoint(type, projectId, orgEndpoints || userEndpoints);
   }
 
   // Get model configuration for KIE providers

@@ -292,10 +292,9 @@
       "keySaved": "API Key saved successfully",
       "keySaveFailed": "Failed to save API Key",
       "modal": {
-        "title": "Model Configuration",
-        "description": "Configure AI models for generating your film. You can change these settings at any time.",
+        "title": "Advanced Settings",
         "cancelButton": "Cancel",
-        "confirmButton": "Confirm and Continue"
+        "confirmButton": "Save"
       }
     }
   },
@@ -702,7 +701,11 @@
     "styleModel": "Style Model",
     "allModels": "All Models",
     "imageProvider": "Image Provider",
-    "styleExamples": "Style Examples"
+    "styleExamples": "Style Examples",
+    "llmProvider": "LLM Provider",
+    "llmModel": "LLM Model",
+    "musicProvider": "Music Provider",
+    "advanced": "Advanced"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
