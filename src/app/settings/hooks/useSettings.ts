@@ -253,6 +253,8 @@ export function useSettings() {
       'openrouter': tPage('toasts.llmProviderOpenRouter') || 'Using OpenRouter for scene generation',
       'claude-sdk': tPage('toasts.llmProviderClaudeSDK') || 'Using Claude SDK/CLI for scene generation',
       'modal': tPage('toasts.llmProviderModal') || 'Using self-hosted LLM on Modal.com',
+      'gemini': tPage('toasts.llmProviderGemini') || 'Using Gemini for scene generation',
+      'kie': tPage('toasts.llmProviderKie') || 'Using KIE.ai for scene generation',
     };
     toast.success(
       tPage('toasts.llmProviderChanged') || 'LLM provider updated',

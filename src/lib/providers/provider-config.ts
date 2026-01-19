@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db/prisma';
 import { ProviderConfig, ProviderType, GenerationType, ProviderError } from './types';
-import { ImageProvider, VideoProvider, TTSProvider, MusicProvider } from '@/types/project';
+import { ImageProvider, VideoProvider, TTSProvider, MusicProvider, LLMProvider } from '@/types/project';
 
 // Environment variable mapping
 const ENV_KEY_MAP: Partial<Record<ProviderType, string>> = {
@@ -48,6 +48,15 @@ const DB_PROVIDER_MAP = {
       'piapi': 'piapiApiKey',
       'suno': 'sunoApiKey',
       // Modal uses endpoints, not API keys
+    },
+  },
+  llm: {
+    providerField: 'llmProvider',
+    apiKeyFields: {
+      'kie': 'kieApiKey',
+      'openrouter': 'openRouterApiKey',
+      'gemini': 'geminiApiKey',
+      // Modal and claude-sdk use endpoints, not API keys
     },
   },
 };
@@ -241,6 +250,9 @@ export async function getProviderConfig(
         break;
       case 'music':
         provider = 'piapi' as MusicProvider;
+        break;
+      case 'llm':
+        provider = 'openrouter' as LLMProvider;
         break;
     }
   }

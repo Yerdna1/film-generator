@@ -1,11 +1,13 @@
 // Unified LLM API Route for Master Prompt Enhancement
 // Uses user's configured LLM provider (OpenRouter, Claude SDK, Modal, or Gemini)
+// Now integrates with project.modelConfig via getProviderConfig
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { spendCredits, checkBalance, COSTS } from '@/lib/services/credits';
 import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
+import { getProviderConfig } from '@/lib/providers';
 import type { Provider } from '@/lib/services/real-costs';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
@@ -115,7 +117,7 @@ async function queryGemini(prompt: string, apiKey: string, model: string = 'gemi
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, systemPrompt = '', model } = await request.json();
+    const { prompt, systemPrompt = '', model, projectId } = await request.json();
 
     // Get session and check authentication
     const session = await auth();
@@ -148,11 +150,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch user's API keys and LLM provider preference
-    const userApiKeys = await prisma.apiKeys.findUnique({
-      where: { userId },
-    });
-
     // Check if user is admin or premium
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -166,24 +163,63 @@ export async function POST(request: NextRequest) {
     const { LEGACY_ADMIN_EMAIL } = await import('@/lib/admin');
     const isAdmin = user?.role === 'admin' || user?.email === LEGACY_ADMIN_EMAIL;
 
-    // Default to OpenRouter if no preference set
-    let llmProvider = userApiKeys?.llmProvider || 'openrouter';
+    // Use getProviderConfig to resolve LLM provider with project config priority
+    let llmProvider: string;
+    let openRouterApiKey: string | undefined;
+    let llmModel: string;
+    let modalLlmEndpoint: string | undefined;
+    let geminiApiKey: string | undefined;
 
-    // Determine OpenRouter API key:
-    // - If user has their own key in DB, use it
-    // - If user is premium/admin and no personal key, use default from env
-    // - If user is free and no personal key, they must add their own
-    let openRouterApiKey = userApiKeys?.openRouterApiKey;
+    try {
+      const providerConfig = await getProviderConfig({
+        userId,
+        projectId,
+        type: 'llm',
+      });
+
+      llmProvider = providerConfig.provider;
+      openRouterApiKey = providerConfig.apiKey || undefined;
+      llmModel = model || providerConfig.model || DEFAULT_OPENROUTER_MODEL;
+
+      console.log(`[LLM Prompt] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId || 'none'}`);
+    } catch (configError) {
+      // Fallback to legacy behavior if getProviderConfig fails (e.g., no API key)
+      console.log(`[LLM Prompt] getProviderConfig failed, using legacy fallback: ${configError}`);
+
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId },
+      });
+
+      llmProvider = userApiKeys?.llmProvider || 'openrouter';
+      openRouterApiKey = userApiKeys?.openRouterApiKey || undefined;
+      llmModel = model || userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
+      modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
+      geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
+    }
+
+    // For premium/admin users without their own key, use default
     if (!openRouterApiKey && (isPremiumUser || isAdmin)) {
-      // Premium/admin users can use the default fallback key
       openRouterApiKey = process.env.OPENROUTER_API_KEY;
       console.log(`[LLM Prompt] Using default OpenRouter key for ${isAdmin ? 'admin' : 'premium'} user`);
     }
 
-    // Use model from request if provided, otherwise use user's default
-    const openRouterModel = model || userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
-    const modalLlmEndpoint = userApiKeys?.modalLlmEndpoint;
-    const geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
+    // Get Modal endpoint if needed
+    if (llmProvider === 'modal' && !modalLlmEndpoint) {
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId },
+        select: { modalLlmEndpoint: true },
+      });
+      modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
+    }
+
+    // Get Gemini API key if needed
+    if (llmProvider === 'gemini' && !geminiApiKey) {
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId },
+        select: { geminiApiKey: true },
+      });
+      geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
+    }
 
     // For free users: derive provider from model parameter (e.g., "anthropic/claude-sonnet-4.5" → "openrouter")
     // When a specific model is provided, override the database provider setting
@@ -240,7 +276,7 @@ export async function POST(request: NextRequest) {
         openRouterApiKey!,
         defaultSystemPrompt,
         prompt,
-        openRouterModel,
+        llmModel,
         8192
       );
     } else if (llmProvider === 'claude-sdk') {

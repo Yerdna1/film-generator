@@ -1,9 +1,9 @@
-import { ImageProvider, VideoProvider, TTSProvider, MusicProvider } from '@/types/project';
+import { ImageProvider, VideoProvider, TTSProvider, MusicProvider, LLMProvider } from '@/types/project';
 
 // Base generation types
-export type GenerationType = 'image' | 'video' | 'tts' | 'music';
+export type GenerationType = 'image' | 'video' | 'tts' | 'music' | 'llm';
 
-export type ProviderType = ImageProvider | VideoProvider | TTSProvider | MusicProvider;
+export type ProviderType = ImageProvider | VideoProvider | TTSProvider | MusicProvider | LLMProvider;
 
 // Generation status types
 export type GenerationStatus = 'pending' | 'processing' | 'complete' | 'error' | 'cancelled';

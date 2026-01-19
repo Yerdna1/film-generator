@@ -95,6 +95,53 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, style, settings, story, voiceSettings } = body;
 
+    // Fetch user's saved preferences to initialize modelConfig
+    const userApiKeys = await prisma.apiKeys.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        llmProvider: true,
+        openRouterModel: true,
+        imageProvider: true,
+        kieImageModel: true,
+        videoProvider: true,
+        kieVideoModel: true,
+        ttsProvider: true,
+        kieTtsModel: true,
+        musicProvider: true,
+        kieMusicModel: true,
+      },
+    });
+
+    // Build modelConfig from user's saved preferences (or use defaults)
+    const modelConfig = {
+      llm: {
+        provider: userApiKeys?.llmProvider || 'kie',
+        model: userApiKeys?.openRouterModel || 'anthropic/claude-sonnet-4',
+      },
+      image: {
+        provider: userApiKeys?.imageProvider || 'kie',
+        model: userApiKeys?.kieImageModel || 'seedream/4-5-text-to-image',
+        characterResolution: '2k',
+        sceneResolution: '2k',
+        characterAspectRatio: '1:1',
+        sceneAspectRatio: '16:9',
+      },
+      video: {
+        provider: userApiKeys?.videoProvider || 'kie',
+        model: userApiKeys?.kieVideoModel || 'grok-imagine/image-to-video',
+        exportResolution: '1080p',
+      },
+      tts: {
+        provider: userApiKeys?.ttsProvider || 'kie',
+        model: userApiKeys?.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
+        defaultLanguage: 'en',
+      },
+      music: {
+        provider: userApiKeys?.musicProvider || 'kie',
+        model: userApiKeys?.kieMusicModel || 'suno/v3-5-music',
+      },
+    };
+
     const project = await prisma.project.create({
       data: {
         name: name || 'New Project',
@@ -120,6 +167,7 @@ export async function POST(request: NextRequest) {
           provider: 'gemini-tts',
           characterVoices: {},
         },
+        modelConfig, // Initialize with user's preferences
       },
       include: {
         characters: true,
@@ -140,6 +188,7 @@ export async function POST(request: NextRequest) {
       settings: project.settings as object,
       story: project.story as object,
       voiceSettings: project.voiceSettings as object,
+      modelConfig: project.modelConfig as object,
       characters: [],
       scenes: [],
     };

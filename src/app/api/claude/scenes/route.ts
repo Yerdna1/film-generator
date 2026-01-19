@@ -4,6 +4,7 @@ import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
 import { prisma } from '@/lib/db/prisma';
+import { getProviderConfig } from '@/lib/providers';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
 
@@ -147,21 +148,51 @@ export async function POST(request: NextRequest) {
 
     const styleDescription = styleMapping[style] || styleMapping['disney-pixar'];
 
-    // Fetch user's API keys and LLM provider preference
-    const userApiKeys = await prisma.apiKeys.findUnique({
-      where: { userId: session.user.id },
-    });
+    // Use getProviderConfig to resolve LLM provider with project config priority
+    let llmProvider: string;
+    let openRouterApiKey: string | undefined;
+    let llmModel: string;
+    let modalLlmEndpoint: string | undefined;
 
-    // Default to OpenRouter if no preference set
-    const llmProvider = userApiKeys?.llmProvider || 'openrouter';
-    const openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
-    const openRouterModel = userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
-    const modalLlmEndpoint = userApiKeys?.modalLlmEndpoint;
+    try {
+      const providerConfig = await getProviderConfig({
+        userId: session.user.id,
+        projectId,
+        type: 'llm',
+      });
+
+      llmProvider = providerConfig.provider;
+      openRouterApiKey = providerConfig.apiKey || undefined;
+      llmModel = providerConfig.model || DEFAULT_OPENROUTER_MODEL;
+
+      console.log(`[Scene Generation] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId}`);
+    } catch (configError) {
+      // Fallback to legacy behavior if getProviderConfig fails
+      console.log(`[Scene Generation] getProviderConfig failed, using legacy fallback: ${configError}`);
+
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId: session.user.id },
+      });
+
+      llmProvider = userApiKeys?.llmProvider || 'openrouter';
+      openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
+      llmModel = userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
+      modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
+    }
+
+    // Get Modal endpoint if needed
+    if (llmProvider === 'modal' && !modalLlmEndpoint) {
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId: session.user.id },
+        select: { modalLlmEndpoint: true },
+      });
+      modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
+    }
 
     // Validate API key/endpoint for selected provider
     if (llmProvider === 'openrouter' && !openRouterApiKey) {
       return NextResponse.json(
-        { error: 'OpenRouter API key is required. Please configure it in Settings.' },
+        { error: 'OpenRouter API key is required. Please configure it in Settings or in Step 1 Model Configuration.' },
         { status: 400 }
       );
     }
@@ -229,7 +260,7 @@ Return ONLY the JSON array, no other text.`;
         openRouterApiKey!,
         systemPrompt,
         prompt,
-        openRouterModel,
+        llmModel,
         8192
       );
     } else {
