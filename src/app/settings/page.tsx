@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { Key, Settings, User, DollarSign, Loader2 } from 'lucide-react';
+import { Key, Settings, DollarSign, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettings } from './hooks/useSettings';
 import {
   SettingsHeader,
   ApiKeysTab,
   GeneralSettingsTab,
-  AccountTab,
   PricingTab,
 } from './components';
 
@@ -129,14 +128,12 @@ export default function SettingsPage() {
                 <Settings className="w-4 h-4" />
                 {tPage('general')}
               </TabsTrigger>
-              <TabsTrigger value="account" className="gap-2">
-                <User className="w-4 h-4" />
-                {tPage('account')}
-              </TabsTrigger>
-              <TabsTrigger value="pricing" className="gap-2" onClick={fetchActionCosts}>
-                <DollarSign className="w-4 h-4" />
-                Pricing
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="pricing" className="gap-2" onClick={fetchActionCosts}>
+                  <DollarSign className="w-4 h-4" />
+                  Pricing
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="api">
@@ -179,22 +176,11 @@ export default function SettingsPage() {
                 language={language}
                 darkMode={darkMode}
                 reducedMotion={reducedMotion}
-                notifyOnComplete={notifyOnComplete}
-                autoSave={autoSave}
-                currency={currency}
+                projectsCount={projects.length}
+                isExporting={isExporting}
                 onLanguageChange={handleLanguageChange}
                 onDarkModeChange={handleDarkModeChange}
                 onReducedMotionChange={handleReducedMotionChange}
-                onNotifyChange={handleNotifyChange}
-                onAutoSaveChange={handleAutoSaveChange}
-                onCurrencyChange={handleCurrencyChange}
-              />
-            </TabsContent>
-
-            <TabsContent value="account">
-              <AccountTab
-                projectsCount={projects.length}
-                isExporting={isExporting}
                 onExportData={handleExportData}
                 onDeleteAllData={handleDeleteAllData}
               />

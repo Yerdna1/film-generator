@@ -103,96 +103,78 @@ export function ApiKeysTab({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* LLM Provider Selection */}
-      <Card className="glass border-border border-l-4 border-l-emerald-500">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Cpu className="w-5 h-5 text-emerald-400" />
-            {tPage('llmProvider') || 'LLM Provider'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      {/* Provider Selection Grid - 5 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {/* LLM Provider Selection */}
+        <Card className="glass border-border border-l-4 border-l-emerald-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Cpu className="w-5 h-5 text-emerald-400" />
+              {tPage('llmProvider') || 'LLM'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
             {llmProviderOptions.map((option) => (
               <motion.div
                 key={option.id}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onLLMProviderChange(option.id)}
-                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
-                  llmProvider === option.id
+                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${llmProvider === option.id
                     ? 'border-emerald-500 bg-emerald-500/10'
                     : 'border-border hover:border-border bg-muted/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {llmProvider === option.id && <Check className="w-4 h-4 text-emerald-400" />}
                   </div>
-                  <div className={`w-3 h-3 rounded-full border-2 ${
-                    llmProvider === option.id ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full border-2 ${llmProvider === option.id ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30'
+                    }`} />
                 </div>
               </motion.div>
             ))}
-          </div>
 
-          {/* OpenRouter Model Selection */}
-          {llmProvider === 'openrouter' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="p-3 rounded-lg bg-muted/50 border border-border"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-medium">{tPage('selectModel') || 'Select Model'}</span>
-              </div>
-              <Select
-                value={openRouterModel || DEFAULT_OPENROUTER_MODEL}
-                onValueChange={onOpenRouterModelChange}
+            {/* OpenRouter Model Selection */}
+            {llmProvider === 'openrouter' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 rounded-lg bg-muted/50 border border-border"
               >
-                <SelectTrigger className="w-full bg-muted/50 border-border">
-                  <SelectValue placeholder={t('selectModel')} />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {openRouterModels.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{model.name}</span>
-                        {model.recommended && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400">
-                            {tPage('recommended') || 'Recommended'}
-                          </Badge>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {openRouterModel && (
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {(() => {
-                    const selectedModel = openRouterModels.find(m => m.id === openRouterModel);
-                    if (!selectedModel) return null;
-                    return (
-                      <div className="flex gap-4 text-[10px]">
-                        <span>Context: {(selectedModel.contextLength / 1000).toFixed(0)}K</span>
-                        <span>Pricing: {selectedModel.pricing}</span>
-                      </div>
-                    );
-                  })()}
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-medium">{tPage('selectModel') || 'Model'}</span>
                 </div>
-              )}
-            </motion.div>
-          )}
-        </CardContent>
-      </Card>
+                <Select
+                  value={openRouterModel || DEFAULT_OPENROUTER_MODEL}
+                  onValueChange={onOpenRouterModelChange}
+                >
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
+                    <SelectValue placeholder={t('selectModel')} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {openRouterModels.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{model.name}</span>
+                          {model.recommended && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400">
+                              ★
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Provider Selection Grid - responsive columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* TTS Provider Selection */}
         <Card className="glass border-border border-l-4 border-l-violet-500">
           <CardHeader className="pb-3">
@@ -208,20 +190,18 @@ export function ApiKeysTab({
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onTTSProviderChange(option.id)}
-                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
-                  ttsProvider === option.id
+                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${ttsProvider === option.id
                     ? 'border-violet-500 bg-violet-500/10'
                     : 'border-border hover:border-border bg-muted/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {ttsProvider === option.id && <Check className="w-4 h-4 text-violet-400" />}
                   </div>
-                  <div className={`w-3 h-3 rounded-full border-2 ${
-                    ttsProvider === option.id ? 'border-violet-500 bg-violet-500' : 'border-muted-foreground/30'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full border-2 ${ttsProvider === option.id ? 'border-violet-500 bg-violet-500' : 'border-muted-foreground/30'
+                    }`} />
                 </div>
               </motion.div>
             ))}
@@ -290,20 +270,18 @@ export function ApiKeysTab({
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onImageProviderChange(option.id)}
-                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
-                  imageProvider === option.id
+                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${imageProvider === option.id
                     ? 'border-blue-500 bg-blue-500/10'
                     : 'border-border hover:border-border bg-muted/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {imageProvider === option.id && <Check className="w-4 h-4 text-blue-400" />}
                   </div>
-                  <div className={`w-3 h-3 rounded-full border-2 ${
-                    imageProvider === option.id ? 'border-blue-500 bg-blue-500' : 'border-muted-foreground/30'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full border-2 ${imageProvider === option.id ? 'border-blue-500 bg-blue-500' : 'border-muted-foreground/30'
+                    }`} />
                 </div>
               </motion.div>
             ))}
@@ -379,20 +357,18 @@ export function ApiKeysTab({
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onVideoProviderChange(option.id)}
-                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
-                  videoProvider === option.id
+                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${videoProvider === option.id
                     ? 'border-orange-500 bg-orange-500/10'
                     : 'border-border hover:border-border bg-muted/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {videoProvider === option.id && <Check className="w-4 h-4 text-orange-400" />}
                   </div>
-                  <div className={`w-3 h-3 rounded-full border-2 ${
-                    videoProvider === option.id ? 'border-orange-500 bg-orange-500' : 'border-muted-foreground/30'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full border-2 ${videoProvider === option.id ? 'border-orange-500 bg-orange-500' : 'border-muted-foreground/30'
+                    }`} />
                 </div>
               </motion.div>
             ))}
@@ -473,20 +449,18 @@ export function ApiKeysTab({
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onMusicProviderChange(option.id)}
-                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
-                  musicProvider === option.id
+                className={`relative p-2.5 rounded-lg border-2 cursor-pointer transition-all ${musicProvider === option.id
                     ? 'border-pink-500 bg-pink-500/10'
                     : 'border-border hover:border-border bg-muted/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground text-sm">{option.name}</span>
                     {musicProvider === option.id && <Check className="w-4 h-4 text-pink-400" />}
                   </div>
-                  <div className={`w-3 h-3 rounded-full border-2 ${
-                    musicProvider === option.id ? 'border-pink-500 bg-pink-500' : 'border-muted-foreground/30'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full border-2 ${musicProvider === option.id ? 'border-pink-500 bg-pink-500' : 'border-muted-foreground/30'
+                    }`} />
                 </div>
               </motion.div>
             ))}
@@ -543,7 +517,7 @@ export function ApiKeysTab({
 
       {/* Modal.com Endpoints - Show when Modal provider is selected or for VectCut video composition */}
       {showModalEndpoints && (
-      <Card className="glass border-border border-l-4 border-l-cyan-500">
+        <Card className="glass border-border border-l-4 border-l-cyan-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Server className="w-5 h-5 text-cyan-400" />

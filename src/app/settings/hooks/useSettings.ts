@@ -41,7 +41,12 @@ export function useSettings() {
 
   // Load settings from localStorage on mount
   useEffect(() => {
-    const savedLanguage = localStorage.getItem('app-language') || 'en';
+    // Read language from cookie first (this is what next-intl uses)
+    const getCookieValue = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? match[2] : null;
+    };
+    const savedLanguage = getCookieValue('NEXT_LOCALE') || localStorage.getItem('app-language') || 'en';
     const savedDarkMode = localStorage.getItem('app-dark-mode') !== 'false';
     const savedReducedMotion = localStorage.getItem('app-reduced-motion') === 'true';
     const savedNotify = localStorage.getItem('app-notify-complete') !== 'false';
