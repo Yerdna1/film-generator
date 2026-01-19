@@ -18,6 +18,8 @@ import {
   Clock,
   XCircle,
   UserCheck,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +66,11 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+
+  // Pagination
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPendingPage, setCurrentPendingPage] = useState(1);
 
   // Dialog states
   const [creditDialogOpen, setCreditDialogOpen] = useState(false);
@@ -120,7 +127,7 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: creditAction === 'add' ? 'add_credits' :
-                  creditAction === 'deduct' ? 'deduct_credits' : 'set_credits',
+            creditAction === 'deduct' ? 'deduct_credits' : 'set_credits',
           amount,
           reason: creditReason,
         }),
@@ -237,6 +244,17 @@ export default function AdminPage() {
     );
   });
 
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -297,62 +315,107 @@ export default function AdminPage() {
       </div>
 
       {/* Pending Approvals */}
-      {users.filter(u => !u.isApproved && u.role !== 'admin').length > 0 && (
-        <div className="glass-strong rounded-xl p-6 border-2 border-amber-500/30">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-amber-500/10 rounded-lg">
-              <Clock className="w-5 h-5 text-amber-500" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-amber-500">
-                {t('pendingApprovals')} ({users.filter(u => !u.isApproved && u.role !== 'admin').length})
-              </h2>
-              <p className="text-sm text-muted-foreground">{t('newUsersWaiting')}</p>
-            </div>
-          </div>
+      {(() => {
+        const pendingUsers = users.filter(u => !u.isApproved && u.role !== 'admin' && !u.isBlocked);
+        const totalPendingPages = Math.ceil(pendingUsers.length / ITEMS_PER_PAGE);
+        const paginatedPendingUsers = pendingUsers.slice(
+          (currentPendingPage - 1) * ITEMS_PER_PAGE,
+          currentPendingPage * ITEMS_PER_PAGE
+        );
 
-          <div className="space-y-3">
-            {users.filter(u => !u.isApproved && u.role !== 'admin').map(user => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold">
-                    {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+        if (pendingUsers.length === 0) return null;
+
+        return (
+          <div className="glass-strong rounded-xl p-6 border-2 border-amber-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-amber-500/10 rounded-lg">
+                <Clock className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-amber-500">
+                  {t('pendingApprovals')} ({pendingUsers.length})
+                </h2>
+                <p className="text-sm text-muted-foreground">{t('newUsersWaiting')}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {paginatedPendingUsers.map(user => (
+                <div
+                  key={user.id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                      {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium">{user.name || t('noName')}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Registered {new Date(user.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{user.name || t('noName')}</p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Registered {new Date(user.createdAt).toLocaleDateString()}
-                    </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleApproval(user, true)}
+                    >
+                      <UserCheck className="w-4 h-4 mr-1" />
+                      {t('actions.approve')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                      onClick={() => handleApproval(user, false)}
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      {t('actions.reject')}
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
+              ))}
+            </div>
+
+            {/* Pending Approvals Pagination Controls */}
+            {totalPendingPages > 1 && (
+              <div className="flex items-center justify-between border-t border-amber-500/20 pt-4 mt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPendingPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPendingPage * ITEMS_PER_PAGE, pendingUsers.length)} of {pendingUsers.length} pending
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => handleApproval(user, true)}
-                  >
-                    <UserCheck className="w-4 h-4 mr-1" />
-                    {t('actions.approve')}
-                  </Button>
-                  <Button
-                    size="sm"
                     variant="outline"
-                    className="text-red-500 border-red-500/30 hover:bg-red-500/10"
-                    onClick={() => handleApproval(user, false)}
+                    size="sm"
+                    onClick={() => setCurrentPendingPage(p => Math.max(1, p - 1))}
+                    disabled={currentPendingPage === 1}
+                    className="border-amber-500/20 hover:bg-amber-500/10"
                   >
-                    <XCircle className="w-4 h-4 mr-1" />
-                    {t('actions.reject')}
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <div className="flex items-center gap-1 text-sm">
+                    <span className="font-medium">{currentPendingPage}</span>
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-muted-foreground">{totalPendingPages}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPendingPage(p => Math.min(totalPendingPages, p + 1))}
+                    disabled={currentPendingPage === totalPendingPages}
+                    className="border-amber-500/20 hover:bg-amber-500/10"
+                  >
+                    <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Users Management */}
       <div className="glass-strong rounded-xl p-6">
@@ -381,14 +444,13 @@ export default function AdminPage() {
 
         {/* Users List */}
         <div className="space-y-2">
-          {filteredUsers.map((user) => (
+          {paginatedUsers.map((user) => (
             <div
               key={user.id}
-              className={`border rounded-lg overflow-hidden transition-colors ${
-                user.isBlocked
-                  ? 'border-red-500/30 bg-red-500/5'
-                  : 'border-border/50 bg-background/50'
-              }`}
+              className={`border rounded-lg overflow-hidden transition-colors ${user.isBlocked
+                ? 'border-red-500/30 bg-red-500/5'
+                : 'border-border/50 bg-background/50'
+                }`}
             >
               {/* User Row */}
               <div
@@ -557,6 +619,38 @@ export default function AdminPage() {
           {filteredUsers.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               {t('noUsersFound')}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-border/50 pt-4 mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="flex items-center gap-1 text-sm">
+                  <span className="font-medium">{currentPage}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="text-muted-foreground">{totalPages}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>

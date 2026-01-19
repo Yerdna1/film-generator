@@ -199,7 +199,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       await prisma.user.update({
         where: { id: userId },
-        data: { isApproved },
+        data: {
+          isApproved,
+          // If rejecting, also block the user so they are removed from the pending list
+          isBlocked: !isApproved ? true : undefined
+        },
       });
 
       // Send email to user about approval status
@@ -220,14 +224,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             to: user.email,
             subject: 'Account Registration Update',
             title: 'Account Not Approved',
-            message: 'Unfortunately, your account registration was not approved at this time. If you believe this is a mistake, please contact the administrator.',
+            message: 'Unfortunately, your account registration was not approved at this time and has been blocked. If you believe this is a mistake, please contact the administrator.',
           });
         }
       }
 
       return NextResponse.json({
         success: true,
-        message: `User ${user.name || user.email} has been ${isApproved ? 'approved' : 'rejected'}`,
+        message: `User ${user.name || user.email} has been ${isApproved ? 'approved' : 'rejected and blocked'}`,
         isApproved,
       });
     }

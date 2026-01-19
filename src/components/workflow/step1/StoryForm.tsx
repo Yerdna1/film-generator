@@ -123,7 +123,7 @@ export function StoryForm({
           value={project.story.concept}
           onChange={(e) => updateStory(project.id, { concept: e.target.value })}
           disabled={isReadOnly}
-          className="min-h-[80px] glass border-white/10 focus:border-purple-500/50 resize-none text-sm"
+          className="min-h-[200px] glass border-white/10 focus:border-purple-500/50 resize-y text-sm"
         />
       </div>
 
