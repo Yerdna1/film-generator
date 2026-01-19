@@ -60,8 +60,6 @@ interface StepNavigationProps {
 }
 
 function StepNavigation({ currentStep, onStepClick, t }: StepNavigationProps) {
-  const [visibleStartIndex, setVisibleStartIndex] = useState(Math.max(0, Math.min(1, currentStep - 3)));
-
   const steps = [
     { number: 1, name: t('help.steps.storyPrompt'), shortName: t('steps.prompt.title') },
     { number: 2, name: t('help.steps.characters'), shortName: t('steps.characters.title') },
@@ -71,64 +69,28 @@ function StepNavigation({ currentStep, onStepClick, t }: StepNavigationProps) {
     { number: 6, name: t('help.steps.export'), shortName: t('help.steps.export') },
   ];
 
-  const visibleSteps = steps.slice(visibleStartIndex, visibleStartIndex + 5);
-
-  const canGoLeft = visibleStartIndex > 0;
-  const canGoRight = visibleStartIndex < steps.length - 5;
-
-  const goLeft = () => {
-    if (canGoLeft) {
-      setVisibleStartIndex(visibleStartIndex - 1);
-    }
-  };
-
-  const goRight = () => {
-    if (canGoRight) {
-      setVisibleStartIndex(visibleStartIndex + 1);
-    }
-  };
-
-  // Update visible range when current step changes
-  useEffect(() => {
-    if (currentStep <= visibleStartIndex) {
-      setVisibleStartIndex(Math.max(0, currentStep - 1));
-    } else if (currentStep > visibleStartIndex + 4) {
-      setVisibleStartIndex(Math.min(steps.length - 5, currentStep - 4));
-    }
-  }, [currentStep, visibleStartIndex, steps.length]);
-
   return (
-    <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={goLeft}
-        disabled={!canGoLeft}
-        className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </Button>
-
-      <div className="flex items-center gap-1">
-        {visibleSteps.map((step) => (
+    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full px-2">
+      <div className="flex items-center gap-1 mx-auto">
+        {steps.map((step) => (
           <button
             key={step.number}
             onClick={() => onStepClick(step.number)}
             className={`
-              relative px-2 md:px-3 py-1 md:py-1.5 text-xs font-medium rounded-full transition-all duration-200
+              relative px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 whitespace-nowrap
               ${currentStep === step.number
                 ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/25'
                 : currentStep > step.number
-                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                : 'bg-white/10 text-muted-foreground hover:bg-white/20'
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                  : 'bg-white/10 text-muted-foreground hover:bg-white/20'
               }
             `}
           >
-            <span className="flex items-center gap-1.5">
-              <span className="font-semibold">{step.number}</span>
-              <span className="hidden sm:inline">{step.shortName}</span>
+            <span className="flex items-center gap-2">
+              <span className="text-sm md:text-base font-bold leading-none">{step.number}</span>
+              <span className="hidden sm:inline text-[10px] md:text-xs font-medium opacity-90 uppercase tracking-wide">{step.shortName}</span>
               {currentStep > step.number && (
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               )}
@@ -136,16 +98,6 @@ function StepNavigation({ currentStep, onStepClick, t }: StepNavigationProps) {
           </button>
         ))}
       </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={goRight}
-        disabled={!canGoRight}
-        className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
-      >
-        <ChevronRight className="w-4 h-4" />
-      </Button>
     </div>
   );
 }
@@ -519,11 +471,10 @@ export default function ProjectWorkspacePage() {
                   size="sm"
                   onClick={handleToggleVisibility}
                   disabled={isUpdatingVisibility}
-                  className={`gap-2 ${
-                    visibility === 'public'
-                      ? 'text-green-400 hover:text-green-300'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`gap-2 ${visibility === 'public'
+                    ? 'text-green-400 hover:text-green-300'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
                   title={visibility === 'public' ? t('project.publicProjectTooltip') : t('project.privateProjectTooltip')}
                 >
                   {visibility === 'public' ? (
@@ -548,11 +499,10 @@ export default function ProjectWorkspacePage() {
                   <Users className="w-4 h-4" />
                   <span className="hidden sm:inline">{t('collaboration.team')}</span>
                   {userRole && (
-                    <span className={`hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
-                      userRole === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
+                    <span className={`hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${userRole === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
                       userRole === 'collaborator' ? 'bg-purple-500/20 text-purple-400' :
-                      'bg-cyan-500/20 text-cyan-400'
-                    }`}>
+                        'bg-cyan-500/20 text-cyan-400'
+                      }`}>
                       {getRoleLabel(userRole)}
                     </span>
                   )}
@@ -679,17 +629,17 @@ export default function ProjectWorkspacePage() {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[1920px] mx-auto px-2 md:px-4 lg:px-6 xl:px-8 py-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={project.currentStep}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderStep()}
-          </motion.div>
-        </AnimatePresence>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={project.currentStep}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderStep()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
@@ -743,12 +693,12 @@ export default function ProjectWorkspacePage() {
                   animate={
                     project.currentStep > 0
                       ? {
-                          boxShadow: [
-                            '0 0 0 0px rgba(147, 51, 234, 0.4)',
-                            '0 0 0 8px rgba(147, 51, 234, 0)',
-                            '0 0 0 0px rgba(147, 51, 234, 0)',
-                          ],
-                        }
+                        boxShadow: [
+                          '0 0 0 0px rgba(147, 51, 234, 0.4)',
+                          '0 0 0 8px rgba(147, 51, 234, 0)',
+                          '0 0 0 0px rgba(147, 51, 234, 0)',
+                        ],
+                      }
                       : {}
                   }
                   transition={{
@@ -883,16 +833,14 @@ export default function ProjectWorkspacePage() {
                       const RoleIcon = roleIcons[userRole];
                       return (
                         <>
-                          <div className={`p-2 rounded-lg ${
-                            userRole === 'admin' ? 'bg-yellow-500/20' :
+                          <div className={`p-2 rounded-lg ${userRole === 'admin' ? 'bg-yellow-500/20' :
                             userRole === 'collaborator' ? 'bg-purple-500/20' :
-                            'bg-cyan-500/20'
-                          }`}>
-                            <RoleIcon className={`w-5 h-5 ${
-                              userRole === 'admin' ? 'text-yellow-400' :
+                              'bg-cyan-500/20'
+                            }`}>
+                            <RoleIcon className={`w-5 h-5 ${userRole === 'admin' ? 'text-yellow-400' :
                               userRole === 'collaborator' ? 'text-purple-400' :
-                              'text-cyan-400'
-                            }`} />
+                                'text-cyan-400'
+                              }`} />
                           </div>
                           <div>
                             <p className="font-medium">{t('collaboration.yourRole')}</p>
