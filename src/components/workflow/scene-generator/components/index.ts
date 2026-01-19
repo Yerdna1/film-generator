@@ -7,3 +7,4 @@ export { SceneCard } from './SceneCard';
 export { SceneHeader } from './SceneHeader';
 export { QuickActions } from './QuickActions';
 export { OpenRouterModal } from './OpenRouterModal';
+export { Step3Content } from './Step3Content';

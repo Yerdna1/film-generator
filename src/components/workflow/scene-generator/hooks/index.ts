@@ -121,6 +121,7 @@ export function useSceneGenerator(initialProject: Project) {
           toast.info('Resuming existing generation', {
             description: 'Found an active background job.',
           });
+          setIsGeneratingScenes(false); // Reset state since we're not starting a new job
           return; // Exit successfully
         }
 
@@ -278,3 +279,7 @@ export function useSceneGenerator(initialProject: Project) {
     updateSettings: (settings: Parameters<typeof updateSettings>[1]) => updateSettings(project.id, settings),
   };
 }
+
+// Re-export specialized hooks
+export { useStep3Collaboration } from './useStep3Collaboration';
+export { useStep3Pagination } from './useStep3Pagination';
