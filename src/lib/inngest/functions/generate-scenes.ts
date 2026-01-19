@@ -1,12 +1,25 @@
 import { inngest } from '../client';
 import { NonRetriableError } from 'inngest';
 import { prisma } from '@/lib/db/prisma';
-import { spendCredits, COSTS } from '@/lib/services/credits';
-import { ACTION_COSTS } from '@/lib/services/real-costs';
-import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
-
-// Maximum scenes per LLM call to avoid token limits
-const SCENES_PER_BATCH = 30;
+import {
+  SCENES_PER_BATCH,
+  DEFAULT_STORY_MODEL,
+  parseLLMConfig,
+  validateLLMProviderSettings,
+  callLLM,
+  buildCharacterDescriptions,
+  getCharacterNames,
+  getStyleDescription,
+  buildSceneGenerationPrompt,
+  parseLLMResponse,
+  validateScenes,
+  saveScenesToDatabase,
+  getExistingSceneCount,
+  spendSceneCredits,
+  type SceneGenerationData,
+  type LLMConfig,
+  type Scene,
+} from './scene-generation';
 
 // Generate scenes for a project using LLM - runs in background
 export const generateScenesBatch = inngest.createFunction(
@@ -17,9 +30,9 @@ export const generateScenesBatch = inngest.createFunction(
   },
   { event: 'scenes/generate.batch' },
   async ({ event, step }) => {
-    const { projectId, userId, jobId, story, characters, style, sceneCount } = event.data;
+    const { projectId, userId, jobId, story, characters, style, sceneCount, skipCreditCheck = false } = event.data as SceneGenerationData;
 
-    console.log(`[Inngest Scenes] Starting job ${jobId} for ${sceneCount} scenes`);
+    console.log(`[Inngest Scenes] Starting job ${jobId} for ${sceneCount} scenes, skipCreditCheck=${skipCreditCheck}`);
 
     // Update job status to processing
     await step.run('update-job-processing', async () => {
@@ -48,7 +61,7 @@ export const generateScenesBatch = inngest.createFunction(
 
     // Get storyModel from project settings (from Step1)
     const projectSettings = project.settings as any;
-    const storyModel = projectSettings?.storyModel || 'claude-sonnet-4.5';
+    const storyModel = projectSettings?.storyModel || DEFAULT_STORY_MODEL;
 
     console.log(`[Inngest Scenes] Using storyModel from project settings: ${storyModel}`);
 
@@ -59,45 +72,14 @@ export const generateScenesBatch = inngest.createFunction(
       });
     });
 
-    const openRouterApiKey = userSettings?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
-    const modalLlmEndpoint = userSettings?.modalLlmEndpoint;
-    const userSelectedOpenRouterModel = userSettings?.openRouterModel; // User's selected model from modal
+    // Parse LLM configuration
+    const { llmConfig, llmProvider, llmModel } = parseLLMConfig({
+      storyModel,
+      userSettings,
+      envOpenRouterKey: process.env.OPENROUTER_API_KEY,
+    });
 
-    // Map storyModel to actual LLM provider and model
-    // When user provides own OpenRouter key, use OpenRouter-compatible models
-    const storyModelMapping: Record<string, { provider: 'openrouter' | 'gemini' | 'claude-sdk' | 'modal'; model: string; endpoint?: string }> = {
-      'gpt-4': { provider: 'openrouter', model: 'openai/gpt-4o' },
-      'claude-sonnet-4.5': { provider: 'openrouter', model: 'anthropic/claude-3.5-sonnet' },
-      'gemini-3-pro': openRouterApiKey
-        ? { provider: 'openrouter', model: 'google/gemma-3-27b-it:free' }  // Use free Gemma model when user has OpenRouter key
-        : { provider: 'gemini', model: 'gemini-3-pro' },         // Google API (app credits)
-    };
-
-    let llmConfig = storyModelMapping[storyModel] || storyModelMapping['claude-sonnet-4.5'];
-    let llmProvider = llmConfig.provider;
-    let llmModel = llmConfig.model;
-
-    // If user has their own OpenRouter key and selected a specific model, use it
-    if (openRouterApiKey && userSelectedOpenRouterModel) {
-      // Validate that the user's selected model is one of the supported models
-      const supportedModels = [
-        'google/gemma-3-27b-it:free',
-        'meta-llama/llama-3.1-8b-instruct:free',
-        'meta-llama/llama-3.2-3b-instruct:free',
-        'mistralai/mistral-7b-instruct:free',
-        'qwen/qwen-2-7b-instruct:free',
-      ];
-
-      if (supportedModels.includes(userSelectedOpenRouterModel)) {
-        llmProvider = 'openrouter';
-        llmModel = userSelectedOpenRouterModel;
-        console.log(`[Inngest Scenes] Using user-selected FREE OpenRouter model: ${llmModel}`);
-      } else {
-        console.warn(`[Inngest Scenes] Unknown user-selected model: ${userSelectedOpenRouterModel}, falling back to default`);
-      }
-    }
-
-    console.log(`[Inngest Scenes] LLM config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}, hasUserOpenRouterKey=${!!openRouterApiKey}, userSelectedModel=${userSelectedOpenRouterModel || 'none'}`);
+    console.log(`[Inngest Scenes] LLM config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}, hasUserOpenRouterKey=${!!userSettings?.openRouterApiKey}, userSelectedModel=${userSettings?.openRouterModel || 'none'}`);
 
     // Update job with LLM provider and model
     await step.run('update-job-with-llm-info', async () => {
@@ -111,43 +93,21 @@ export const generateScenesBatch = inngest.createFunction(
     });
 
     // Validate provider settings
-    if (llmProvider === 'openrouter' && !openRouterApiKey) {
-      await step.run('update-job-failed-no-key', async () => {
+    const validation = validateLLMProviderSettings(llmProvider, userSettings, process.env.OPENROUTER_API_KEY);
+    if (!validation.valid) {
+      await step.run('update-job-failed-validation', async () => {
         await prisma.sceneGenerationJob.update({
           where: { id: jobId },
-          data: { status: 'failed', errorDetails: 'OpenRouter API key not configured' },
+          data: { status: 'failed', errorDetails: validation.error },
         });
       });
-      return { success: false, error: 'OpenRouter API key not configured' };
+      return { success: false, error: validation.error };
     }
 
-    if (llmProvider === 'modal' && !modalLlmEndpoint) {
-      await step.run('update-job-failed-no-endpoint', async () => {
-        await prisma.sceneGenerationJob.update({
-          where: { id: jobId },
-          data: { status: 'failed', errorDetails: 'Modal LLM endpoint not configured' },
-        });
-      });
-      return { success: false, error: 'Modal LLM endpoint not configured' };
-    }
-
-    // Character descriptions for prompts
-    const characterDescriptions = characters
-      .map((c: { name: string; masterPrompt?: string; description?: string }) =>
-        `[${c.name.toUpperCase()}] Master Prompt:\n${c.masterPrompt || c.description}`)
-      .join('\n\n');
-
-    const characterNames = characters.map((c: { name: string }) => c.name).join(' and ');
-
-    const styleMapping: Record<string, string> = {
-      'disney-pixar': 'high-quality Disney/Pixar 3D animation style',
-      'realistic': 'photorealistic cinematic style with real people',
-      'anime': 'high-quality Japanese anime style',
-      'custom': 'custom artistic style',
-    };
-
-    const styleDescription = styleMapping[style] || styleMapping['disney-pixar'];
-    const systemPrompt = 'You are a professional film director and screenwriter specializing in animated short films. Generate detailed scene breakdowns in the exact JSON format requested. Return ONLY valid JSON, no markdown code blocks or explanations.';
+    // Prepare prompt data
+    const characterDescriptions = buildCharacterDescriptions(characters);
+    const characterNames = getCharacterNames(characters);
+    const styleDescription = getStyleDescription(style);
 
     // Calculate batches
     const totalBatches = Math.ceil(sceneCount / SCENES_PER_BATCH);
@@ -157,7 +117,7 @@ export const generateScenesBatch = inngest.createFunction(
 
     // Check how many scenes already exist (for resume after partial failure)
     const existingSceneCount = await step.run('check-existing-scenes', async () => {
-      return prisma.scene.count({ where: { projectId } });
+      return getExistingSceneCount(projectId);
     });
 
     if (existingSceneCount > 0) {
@@ -177,259 +137,66 @@ export const generateScenesBatch = inngest.createFunction(
         continue;
       }
 
-      const batchResult = await step.run(`generate-batch-${batchIndex + 1}`, async (): Promise<{ success: boolean; scenes?: any[]; error?: string }> => {
+      const batchResult = await step.run(`generate-batch-${batchIndex + 1}`, async () => {
         console.log(`[Inngest Scenes] Generating batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}`);
 
-        const prompt = `Generate scenes ${startScene} to ${endScene} (${batchSize} scenes) for a 3D animated short film.
+        // Build prompt
+        const prompt = buildSceneGenerationPrompt({
+          startScene,
+          endScene,
+          batchSize,
+          story,
+          styleDescription,
+          characterDescriptions,
+          characterNames,
+          sceneCount,
+          batchIndex,
+          totalBatches,
+        });
 
-STORY CONCEPT: "${story.concept}"
-TITLE: "${story.title || 'Untitled'}"
-GENRE: ${story.genre || 'adventure'}
-TONE: ${story.tone || 'heartfelt'}
-SETTING: ${story.setting || 'various locations'}
-STYLE: ${styleDescription}
-TOTAL FILM LENGTH: ${sceneCount} scenes
+        // Call LLM
+        const { fullResponse, error: llmError } = await callLLM({
+          llmProvider,
+          llmModel,
+          prompt,
+          userSettings,
+          envOpenRouterKey: process.env.OPENROUTER_API_KEY,
+        });
 
-CHARACTER MASTER PROMPTS (CRITICAL - include these EXACT descriptions in EVERY scene's textToImagePrompt):
-${characterDescriptions}
-
-${batchIndex > 0 ? `CONTEXT: This is batch ${batchIndex + 1} of ${totalBatches}. Continue the story from scene ${startScene}. Maintain narrative continuity.` : ''}
-
-CRITICAL CAMERA RULE: Prioritize Medium Shots (waist up) and Close-ups (face focus) so characters are large and fill the frame.
-
-For each scene, provide EXACTLY this format (JSON array):
-
-[
-  {
-    "number": ${startScene},
-    "title": "Scene Title",
-    "cameraShot": "medium" or "close-up",
-    "textToImagePrompt": "CHARACTERS:\\n[CHARACTER_NAME]: [full master prompt]\\n\\nSCENE: Medium Shot of... [detailed description]. ${styleDescription}.",
-    "imageToVideoPrompt": "[Movement and expression description]",
-    "dialogue": [
-      { "characterName": "CharacterName", "text": "Dialogue..." }
-    ]
-  }
-]
-
-Generate exactly ${batchSize} scenes (numbered ${startScene} to ${endScene}). Each scene should:
-1. Include ALL character master prompts in textToImagePrompt
-2. Feature ${characterNames} prominently
-3. Include dialogue for at least one character
-4. Progress the story naturally${batchIndex > 0 ? ' from where the previous batch ended' : ''}
-
-Return ONLY the JSON array.`;
-
-        let fullResponse = '';
-
-        if (llmProvider === 'modal' && modalLlmEndpoint) {
-          const response = await fetch(modalLlmEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt,
-              system_prompt: systemPrompt,
-              max_tokens: 16384,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Modal LLM failed: ${await response.text()}`);
-          }
-
-          const data = await response.json();
-          fullResponse = data.response || data.text || data.content || '';
-        } else if (llmProvider === 'claude-sdk') {
-          // Use Claude CLI with --print mode (uses OAuth subscription, not API credits)
-          const { spawnSync } = await import('child_process');
-          const fs = await import('fs');
-          const os = await import('os');
-          const path = await import('path');
-
-          const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-
-          // Write prompt to temp file to avoid stdin issues
-          const tmpFile = path.join(os.tmpdir(), `claude-prompt-${Date.now()}.txt`);
-          fs.writeFileSync(tmpFile, fullPrompt, 'utf-8');
-
-          // Full path to claude CLI (nvm installation)
-          const claudePath = '/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude';
-
-          try {
-            // Build env without ANTHROPIC_API_KEY so CLI uses OAuth instead
-            const cleanEnv = { ...process.env };
-            delete cleanEnv.ANTHROPIC_API_KEY; // Remove so CLI uses OAuth session
-
-            // Call claude CLI with --print for non-interactive output
-            const result = spawnSync(claudePath, ['-p', '--output-format', 'text'], {
-              input: fullPrompt,
-              encoding: 'utf-8',
-              maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large responses
-              timeout: 300000, // 5 minute timeout
-              env: {
-                ...cleanEnv,
-                PATH: process.env.PATH + ':/Users/andrejpt/.nvm/versions/node/v22.21.1/bin',
-                HOME: '/Users/andrejpt',
-                USER: 'andrejpt',
-              },
-              cwd: '/Volumes/DATA/Python/film-generator',
-            });
-
-            if (result.error) {
-              throw result.error;
-            }
-
-            if (result.status !== 0) {
-              console.error('[Claude CLI] stderr:', result.stderr);
-              console.error('[Claude CLI] stdout:', result.stdout?.slice(0, 500));
-              console.error('[Claude CLI] signal:', result.signal);
-              throw new Error(`Claude CLI exited with code ${result.status}. stderr: ${result.stderr}. stdout: ${result.stdout?.slice(0, 200)}`);
-            }
-
-            fullResponse = result.stdout;
-          } finally {
-            // Clean up temp file
-            try { fs.unlinkSync(tmpFile); } catch { }
-          }
-        } else if (openRouterApiKey) {
-          try {
-            fullResponse = await callOpenRouter(
-              openRouterApiKey,
-              systemPrompt,
-              prompt,
-              llmModel,
-              16384
-            );
-          } catch (openRouterError: any) {
-            // Check if it's an insufficient credits error
-            if (openRouterError.message?.includes('Insufficient credits')) {
-              console.error('[Inngest Scenes] Insufficient credits error:', openRouterError);
-              return { success: false, error: 'Insufficient credits. Please add credits at openrouter.ai.' };
-            }
-            throw openRouterError; // Re-throw other errors
-          }
-        } else {
-          throw new Error('No LLM provider available');
+        if (llmError) {
+          return { success: false, error: llmError };
         }
 
-        // Parse JSON response with multiple fallback strategies
-        let cleanResponse = fullResponse.trim();
-
-        // Strategy 1: Remove markdown code blocks
-        if (cleanResponse.startsWith('```json')) cleanResponse = cleanResponse.slice(7);
-        if (cleanResponse.startsWith('```')) cleanResponse = cleanResponse.slice(3);
-        if (cleanResponse.endsWith('```')) cleanResponse = cleanResponse.slice(0, -3);
-        cleanResponse = cleanResponse.trim();
-
-        let scenes: any[];
-        try {
-          scenes = JSON.parse(cleanResponse);
-        } catch (parseError1) {
-          // Strategy 2: Find JSON array in response
-          const jsonArrayMatch = fullResponse.match(/\[\s*\{[\s\S]*\}\s*\]/);
-          if (jsonArrayMatch) {
-            try {
-              scenes = JSON.parse(jsonArrayMatch[0]);
-            } catch (parseError2) {
-              // Strategy 3: Try to fix common JSON issues
-              let fixedJson = jsonArrayMatch[0]
-                .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
-                .replace(/,\s*\]/g, ']') // Remove trailing commas in arrays
-                .replace(/[\x00-\x1F\x7F]/g, ' '); // Remove control characters
-
-              try {
-                scenes = JSON.parse(fixedJson);
-              } catch (parseError3) {
-                console.error(`[Inngest Scenes] Batch ${batchIndex + 1} JSON parse failed after 3 attempts`);
-                console.error(`[Inngest Scenes] Response start:`, fullResponse.slice(0, 300));
-                console.error(`[Inngest Scenes] Response end:`, fullResponse.slice(-300));
-                throw new Error(`Failed to parse LLM response as JSON for batch ${batchIndex + 1}`);
-              }
-            }
-          } else {
-            console.error(`[Inngest Scenes] Batch ${batchIndex + 1} no JSON array found in response`);
-            console.error(`[Inngest Scenes] Response:`, fullResponse.slice(0, 500));
-            throw new Error(`No JSON array found in LLM response for batch ${batchIndex + 1}`);
-          }
-        }
-
-        // Validate we got the expected number of scenes
-        if (!Array.isArray(scenes)) {
-          throw new Error(`Batch ${batchIndex + 1} returned non-array response`);
-        }
-
-        if (scenes.length < batchSize) {
-          console.warn(`[Inngest Scenes] Batch ${batchIndex + 1} returned ${scenes.length}/${batchSize} scenes - retrying`);
-          throw new Error(`Batch ${batchIndex + 1} returned only ${scenes.length} of ${batchSize} expected scenes`);
-        }
+        // Parse response
+        const scenes = parseLLMResponse(fullResponse, batchIndex);
+        validateScenes(scenes, batchSize, batchIndex);
 
         console.log(`[Inngest Scenes] Batch ${batchIndex + 1} generated ${scenes.length} scenes`);
         return { success: true, scenes };
       });
 
       // Check if batch generation failed with a non-retriable error
-      const result = batchResult as { success: boolean; scenes?: any[]; error?: string };
-
-      if (result && !result.success && result.error) {
+      if (batchResult && !batchResult.success && batchResult.error) {
         // If it's a credit error or other fatal error, fail the job and stop
         await step.run('fail-job-fatal-error', async () => {
           await prisma.sceneGenerationJob.update({
             where: { id: jobId },
             data: {
               status: 'failed',
-              errorDetails: result.error
+              errorDetails: batchResult.error
             },
           });
         });
 
-        throw new NonRetriableError(result.error);
+        throw new NonRetriableError(batchResult.error);
       }
 
-      const batchScenes = result.scenes || [];
+      const batchScenes = batchResult.scenes || [];
 
       // Save this batch to DB immediately (so we don't lose progress if later batch fails)
       await step.run(`save-batch-${batchIndex + 1}`, async () => {
         console.log(`[Inngest Scenes] Saving batch ${batchIndex + 1} (${batchScenes.length} scenes) to DB`);
-
-        for (const scene of batchScenes) {
-          // Check if scene already exists (in case of retry)
-          const existingScene = await prisma.scene.findFirst({
-            where: { projectId, number: scene.number },
-          });
-
-          if (existingScene) {
-            console.log(`[Inngest Scenes] Scene ${scene.number} already exists, skipping`);
-            continue;
-          }
-
-          const dialogue = scene.dialogue?.map((line: { characterName: string; text: string }) => {
-            const character = characters.find(
-              (c: { name: string }) => c.name.toLowerCase() === line.characterName?.toLowerCase()
-            );
-            return {
-              id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              characterId: character?.id || characters[0]?.id || '',
-              characterName: line.characterName || 'Unknown',
-              text: line.text || '',
-            };
-          }) || [];
-
-          await prisma.scene.create({
-            data: {
-              projectId,
-              number: scene.number,
-              title: scene.title || `Scene ${scene.number}`,
-              description: '',
-              textToImagePrompt: scene.textToImagePrompt || '',
-              imageToVideoPrompt: scene.imageToVideoPrompt || '',
-              cameraShot: scene.cameraShot || 'medium',
-              dialogue: dialogue,
-              duration: 6,
-            },
-          });
-        }
-
-        return batchScenes.length;
+        return saveScenesToDatabase({ projectId, scenes: batchScenes, characters });
       });
 
       totalSavedScenes += batchScenes.length;
@@ -449,37 +216,21 @@ Return ONLY the JSON array.`;
       return prisma.scene.count({ where: { projectId } });
     });
 
-    // Spend credits
-    await step.run('spend-credits', async () => {
-      // Map llmProvider to credit provider name
-      const creditProvider = llmProvider === 'gemini' ? 'gemini' :
-        llmProvider === 'modal' ? 'modal' :
-          llmProvider === 'claude-sdk' ? 'claude-sdk' :
-            storyModel; // Use storyModel name for OpenRouter (gpt-4, claude-sonnet-4.5, etc.)
-
-      // Calculate real cost based on provider (track all costs for accurate statistics)
-      let realCost: number;
-      if (llmProvider === 'modal') {
-        realCost = ACTION_COSTS.scene.modal * finalSceneCount; // ~$0.002 per scene
-      } else if (llmProvider === 'claude-sdk') {
-        realCost = ACTION_COSTS.scene.claude * finalSceneCount; // Same as Claude API (~$0.01 per scene)
-      } else if (storyModel === 'gpt-4') {
-        // GPT-4 Turbo via OpenRouter has similar pricing to Claude
-        realCost = ACTION_COSTS.scene.claude * finalSceneCount;
-      } else {
-        realCost = ACTION_COSTS.scene.claude * finalSceneCount; // Default for Claude Sonnet 4.5
-      }
-      await spendCredits(
-        userId,
-        COSTS.SCENE_GENERATION * finalSceneCount,
-        'scene',
-        `${storyModel} scene generation (${finalSceneCount} scenes in ${totalBatches} batches)`,
-        projectId,
-        creditProvider,
-        undefined,
-        realCost
-      );
-    });
+    // Spend credits (unless user provides own API key)
+    if (!skipCreditCheck) {
+      await step.run('spend-credits', async () => {
+        await spendSceneCredits({
+          userId,
+          sceneCount: finalSceneCount,
+          llmProvider,
+          storyModel,
+          projectId,
+          totalBatches,
+        });
+      });
+    } else {
+      console.log(`[Inngest Scenes] Skipping credit spend - user provided their own API key`);
+    }
 
     // Update job as completed
     await step.run('update-job-completed', async () => {
@@ -501,18 +252,10 @@ Return ONLY the JSON array.`;
 );
 
 // Synchronous version for when Inngest is not available
-export async function generateScenesSynchronously(data: {
-  projectId: string;
-  userId: string;
-  jobId: string;
-  story: any;
-  characters: Array<{ id: string; name: string; description: string; masterPrompt?: string }>;
-  style: string;
-  sceneCount: number;
-}) {
-  const { projectId, userId, jobId, story, characters, style, sceneCount } = data;
+export async function generateScenesSynchronously(data: SceneGenerationData) {
+  const { projectId, userId, jobId, story, characters, style, sceneCount, skipCreditCheck = false } = data;
 
-  console.log(`[Sync Scenes] Starting job ${jobId} for ${sceneCount} scenes`);
+  console.log(`[Sync Scenes] Starting job ${jobId} for ${sceneCount} scenes, skipCreditCheck=${skipCreditCheck}`);
 
   // Update job status to processing
   await prisma.sceneGenerationJob.update({
@@ -535,7 +278,7 @@ export async function generateScenesSynchronously(data: {
 
   // Get storyModel from project settings (from Step1)
   const projectSettings = project.settings as any;
-  const storyModel = projectSettings?.storyModel || 'claude-sonnet-4.5';
+  const storyModel = projectSettings?.storyModel || DEFAULT_STORY_MODEL;
 
   console.log(`[Sync Scenes] Using storyModel from project settings: ${storyModel}`);
 
@@ -544,76 +287,29 @@ export async function generateScenesSynchronously(data: {
     where: { userId },
   });
 
-  const openRouterApiKey = userSettings?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
-  const modalLlmEndpoint = userSettings?.modalLlmEndpoint;
-  const userSelectedOpenRouterModel = userSettings?.openRouterModel;
-
-  // Map storyModel to actual LLM provider and model
-  const storyModelMapping: Record<string, { provider: 'openrouter' | 'gemini' | 'claude-sdk' | 'modal'; model: string; endpoint?: string }> = {
-    'gpt-4': { provider: 'openrouter', model: 'openai/gpt-4o' },
-    'claude-sonnet-4.5': { provider: 'openrouter', model: 'anthropic/claude-3.5-sonnet' },
-    'gemini-3-pro': openRouterApiKey
-      ? { provider: 'openrouter', model: 'google/gemini-pro-1.5' }
-      : { provider: 'gemini', model: 'gemini-3-pro' },
-  };
-
-  let llmConfig = storyModelMapping[storyModel] || storyModelMapping['claude-sonnet-4.5'];
-  let llmProvider = llmConfig.provider;
-  let llmModel = llmConfig.model;
-
-  // If user has their own OpenRouter key and selected a specific model, use it
-  if (openRouterApiKey && userSelectedOpenRouterModel) {
-    const supportedModels = [
-      'google/gemma-3-27b-it:free',
-      'meta-llama/llama-3.1-8b-instruct:free',
-      'meta-llama/llama-3.2-3b-instruct:free',
-      'mistralai/mistral-7b-instruct:free',
-      'qwen/qwen-2-7b-instruct:free',
-    ];
-
-    if (supportedModels.includes(userSelectedOpenRouterModel)) {
-      llmProvider = 'openrouter';
-      llmModel = userSelectedOpenRouterModel;
-      console.log(`[Sync Scenes] Using user-selected FREE OpenRouter model: ${llmModel}`);
-    }
-  }
+  // Parse LLM configuration
+  const { llmProvider, llmModel } = parseLLMConfig({
+    storyModel,
+    userSettings,
+    envOpenRouterKey: process.env.OPENROUTER_API_KEY,
+  });
 
   console.log(`[Sync Scenes] LLM config: provider=${llmProvider}, model=${llmModel}`);
 
   // Validate provider settings
-  if (llmProvider === 'openrouter' && !openRouterApiKey) {
+  const validation = validateLLMProviderSettings(llmProvider, userSettings, process.env.OPENROUTER_API_KEY);
+  if (!validation.valid) {
     await prisma.sceneGenerationJob.update({
       where: { id: jobId },
-      data: { status: 'failed', errorDetails: 'OpenRouter API key not configured' },
+      data: { status: 'failed', errorDetails: validation.error },
     });
-    return { success: false, error: 'OpenRouter API key not configured' };
+    return { success: false, error: validation.error };
   }
 
-  if (llmProvider === 'modal' && !modalLlmEndpoint) {
-    await prisma.sceneGenerationJob.update({
-      where: { id: jobId },
-      data: { status: 'failed', errorDetails: 'Modal LLM endpoint not configured' },
-    });
-    return { success: false, error: 'Modal LLM endpoint not configured' };
-  }
-
-  // Character descriptions for prompts
-  const characterDescriptions = characters
-    .map((c: { name: string; masterPrompt?: string; description?: string }) =>
-      `[${c.name.toUpperCase()}] Master Prompt:\n${c.masterPrompt || c.description}`)
-    .join('\n\n');
-
-  const characterNames = characters.map((c: { name: string }) => c.name).join(' and ');
-
-  const styleMapping: Record<string, string> = {
-    'disney-pixar': 'high-quality Disney/Pixar 3D animation style',
-    'realistic': 'photorealistic cinematic style with real people',
-    'anime': 'high-quality Japanese anime style',
-    'custom': 'custom artistic style',
-  };
-
-  const styleDescription = styleMapping[style] || styleMapping['disney-pixar'];
-  const systemPrompt = 'You are a professional film director and screenwriter specializing in animated short films. Generate detailed scene breakdowns in the exact JSON format requested. Return ONLY valid JSON, no markdown code blocks or explanations.';
+  // Prepare prompt data
+  const characterDescriptions = buildCharacterDescriptions(characters);
+  const characterNames = getCharacterNames(characters);
+  const styleDescription = getStyleDescription(style);
 
   // Calculate batches
   const totalBatches = Math.ceil(sceneCount / SCENES_PER_BATCH);
@@ -622,7 +318,7 @@ export async function generateScenesSynchronously(data: {
   console.log(`[Sync Scenes] Will generate ${sceneCount} scenes in ${totalBatches} batches`);
 
   // Check how many scenes already exist
-  const existingSceneCount = await prisma.scene.count({ where: { projectId } });
+  const existingSceneCount = await getExistingSceneCount(projectId);
 
   if (existingSceneCount > 0) {
     console.log(`[Sync Scenes] Found ${existingSceneCount} existing scenes, will continue from there`);
@@ -643,158 +339,35 @@ export async function generateScenesSynchronously(data: {
 
     console.log(`[Sync Scenes] Generating batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}`);
 
-    const prompt = `Generate scenes ${startScene} to ${endScene} (${batchSize} scenes) for a 3D animated short film.
+    // Build prompt
+    const prompt = buildSceneGenerationPrompt({
+      startScene,
+      endScene,
+      batchSize,
+      story,
+      styleDescription,
+      characterDescriptions,
+      characterNames,
+      sceneCount,
+      batchIndex,
+      totalBatches,
+    });
 
-STORY CONCEPT: "${story.concept}"
-TITLE: "${story.title || 'Untitled'}"
-GENRE: ${story.genre || 'adventure'}
-TONE: ${story.tone || 'heartfelt'}
-SETTING: ${story.setting || 'various locations'}
-STYLE: ${styleDescription}
-TOTAL FILM LENGTH: ${sceneCount} scenes
+    // Call LLM
+    const { fullResponse, error: llmError } = await callLLM({
+      llmProvider,
+      llmModel,
+      prompt,
+      userSettings,
+      envOpenRouterKey: process.env.OPENROUTER_API_KEY,
+    });
 
-CHARACTER MASTER PROMPTS (CRITICAL - include these EXACT descriptions in EVERY scene's textToImagePrompt):
-${characterDescriptions}
-
-${batchIndex > 0 ? `CONTEXT: This is batch ${batchIndex + 1} of ${totalBatches}. Continue the story from scene ${startScene}. Maintain narrative continuity.` : ''}
-
-CRITICAL CAMERA RULE: Prioritize Medium Shots (waist up) and Close-ups (face focus) so characters are large and fill the frame.
-
-For each scene, provide EXACTLY this format (JSON array):
-
-[
-  {
-    "number": ${startScene},
-    "title": "Scene Title",
-    "cameraShot": "medium" or "close-up",
-    "textToImagePrompt": "CHARACTERS:\\n[CHARACTER_NAME]: [full master prompt]\\n\\nSCENE: Medium Shot of... [detailed description]. ${styleDescription}.",
-    "imageToVideoPrompt": "[Movement and expression description]",
-    "dialogue": [
-      { "characterName": "CharacterName", "text": "Dialogue..." }
-    ]
-  }
-]
-
-Generate exactly ${batchSize} scenes (numbered ${startScene} to ${endScene}). Each scene should:
-1. Include ALL character master prompts in textToImagePrompt
-2. Feature ${characterNames} prominently
-3. Include dialogue for at least one character
-4. Progress the story naturally${batchIndex > 0 ? ' from where the previous batch ended' : ''}
-
-Return ONLY the JSON array.`;
-
-    let fullResponse = '';
-
-    if (llmProvider === 'modal' && modalLlmEndpoint) {
-      const response = await fetch(modalLlmEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          system_prompt: systemPrompt,
-          max_tokens: 16384,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Modal LLM failed: ${await response.text()}`);
-      }
-
-      const responseData = await response.json();
-      fullResponse = responseData.response || responseData.text || responseData.content || '';
-    } else if (llmProvider === 'claude-sdk') {
-      // Use Claude CLI with --print mode
-      const { spawnSync } = await import('child_process');
-      const fs = await import('fs');
-      const os = await import('os');
-      const path = await import('path');
-
-      const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-      const tmpFile = path.join(os.tmpdir(), `claude-prompt-${Date.now()}.txt`);
-      fs.writeFileSync(tmpFile, fullPrompt, 'utf-8');
-
-      const claudePath = '/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude';
-
-      try {
-        const cleanEnv = { ...process.env };
-        delete cleanEnv.ANTHROPIC_API_KEY;
-
-        const result = spawnSync(claudePath, ['-p', '--output-format', 'text'], {
-          input: fullPrompt,
-          encoding: 'utf-8',
-          maxBuffer: 50 * 1024 * 1024,
-          timeout: 300000,
-          env: {
-            ...cleanEnv,
-            PATH: process.env.PATH + ':/Users/andrejpt/.nvm/versions/node/v22.21.1/bin',
-            HOME: '/Users/andrejpt',
-            USER: 'andrejpt',
-          },
-          cwd: '/Volumes/DATA/Python/film-generator',
-        });
-
-        if (result.error) {
-          throw result.error;
-        }
-
-        if (result.status !== 0) {
-          console.error('[Claude CLI] stderr:', result.stderr);
-          throw new Error(`Claude CLI exited with code ${result.status}`);
-        }
-
-        fullResponse = result.stdout;
-      } finally {
-        try { fs.unlinkSync(tmpFile); } catch { }
-      }
-    } else if (openRouterApiKey) {
-      try {
-        fullResponse = await callOpenRouter(
-          openRouterApiKey,
-          systemPrompt,
-          prompt,
-          llmModel,
-          16384
-        );
-      } catch (openRouterError: any) {
-        if (openRouterError.message?.includes('Insufficient credits')) {
-          throw new Error(`OpenRouter API error: Your OpenRouter account has insufficient credits.`);
-        }
-        throw openRouterError;
-      }
-    } else {
-      throw new Error('No LLM provider available');
+    if (llmError) {
+      throw new Error(llmError);
     }
 
-    // Parse JSON response
-    let cleanResponse = fullResponse.trim();
-    if (cleanResponse.startsWith('```json')) cleanResponse = cleanResponse.slice(7);
-    if (cleanResponse.startsWith('```')) cleanResponse = cleanResponse.slice(3);
-    if (cleanResponse.endsWith('```')) cleanResponse = cleanResponse.slice(0, -3);
-    cleanResponse = cleanResponse.trim();
-
-    let scenes;
-    try {
-      scenes = JSON.parse(cleanResponse);
-    } catch (parseError1) {
-      const jsonArrayMatch = fullResponse.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      if (jsonArrayMatch) {
-        try {
-          scenes = JSON.parse(jsonArrayMatch[0]);
-        } catch (parseError2) {
-          let fixedJson = jsonArrayMatch[0]
-            .replace(/,\s*}/g, '}')
-            .replace(/,\s*\]/g, ']')
-            .replace(/[\x00-\x1F\x7F]/g, ' ');
-          try {
-            scenes = JSON.parse(fixedJson);
-          } catch (parseError3) {
-            throw new Error(`Failed to parse LLM response as JSON for batch ${batchIndex + 1}`);
-          }
-        }
-      } else {
-        throw new Error(`No JSON array found in LLM response for batch ${batchIndex + 1}`);
-      }
-    }
+    // Parse response
+    const scenes = parseLLMResponse(fullResponse, batchIndex);
 
     if (!Array.isArray(scenes) || scenes.length < batchSize) {
       throw new Error(`Batch ${batchIndex + 1} returned invalid or insufficient scenes`);
@@ -803,43 +376,8 @@ Return ONLY the JSON array.`;
     console.log(`[Sync Scenes] Batch ${batchIndex + 1} generated ${scenes.length} scenes`);
 
     // Save batch to DB
-    for (const scene of scenes) {
-      const existingScene = await prisma.scene.findFirst({
-        where: { projectId, number: scene.number },
-      });
-
-      if (existingScene) {
-        continue;
-      }
-
-      const dialogue = scene.dialogue?.map((line: { characterName: string; text: string }) => {
-        const character = characters.find(
-          (c: { name: string }) => c.name.toLowerCase() === line.characterName?.toLowerCase()
-        );
-        return {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          characterId: character?.id || characters[0]?.id || '',
-          characterName: line.characterName || 'Unknown',
-          text: line.text || '',
-        };
-      }) || [];
-
-      await prisma.scene.create({
-        data: {
-          projectId,
-          number: scene.number,
-          title: scene.title || `Scene ${scene.number}`,
-          description: '',
-          textToImagePrompt: scene.textToImagePrompt || '',
-          imageToVideoPrompt: scene.imageToVideoPrompt || '',
-          cameraShot: scene.cameraShot || 'medium',
-          dialogue: dialogue,
-          duration: 6,
-        },
-      });
-    }
-
-    totalSavedScenes += scenes.length;
+    const saved = await saveScenesToDatabase({ projectId, scenes, characters });
+    totalSavedScenes += saved;
 
     // Update progress
     const progress = Math.round(((batchIndex + 1) / totalBatches) * 100);
@@ -852,30 +390,19 @@ Return ONLY the JSON array.`;
   // Get final scene count
   const finalSceneCount = await prisma.scene.count({ where: { projectId } });
 
-  // Spend credits
-  const creditProvider = llmProvider === 'gemini' ? 'gemini' :
-    llmProvider === 'modal' ? 'modal' :
-      llmProvider === 'claude-sdk' ? 'claude-sdk' : storyModel;
-
-  let realCost: number;
-  if (llmProvider === 'modal') {
-    realCost = ACTION_COSTS.scene.modal * finalSceneCount;
-  } else if (llmProvider === 'claude-sdk') {
-    realCost = ACTION_COSTS.scene.claude * finalSceneCount;
+  // Spend credits (unless user provides own API key)
+  if (!skipCreditCheck) {
+    await spendSceneCredits({
+      userId,
+      sceneCount: finalSceneCount,
+      llmProvider,
+      storyModel,
+      projectId,
+      totalBatches,
+    });
   } else {
-    realCost = ACTION_COSTS.scene.claude * finalSceneCount;
+    console.log(`[Sync Scenes] Skipping credit spend - user provided their own API key`);
   }
-
-  await spendCredits(
-    userId,
-    COSTS.SCENE_GENERATION * finalSceneCount,
-    'scene',
-    `${storyModel} scene generation (${finalSceneCount} scenes in ${totalBatches} batches)`,
-    projectId,
-    creditProvider,
-    undefined,
-    realCost
-  );
 
   // Update job as completed
   await prisma.sceneGenerationJob.update({

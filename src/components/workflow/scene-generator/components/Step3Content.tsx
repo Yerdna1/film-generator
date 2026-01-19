@@ -6,7 +6,6 @@ import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 import { getImageCreditCost } from '@/lib/services/credits';
 import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
-import { InsufficientCreditsModal } from '@/components/workflow/character-generator/components';
 import { KieApiKeyModal } from '@/components/workflow/character-generator/components/KieApiKeyModal';
 import {
   SceneCard,
@@ -18,7 +17,6 @@ import {
   SceneHeader,
   OpenRouterModal,
 } from './index';
-import type { PendingSceneGeneration } from '../types';
 
 interface Step3ContentProps {
   // Project data
@@ -103,16 +101,11 @@ interface Step3ContentProps {
   setIsKieModalOpen: (value: boolean) => void;
   isSavingKieKey: boolean;
   handleSaveKieApiKey: (apiKey: string, model: string) => Promise<void>;
-  isInsufficientCreditsModalOpen: boolean;
-  setIsInsufficientCreditsModalOpen: (value: boolean) => void;
   isOpenRouterModalOpen: boolean;
   setIsOpenRouterModalOpen: (value: boolean) => void;
   isSavingOpenRouterKey: boolean;
-  pendingSceneGeneration: PendingSceneGeneration | null;
   pendingSceneTextGeneration: boolean;
   sceneTextCreditsNeeded: number;
-  handleUseAppCredits: () => Promise<void>;
-  handleUseAppCreditsForScenes: () => Promise<void>;
   handleSaveOpenRouterKey: (apiKey: string, model: string) => Promise<void>;
   creditsData: any;
 
@@ -188,15 +181,11 @@ export function Step3Content({
   setIsKieModalOpen,
   isSavingKieKey,
   handleSaveKieApiKey,
-  isInsufficientCreditsModalOpen,
-  setIsInsufficientCreditsModalOpen,
   isOpenRouterModalOpen,
   setIsOpenRouterModalOpen,
   isSavingOpenRouterKey,
   pendingSceneTextGeneration,
   sceneTextCreditsNeeded,
-  handleUseAppCredits,
-  handleUseAppCreditsForScenes,
   handleSaveOpenRouterKey,
   creditsData,
   isReadOnly,
@@ -373,26 +362,6 @@ export function Step3Content({
           fetchRegenerationRequests();
         }}
       />
-
-      {/* Insufficient Credits Modal - hide when scene text generation is pending (OpenRouter modal will show instead) */}
-      {!pendingSceneTextGeneration && (
-        <InsufficientCreditsModal
-          isOpen={isInsufficientCreditsModalOpen}
-          onClose={() => setIsInsufficientCreditsModalOpen(false)}
-          onOpenKieModal={() => {
-            setIsInsufficientCreditsModalOpen(false);
-            setIsKieModalOpen(true);
-          }}
-          onOpenRouterModal={() => {
-            setIsInsufficientCreditsModalOpen(false);
-            setIsOpenRouterModalOpen(true);
-          }}
-          onUseAppCredits={handleUseAppCredits}
-          creditsNeeded={getImageCreditCost(imageResolution as any)}
-          currentCredits={creditsData?.credits.balance}
-          generationType="image"
-        />
-      )}
 
       {/* KIE AI API Key Modal */}
       <KieApiKeyModal

@@ -12,7 +12,7 @@ import type { Scene, ImageProvider } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
 import { Step3Content } from './components';
-import type { Step3Props, PendingSceneGeneration, UserApiKeys } from './types';
+import type { Step3Props, UserApiKeys } from './types';
 
 export function Step3SceneGenerator({
   project: initialProject,
@@ -68,8 +68,6 @@ export function Step3SceneGenerator({
   const [isKieModalOpen, setIsKieModalOpen] = useState(false);
   const [isSavingKieKey, setIsSavingKieKey] = useState(false);
   const [userApiKeys, setUserApiKeys] = useState<UserApiKeys | null>(null);
-  const [pendingSceneGeneration, setPendingSceneGeneration] = useState<PendingSceneGeneration | null>(null);
-  const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
 
   // OpenRouter modal state for scene text generation
   const [isOpenRouterModalOpen, setIsOpenRouterModalOpen] = useState(false);
@@ -183,8 +181,8 @@ export function Step3SceneGenerator({
     if (hasCredits) {
       await handleGenerateSceneImage(scene.id);
     } else {
-      setPendingSceneGeneration({ type: 'single', scene });
-      setIsInsufficientCreditsModalOpen(true);
+      // Show KIE modal directly when no credits
+      setIsKieModalOpen(true);
     }
   }, [creditsData, imageResolution, userApiKeys, project.modelConfig, handleGenerateSceneImage]);
 
@@ -207,8 +205,8 @@ export function Step3SceneGenerator({
     if (hasCredits) {
       await handleGenerateAllSceneImages();
     } else {
-      setPendingSceneGeneration({ type: 'all', scenes: scenesNeedingImages });
-      setIsInsufficientCreditsModalOpen(true);
+      // Show KIE modal directly when no credits
+      setIsKieModalOpen(true);
     }
   }, [creditsData, imageResolution, scenes, userApiKeys, project.modelConfig, handleGenerateAllSceneImages]);
 
@@ -232,7 +230,6 @@ export function Step3SceneGenerator({
       // Show modal and STOP - don't proceed to generation
       setPendingSceneTextGeneration(true);
       setIsOpenRouterModalOpen(true);
-      setIsInsufficientCreditsModalOpen(false); // Close any existing insufficient credits modal
       return;
     }
 
@@ -261,22 +258,13 @@ export function Step3SceneGenerator({
       updateUserConstants({ characterImageProvider: 'kie' });
       toast.success(t('keySaved.kie'), { description: t('generating.sceneImages') });
       setIsKieModalOpen(false);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      if (pendingSceneGeneration) {
-        if (pendingSceneGeneration.type === 'single' && pendingSceneGeneration.scene) {
-          await handleGenerateSceneImage(pendingSceneGeneration.scene.id);
-        } else if (pendingSceneGeneration.type === 'all' && pendingSceneGeneration.scenes) {
-          await handleGenerateAllSceneImages();
-        }
-        setPendingSceneGeneration(null);
-      }
     } catch (error) {
       toast.error(t('saveFailed'), { description: error instanceof Error ? error.message : tCommon('unknownError') });
       throw error;
     } finally {
       setIsSavingKieKey(false);
     }
-  }, [pendingSceneGeneration, handleGenerateSceneImage, handleGenerateAllSceneImages, t, tCommon, updateUserConstants]);
+  }, [t, tCommon, updateUserConstants]);
 
   // Save OpenRouter API key handler
   const handleSaveOpenRouterKey = useCallback(async (apiKey: string, model: string): Promise<void> => {
@@ -307,25 +295,6 @@ export function Step3SceneGenerator({
       setIsSavingOpenRouterKey(false);
     }
   }, [handleGenerateAllScenes, t, tCommon]);
-
-  // Proceed with generation using app credits
-  const handleUseAppCredits = useCallback(async () => {
-    if (!pendingSceneGeneration) return;
-    setIsInsufficientCreditsModalOpen(false);
-    if (pendingSceneGeneration.type === 'single' && pendingSceneGeneration.scene) {
-      await handleGenerateSceneImage(pendingSceneGeneration.scene.id);
-    } else if (pendingSceneGeneration.type === 'all' && pendingSceneGeneration.scenes) {
-      await handleGenerateAllSceneImages();
-    }
-    setPendingSceneGeneration(null);
-  }, [pendingSceneGeneration, handleGenerateSceneImage, handleGenerateAllSceneImages]);
-
-  // Proceed with scene text generation using app credits
-  const handleUseAppCreditsForScenes = useCallback(async () => {
-    setIsInsufficientCreditsModalOpen(false);
-    setPendingSceneTextGeneration(false);
-    await handleGenerateAllScenes(false);
-  }, [handleGenerateAllScenes]);
 
   // Use Inngest for Modal providers (long-running), direct calls for Gemini (fast)
   const useInngest = imageProvider === 'modal' || imageProvider === 'modal-edit';
@@ -414,16 +383,11 @@ export function Step3SceneGenerator({
         setIsKieModalOpen={setIsKieModalOpen}
         isSavingKieKey={isSavingKieKey}
         handleSaveKieApiKey={handleSaveKieApiKey}
-        isInsufficientCreditsModalOpen={isInsufficientCreditsModalOpen}
-        setIsInsufficientCreditsModalOpen={setIsInsufficientCreditsModalOpen}
         isOpenRouterModalOpen={isOpenRouterModalOpen}
         setIsOpenRouterModalOpen={setIsOpenRouterModalOpen}
         isSavingOpenRouterKey={isSavingOpenRouterKey}
-        pendingSceneGeneration={pendingSceneGeneration}
         pendingSceneTextGeneration={pendingSceneTextGeneration}
         sceneTextCreditsNeeded={sceneTextCreditsNeeded}
-        handleUseAppCredits={handleUseAppCredits}
-        handleUseAppCreditsForScenes={handleUseAppCreditsForScenes}
         handleSaveOpenRouterKey={handleSaveOpenRouterKey}
         creditsData={creditsData}
         // Permissions

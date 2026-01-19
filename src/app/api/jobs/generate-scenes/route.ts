@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
           characters,
           style,
           sceneCount,
+          skipCreditCheck,
         },
       });
       console.log('[Jobs/Scenes] Inngest event sent successfully');
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
         characters,
         style,
         sceneCount,
+        skipCreditCheck,
       });
 
       console.log('[Jobs/Scenes] Synchronous generation completed');

@@ -5,7 +5,6 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import type { Scene } from '@/types/project';
 import type { RegenerationRequest } from '@/types/collaboration';
 import { usePendingRegenerationRequests, useApprovedRegenerationRequests, usePendingDeletionRequests } from '@/hooks';
-import { CollaborationHandlers } from '../types';
 
 export function useStep3Collaboration(projectId: string, scenes: Scene[]) {
   const { updateScene } = useProjectStore();
