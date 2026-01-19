@@ -70,10 +70,10 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
   const availableProviders = ['all', ...Array.from(new Set(videoModels.map(m => m.provider).filter(Boolean)))];
   const priceOptions = [
     { value: 'all', label: 'All' },
-    { value: 'free', label: 'Free' },
-    { value: 'cheap', label: '< 30 credits' },
-    { value: 'moderate', label: '30-50 credits' },
-    { value: 'expensive', label: '> 50 credits' },
+    { value: 'cheap', label: '<= 20 credits' },
+    { value: 'moderate', label: '21-40 credits' },
+    { value: 'premium', label: '41-100 credits' },
+    { value: 'expensive', label: '> 100 credits' },
   ];
 
   // Apply filters
@@ -85,10 +85,10 @@ export function VideoTab({ config, apiKeysData, disabled, onUpdateConfig, onSave
       const providerMatch = providerFilter === 'all' || model.provider === providerFilter;
 
       let priceMatch = true;
-      if (priceFilter === 'free') priceMatch = model.credits === 0;
-      else if (priceFilter === 'cheap') priceMatch = model.credits < 30;
-      else if (priceFilter === 'moderate') priceMatch = model.credits >= 30 && model.credits <= 50;
-      else if (priceFilter === 'expensive') priceMatch = model.credits > 50;
+      if (priceFilter === 'cheap') priceMatch = model.credits <= 20;
+      else if (priceFilter === 'moderate') priceMatch = model.credits > 20 && model.credits <= 40;
+      else if (priceFilter === 'premium') priceMatch = model.credits > 40 && model.credits <= 100;
+      else if (priceFilter === 'expensive') priceMatch = model.credits > 100;
 
       return modalityMatch && qualityMatch && durationMatch && providerMatch && priceMatch;
     })
