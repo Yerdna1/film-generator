@@ -56,8 +56,6 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
     playingVideo,
     setPlayingVideo,
     isGeneratingAll,
-    videoMode,
-    setVideoMode,
 
     // Helpers
     getSceneStatus,
@@ -467,8 +465,6 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
       {/* Quick Actions - only for editors */}
       {!isReadOnly && (
         <VideoQuickActions
-          videoMode={videoMode}
-          onVideoModeChange={setVideoMode}
           scenesWithImages={scenesWithImages.length}
           scenesWithVideos={scenesWithVideos.length}
           scenesNeedingGeneration={scenesNeedingGeneration.length}
