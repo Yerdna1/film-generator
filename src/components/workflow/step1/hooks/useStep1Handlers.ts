@@ -4,7 +4,7 @@ import type { UnifiedModelConfig } from '@/types/project';
 import { storyPresets } from '../story-presets';
 import type { Step1State } from './types';
 
-interface UseStep1HandlersProps extends Step1State {}
+interface UseStep1HandlersProps extends Step1State { }
 
 export function useStep1Handlers(props: UseStep1HandlersProps) {
   const { toast } = useToast();
@@ -57,8 +57,8 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
       const modelConfig = project.modelConfig;
       const modelToUse = modelConfig?.llm?.model || (effectiveIsPremium ?
         storyModel === 'gpt-4' ? 'openai/gpt-4-turbo' :
-        storyModel === 'claude-sonnet-4.5' ? 'anthropic/claude-sonnet-4.5' :
-        'google/gemini-2.0-flash-exp:free' : undefined);
+          storyModel === 'claude-sonnet-4.5' ? 'anthropic/claude-sonnet-4.5' :
+            'google/gemini-2.0-flash-exp:free' : undefined);
 
       // Extract provider from model or use modelConfig provider
       let providerToUse = modelConfig?.llm?.provider;
@@ -226,10 +226,7 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
       name: preset.story.title,
       style: preset.style
     });
-
-    // Auto-generate the master prompt
-    await handleGeneratePrompt();
-  }, [store, project.id, handleGeneratePrompt, setSelectedPresetId]);
+  }, [store, project.id, setSelectedPresetId]);
 
   const handleModelConfigChange = useCallback((modelConfig: UnifiedModelConfig) => {
     store.updateModelConfig(project.id, modelConfig);
