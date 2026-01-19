@@ -1,10 +1,14 @@
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import type { ApiKeysData } from '@/hooks/use-api-keys';
 import type { UnifiedModelConfig } from '@/types/project';
 import { storyPresets } from '../story-presets';
 import type { Step1State } from './types';
 
-interface UseStep1HandlersProps extends Step1State { }
+interface UseStep1HandlersProps extends Step1State {
+  apiKeys?: ApiKeysData | null;
+}
 
 export function useStep1Handlers(props: UseStep1HandlersProps) {
   const { toast } = useToast();
@@ -66,6 +70,61 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
         const [providerFromModel] = modelToUse.split('/');
         if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'google' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
           providerToUse = 'openrouter';
+        }
+      } else if (!providerToUse) {
+        // Default to openrouter if no provider set and no model specific provider derivation
+        providerToUse = 'openrouter';
+      }
+
+      // Check if free user needs API key
+      if (!effectiveIsPremium) {
+        let isFreeModel = false;
+        if (modelToUse && modelToUse.includes('/')) {
+          const [provider, modelName] = modelToUse.split('/');
+          if (provider === 'google' && (modelName.includes('free') || modelName.includes('flash'))) {
+            isFreeModel = true;
+          }
+        }
+
+        if (!isFreeModel) {
+          // Check for keys in passed apiKeys
+          const { apiKeys } = props;
+          let hasKey = false;
+
+          // Logic matching route.ts somewhat - check for relevant key based on provider
+          if (providerToUse === 'openrouter') {
+            hasKey = !!apiKeys?.openRouterApiKey || !!apiKeys?.hasOpenRouterKey;
+          } else if (providerToUse === 'gemini') {
+            hasKey = !!apiKeys?.geminiApiKey || !!apiKeys?.hasGeminiKey;
+          } else if (providerToUse === 'modal') {
+            hasKey = !!apiKeys?.modalLlmEndpoint;
+          } else if (providerToUse === 'claude-sdk') {
+            // Claude SDK usually requires local env or specific key, assuming not supported for web users easily without backend env
+            hasKey = false;
+          } else {
+            // Fallback - check openrouter as default
+            hasKey = !!apiKeys?.openRouterApiKey || !!apiKeys?.hasOpenRouterKey;
+          }
+
+          if (!hasKey) {
+            toast({
+              title: "API Key Required",
+              description: "To generate prompts on the Free plan, please enter your API key in Settings (OpenRouter, Gemini, etc.) or select a free model.",
+              variant: "destructive",
+              action: (
+                <ToastAction
+                  altText="Open Settings"
+                  onClick={() => document.getElementById('settings-tab-trigger')?.click()}
+                >
+                  Open Settings
+                </ToastAction>
+              ),
+            });
+            setIsGenerating(false);
+            setGeneratingModel(undefined);
+            setGeneratingProvider(undefined);
+            return;
+          }
         }
       }
 

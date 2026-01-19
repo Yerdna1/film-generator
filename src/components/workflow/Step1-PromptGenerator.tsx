@@ -33,10 +33,10 @@ export function Step1PromptGenerator({
 
   // Custom hooks for state and handlers
   const state = useStep1State({ project: initialProject, isAdmin });
-  const handlers = useStep1Handlers(state);
-
   // API Keys hook
   const { data: apiKeysData, mutate: mutateApiKeys } = useApiKeys();
+
+  const handlers = useStep1Handlers({ ...state, apiKeys: apiKeysData });
 
   const {
     project,

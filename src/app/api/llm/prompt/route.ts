@@ -137,20 +137,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check credits before making API call
-    const balanceCheck = await checkBalance(userId, PROMPT_ENHANCEMENT_COST);
-    if (!balanceCheck.hasEnough) {
-      return NextResponse.json(
-        {
-          error: `Insufficient credits. Need ${PROMPT_ENHANCEMENT_COST}, have ${balanceCheck.balance}`,
-          creditsRequired: PROMPT_ENHANCEMENT_COST,
-          balance: balanceCheck.balance
-        },
-        { status: 402 }
-      );
-    }
-
-    // Check if user is admin or premium
+    // Check if user is admin or premium status early
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true, email: true },
@@ -169,6 +156,8 @@ export async function POST(request: NextRequest) {
     let llmModel: string;
     let modalLlmEndpoint: string | undefined;
     let geminiApiKey: string | undefined;
+    let isUsingOwnKey = false;
+    let isFreeGeminiModel = false;
 
     try {
       const providerConfig = await getProviderConfig({
@@ -180,6 +169,11 @@ export async function POST(request: NextRequest) {
       llmProvider = providerConfig.provider;
       openRouterApiKey = providerConfig.apiKey || undefined;
       llmModel = model || providerConfig.model || DEFAULT_OPENROUTER_MODEL;
+
+      // Check if user provided their own OpenRouter key
+      if (llmProvider === 'openrouter' && openRouterApiKey) {
+        isUsingOwnKey = true;
+      }
 
       console.log(`[LLM Prompt] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId || 'none'}`);
     } catch (configError) {
@@ -195,12 +189,53 @@ export async function POST(request: NextRequest) {
       llmModel = model || userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
       modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
       geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
+
+      if (llmProvider === 'openrouter' && openRouterApiKey) isUsingOwnKey = true;
+      if (llmProvider === 'modal' && modalLlmEndpoint) isUsingOwnKey = true;
+      if (llmProvider === 'gemini' && userApiKeys?.geminiApiKey) isUsingOwnKey = true; // Use check against DB value, not env fallback
     }
 
-    // For premium/admin users without their own key, use default
+    // Check for free Gemini models override
+    if (model && model.includes('/')) {
+      const [providerFromModel, modelName] = model.split('/');
+      // Check if it's a free Gemini model
+      isFreeGeminiModel = providerFromModel === 'google' && (modelName?.includes('free') || modelName?.includes('flash'));
+
+      if (isFreeGeminiModel) {
+        // Use Gemini directly for free models
+        llmProvider = 'gemini';
+        console.log(`[LLM Prompt] Using Gemini directly for free model: ${model}`);
+      } else if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
+        // Use OpenRouter for paid models if not already set
+        if (llmProvider !== 'openrouter') {
+          llmProvider = 'openrouter';
+          console.log(`[LLM Prompt] Overriding provider to 'openrouter' based on model: ${model}`);
+        }
+      }
+    }
+
+    // Determine if we should charge credits
+    // Charge if: NOT using own key AND NOT using a free Gemini model
+    const shouldChargeCredits = !isUsingOwnKey && !isFreeGeminiModel;
+
+    if (shouldChargeCredits) {
+      // Check credits before making API call
+      const balanceCheck = await checkBalance(userId, PROMPT_ENHANCEMENT_COST);
+      if (!balanceCheck.hasEnough) {
+        return NextResponse.json(
+          {
+            error: `Insufficient credits. Need ${PROMPT_ENHANCEMENT_COST}, have ${balanceCheck.balance}`,
+            creditsRequired: PROMPT_ENHANCEMENT_COST,
+            balance: balanceCheck.balance
+          },
+          { status: 402 }
+        );
+      }
+    }
+
+    // For premium/admin users without their own key, use default system key
     if (!openRouterApiKey && (isPremiumUser || isAdmin)) {
       openRouterApiKey = process.env.OPENROUTER_API_KEY;
-      console.log(`[LLM Prompt] Using default OpenRouter key for ${isAdmin ? 'admin' : 'premium'} user`);
     }
 
     // Get Modal endpoint if needed
@@ -210,6 +245,7 @@ export async function POST(request: NextRequest) {
         select: { modalLlmEndpoint: true },
       });
       modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
+      if (modalLlmEndpoint) isUsingOwnKey = true;
     }
 
     // Get Gemini API key if needed
@@ -219,25 +255,7 @@ export async function POST(request: NextRequest) {
         select: { geminiApiKey: true },
       });
       geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
-    }
-
-    // For free users: derive provider from model parameter (e.g., "anthropic/claude-sonnet-4.5" → "openrouter")
-    // When a specific model is provided, override the database provider setting
-    // Exception: Free Gemini models should use Gemini directly, not OpenRouter
-    if (model && model.includes('/')) {
-      const [providerFromModel, modelName] = model.split('/');
-      // Check if it's a free Gemini model
-      const isFreeGeminiModel = providerFromModel === 'google' && (modelName?.includes('free') || modelName?.includes('flash'));
-
-      if (isFreeGeminiModel) {
-        // Use Gemini directly for free models
-        llmProvider = 'gemini';
-        console.log(`[LLM Prompt] Using Gemini directly for free model: ${model}`);
-      } else if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
-        // Use OpenRouter for paid models
-        llmProvider = 'openrouter';
-        console.log(`[LLM Prompt] Overriding provider to 'openrouter' based on model: ${model}`);
-      }
+      if (userApiKeys?.geminiApiKey) isUsingOwnKey = true;
     }
 
     // Validate API key/endpoint for selected provider
@@ -263,7 +281,7 @@ export async function POST(request: NextRequest) {
     let fullResponse = '';
     let providerName = llmProvider;
 
-    console.log(`[LLM Prompt] Using provider: ${llmProvider}`);
+    console.log(`[LLM Prompt] Using provider: ${llmProvider}, Charging credits: ${shouldChargeCredits}`);
 
     const defaultSystemPrompt = systemPrompt || 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.';
 
@@ -295,25 +313,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Deduct credits after successful generation
-    const spendResult = await spendCredits(
-      userId,
-      PROMPT_ENHANCEMENT_COST,
-      'prompt',
-      `Master prompt enhancement via ${providerName}`,
-      undefined,
-      providerName as Provider
-    );
+    // Deduct credits ONLY if using system resources (and not free model)
+    if (shouldChargeCredits) {
+      const spendResult = await spendCredits(
+        userId,
+        PROMPT_ENHANCEMENT_COST,
+        'prompt',
+        `Master prompt enhancement via ${providerName}`,
+        undefined,
+        providerName as Provider
+      );
 
-    if (!spendResult.success) {
-      console.error('Failed to deduct credits:', spendResult.error);
-      // Still return the text since generation succeeded
+      if (!spendResult.success) {
+        console.error('Failed to deduct credits:', spendResult.error);
+        // Still return the text since generation succeeded
+      }
     }
 
     return NextResponse.json({
       text: fullResponse,
       provider: providerName,
-      creditsUsed: PROMPT_ENHANCEMENT_COST,
+      creditsUsed: shouldChargeCredits ? PROMPT_ENHANCEMENT_COST : 0,
+      isFreeGeneration: !shouldChargeCredits
     });
   } catch (error) {
     console.error('LLM prompt route error:', error);
