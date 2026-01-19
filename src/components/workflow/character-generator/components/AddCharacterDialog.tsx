@@ -57,37 +57,13 @@ export function AddCharacterDialog({
     setSelectedPresetId(preset.id);
   };
 
-  if (currentCount >= maxCount) {
-    return (
-      <div className="w-full h-full min-h-[300px] glass rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
-          <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-        </div>
-        <span className="text-muted-foreground">
-          {t('steps.characters.maxReached')}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {MAX_CHARACTERS}/{MAX_CHARACTERS}
-        </span>
-      </div>
-    );
+  // "Max reached" state is handled by hiding the button in the header
+  if (currentCount >= maxCount && !open) {
+    return null;
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <button className="w-full h-full min-h-[300px] glass rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/30 transition-colors flex flex-col items-center justify-center gap-4 group">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 group-hover:bg-purple-500/20 transition-colors flex items-center justify-center">
-            <Plus className="w-8 h-8 text-muted-foreground group-hover:text-purple-400 transition-colors" />
-          </div>
-          <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-            {t('steps.characters.addCharacter')}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {currentCount}/{maxCount}
-          </span>
-        </button>
-      </DialogTrigger>
       <DialogContent className="glass-strong border-white/10 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('steps.characters.addCharacter')}</DialogTitle>
@@ -135,33 +111,33 @@ export function AddCharacterDialog({
                 className="glass border-white/10"
               />
             </div>
-          <div className="space-y-2">
-            <Label>{t('steps.characters.personality')}</Label>
-            <Input
-              placeholder={t('steps.characters.placeholders.personality')}
-              value={newCharacter.personality}
-              onChange={(e) => setNewCharacter({ ...newCharacter, personality: e.target.value })}
-              className="glass border-white/10"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{t('steps.characters.characterDescription')}</Label>
-            <Textarea
-              placeholder={t('steps.characters.placeholders.description')}
-              value={newCharacter.description}
-              onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
-              className="glass border-white/10 min-h-[80px]"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{t('steps.characters.visualDescription')}</Label>
-            <Textarea
-              placeholder={t('steps.characters.placeholders.visualDescription')}
-              value={newCharacter.visualDescription}
-              onChange={(e) => setNewCharacter({ ...newCharacter, visualDescription: e.target.value })}
-              className="glass border-white/10 min-h-[100px]"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label>{t('steps.characters.personality')}</Label>
+              <Input
+                placeholder={t('steps.characters.placeholders.personality')}
+                value={newCharacter.personality}
+                onChange={(e) => setNewCharacter({ ...newCharacter, personality: e.target.value })}
+                className="glass border-white/10"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('steps.characters.characterDescription')}</Label>
+              <Textarea
+                placeholder={t('steps.characters.placeholders.description')}
+                value={newCharacter.description}
+                onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
+                className="glass border-white/10 min-h-[80px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('steps.characters.visualDescription')}</Label>
+              <Textarea
+                placeholder={t('steps.characters.placeholders.visualDescription')}
+                value={newCharacter.visualDescription}
+                onChange={(e) => setNewCharacter({ ...newCharacter, visualDescription: e.target.value })}
+                className="glass border-white/10 min-h-[100px]"
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={handleCancel} className="border-white/10">
