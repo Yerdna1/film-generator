@@ -64,54 +64,18 @@ export function SceneHeader({
 }: SceneHeaderProps) {
   const t = useTranslations();
 
+  // Hide the header card completely if scenes exist (as requested by user)
+  if (totalScenes > 0) {
+    return null;
+  }
+
   return (
     <>
       {/* Progress & Scene Count - Settings from Step1 */}
       <div className="glass rounded-2xl p-6 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          {/* Display Scene Count (from Step1) */}
-          <div className="flex items-center gap-4">
-            <Label className="text-sm text-muted-foreground">{t('steps.scenes.sceneCount')}:</Label>
-            <Badge variant="outline" className="border-blue-500/30 text-blue-400">
-              {sceneCount} {t('steps.scenes.scenesLabel')}
-            </Badge>
-          </div>
+        {/* Stats removed as requested */}
 
-          {/* Display Image Quality (from Step1) */}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-muted-foreground whitespace-nowrap">Quality:</Label>
-            <Badge variant="outline" className="border-green-500/30 text-green-400">
-              {IMAGE_RESOLUTIONS[imageResolution]?.label || imageResolution}
-              <span className="text-xs text-muted-foreground ml-2">({formatCostCompact(getImageCost(imageResolution))}/img)</span>
-            </Badge>
-          </div>
-
-          {/* Display Aspect Ratio (from Step1) */}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-muted-foreground whitespace-nowrap">Aspect:</Label>
-            <Badge variant="outline" className="border-orange-500/30 text-orange-400">
-              {ASPECT_RATIOS[aspectRatio]?.label || aspectRatio}
-            </Badge>
-          </div>
-
-          {/* Status Badges */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <Badge variant="outline" className="border-purple-500/30 text-purple-400">
-              {IMAGE_PROVIDER_LABELS[imageProvider]}
-            </Badge>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
-              {totalScenes} / {sceneCount} {t('steps.scenes.scenesLabel')}
-            </Badge>
-            <Badge variant="outline" className="border-cyan-500/30 text-cyan-400">
-              {scenesWithImages} {t('steps.scenes.imagesGenerated')}
-            </Badge>
-          </div>
-        </div>
-
-        <Progress
-          value={(totalScenes / sceneCount) * 100}
-          className="h-2"
-        />
+        {/* Progress bar removed as requested */}
 
         {/* Generate All Scenes Button or Progress */}
         {totalScenes === 0 && (
