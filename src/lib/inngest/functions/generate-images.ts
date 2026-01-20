@@ -145,7 +145,6 @@ async function generateSingleImage(
       console.log(`[Inngest] KIE task created: ${taskId}`);
 
       // Poll for task completion
-      let imageUrl: string | null = null;
       const maxPolls = 60; // 2 minutes (60 * 2s)
       let polls = 0;
 
@@ -174,20 +173,40 @@ async function generateSingleImage(
         const state = taskData?.state;
 
         if (state === 'success') {
-          // Extract image URL from resultJson
+          // Log full taskData for debugging
+          console.log('[Inngest] KIE task completed successfully, taskData:', JSON.stringify({
+            hasResultJson: !!taskData.resultJson,
+            resultJsonType: typeof taskData.resultJson,
+            resultJson: taskData.resultJson,
+            output: taskData.output,
+            fullTaskData: taskData,
+          }, null, 2));
+
+          // Extract image URL from resultJson - same logic as direct API route
           if (taskData.resultJson) {
             try {
               const result = typeof taskData.resultJson === 'string'
                 ? JSON.parse(taskData.resultJson)
                 : taskData.resultJson;
-              imageUrl = result.image_url || result.url;
+              console.log('[Inngest] Parsed result from resultJson:', result);
+
+              // Try multiple possible fields (same order as direct API route)
+              imageUrl = result.resultUrls?.[0] || result.imageUrl || result.image_url || result.url;
+              if (!imageUrl && result.images?.length > 0) {
+                imageUrl = result.images[0];
+              }
             } catch (e) {
               console.error('[Inngest] Failed to parse KIE resultJson:', e);
             }
           }
 
+          // Fallback to direct URL fields on taskData (same as direct API route)
           if (!imageUrl) {
-            console.error('[Inngest] KIE success but no image URL:', taskData);
+            imageUrl = taskData.imageUrl || taskData.image_url || taskData.resultUrl;
+          }
+
+          if (!imageUrl) {
+            console.error('[Inngest] KIE success but no image URL found. taskData:', JSON.stringify(taskData, null, 2));
             throw new Error('KIE completed successfully but did not return an image URL');
           }
 
@@ -210,14 +229,26 @@ async function generateSingleImage(
 
       // Upload KIE image to S3 for consistency
       if (isS3Configured()) {
-        const imageResponse = await fetch(imageUrl);
-        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-        const base64Data = `data:image/png;base64,${imageBuffer.toString('base64')}`;
-        const uploadResult = await uploadImageToS3(base64Data);
-        if (!uploadResult.success || !uploadResult.url) {
-          throw new Error('Failed to upload image to S3');
+        console.log(`[Inngest] Uploading KIE image to S3: ${imageUrl}`);
+        try {
+          const imageResponse = await fetch(imageUrl);
+          if (!imageResponse.ok) {
+            throw new Error(`Failed to fetch KIE image: ${imageResponse.status}`);
+          }
+          const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+          const base64Data = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+          const uploadResult = await uploadImageToS3(base64Data);
+          if (!uploadResult.success || !uploadResult.url) {
+            console.warn('[Inngest] S3 upload failed, using original KIE URL:', uploadResult);
+            // Keep original imageUrl instead of throwing
+          } else {
+            console.log(`[Inngest] S3 upload successful: ${uploadResult.url}`);
+            imageUrl = uploadResult.url;
+          }
+        } catch (error) {
+          console.error('[Inngest] S3 upload error, using original KIE URL:', error);
+          // Keep original imageUrl instead of throwing
         }
-        imageUrl = uploadResult.url;
       }
 
     } else {
