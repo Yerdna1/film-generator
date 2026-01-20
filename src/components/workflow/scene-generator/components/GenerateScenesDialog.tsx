@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Loader2, FileText } from 'lucide-react';
 import {
   AlertDialog,
@@ -41,6 +42,16 @@ export function GenerateScenesDialog({
   isGenerating = false,
   useOwnKey = false,
 }: GenerateScenesDialogProps) {
+  // Debug logging
+  useEffect(() => {
+    console.log('[GenerateScenesDialog] Props:', {
+      provider,
+      model,
+      isOpen,
+      useOwnKey,
+    });
+  }, [provider, model, isOpen, useOwnKey]);
+
   const providerInfo = provider ? PROVIDER_INFO[provider] || { name: provider, icon: '🤖', color: 'gray' } : null;
 
   return (
@@ -65,7 +76,7 @@ export function GenerateScenesDialog({
 
         <div className="py-4 space-y-3">
           {/* Provider Info */}
-          {providerInfo && (
+          {providerInfo ? (
             <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{providerInfo.icon}</span>
@@ -78,16 +89,30 @@ export function GenerateScenesDialog({
                 {providerInfo.name}
               </Badge>
             </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+              <div>
+                <div className="text-sm text-muted-foreground">Provider</div>
+                <div className="font-medium text-sm text-muted-foreground">Loading...</div>
+              </div>
+            </div>
           )}
 
           {/* Model Info */}
-          {model && (
+          {model ? (
             <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
               <div>
                 <div className="text-sm text-muted-foreground">Model</div>
                 <div className="font-medium text-sm" title={model}>
                   {model.includes('/') ? model.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || model : model}
                 </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+              <div>
+                <div className="text-sm text-muted-foreground">Model</div>
+                <div className="font-medium text-sm text-muted-foreground">Loading...</div>
               </div>
             </div>
           )}

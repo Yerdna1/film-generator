@@ -40,6 +40,15 @@ export function Step3SceneGenerator({
   } = useApiKeys();
   const { data: creditsData } = useCredits();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[Step3] API Keys data:', {
+      llmProvider: apiKeysLlmProvider,
+      openRouterModel: apiKeysOpenRouterModel,
+      fullData: apiKeysData,
+    });
+  }, [apiKeysLlmProvider, apiKeysOpenRouterModel, apiKeysData]);
+
   // Sync provider settings to store when API keys data is loaded
   useEffect(() => {
     if (apiKeysData) {
@@ -222,6 +231,12 @@ export function Step3SceneGenerator({
 
   // Wrapper for scene text generation with credit check
   const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {
+    // Wait for API keys data to load before showing dialog
+    if (!apiKeysData) {
+      console.warn('[Step3] API keys data not loaded yet, waiting...');
+      return;
+    }
+
     // Bypass credit check if user has ANY LLM provider configured
     // Check for: OpenRouter, Claude SDK, or Modal (self-hosted)
     const hasOpenRouterKey = apiKeysData?.hasOpenRouterKey;
@@ -435,8 +450,8 @@ export function Step3SceneGenerator({
         onClose={() => setShowGenerateDialog(false)}
         onConfirm={handleConfirmGenerateScenes}
         sceneCount={projectSettings.sceneCount || 12}
-        provider={apiKeysLlmProvider}
-        model={apiKeysOpenRouterModel}
+        provider={apiKeysData?.llmProvider}
+        model={apiKeysData?.openRouterModel}
         isGenerating={isConfirmGenerating}
         useOwnKey={!!(apiKeysData?.hasOpenRouterKey || apiKeysData?.hasClaudeKey || apiKeysData?.modalLlmEndpoint)}
       />
