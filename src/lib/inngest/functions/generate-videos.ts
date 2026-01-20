@@ -73,42 +73,68 @@ async function generateSingleVideo(
         throw new Error('Kie API key not configured');
       }
 
-      // Create Kie task
-      const createTaskResponse = await fetch('https://api.kie.ai/v1/tasks', {
+      // Query model from database to get apiModelId
+      const modelConfig = await prisma.kieVideoModel.findUnique({
+        where: { modelId: effectiveModel }
+      });
+
+      const apiModelId = modelConfig?.apiModelId || effectiveModel;
+      console.log(`[Video ${scene.sceneNumber}] Using KIE model: ${effectiveModel} (API: ${apiModelId})`);
+
+      // Create Kie task using the correct endpoint
+      const createTaskResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${kieApiKey}`,
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
-          model: effectiveModel,
+          model: apiModelId,
           input: {
             image_urls: [scene.imageUrl],
             prompt: enhancePromptForMotion(scene.prompt),
-            mode: videoMode === 'spicy' ? 'normal' : videoMode, // Kie doesn't support 'spicy'
+            mode: videoMode === 'spicy' ? 'normal' : videoMode,
           },
         }),
       });
 
-      if (!createTaskResponse.ok) {
-        const errorData = await createTaskResponse.json();
-        throw new Error(`Kie task creation failed: ${errorData.detail || errorData.message || 'Unknown error'}`);
+      const createData = await createTaskResponse.json();
+      console.log(`[Video ${scene.sceneNumber}] KIE create response:`, JSON.stringify({
+        status: createTaskResponse.status,
+        code: createData.code,
+        hasData: !!createData.data,
+        data: createData.data,
+        fullCreateData: createData
+      }, null, 2));
+
+      if (!createTaskResponse.ok || createData.code !== 200) {
+        const errorMsg = createData.msg || createData.message || 'Failed to create KIE video task';
+        console.error(`[Video ${scene.sceneNumber}] KIE create failed:`, { status: createTaskResponse.status, code: createData.code, body: createData });
+        throw new Error(`Kie task creation failed: ${errorMsg}`);
       }
 
-      const { task_id } = await createTaskResponse.json();
-      console.log(`[Video ${scene.sceneNumber}] Kie task created: ${task_id}`);
+      const taskId = createData.data?.taskId;
+      if (!taskId) {
+        console.error(`[Video ${scene.sceneNumber}] KIE response missing taskId:`, createData);
+        throw new Error('KIE did not return a task ID');
+      }
+
+      console.log(`[Video ${scene.sceneNumber}] KIE task created: ${taskId}`);
 
       // Poll for completion (max 2 minutes)
       const maxRetries = 60;
       let retries = 0;
-      let taskStatus = 'processing';
-      let output: any;
+      let state = 'waiting';
 
-      while (taskStatus === 'processing' && retries < maxRetries) {
+      while (state !== 'success' && state !== 'fail' && retries < maxRetries) {
         await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 seconds between polls
 
-        const statusResponse = await fetch(`https://api.kie.ai/v1/tasks/${task_id}`, {
-          headers: { 'Authorization': `Bearer ${kieApiKey}` },
+        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+          headers: {
+            'Authorization': `Bearer ${kieApiKey}`,
+            'Accept': 'application/json',
+          },
         });
 
         if (!statusResponse.ok) {
@@ -118,20 +144,69 @@ async function generateSingleVideo(
         }
 
         const statusData = await statusResponse.json();
-        taskStatus = statusData.status;
-        output = statusData.output;
+        if (statusData.code !== 200) {
+          console.error(`[Video ${scene.sceneNumber}] Status check failed:`, statusData);
+          retries++;
+          continue;
+        }
+
+        const taskData = statusData.data;
+        state = taskData?.state;
+
+        if (state === 'success') {
+          // Log full taskData for debugging
+          console.log(`[Video ${scene.sceneNumber}] KIE task completed successfully, taskData:`, JSON.stringify({
+            hasResultJson: !!taskData.resultJson,
+            resultJsonType: typeof taskData.resultJson,
+            resultJson: taskData.resultJson,
+            output: taskData.output,
+            fullTaskData: taskData
+          }, null, 2));
+
+          // Extract video URL from resultJson - same logic as direct API route
+          if (taskData.resultJson) {
+            try {
+              const result = typeof taskData.resultJson === 'string'
+                ? JSON.parse(taskData.resultJson)
+                : taskData.resultJson;
+              console.log(`[Video ${scene.sceneNumber}] Parsed result from resultJson:`, result);
+
+              // Try multiple possible fields (same order as image generation)
+              videoUrl = result.video_url || result.videoUrl || result.url;
+              if (!videoUrl && result.resultUrls?.[0]) {
+                videoUrl = result.resultUrls[0];
+              }
+              if (!videoUrl && result.videos?.[0]) {
+                videoUrl = result.videos[0];
+              }
+            } catch (e) {
+              console.error(`[Video ${scene.sceneNumber}] Failed to parse KIE resultJson:`, e);
+            }
+          }
+
+          // Fallback to direct URL fields on taskData (same as direct API route)
+          if (!videoUrl) {
+            videoUrl = taskData.videoUrl || taskData.video_url || taskData.resultUrl;
+          }
+
+          if (!videoUrl) {
+            console.error(`[Video ${scene.sceneNumber}] KIE success but no video URL found. taskData:`, JSON.stringify(taskData, null, 2));
+            throw new Error('KIE completed but did not return a video URL');
+          }
+
+          console.log(`[Video ${scene.sceneNumber}] Video generated: ${videoUrl}`);
+        } else if (state === 'fail') {
+          const failReason = taskData?.fail_reason || taskData?.resultJson?.error || 'Unknown error';
+          console.error(`[Video ${scene.sceneNumber}] KIE generation failed:`, { taskId, failReason, taskData });
+          throw new Error(`Video generation failed: ${failReason}`);
+        }
+
         retries++;
       }
 
-      if (taskStatus !== 'completed') {
-        throw new Error(`Video generation timed out or failed (status: ${taskStatus})`);
+      if (state !== 'success' || !videoUrl) {
+        throw new Error(`Video generation timed out or failed (final state: ${state})`);
       }
-
-      if (!output?.video_url) {
-        throw new Error('No video URL in task output');
-      }
-
-      videoUrl = output.video_url;
     }
 
     // Upload to S3 if configured
