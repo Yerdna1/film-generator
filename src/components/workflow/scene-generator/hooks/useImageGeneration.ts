@@ -224,14 +224,40 @@ export function useImageGeneration(
                 description,
               });
             } else if (job.status === 'completed_with_errors') {
+              // Parse error details to get the first meaningful error message
+              let firstError = 'Some images failed to generate';
+              if (job.errorDetails) {
+                try {
+                  const errors = JSON.parse(job.errorDetails);
+                  if (Array.isArray(errors) && errors.length > 0 && errors[0]?.error) {
+                    firstError = errors[0].error;
+                  }
+                } catch (e) {
+                  console.error('Failed to parse errorDetails:', e);
+                }
+              }
+
               toast.warning('Generation completed with errors', {
                 id: toastIdRef.current,
-                description: `${description} • ${job.failedScenes || 0} failed`,
+                description: `${job.failedScenes || 0} failed: ${firstError}`,
               });
             } else if (job.status === 'failed') {
+              // Parse error details to get the first meaningful error message
+              let errorMessage = job.errorDetails || 'Unknown error';
+              if (job.errorDetails) {
+                try {
+                  const errors = JSON.parse(job.errorDetails);
+                  if (Array.isArray(errors) && errors.length > 0 && errors[0]?.error) {
+                    errorMessage = errors[0].error;
+                  }
+                } catch (e) {
+                  console.error('Failed to parse errorDetails:', e);
+                }
+              }
+
               toast.error('Image generation failed', {
                 id: toastIdRef.current,
-                description: job.errorDetails || description,
+                description: errorMessage,
               });
             }
             toastIdRef.current = null;

@@ -324,6 +324,12 @@ async function generateWithKie(
         msg: createData.msg,
         message: createData.message,
         fullResponse: createData,
+        requestDetails: {
+          model: apiModelId,
+          promptLength: prompt.length,
+          aspectRatio,
+          promptPreview: prompt.substring(0, 100) + '...',
+        }
       });
 
       // Provide helpful error messages

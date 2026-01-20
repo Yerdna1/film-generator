@@ -24,7 +24,7 @@ async function generateSingleImage(
     });
 
     const imageProvider = userApiKeys?.imageProvider || 'gemini';
-    let imageUrl: string;
+    let imageUrl: string | undefined;
 
     if (imageProvider === 'modal' || imageProvider === 'modal-edit') {
       // Use Modal endpoint
@@ -61,6 +61,164 @@ async function generateSingleImage(
       imageUrl = data.image?.startsWith('data:')
         ? data.image
         : `data:image/png;base64,${data.image}`;
+
+    } else if (imageProvider === 'kie') {
+      // Use KIE.ai API
+      const kieApiKey = userApiKeys?.kieApiKey;
+      if (!kieApiKey) {
+        throw new Error('KIE API key not configured. Please add your API key in Settings.');
+      }
+
+      const modelId = userApiKeys?.kieImageModel || 'nano-banana-pro';
+      console.log(`[Inngest] Using KIE model: ${modelId}`);
+
+      // Query model from database to get apiModelId
+      const modelConfig = await prisma.kieImageModel.findUnique({
+        where: { modelId }
+      });
+
+      if (!modelConfig || !modelConfig.isActive) {
+        throw new Error(`Invalid KIE image model: ${modelId}`);
+      }
+
+      if (!modelConfig.apiModelId) {
+        throw new Error(
+          `The model "${modelConfig.name}" (${modelId}) is not directly supported by KIE's API. ` +
+          `Please select a different model in Settings. ` +
+          `Working models: "Ideogram V3", "Grok Imagine", "Z-Image"`
+        );
+      }
+
+      const apiModelId = modelConfig.apiModelId;
+      console.log(`[Inngest] KIE API model ID: ${apiModelId}`);
+
+      const response = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${kieApiKey}`,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          model: apiModelId,
+          input: {
+            prompt: scene.prompt,
+            aspect_ratio: aspectRatio,
+            // Model-specific parameters
+            ...(apiModelId.includes('ideogram') && { render_text: true }),
+            ...(apiModelId.includes('flux') && { guidance_scale: 7.5 }),
+          },
+        }),
+      });
+
+      const createData = await response.json();
+      console.log(`[Inngest] KIE create task response:`, {
+        status: response.status,
+        code: createData.code,
+        hasData: !!createData.data,
+        data: createData.data,
+      });
+
+      if (!response.ok || createData.code !== 200) {
+        const errorMsg = createData.msg || createData.message || createData.error || 'Failed to create KIE task';
+        console.error(`[Inngest] KIE API error:`, {
+          status: response.status,
+          code: createData.code,
+          body: createData,
+          modelId,
+          apiModelId,
+        });
+
+        if (errorMsg.includes('key') || errorMsg.includes('auth') || errorMsg.includes('valid')) {
+          throw new Error('KIE API key is invalid or has expired. Please update your API key in Settings.');
+        }
+        throw new Error(`KIE API error: ${errorMsg}`);
+      }
+
+      const taskId = createData.data?.taskId;
+
+      if (!taskId) {
+        console.error(`[Inngest] KIE response missing taskId:`, createData);
+        throw new Error('KIE AI did not return a task ID. Please try again or contact support.');
+      }
+
+      console.log(`[Inngest] KIE task created: ${taskId}`);
+
+      // Poll for task completion
+      let imageUrl: string | null = null;
+      const maxPolls = 60; // 2 minutes (60 * 2s)
+      let polls = 0;
+
+      while (polls < maxPolls && !imageUrl) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+          headers: {
+            'Authorization': `Bearer ${kieApiKey}`,
+            'Accept': 'application/json',
+          },
+        });
+
+        const statusData = await statusResponse.json();
+
+        if (!statusResponse.ok || statusData.code !== 200) {
+          console.error(`[Inngest] KIE status check failed:`, {
+            status: statusResponse.status,
+            code: statusData.code,
+            body: statusData,
+          });
+          throw new Error(statusData.msg || statusData.message || 'Failed to check KIE task status');
+        }
+
+        const taskData = statusData.data;
+        const state = taskData?.state;
+
+        if (state === 'success') {
+          // Extract image URL from resultJson
+          if (taskData.resultJson) {
+            try {
+              const result = typeof taskData.resultJson === 'string'
+                ? JSON.parse(taskData.resultJson)
+                : taskData.resultJson;
+              imageUrl = result.image_url || result.url;
+            } catch (e) {
+              console.error('[Inngest] Failed to parse KIE resultJson:', e);
+            }
+          }
+
+          if (!imageUrl) {
+            console.error('[Inngest] KIE success but no image URL:', taskData);
+            throw new Error('KIE completed successfully but did not return an image URL');
+          }
+
+          console.log(`[Inngest] KIE image generated: ${imageUrl}`);
+        } else if (state === 'fail') {
+          const failReason = taskData?.fail_reason || taskData?.resultJson?.error || 'Unknown error';
+          console.error(`[Inngest] KIE generation failed:`, { taskId, failReason, taskData });
+          throw new Error(`KIE generation failed: ${failReason}`);
+        } else if (state !== 'waiting' && state !== 'queuing' && state !== 'generating') {
+          console.error(`[Inngest] Unknown KIE job state:`, { state, taskData });
+          throw new Error(`Unknown KIE job state: ${state}`);
+        }
+
+        polls++;
+      }
+
+      if (!imageUrl) {
+        throw new Error('KIE generation timed out after 2 minutes. Please try again.');
+      }
+
+      // Upload KIE image to S3 for consistency
+      if (isS3Configured()) {
+        const imageResponse = await fetch(imageUrl);
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const base64Data = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+        const uploadResult = await uploadImageToS3(base64Data);
+        if (!uploadResult.success || !uploadResult.url) {
+          throw new Error('Failed to upload image to S3');
+        }
+        imageUrl = uploadResult.url;
+      }
 
     } else {
       // Use Gemini
@@ -136,7 +294,7 @@ async function generateSingleImage(
     }
 
     // Upload to S3 if configured
-    if (isS3Configured() && imageUrl.startsWith('data:')) {
+    if (isS3Configured() && imageUrl && imageUrl.startsWith('data:')) {
       const uploadResult = await uploadImageToS3(imageUrl, projectId);
       if (uploadResult.success && uploadResult.url) {
         imageUrl = uploadResult.url;
@@ -144,6 +302,10 @@ async function generateSingleImage(
     }
 
     // Save to scene
+    if (!imageUrl) {
+      throw new Error('Image generation failed: No image URL generated');
+    }
+
     await prisma.scene.update({
       where: { id: scene.sceneId },
       data: { imageUrl },
