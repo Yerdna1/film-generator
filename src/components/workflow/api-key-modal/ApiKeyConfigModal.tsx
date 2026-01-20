@@ -98,11 +98,8 @@ export function ApiKeyConfigModal({
   // Initialize values from existing API keys
   useEffect(() => {
     if (!apiKeys) {
-      console.log('[ApiKeyConfigModal] No apiKeys available yet');
       return;
     }
-
-    console.log('[ApiKeyConfigModal] Initializing from apiKeys:', apiKeys);
 
     const initialValues: Record<string, string> = {};
 
@@ -123,12 +120,28 @@ export function ApiKeyConfigModal({
       }
     });
 
-    console.log('[ApiKeyConfigModal] initialValues set:', initialValues);
     setValues(initialValues);
   }, [apiKeys]);
 
   const handleInputChange = (key: string, value: string) => {
-    setValues((prev) => ({ ...prev, [key]: value }));
+    const newValues = { ...values, [key]: value };
+
+    // Auto-set provider when a model is selected
+    if (key === 'kieTtsModel' && value) {
+      newValues.ttsProvider = 'kie';
+    } else if (key === 'kieImageModel' && value) {
+      newValues.imageProvider = 'kie';
+    } else if (key === 'kieVideoModel' && value) {
+      newValues.videoProvider = 'kie';
+    } else if (key === 'kieMusicModel' && value) {
+      newValues.musicProvider = 'kie';
+    } else if (key === 'openaiTtsModel' && value) {
+      newValues.ttsProvider = 'openai-tts';
+    } else if (key === 'elevenlabsModel' && value) {
+      newValues.ttsProvider = 'elevenlabs';
+    }
+
+    setValues(newValues);
 
     // Clear error when user starts typing
     if (errors[key]) {
@@ -203,14 +216,7 @@ export function ApiKeyConfigModal({
   const getCurrentProvider = (opType: OperationType) => {
     const providerField = `${opType}Provider` as string;
     // Check local values first (unsaved changes), then fall back to apiKeys
-    const result = values[providerField] || (apiKeys as any)?.[providerField];
-    console.log(`[getCurrentProvider ${opType}]`, {
-      providerField,
-      valuesValue: values[providerField],
-      apiKeysValue: (apiKeys as any)?.[providerField],
-      result
-    });
-    return result;
+    return values[providerField] || (apiKeys as any)?.[providerField];
   };
 
   // Get current model for an operation type (checks local values first, then apiKeys)

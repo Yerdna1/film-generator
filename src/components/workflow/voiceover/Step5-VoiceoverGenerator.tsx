@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useProjectStore } from '@/lib/stores/project-store';
-import { useCredits } from '@/contexts/CreditsContext';
+import { useCredits } from '@/hooks';
+import { useApiKeys as useApiKeysContext } from '@/contexts/ApiKeysContext';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import type { Step5Props } from '../voiceover-generator/types';
 import { useVoiceoverAudio } from '../voiceover-generator/hooks';
@@ -13,7 +14,8 @@ import {
   VoiceoverHeader,
   VoiceoverControls,
   SceneVoiceoverList,
-  VoiceoverModals
+  VoiceoverModals,
+  GenerateAudioDialog
 } from './components';
 import {
   useDialogueLoader,
@@ -44,8 +46,34 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
   // Determine if user can delete directly (admin) or must request (collaborator)
   const canDeleteDirectly = permissions?.canDelete ?? true;
 
-  // Credits for free users
+  // Credits and API keys for free users
   const creditsData = useCredits();
+  const { apiKeys, refreshApiKeys } = useApiKeysContext();
+
+  // Convert ApiKeys to the format expected by the hook (has boolean flags)
+  const apiKeysData = useMemo(() => {
+    if (!apiKeys) return null;
+
+    return {
+      ...apiKeys,
+      // Add boolean flags that the hook expects
+      hasKieKey: !!apiKeys.kieApiKey,
+      hasGeminiKey: !!apiKeys.geminiApiKey,
+      hasOpenAIKey: !!apiKeys.openaiApiKey,
+      hasElevenLabsKey: !!apiKeys.elevenLabsApiKey,
+      hasOpenRouterKey: !!apiKeys.openRouterApiKey,
+      hasPiApiKey: !!apiKeys.piapiApiKey,
+      hasGrokKey: !!apiKeys.grokApiKey,
+      hasClaudeKey: !!apiKeys.claudeApiKey,
+      hasNanoBananaKey: !!apiKeys.nanoBananaApiKey,
+      hasSunoKey: !!apiKeys.sunoApiKey,
+    };
+  }, [apiKeys]);
+
+  // Refresh API keys when component mounts to ensure we have the latest data
+  useEffect(() => {
+    refreshApiKeys();
+  }, [refreshApiKeys]);
 
   // Filter scenes with dialogue for pagination
   const scenesWithDialogue = useMemo(() =>
@@ -116,15 +144,23 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     isInsufficientCreditsModalOpen,
     setIsInsufficientCreditsModalOpen,
     pendingVoiceoverGeneration,
+    isGenerateAllDialogOpen,
+    setIsGenerateAllDialogOpen,
+    isGeneratingAll: isGeneratingAllDialog,
+    getProviderAndModel,
     handleGenerateAudioWithCreditCheck,
     handleGenerateAllWithCreditCheck,
     handleUseAppCredits,
     handleSaveKieApiKey,
-  } = useVoiceoverGeneration(project, async (lineId, sceneId, skipCreditCheck) => {
+    handleConfirmGenerateAll,
+  } = useVoiceoverGeneration(project, apiKeysData, async (lineId, sceneId, skipCreditCheck) => {
     await generateAudioForLine(lineId, sceneId, skipCreditCheck);
   }, async (skipCreditCheck) => {
     await handleGenerateAll(skipCreditCheck);
   });
+
+  // Get provider and model from API keys (single source of truth)
+  const { provider: apiKeysProvider, model: apiKeysModel } = getProviderAndModel(apiKeysData);
 
   // Handler for toggling TTS usage in video composition per scene
   const handleToggleUseTts = (sceneId: string) => {
@@ -260,6 +296,17 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
       />
 
       {/* Modals */}
+      <GenerateAudioDialog
+        isOpen={isGenerateAllDialogOpen}
+        onClose={() => setIsGenerateAllDialogOpen(false)}
+        onConfirm={handleConfirmGenerateAll}
+        dialogueCount={allDialogueLines.length}
+        provider={apiKeysProvider}
+        model={apiKeysModel}
+        language={voiceSettings.language}
+        isGenerating={isGeneratingAllDialog}
+      />
+
       <VoiceoverModals
         isInsufficientCreditsModalOpen={isInsufficientCreditsModalOpen}
         setIsInsufficientCreditsModalOpen={setIsInsufficientCreditsModalOpen}

@@ -12,6 +12,7 @@ interface PendingGeneration {
 
 export function useVoiceoverGeneration(
   project: Project,
+  apiKeysData: any,
   generateAudioForLine: (lineId: string, sceneId: string, skipCreditCheck?: boolean) => Promise<void>,
   handleGenerateAll: (skipCreditCheck?: boolean) => Promise<void>
 ) {
@@ -22,6 +23,68 @@ export function useVoiceoverGeneration(
   const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
   const [pendingVoiceoverGeneration, setPendingVoiceoverGeneration] = useState<PendingGeneration | null>(null);
 
+  // New state for confirmation dialog
+  const [isGenerateAllDialogOpen, setIsGenerateAllDialogOpen] = useState(false);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+
+  // Helper function to check if user has their own TTS API key
+  const hasOwnTtsApiKey = useCallback((apiKeys: any, currentProvider: string): boolean => {
+    switch (currentProvider) {
+      case 'kie':
+        return !!apiKeys?.hasKieKey;
+      case 'gemini-tts':
+        return !!apiKeys?.hasGeminiKey;
+      case 'openai-tts':
+        return !!apiKeys?.hasOpenAIKey;
+      case 'elevenlabs':
+        return !!apiKeys?.hasElevenLabsKey;
+      case 'modal':
+        return !!apiKeys?.modalTtsEndpoint;
+      default:
+        return false;
+    }
+  }, []);
+
+  // Get provider and model from API keys (single source of truth)
+  const getProviderAndModel = useCallback((apiKeys: any) => {
+    // First, check if we can infer the provider from a configured model
+    if (apiKeys?.kieTtsModel) {
+      return { provider: 'kie', model: apiKeys.kieTtsModel };
+    }
+    if (apiKeys?.elevenlabsModel || apiKeys?.hasElevenLabsKey) {
+      return { provider: 'elevenlabs', model: apiKeys?.elevenlabsModel || 'eleven_multilingual_v2' };
+    }
+    if (apiKeys?.openaiTtsModel || apiKeys?.hasOpenAIKey) {
+      return { provider: 'openai-tts', model: apiKeys?.openaiTtsModel || 'tts-1' };
+    }
+    if (apiKeys?.modalTtsModel || apiKeys?.modalTtsEndpoint) {
+      return { provider: 'modal', model: apiKeys?.modalTtsModel };
+    }
+    // Fall back to ttsProvider from API keys or project settings
+    const provider = apiKeys?.ttsProvider || project.voiceSettings?.provider || 'gemini-tts';
+    let model = undefined;
+
+    switch (provider) {
+      case 'kie':
+        model = apiKeys?.kieTtsModel;
+        break;
+      case 'gemini-tts':
+        model = 'gemini-tts'; // Gemini TTS doesn't have models
+        break;
+      case 'openai-tts':
+        model = apiKeys?.openaiTtsModel || 'tts-1';
+        break;
+      case 'elevenlabs':
+        model = apiKeys?.elevenlabsModel || 'eleven_multilingual_v2';
+        break;
+      case 'modal':
+        model = apiKeys?.modalTtsModel;
+        break;
+    }
+
+    return { provider, model };
+  }, [project.voiceSettings]);
+
   // Credit check wrapper for single voiceover generation
   const handleGenerateAudioWithCreditCheck = useCallback(async (lineId: string, sceneId: string) => {
     setPendingVoiceoverGeneration({ type: 'single', lineId, sceneId });
@@ -30,9 +93,28 @@ export function useVoiceoverGeneration(
 
   // Credit check wrapper for all voiceovers generation
   const handleGenerateAllWithCreditCheck = useCallback(async () => {
+    const { provider } = getProviderAndModel(apiKeysData);
+
+    // Check if user has their own API key for the current provider
+    const hasOwnKey = hasOwnTtsApiKey(apiKeysData, provider);
+
+    // If user has own API key, skip credit check and show confirmation dialog directly
+    if (hasOwnKey) {
+      setIsGenerateAllDialogOpen(true);
+      return;
+    }
+
+    // If apiKeysData is still loading (null), don't check credits yet
+    // Proceed with generation (API will check on backend)
+    if (apiKeysData === null) {
+      await handleGenerateAll();
+      return;
+    }
+
+    // Only check credits if user doesn't have their own API key
     setPendingVoiceoverGeneration({ type: 'all' });
     setIsInsufficientCreditsModalOpen(true);
-  }, []);
+  }, [apiKeysData, getProviderAndModel, hasOwnTtsApiKey, handleGenerateAll]);
 
   // Proceed with generation using app credits
   const handleUseAppCredits = useCallback(async () => {
@@ -48,6 +130,18 @@ export function useVoiceoverGeneration(
 
     setPendingVoiceoverGeneration(null);
   }, [pendingVoiceoverGeneration, generateAudioForLine, handleGenerateAll]);
+
+  // Confirm generation from the dialog (for users with own API key or premium users)
+  const handleConfirmGenerateAll = useCallback(async () => {
+    setIsGenerateAllDialogOpen(false);
+    setIsGeneratingAll(true);
+
+    try {
+      await handleGenerateAll(true); // Skip credit check, use user's API key
+    } finally {
+      setIsGeneratingAll(false);
+    }
+  }, [handleGenerateAll]);
 
   // Save KIE AI API key handler
   const handleSaveKieApiKey = useCallback(async (
@@ -131,9 +225,14 @@ export function useVoiceoverGeneration(
     isInsufficientCreditsModalOpen,
     setIsInsufficientCreditsModalOpen,
     pendingVoiceoverGeneration,
+    isGenerateAllDialogOpen,
+    setIsGenerateAllDialogOpen,
+    isGeneratingAll,
+    getProviderAndModel,
     handleGenerateAudioWithCreditCheck,
     handleGenerateAllWithCreditCheck,
     handleUseAppCredits,
     handleSaveKieApiKey,
+    handleConfirmGenerateAll,
   };
 }
