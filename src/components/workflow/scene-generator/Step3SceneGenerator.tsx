@@ -348,8 +348,14 @@ export function Step3SceneGenerator({
 
   // Wrap to prevent click event from being passed as argument
   const handleGenerateImages = useInngest
-    ? () => handleStartBackgroundGeneration()
-    : handleGenerateAllWithCreditCheck;
+    ? () => {
+        console.log('[Step3] Starting background image generation via Inngest');
+        return handleStartBackgroundGeneration();
+      }
+    : () => {
+        console.log('[Step3] Starting direct image generation');
+        return handleGenerateAllWithCreditCheck();
+      };
 
   return (
     <div className="max-w-[1920px] mx-auto space-y-6 px-4">
