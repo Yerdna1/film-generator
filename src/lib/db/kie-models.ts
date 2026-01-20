@@ -44,12 +44,17 @@ export async function getVideoModelById(modelId: string) {
 }
 
 /**
- * Fetch all active KIE image models from database
+ * Fetch all active KIE image models from database (text-to-image only)
  */
 export async function getImageModels() {
-  // Temporarily disable cache to debug
+  // Only fetch models that support text-to-image
   const models = await prisma.kieImageModel.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      modality: {
+        has: 'text-to-image',
+      },
+    },
     orderBy: { name: 'asc' },
   });
   return models;

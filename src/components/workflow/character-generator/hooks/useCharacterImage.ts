@@ -8,6 +8,7 @@ import type { Character, Project } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
 import type { ImageProvider } from '@/types/project';
 import type { CharacterImageState } from '../types';
+import { GenerateImageDialog } from '../components/GenerateImageDialog';
 
 export function useCharacterImage(project: Project, aspectRatio: AspectRatio, provider: ImageProvider = 'gemini', model?: string) {
   const { updateCharacter } = useProjectStore();
@@ -19,14 +20,28 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
   const [isGeneratingSingle, setIsGeneratingSingle] = useState(false);
   const [generatingCharacterName, setGeneratingCharacterName] = useState<string>('');
 
-  const generateCharacterImage = useCallback(async (character: Character) => {
+  // Dialog state
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [pendingCharacter, setPendingCharacter] = useState<Character | null>(null);
+
+  // Request to generate image (shows dialog first)
+  const requestGenerateCharacterImage = useCallback((character: Character) => {
+    setPendingCharacter(character);
+    setShowGenerateDialog(true);
+  }, []);
+
+  // Actually generate the image (after dialog confirmation)
+  const confirmGenerateImage = useCallback(async () => {
+    if (!pendingCharacter) return;
+
+    setShowGenerateDialog(false);
     setIsGeneratingSingle(true);
-    setGeneratingCharacterName(character.name);
+    setGeneratingCharacterName(pendingCharacter.name);
     setGenerationProgress({ current: 0, total: 1 });
 
     setImageStates((prev) => ({
       ...prev,
-      [character.id]: { status: 'generating', progress: 10 },
+      [pendingCharacter.id]: { status: 'generating', progress: 10 },
     }));
 
     try {
@@ -41,7 +56,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
           // Reset states
           setImageStates((prev) => ({
             ...prev,
-            [character.id]: { status: 'idle', progress: 0 },
+            [pendingCharacter.id]: { status: 'idle', progress: 0 },
           }));
           setIsGeneratingSingle(false);
           setGeneratingCharacterName('');
@@ -53,7 +68,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
             missingKeys: keyCheck.missing,
             onSuccess: () => {
               // Retry generation after keys are saved
-              generateCharacterImage(character);
+              requestGenerateCharacterImage(pendingCharacter);
             }
           });
           return;
@@ -61,7 +76,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
       }
       setImageStates((prev) => ({
         ...prev,
-        [character.id]: { status: 'generating', progress: 30 },
+        [pendingCharacter.id]: { status: 'generating', progress: 30 },
       }));
 
       const imageResolution = project.modelConfig?.image?.sceneResolution || project.settings?.imageResolution || '2k';
@@ -69,7 +84,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: character.masterPrompt,
+          prompt: pendingCharacter.masterPrompt,
           aspectRatio,
           resolution: imageResolution,
           imageProvider: provider,
@@ -82,7 +97,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
       if (isInsufficientCredits) {
         setImageStates((prev) => ({
           ...prev,
-          [character.id]: { status: 'idle', progress: 0 },
+          [pendingCharacter.id]: { status: 'idle', progress: 0 },
         }));
         setIsGeneratingSingle(false);
         setGenerationProgress({ current: 0, total: 0 });
@@ -91,17 +106,17 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
 
       setImageStates((prev) => ({
         ...prev,
-        [character.id]: { status: 'generating', progress: 70 },
+        [pendingCharacter.id]: { status: 'generating', progress: 70 },
       }));
 
       if (response.ok) {
         const data = await response.json();
         if (data.imageUrl) {
-          await updateCharacter(project.id, character.id, { imageUrl: data.imageUrl });
-          console.log(`[Character ${character.name}] Image saved to DB`);
+          await updateCharacter(project.id, pendingCharacter.id, { imageUrl: data.imageUrl });
+          console.log(`[Character ${pendingCharacter.name}] Image saved to DB`);
           setImageStates((prev) => ({
             ...prev,
-            [character.id]: { status: 'complete', progress: 100 },
+            [pendingCharacter.id]: { status: 'complete', progress: 100 },
           }));
           setGenerationProgress({ current: 1, total: 1 });
           window.dispatchEvent(new CustomEvent('credits-updated'));
@@ -120,7 +135,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
       });
       setImageStates((prev) => ({
         ...prev,
-        [character.id]: {
+        [pendingCharacter.id]: {
           status: 'error',
           progress: 0,
           error: errorMessage
@@ -135,7 +150,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
       });
       setImageStates((prev) => ({
         ...prev,
-        [character.id]: {
+        [pendingCharacter.id]: {
           status: 'error',
           progress: 0,
           error: errorMessage
@@ -144,8 +159,15 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
     } finally {
       setIsGeneratingSingle(false);
       setTimeout(() => setGenerationProgress({ current: 0, total: 0 }), 500);
+      setPendingCharacter(null);
     }
-  }, [project.id, project.settings?.imageResolution, aspectRatio, provider, updateCharacter, handleApiResponse]);
+  }, [pendingCharacter, project.id, project.settings?.imageResolution, aspectRatio, provider, model, updateCharacter, handleApiResponse, requestGenerateCharacterImage]);
+
+  // Direct generate without dialog (for programmatic use)
+  const generateCharacterImage = useCallback(async (character: Character) => {
+    setPendingCharacter(character);
+    await confirmGenerateImage();
+  }, [confirmGenerateImage]);
 
   const handleGenerateAll = useCallback(async () => {
     const charactersWithoutImages = project.characters.filter((c) => !c.imageUrl);
@@ -174,7 +196,11 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
     generationProgress,
     generatingCharacterName,
     generateCharacterImage,
+    requestGenerateCharacterImage,
+    confirmGenerateImage,
     handleGenerateAll,
     getCharacterStatus,
+    showGenerateDialog,
+    setShowGenerateDialog,
   };
 }

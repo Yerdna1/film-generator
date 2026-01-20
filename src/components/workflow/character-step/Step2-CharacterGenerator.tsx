@@ -7,6 +7,7 @@ import { useCredits } from '@/hooks';
 import { getImageCreditCost } from '@/lib/services/credits';
 import type { Character } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
+import type { ImageProvider } from '@/types/project';
 import {
   Step2Props,
   MAX_CHARACTERS,
@@ -29,6 +30,7 @@ import {
 } from './components';
 import { PaymentMethodToggle } from '../PaymentMethodToggle';
 import { StepApiKeyButton } from '../StepApiKeyButton';
+import { GenerateImageDialog } from '../character-generator/components/GenerateImageDialog';
 
 export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
   const t = useTranslations();
@@ -50,16 +52,11 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const [showPromptsDialog, setShowPromptsDialog] = useState(false);
   const [editCharacterData, setEditCharacterData] = useState<EditCharacterData | null>(null);
   const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
+  const [pendingCharacter, setPendingCharacter] = useState<Character | null>(null);
 
   // Use model configuration for character generation
   const modelConfig = project.modelConfig;
   const characterAspectRatio = (modelConfig?.image?.characterAspectRatio || userConstants?.characterAspectRatio || '1:1') as AspectRatio;
-  const characterImageProvider = (modelConfig?.image?.provider || userConstants?.characterImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
-  const characterImageModel = modelConfig?.image?.model || 'seedream/4-5-text-to-image';
-
-  // Check if project is configured to use KIE with an API key
-  // When a project uses KIE provider, it means the user has configured their API key for it
-  const projectHasKieApiKey = modelConfig?.image?.provider === 'kie';
 
   // Custom hooks
   const {
@@ -80,6 +77,19 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     handleSaveKieApiKey: saveKieApiKey,
   } = useApiKeyManagement();
 
+  // Read current provider and model from user's API keys (not project config)
+  // project.modelConfig may be outdated, so we prefer the user's current settings
+  const currentImageProvider = (userApiKeys?.imageProvider as ImageProvider) || (modelConfig?.image?.provider as ImageProvider);
+  const currentImageModel = userApiKeys?.kieImageModel || modelConfig?.image?.model;
+
+  // Fallback to project config if userApiKeys doesn't have the values
+  const characterImageProvider = (currentImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
+  const characterImageModel = currentImageModel || 'seedream/4-5-text-to-image';
+
+  // Check if project is configured to use KIE with an API key
+  // When a project uses KIE provider, it means the user has configured their API key for it
+  const projectHasKieApiKey = modelConfig?.image?.provider === 'kie';
+
   const {
     imageStates,
     isGeneratingAll,
@@ -87,8 +97,12 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     generationProgress,
     generatingCharacterName,
     generateCharacterImage,
+    requestGenerateCharacterImage,
+    confirmGenerateImage,
     handleGenerateAll,
     getCharacterStatus,
+    showGenerateDialog,
+    setShowGenerateDialog,
   } = useCharacterImage(project, characterAspectRatio, characterImageProvider, characterImageModel);
 
   // Count generated images
@@ -188,7 +202,9 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
       }
     }
 
-    generateCharacterImage(character);
+    // Set pending character for dialog and show dialog
+    setPendingCharacter(character);
+    requestGenerateCharacterImage(character);
   }, [
     characterImageProvider,
     characterAspectRatio,
@@ -197,7 +213,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     projectHasKieApiKey,
     creditsData,
     creditsNeeded,
-    generateCharacterImage,
+    requestGenerateCharacterImage,
     setModalReason,
     setIsKieModalOpen,
     setPendingCharacterGeneration,
@@ -380,6 +396,19 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
         onUseAppCredits={handleUseAppCredits}
         creditsNeeded={creditsNeeded}
         currentCredits={creditsData?.credits.balance}
+      />
+
+      {/* Generate Image Confirmation Dialog */}
+      <GenerateImageDialog
+        isOpen={showGenerateDialog}
+        onClose={() => setShowGenerateDialog(false)}
+        onConfirm={confirmGenerateImage}
+        characterName={pendingCharacter?.name || ''}
+        provider={characterImageProvider}
+        model={characterImageModel}
+        isGenerating={isGeneratingSingle}
+        resolution={settings.imageResolution}
+        aspectRatio={characterAspectRatio}
       />
     </div>
   );

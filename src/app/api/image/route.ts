@@ -278,8 +278,17 @@ async function generateWithKie(
     throw new Error(`Invalid KIE image model: ${modelId}`);
   }
 
-  // Use apiModelId for KIE.ai API call, fall back to modelId if not set
-  const apiModelId = modelConfig.apiModelId || modelConfig.modelId;
+  // Use apiModelId for KIE.ai API call
+  // If apiModelId is null, this model is not directly supported by KIE's API
+  if (!modelConfig.apiModelId) {
+    throw new Error(
+      `The model "${modelConfig.name}" (${modelId}) is not directly supported by KIE's API. ` +
+      `Please select a different model in Settings. ` +
+      `Working models: "Ideogram V3", "Grok Imagine", "Z-Image"`
+    );
+  }
+
+  const apiModelId = modelConfig.apiModelId;
   const costText = `${modelConfig.credits} credits ($${modelConfig.cost.toFixed(2)})`;
   console.log(`[KIE] Using model: ${modelConfig.name} (${apiModelId}) - ${costText}`);
 

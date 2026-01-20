@@ -3,10 +3,12 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Character } from '@/types/project';
+import type { ImageProvider } from '@/types/project';
 
 interface ApiKeyState {
   hasKieKey: boolean;
   kieImageModel: string;
+  imageProvider: ImageProvider | null;
 }
 
 export function useApiKeyManagement() {
@@ -28,8 +30,9 @@ export function useApiKeyManagement() {
         if (res.ok) {
           const data = await res.json();
           setUserApiKeys({
-            hasKieKey: data.hasKieKey || false,
-            kieImageModel: data.kieImageModel || 'seedream/4-5-text-to-image',
+            hasKieKey: data.apiKeys?.kieApiKey ? true : false,
+            kieImageModel: data.apiKeys?.kieImageModel || 'seedream/4-5-text-to-image',
+            imageProvider: data.apiKeys?.imageProvider || null,
           });
         }
       } catch (error) {
@@ -37,6 +40,16 @@ export function useApiKeyManagement() {
       }
     };
     fetchApiKeys();
+
+    // Listen for API key updates from settings page
+    const handleApiKeysUpdate = () => {
+      fetchApiKeys();
+    };
+
+    window.addEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
+    return () => {
+      window.removeEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
+    };
   }, [session]);
 
   const handleSaveKieApiKey = async (apiKey: string, model: string): Promise<void> => {
@@ -64,6 +77,7 @@ export function useApiKeyManagement() {
         ...prev,
         hasKieKey: true,
         kieImageModel: model,
+        imageProvider: 'kie',
       }));
 
       // Update user constants with image provider

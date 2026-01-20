@@ -113,7 +113,16 @@
       "Bash(npx prisma migrate:*)",
       "Bash(ln:*)",
       "Bash(awk:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(KIE_API_KEY=1c5776ce80df8a40e01f114c3bbe9446 MODEL_ID=z-image 'PROMPT=A cute cat' ASPECT_RATIO=1:1 __NEW_LINE_cea147c9d797e3df__ echo:*)",
+      "Bash(KIE_API_KEY=\"1c5776ce80df8a40e01f114c3bbe9446\")",
+      "Bash(MODEL_ID=\"z-image\")",
+      "Bash(PROMPT=\"A cute cat\")",
+      "Bash(ASPECT_RATIO=\"1:1\")",
+      "Bash(__NEW_LINE_9621f51a9bc3f1e0__ echo \"=== Testing KIE API with valid model: $MODEL_ID ===\")",
+      "Bash(MODEL_ID=\"seedream/4-5-text-to-image\")",
+      "Bash(__NEW_LINE_42a9706007835236__ echo \"=== Testing KIE API with model: $MODEL_ID ===\")"
     ]
   }
 }
