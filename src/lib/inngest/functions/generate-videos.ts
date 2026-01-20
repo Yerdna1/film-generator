@@ -39,7 +39,7 @@ async function generateSingleVideo(
 
     console.log(`[Video ${scene.sceneNumber}] Starting generation with ${effectiveProvider}/${effectiveModel}`);
 
-    let videoUrl: string;
+    let videoUrl: string | undefined;
 
     if (effectiveProvider === 'modal') {
       // Use Modal endpoint
