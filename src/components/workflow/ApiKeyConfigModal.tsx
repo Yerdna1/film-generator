@@ -726,7 +726,7 @@ export function ApiKeyConfigModal({
               type="password"
               placeholder={API_KEY_FIELDS[provider.apiKeyField]?.placeholder}
               value={values[provider.apiKeyField] || ''}
-              onChange={(e) => handleInputChange(provider.apiKeyField, e.target.value)}
+              onChange={(e) => handleInputChange(provider.apiKeyField!, e.target.value)}
               className={`bg-gray-900/50 ${
                 errors[provider.apiKeyField] ? 'border-red-500' : `border-${isSelected ? provider.color : 'gray'}-700`
               }`}
@@ -741,7 +741,7 @@ export function ApiKeyConfigModal({
               <Combobox
                 options={modelOptions}
                 value={values[provider.modelField] || ''}
-                onChange={(value) => handleInputChange(provider.modelField, value)}
+                onChange={(value) => handleInputChange(provider.modelField!, value)}
                 placeholder={API_KEY_FIELDS[provider.modelField]?.placeholder}
                 loading={loadingKieModels && provider.id === 'kie'}
                 className={errors[provider.modelField] ? 'border-red-500' : ''}
@@ -750,9 +750,9 @@ export function ApiKeyConfigModal({
               <Input
                 placeholder={API_KEY_FIELDS[provider.modelField]?.placeholder}
                 value={values[provider.modelField] || ''}
-                onChange={(e) => handleInputChange(provider.modelField, e.target.value)}
+                onChange={(e) => handleInputChange(provider.modelField!, e.target.value)}
                 className={`bg-gray-900/50 ${
-                  errors[provider.modelField] ? 'border-red-500' : `border-${isSelected ? provider.color : 'gray'}-700`
+                  errors[provider.modelField] ? 'border-red-500' : `border-${isSelected ? provider.color : 'gray'}-700'
                 }`}
               />
             )}

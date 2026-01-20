@@ -10,7 +10,6 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
 } from '@/components/ui/command';
 import {
   Popover,
@@ -53,45 +52,54 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn('w-full justify-between', className)}
+          className={cn('w-full justify-between text-left', className)}
           disabled={disabled || loading}
         >
           {loading ? (
             <span className="text-sm text-muted-foreground">Loading...</span>
           ) : selectedOption ? (
-            <span className="text-sm truncate">{selectedOption.label}</span>
+            <span className="text-sm truncate block">{selectedOption.label}</span>
           ) : (
             <span className="text-sm text-muted-foreground">{placeholder}</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command>
+      <PopoverContent
+        className="w-[800px] p-0"
+        align="start"
+      >
+        <Command className="w-full">
           <CommandInput placeholder="Search models..." className="h-9" />
-          <CommandList>
-            <CommandEmpty>No model found.</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  onSelect={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                >
-                  {option.label}
-                  <Check
-                    className={cn(
-                      'ml-auto h-4 w-4',
-                      value === option.value ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
+          {!options.length ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No models found
+            </div>
+          ) : (
+            <div className="max-h-[600px] overflow-y-auto p-2">
+              <div className="grid grid-cols-1 gap-1">
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    onSelect={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    className="cursor-pointer hover:bg-accent rounded-md px-3 py-2.5 flex items-center gap-2"
+                  >
+                    <span className="truncate flex-1 text-sm">{option.label}</span>
+                    <Check
+                      className={cn(
+                        'h-4 w-4 shrink-0',
+                        value === option.value ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  </CommandItem>
+                ))}
+              </div>
+            </div>
+          )}
         </Command>
       </PopoverContent>
     </Popover>

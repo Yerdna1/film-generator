@@ -14,6 +14,7 @@ import {
   GeneralSettingsTab,
   PricingTab,
 } from './components';
+import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider } from '@/types/project';
 
 export default function SettingsPage() {
   const t = useTranslations('settings');
@@ -144,14 +145,25 @@ export default function SettingsPage() {
               <ApiKeysTab
                 showKeys={showKeys}
                 savedKeys={savedKeys}
-                localConfig={apiKeysContext.apiKeys || localConfig as Record<string, string | undefined>}
-                apiConfig={apiKeysContext.apiKeys || apiConfig}
-                llmProvider={apiKeysContext.apiKeys?.llmProvider || llmProvider}
+                localConfig={(apiKeysContext.apiKeys ? Object.fromEntries(
+                  Object.entries(apiKeysContext.apiKeys).filter(([key, value]) =>
+                    typeof value === 'string' || typeof value === 'undefined'
+                  )
+                ) : localConfig) as Record<string, string | undefined>}
+                apiConfig={apiKeysContext.apiKeys ? {
+                  ...apiConfig,
+                  ...Object.fromEntries(
+                    Object.entries(apiKeysContext.apiKeys)
+                      .filter(([key, value]) => typeof value === 'string' || typeof value === 'undefined')
+                      .map(([key, value]) => [key, value || undefined])
+                  )
+                } : apiConfig}
+                llmProvider={(apiKeysContext.apiKeys?.llmProvider || llmProvider) as LLMProvider}
                 openRouterModel={apiKeysContext.apiKeys?.openRouterModel || openRouterModel}
-                musicProvider={apiKeysContext.apiKeys?.musicProvider || musicProvider}
-                ttsProvider={apiKeysContext.apiKeys?.ttsProvider || ttsProvider}
-                imageProvider={apiKeysContext.apiKeys?.imageProvider || imageProvider}
-                videoProvider={apiKeysContext.apiKeys?.videoProvider || videoProvider}
+                musicProvider={(apiKeysContext.apiKeys?.musicProvider || musicProvider) as MusicProvider}
+                ttsProvider={(apiKeysContext.apiKeys?.ttsProvider || ttsProvider) as TTSProvider}
+                imageProvider={(apiKeysContext.apiKeys?.imageProvider || imageProvider) as ImageProvider}
+                videoProvider={(apiKeysContext.apiKeys?.videoProvider || videoProvider) as VideoProvider}
                 modalEndpoints={modalEndpoints}
                 kieImageModel={apiKeysContext.apiKeys?.kieImageModel || kieImageModel}
                 kieVideoModel={apiKeysContext.apiKeys?.kieVideoModel || kieVideoModel}
@@ -160,10 +172,10 @@ export default function SettingsPage() {
                 onToggleVisibility={toggleKeyVisibility}
                 onSaveKey={async (keyName: string) => {
                   // Get the current value from localConfig
-                  const value = localConfig[keyName] || '';
+                  const value = (localConfig as Record<string, string | undefined>)[keyName] || '';
                   const success = await apiKeysContext.updateApiKey(keyName, value);
                   if (success) {
-                    handleSaveKey(keyName, value);
+                    handleSaveKey(keyName);
                     // Refresh ApiKeysContext to ensure sync
                     await apiKeysContext.refreshApiKeys();
                   }
