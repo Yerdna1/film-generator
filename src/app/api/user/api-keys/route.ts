@@ -67,9 +67,19 @@ export async function GET() {
 
       return NextResponse.json(
         {
-          apiKeys: defaultApiKeys,
-          maskedKeys: {},
-          hasKeys: {},
+          ...defaultApiKeys,
+          // Boolean flags for UI logic
+          hasGeminiKey: false,
+          hasGrokKey: false,
+          hasElevenLabsKey: false,
+          hasClaudeKey: false,
+          hasOpenAIKey: false,
+          hasNanoBananaKey: false,
+          hasSunoKey: false,
+          hasOpenRouterKey: false,
+          hasPiApiKey: false,
+          hasKieKey: false,
+          hasResendKey: false,
         },
         {
           headers: {
@@ -131,19 +141,18 @@ export async function GET() {
           kieApiKey: maskApiKey(apiKeys.kieApiKey),
         },
         // Boolean flags to indicate if key is set (for UI logic)
-        hasKeys: {
-          geminiApiKey: !!apiKeys.geminiApiKey,
-          grokApiKey: !!apiKeys.grokApiKey,
-          elevenLabsApiKey: !!apiKeys.elevenLabsApiKey,
-          claudeApiKey: !!apiKeys.claudeApiKey,
-          openaiApiKey: !!apiKeys.openaiApiKey,
-          nanoBananaApiKey: !!apiKeys.nanoBananaApiKey,
-          sunoApiKey: !!apiKeys.sunoApiKey,
-          openRouterApiKey: !!apiKeys.openRouterApiKey,
-          piapiApiKey: !!apiKeys.piapiApiKey,
-          kieApiKey: !!apiKeys.kieApiKey,
-          resendApiKey: !!apiKeys.resendApiKey,
-        },
+        // Transform to match the format expected by useApiKeys hook
+        hasGeminiKey: !!apiKeys.geminiApiKey,
+        hasGrokKey: !!apiKeys.grokApiKey,
+        hasElevenLabsKey: !!apiKeys.elevenLabsApiKey,
+        hasClaudeKey: !!apiKeys.claudeApiKey,
+        hasOpenAIKey: !!apiKeys.openaiApiKey,
+        hasNanoBananaKey: !!apiKeys.nanoBananaApiKey,
+        hasSunoKey: !!apiKeys.sunoApiKey,
+        hasOpenRouterKey: !!apiKeys.openRouterApiKey,
+        hasPiApiKey: !!apiKeys.piapiApiKey,
+        hasKieKey: !!apiKeys.kieApiKey,
+        hasResendKey: !!apiKeys.resendApiKey,
       },
       {
         headers: {

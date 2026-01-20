@@ -11,7 +11,7 @@ import { getImageCreditCost } from '@/lib/services/credits';
 import type { Scene, ImageProvider } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
-import { Step3Content } from './components';
+import { Step3Content, GenerateScenesDialog } from './components';
 import type { Step3Props, UserApiKeys } from './types';
 import { StepApiKeyButton } from '../StepApiKeyButton';
 
@@ -32,7 +32,12 @@ export function Step3SceneGenerator({
   const isAdmin = permissions?.canApproveRequests ?? true;
 
   // Use SWR hooks for API keys and credits
-  const { imageProvider: apiKeysImageProvider, data: apiKeysData } = useApiKeys();
+  const {
+    imageProvider: apiKeysImageProvider,
+    llmProvider: apiKeysLlmProvider,
+    openRouterModel: apiKeysOpenRouterModel,
+    data: apiKeysData
+  } = useApiKeys();
   const { data: creditsData } = useCredits();
 
   // Sync provider settings to store when API keys data is loaded
@@ -75,6 +80,10 @@ export function Step3SceneGenerator({
   const [isSavingOpenRouterKey, setIsSavingOpenRouterKey] = useState(false);
   const [pendingSceneTextGeneration, setPendingSceneTextGeneration] = useState(false);
   const [sceneTextCreditsNeeded, setSceneTextCreditsNeeded] = useState(0);
+
+  // Generate scenes confirmation dialog state
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [isConfirmGenerating, setIsConfirmGenerating] = useState(false);
 
   // Use scene generator hook
   const {
@@ -213,30 +222,18 @@ export function Step3SceneGenerator({
 
   // Wrapper for scene text generation with credit check
   const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {
-    // Only bypass credit check if user actually has an OpenRouter API key stored
+    // Bypass credit check if user has ANY LLM provider configured
+    // Check for: OpenRouter, Claude SDK, or Modal (self-hosted)
     const hasOpenRouterKey = apiKeysData?.hasOpenRouterKey;
-    if (hasOpenRouterKey) {
-      await handleGenerateAllScenes(true);
-      return;
-    }
+    const hasClaudeKey = apiKeysData?.hasClaudeKey;
+    const hasModalLlm = apiKeysData?.modalLlmEndpoint;
 
-    // Check credits first BEFORE any other logic
-    const sceneCount = projectSettings.sceneCount || 12;
-    const creditsNeeded = ACTION_COSTS.scene.claude * sceneCount;
-    const currentCredits = creditsData?.credits.balance || 0;
-    const hasCredits = currentCredits >= creditsNeeded;
-    setSceneTextCreditsNeeded(creditsNeeded);
+    // Show confirmation dialog for ALL users
+    setShowGenerateDialog(true);
+    return;
 
-    if (!hasCredits) {
-      // Show modal and STOP - don't proceed to generation
-      setPendingSceneTextGeneration(true);
-      setIsOpenRouterModalOpen(true);
-      return;
-    }
-
-    // Only proceed if we have credits
-    await handleGenerateAllScenes(false);
-  }, [creditsData, projectSettings.sceneCount, apiKeysData, handleGenerateAllScenes]);
+    // Note: The actual generation happens after dialog confirmation in handleConfirmGenerateScenes
+  }, [apiKeysData]);
 
   // Save KIE API key handler
   const handleSaveKieApiKey = useCallback(async (apiKey: string, model: string): Promise<void> => {
@@ -295,6 +292,40 @@ export function Step3SceneGenerator({
       setIsSavingOpenRouterKey(false);
     }
   }, [handleGenerateAllScenes, t, tCommon]);
+
+  // Confirm and execute scene generation after dialog
+  const handleConfirmGenerateScenes = useCallback(async () => {
+    setShowGenerateDialog(false);
+    setIsConfirmGenerating(true);
+
+    // Bypass credit check if user has ANY LLM provider configured
+    const hasOpenRouterKey = apiKeysData?.hasOpenRouterKey;
+    const hasClaudeKey = apiKeysData?.hasClaudeKey;
+    const hasModalLlm = apiKeysData?.modalLlmEndpoint;
+
+    if (hasOpenRouterKey || hasClaudeKey || hasModalLlm) {
+      await handleGenerateAllScenes(true);
+    } else {
+      // Check credits
+      const sceneCount = projectSettings.sceneCount || 12;
+      const creditsNeeded = ACTION_COSTS.scene.claude * sceneCount;
+      const currentCredits = creditsData?.credits.balance || 0;
+      const hasCredits = currentCredits >= creditsNeeded;
+      setSceneTextCreditsNeeded(creditsNeeded);
+
+      if (!hasCredits) {
+        // Show OpenRouter modal
+        setPendingSceneTextGeneration(true);
+        setIsOpenRouterModalOpen(true);
+        setIsConfirmGenerating(false);
+        return;
+      }
+
+      await handleGenerateAllScenes(false);
+    }
+
+    setIsConfirmGenerating(false);
+  }, [apiKeysData, projectSettings.sceneCount, creditsData, handleGenerateAllScenes]);
 
   // Use Inngest for Modal providers (long-running), direct calls for Gemini (fast)
   const useInngest = imageProvider === 'modal' || imageProvider === 'modal-edit';
@@ -396,6 +427,18 @@ export function Step3SceneGenerator({
         // Permissions
         isReadOnly={isReadOnly}
         isAuthenticated={isAuthenticated}
+      />
+
+      {/* Generate Scenes Confirmation Dialog */}
+      <GenerateScenesDialog
+        isOpen={showGenerateDialog}
+        onClose={() => setShowGenerateDialog(false)}
+        onConfirm={handleConfirmGenerateScenes}
+        sceneCount={projectSettings.sceneCount || 12}
+        provider={apiKeysLlmProvider}
+        model={apiKeysOpenRouterModel}
+        isGenerating={isConfirmGenerating}
+        useOwnKey={!!(apiKeysData?.hasOpenRouterKey || apiKeysData?.hasClaudeKey || apiKeysData?.modalLlmEndpoint)}
       />
     </div>
   );
