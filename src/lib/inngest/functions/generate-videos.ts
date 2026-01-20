@@ -209,12 +209,15 @@ async function generateSingleVideo(
       }
     }
 
+    // At this point, videoUrl is guaranteed to be defined (type assertion for TypeScript)
+    const finalVideoUrl = videoUrl!;
+
     // Upload to S3 if configured
-    if (isS3Configured() && videoUrl.startsWith('http')) {
+    if (isS3Configured() && finalVideoUrl.startsWith('http')) {
       console.log(`[Video ${scene.sceneNumber}] Downloading and uploading to S3...`);
       try {
         // Download video first
-        const response = await fetch(videoUrl);
+        const response = await fetch(finalVideoUrl);
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
@@ -224,10 +227,23 @@ async function generateSingleVideo(
 
           // Upload to S3
           const s3Url = await uploadMediaToS3(dataUrl, 'video', projectId);
+          let urlToReturn = finalVideoUrl;
           if (s3Url !== dataUrl) {
-            videoUrl = s3Url;
+            urlToReturn = s3Url;
             console.log(`[Video ${scene.sceneNumber}] Uploaded to S3`);
           }
+
+          // Clear video cache for this project
+          cache.invalidate(`project:${projectId}:videos`);
+
+          // Update scene with video URL
+          await prisma.scene.update({
+            where: { id: scene.sceneId },
+            data: { videoUrl: urlToReturn },
+          });
+
+          console.log(`[Video ${scene.sceneNumber}] Generation complete`);
+          return { sceneId: scene.sceneId, success: true, videoUrl: urlToReturn };
         }
       } catch (error) {
         console.error(`[Video ${scene.sceneNumber}] Failed to upload to S3:`, error);
@@ -240,11 +256,11 @@ async function generateSingleVideo(
     // Update scene with video URL
     await prisma.scene.update({
       where: { id: scene.sceneId },
-      data: { videoUrl },
+      data: { videoUrl: finalVideoUrl },
     });
 
     console.log(`[Video ${scene.sceneNumber}] Generation complete`);
-    return { sceneId: scene.sceneId, success: true, videoUrl };
+    return { sceneId: scene.sceneId, success: true, videoUrl: finalVideoUrl };
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
