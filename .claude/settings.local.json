@@ -111,7 +111,9 @@
       "Bash(openssl rand:*)",
       "Bash(printenv:*)",
       "Bash(npx prisma migrate:*)",
-      "Bash(ln:*)"
+      "Bash(ln:*)",
+      "Bash(awk:*)",
+      "Bash(kill:*)"
     ]
   }
 }
