@@ -210,27 +210,6 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         subtitle={`${generatedCount} / ${liveDialogueLines.length} voiceovers generated`}
         operation="tts"
         showApiKeyButton={true}
-        selects={[
-          {
-            value: voiceSettings.provider,
-            onChange: (value) => handleProviderChange(value as any),
-            options: [
-              { label: 'Gemini TTS', value: 'gemini-tts' },
-              { label: 'ElevenLabs', value: 'elevenlabs' },
-              { label: 'OpenAI TTS', value: 'openai-tts' },
-            ],
-            placeholder: 'Provider',
-          },
-          {
-            value: voiceSettings.language,
-            onChange: (value) => handleLanguageChange(value as any),
-            options: [
-              { label: 'Slovak', value: 'sk' },
-              { label: 'English', value: 'en' },
-            ],
-            placeholder: 'Language',
-          },
-        ]}
         actions={[
           {
             label: isGeneratingAll ? 'Stop' : 'Generate All',
@@ -239,19 +218,6 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
             variant: isGeneratingAll ? 'destructive' : 'primary',
           },
         ]}
-        rightContent={
-          !isReadOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-violet-500/30 hover:bg-violet-500/10"
-              onClick={() => setShowVoiceSettings(!showVoiceSettings)}
-            >
-              <Mic className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Voice Settings</span>
-            </Button>
-          )
-        }
       />
 
       <VoiceoverHeader
