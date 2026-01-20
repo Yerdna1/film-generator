@@ -1,20 +1,16 @@
 'use client';
 
-import { Clapperboard, Sparkles, RefreshCw } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Clapperboard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Project } from '@/types/project';
 
 interface StoryFormProps {
   project: Project;
   isReadOnly: boolean;
-  isGenerating: boolean;
-  onGeneratePrompt: () => void;
   updateStory: (id: string, story: any) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   genres: readonly string[];
@@ -25,8 +21,6 @@ interface StoryFormProps {
 export function StoryForm({
   project,
   isReadOnly,
-  isGenerating,
-  onGeneratePrompt,
   updateStory,
   updateProject,
   genres,
@@ -131,32 +125,6 @@ export function StoryForm({
 
       {/* Payment Toggle */}
       {!isReadOnly && paymentToggle}
-
-      {/* Generate Button - only show when not read-only */}
-      {!isReadOnly && (
-        <Button
-          onClick={onGeneratePrompt}
-          disabled={isGenerating || !project.story.title || !project.story.concept}
-          className="w-full mt-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 h-10"
-        >
-          {isGenerating ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-              </motion.div>
-              {t('common.generating')}...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
-              {t('steps.prompt.generatePrompt')}
-            </>
-          )}
-        </Button>
-      )}
     </div>
   );
 }

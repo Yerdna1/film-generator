@@ -10,20 +10,22 @@ import type { Step5Props } from '../voiceover-generator/types';
 import { useVoiceoverAudio } from '../voiceover-generator/hooks';
 import { Pagination } from '@/components/workflow/video-generator/components/Pagination';
 import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
+import { Button } from '@/components/ui/button';
 import {
   VoiceoverHeader,
-  VoiceoverControls,
   SceneVoiceoverList,
   VoiceoverModals,
-  GenerateAudioDialog
+  GenerateAudioDialog,
 } from './components';
+import { VoiceSettingsDialog } from '../voiceover-generator/components';
 import {
   useDialogueLoader,
   useRegenerationRequests,
   useVoiceoverGeneration,
   useVoiceSettings
 } from './hooks';
-import { StepApiKeyButton } from '../StepApiKeyButton';
+import { StepActionBar } from '../shared/StepActionBar';
+import { Mic } from 'lucide-react';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
@@ -201,8 +203,56 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
   return (
     <div className="max-w-[1920px] mx-auto space-y-6 px-4">
-      {/* API Key Configuration Button */}
-      <StepApiKeyButton operation="tts" stepName="Step 5 - Voiceover Generator" />
+      {/* Step Action Bar */}
+      <StepActionBar
+        title={t('steps.voiceover.title')}
+        icon={Mic}
+        subtitle={`${generatedCount} / ${liveDialogueLines.length} voiceovers generated`}
+        operation="tts"
+        showApiKeyButton={true}
+        selects={[
+          {
+            value: voiceSettings.provider,
+            onChange: (value) => handleProviderChange(value as any),
+            options: [
+              { label: 'Gemini TTS', value: 'gemini-tts' },
+              { label: 'ElevenLabs', value: 'elevenlabs' },
+              { label: 'OpenAI TTS', value: 'openai-tts' },
+            ],
+            placeholder: 'Provider',
+          },
+          {
+            value: voiceSettings.language,
+            onChange: (value) => handleLanguageChange(value as any),
+            options: [
+              { label: 'Slovak', value: 'sk' },
+              { label: 'English', value: 'en' },
+            ],
+            placeholder: 'Language',
+          },
+        ]}
+        actions={[
+          {
+            label: isGeneratingAll ? 'Stop' : 'Generate All',
+            onClick: isGeneratingAll ? stopGeneratingAll : handleGenerateAllWithCreditCheck,
+            disabled: isReadOnly || liveDialogueLines.length === 0,
+            variant: isGeneratingAll ? 'destructive' : 'primary',
+          },
+        ]}
+        rightContent={
+          !isReadOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-violet-500/30 hover:bg-violet-500/10"
+              onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+            >
+              <Mic className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Voice Settings</span>
+            </Button>
+          )
+        }
+      />
 
       <VoiceoverHeader
         isLoadingDialogue={isLoadingDialogue}
@@ -265,37 +315,17 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         onStop={stopGeneratingAll}
       />
 
-      {/* Provider Selection & Controls */}
-      <VoiceoverControls
-        voiceSettings={voiceSettings}
-        voices={voices}
+      {/* Modals */}
+      <VoiceSettingsDialog
+        open={showVoiceSettings}
+        onOpenChange={setShowVoiceSettings}
         characters={project.characters || []}
-        volume={volume}
-        showVoiceSettings={showVoiceSettings}
-        generatedCount={generatedCount}
-        totalCount={liveDialogueLines.length}
-        remainingCount={remainingCount}
-        totalCharacters={totalCharacters}
-        isGeneratingAll={isGeneratingAll}
-        isPlayingAll={playingSceneId === '__all__'}
-        availableVersions={getAvailableVersions() as any}
-        isReadOnly={isReadOnly}
-        t={t}
-        onProviderChange={handleProviderChange}
-        onLanguageChange={handleLanguageChange}
+        voices={voices}
+        provider={voiceSettings.provider}
         onVoiceChange={handleVoiceChange}
         onVoiceSettingsChange={handleVoiceSettingsChange}
-        onSetVolume={setVolume}
-        onSetShowVoiceSettings={setShowVoiceSettings}
-        onGenerateAll={handleGenerateAllWithCreditCheck}
-        onDownloadAll={handleDownloadAll}
-        onDeleteAll={deleteAllAudio}
-        onPlayAll={playAllDialogues}
-        onStopPlayback={stopScenePlayback}
-        onSwitchAllToProvider={switchAllToProvider}
       />
 
-      {/* Modals */}
       <GenerateAudioDialog
         isOpen={isGenerateAllDialogOpen}
         onClose={() => setIsGenerateAllDialogOpen(false)}

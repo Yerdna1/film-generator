@@ -24,13 +24,13 @@ import {
 
 // Components
 import {
-  CharacterHeader,
   CharacterList,
   CharacterModals,
 } from './components';
 import { PaymentMethodToggle } from '../PaymentMethodToggle';
-import { StepApiKeyButton } from '../StepApiKeyButton';
 import { GenerateImageDialog } from '../character-generator/components/GenerateImageDialog';
+import { StepActionBar } from '../shared/StepActionBar';
+import { Users, Plus } from 'lucide-react';
 
 export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
   const t = useTranslations();
@@ -313,9 +313,6 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
   return (
     <div className="space-y-6">
-      {/* API Key Configuration Button */}
-      <StepApiKeyButton operation="image" stepName="Step 2 - Character Generator" />
-
       {/* Payment Method Toggle */}
       {!isReadOnly && (
         <PaymentMethodToggle
@@ -324,15 +321,30 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
         />
       )}
 
-      <CharacterHeader
-        characters={characters}
-        maxCharacters={MAX_CHARACTERS}
-        isGeneratingAll={isGeneratingAll}
-        generatedCount={generatedCount}
-        isReadOnly={isReadOnly}
-        onAddCharacter={() => setIsAddingCharacter(true)}
-        onGenerateAll={handleGenerateAllWithCheck}
-        onStopGenerating={() => {}}
+      {/* Step Action Bar */}
+      <StepActionBar
+        title={t('steps.character.title')}
+        icon={Users}
+        subtitle={`${generatedCount} / ${characters.length} ${t('steps.character.generated')}`}
+        operation="image"
+        showApiKeyButton={true}
+        actions={[
+          {
+            label: isGeneratingAll ? t('steps.character.stopGenerating') : t('steps.character.generateAll'),
+            onClick: isGeneratingAll ? () => {} : handleGenerateAllWithCheck,
+            disabled: isGeneratingAll || isReadOnly || generatedCount >= characters.length || generatedCount === 0,
+            variant: isGeneratingAll ? 'destructive' : 'outline',
+            visible: generatedCount < characters.length && generatedCount > 0,
+          },
+          {
+            label: t('steps.character.addCharacter'),
+            icon: Plus,
+            onClick: () => setIsAddingCharacter(true),
+            disabled: isReadOnly || characters.length >= MAX_CHARACTERS,
+            variant: 'secondary',
+            visible: characters.length < MAX_CHARACTERS,
+          },
+        ]}
       />
 
       <CharacterList

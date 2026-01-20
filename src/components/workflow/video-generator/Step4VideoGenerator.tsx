@@ -8,19 +8,22 @@ import type { Project } from '@/types/project';
 import type { RegenerationRequest, DeletionRequest, ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useVideoGenerator } from './hooks/useVideoGenerator';
 import { useCredits, useApiKeys } from '@/hooks';
-import { ACTION_COSTS } from '@/lib/services/real-costs';
+import { ACTION_COSTS, formatCostCompact } from '@/lib/services/real-costs';
 import {
   VideoHeader,
-  VideoQuickActions,
   SceneVideoCard,
   Pagination,
   NoImagesWarning,
   KieVideoModal,
 } from './components';
+import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
+import { RefreshCw, Cloud, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
 import { InsufficientCreditsModal } from '@/components/workflow/character-generator/components/InsufficientCreditsModal';
 import { PaymentMethodToggle } from '../PaymentMethodToggle';
-import { StepApiKeyButton } from '../StepApiKeyButton';
+import { StepActionBar } from '../shared/StepActionBar';
+import { Film } from 'lucide-react';
 
 interface Step4Props {
   project: Project;
@@ -381,10 +384,73 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
       }));
   }, [scenes, selectedScenes]);
 
+  // Build selection options for SelectionQuickActions
+  const selectionOptions = useMemo(() => {
+    const options = [];
+    if (selectAll) {
+      options.push({
+        label: 'Select All',
+        count: scenesWithImages.length,
+        onClick: selectAll,
+        variant: 'orange' as const,
+      });
+    }
+    if (scenesWithVideos.length > 0 && selectAllWithVideos) {
+      options.push({
+        label: 'With Videos',
+        count: scenesWithVideos.length,
+        onClick: selectAllWithVideos,
+        variant: 'emerald' as const,
+      });
+    }
+    if (scenesNeedingGeneration.length > 0 && selectAllWithoutVideos) {
+      options.push({
+        label: 'Without Videos',
+        count: scenesNeedingGeneration.length,
+        onClick: selectAllWithoutVideos,
+        variant: 'amber' as const,
+      });
+    }
+    return options;
+  }, [scenesWithImages.length, scenesWithVideos.length, scenesNeedingGeneration.length, selectAll, selectAllWithVideos, selectAllWithoutVideos]);
+
+  // Selection Quick Actions component for the top bar
+  const selectionQuickActions = !isReadOnly && scenesWithImages.length > 0 ? (
+    <SelectionQuickActions
+      selectedCount={selectedScenes.size}
+      isDisabled={isGeneratingAll}
+      selectionOptions={selectionOptions}
+      onClearSelection={clearSelection}
+      primaryAction={{
+        label: 'Generate Selected',
+        onClick: handleGenerateSelectedWithCreditCheck,
+        costPerItem: ACTION_COSTS.video.grok,
+        icon: <RefreshCw className="w-4 h-4 mr-2" />,
+      }}
+      onRequestApproval={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
+      className="py-1 px-2"
+    />
+  ) : null;
+
   return (
-    <div className="max-w-[1920px] mx-auto space-y-6 px-4">
-      {/* API Key Configuration Button */}
-      <StepApiKeyButton operation="video" stepName="Step 4 - Video Generator" />
+    <div className="max-w-[1920px] mx-auto space-y-4 px-4">
+      {/* Step Action Bar */}
+      <StepActionBar
+        title={t('steps.videos.title')}
+        icon={Film}
+        subtitle={`${scenesWithVideos.length} / ${scenesWithImages.length} videos generated`}
+        operation="video"
+        showApiKeyButton={true}
+        actions={[
+          {
+            label: isGeneratingAll ? 'Stop' : t('steps.videos.generateAll'),
+            onClick: isGeneratingAll ? handleStopGeneration : handleGenerateAllWithCreditCheck,
+            disabled: isReadOnly || scenesWithImages.length === 0 || isGeneratingAll,
+            variant: isGeneratingAll ? 'destructive' : 'primary',
+          },
+        ]}
+        rightContent={selectionQuickActions}
+      />
 
       {/* Warning if no images */}
       {scenesWithImages.length === 0 && <NoImagesWarning />}
@@ -475,27 +541,38 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         scenesWithVideos={scenesWithVideos.length}
       />
 
-      {/* Quick Actions - only for editors */}
-      {!isReadOnly && (
-        <VideoQuickActions
-          scenesWithImages={scenesWithImages.length}
-          scenesWithVideos={scenesWithVideos.length}
-          scenesNeedingGeneration={scenesNeedingGeneration.length}
-          isGeneratingAll={isGeneratingAll}
-          onGenerateAll={handleGenerateAllWithCreditCheck}
-          onStopGeneration={handleStopGeneration}
-          selectedCount={selectedScenes.size}
-          onSelectAll={selectAll}
-          onSelectAllWithVideos={selectAllWithVideos}
-          onSelectAllWithoutVideos={selectAllWithoutVideos}
-          onClearSelection={clearSelection}
-          onGenerateSelected={handleGenerateSelectedWithCreditCheck}
-          onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
-          backgroundJobId={backgroundJobId}
-          backgroundJobStatus={backgroundJobStatus}
-          onStartBackgroundGeneration={startBackgroundGeneration}
-          onCancelBackgroundJob={cancelBackgroundJob}
-        />
+      {/* Background Generation Status - only for editors */}
+      {!isReadOnly && backgroundJobId && backgroundJobStatus && (
+        <div className="glass rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium">
+                Background Generation: {backgroundJobStatus.completedVideos}/{backgroundJobStatus.totalVideos} videos
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={cancelBackgroundJob}
+              className="h-8 w-8 p-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${backgroundJobStatus.progress}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Status: {backgroundJobStatus.status}</span>
+            {backgroundJobStatus.failedVideos > 0 && (
+              <span className="text-red-400">{backgroundJobStatus.failedVideos} failed</span>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Request Regeneration Dialog */}

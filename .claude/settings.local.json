@@ -123,7 +123,8 @@
       "Bash(__NEW_LINE_9621f51a9bc3f1e0__ echo \"=== Testing KIE API with valid model: $MODEL_ID ===\")",
       "Bash(MODEL_ID=\"seedream/4-5-text-to-image\")",
       "Bash(__NEW_LINE_42a9706007835236__ echo \"=== Testing KIE API with model: $MODEL_ID ===\")",
-      "Bash(npx inngest-cli dev:*)"
+      "Bash(npx inngest-cli dev:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

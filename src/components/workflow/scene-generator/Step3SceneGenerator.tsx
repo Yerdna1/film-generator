@@ -13,7 +13,11 @@ import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
 import { Step3Content, GenerateScenesDialog } from './components';
 import type { Step3Props, UserApiKeys } from './types';
-import { StepApiKeyButton } from '../StepApiKeyButton';
+import { StepActionBar } from '../shared/StepActionBar';
+import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
+import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
+import { formatCostCompact } from '@/lib/services/real-costs';
+import { Image, Copy, Download, RefreshCw } from 'lucide-react';
 
 export function Step3SceneGenerator({
   project: initialProject,
@@ -24,6 +28,7 @@ export function Step3SceneGenerator({
 }: Step3Props) {
   const t = useTranslations('api');
   const tCommon = useTranslations('common');
+  const tRoot = useTranslations();
   const { apiConfig, setApiConfig, updateUserConstants } = useProjectStore();
   const { data: session } = useSession();
 
@@ -93,6 +98,7 @@ export function Step3SceneGenerator({
   // Generate scenes confirmation dialog state
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [isConfirmGenerating, setIsConfirmGenerating] = useState(false);
+  const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
 
   // Use scene generator hook
   const {
@@ -357,10 +363,106 @@ export function Step3SceneGenerator({
         return handleGenerateAllWithCreditCheck();
       };
 
+  // Build selection options for SelectionQuickActions
+  const selectionOptions = useMemo(() => {
+    const options = [];
+    if (selectAll) {
+      options.push({
+        label: 'Select All',
+        count: scenes.length,
+        onClick: () => selectAll(scenes),
+        variant: 'orange' as const,
+      });
+    }
+    if (scenesWithImages > 0 && selectAllWithImages) {
+      options.push({
+        label: 'With Images',
+        count: scenesWithImages,
+        onClick: selectAllWithImages,
+        variant: 'emerald' as const,
+      });
+    }
+    const scenesNeedingImages = scenes.length - scenesWithImages;
+    if (scenesNeedingImages > 0 && selectAll) {
+      options.push({
+        label: 'Without Images',
+        count: scenesNeedingImages,
+        onClick: () => selectAll(scenes.filter(s => !s.imageUrl)),
+        variant: 'amber' as const,
+      });
+    }
+    return options;
+  }, [scenes.length, scenesWithImages, selectAll, selectAllWithImages, scenes]);
+
+  // Selection Quick Actions component for the top bar
+  const costPerImage = getImageCreditCost(imageResolution);
+  const selectionQuickActions = !isReadOnly && scenes.length > 0 ? (
+    <SelectionQuickActions
+      selectedCount={selectedScenes.size}
+      isDisabled={isGenerating}
+      selectionOptions={selectionOptions}
+      onClearSelection={clearSelection}
+      primaryAction={{
+        label: 'Regenerate Selected',
+        onClick: handleRegenerateSelected,
+        costPerItem: costPerImage,
+        icon: <RefreshCw className="w-4 h-4 mr-2" />,
+        confirmThreshold: 5,
+        confirmTitle: `Regenerate ${selectedScenes.size} images?`,
+        confirmDescription: `You are about to regenerate ${selectedScenes.size} selected images. This will cost approximately ${formatCostCompact(costPerImage * selectedScenes.size)}. Are you sure you want to continue?`,
+      }}
+      onRequestApproval={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
+      className="py-1 px-2"
+    />
+  ) : null;
+
+  // Get selected scenes data for the regeneration request dialog
+  const selectedScenesData = useMemo(() => {
+    return scenes
+      .filter(s => selectedScenes.has(s.id))
+      .map(s => ({
+        id: s.id,
+        title: s.title,
+        number: s.number,
+        imageUrl: s.imageUrl,
+      }));
+  }, [scenes, selectedScenes]);
+
   return (
     <div className="max-w-[1920px] mx-auto space-y-6 px-4">
-      {/* API Key Configuration Button */}
-      <StepApiKeyButton operation="image" stepName="Step 3 - Scene Generator" />
+      {/* Step Action Bar */}
+      {scenes.length > 0 && (
+        <StepActionBar
+          title={tRoot('steps.scenes.title')}
+          icon={Image}
+          subtitle={`${scenesWithImages} / ${scenes.length} generated`}
+          operation="image"
+          showApiKeyButton={true}
+          dropdowns={[
+            {
+              label: 'Tools',
+              icon: Copy,
+              options: [
+                {
+                  label: 'Copy Prompts',
+                  value: 'copy-prompts',
+                  onClick: () => setShowPromptsDialog(true),
+                },
+              ],
+              visible: !isReadOnly,
+            },
+          ]}
+          actions={[
+            {
+              label: isGenerating ? 'Stop' : 'Generate Images',
+              onClick: isGenerating ? handleStopImageGeneration : handleGenerateImages,
+              disabled: isReadOnly || scenes.length === 0,
+              variant: isGenerating ? 'destructive' : 'primary',
+            },
+          ]}
+          rightContent={selectionQuickActions}
+        />
+      )}
 
       <Step3Content
         // Project data
@@ -460,6 +562,19 @@ export function Step3SceneGenerator({
         model={apiKeysData?.openRouterModel}
         isGenerating={isConfirmGenerating}
         useOwnKey={!!(apiKeysData?.hasOpenRouterKey || apiKeysData?.hasClaudeKey || apiKeysData?.modalLlmEndpoint)}
+      />
+
+      {/* Request Regeneration Dialog */}
+      <RequestRegenerationDialog
+        projectId={project.id}
+        targetType="image"
+        scenes={selectedScenesData}
+        open={showRequestRegenDialog}
+        onOpenChange={setShowRequestRegenDialog}
+        onRequestSent={() => {
+          clearSelection();
+          fetchRegenerationRequests();
+        }}
       />
     </div>
   );

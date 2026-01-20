@@ -13,7 +13,8 @@ import { useStep1State, useStep1Handlers } from './step1/hooks';
 import type { UnifiedModelConfig } from '@/types/project';
 import { useApiKeys } from '@/contexts/ApiKeysContext';
 import { PaymentMethodToggle } from './PaymentMethodToggle';
-import { StepApiKeyButton } from './StepApiKeyButton';
+import { StepActionBar } from './shared/StepActionBar';
+import { FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Step1Props {
@@ -88,8 +89,22 @@ export function Step1PromptGenerator({
 
   return (
     <div className="max-w-[1920px] mx-auto">
-      {/* API Key Configuration Button */}
-      <StepApiKeyButton operation="llm" stepName="Step 1 - Prompt Generator" />
+      {/* Step Action Bar */}
+      <StepActionBar
+        title={t('steps.prompt.title')}
+        icon={FileText}
+        subtitle={project.story?.title || ''}
+        operation="llm"
+        showApiKeyButton={true}
+        actions={[
+          {
+            label: isGenerating ? 'Generating...' : 'Generate Main Prompt',
+            onClick: handleGeneratePrompt,
+            disabled: isGenerating || isReadOnly,
+            variant: 'primary',
+          },
+        ]}
+      />
 
       {/* 2-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -118,8 +133,6 @@ export function Step1PromptGenerator({
           <StoryForm
             project={project}
             isReadOnly={isReadOnly}
-            isGenerating={isGenerating}
-            onGeneratePrompt={handleGeneratePrompt}
             updateStory={state.store.updateStory}
             updateProject={state.store.updateProject}
             genres={genres}

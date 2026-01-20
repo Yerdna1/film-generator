@@ -13,7 +13,6 @@ import {
   EditSceneDialog,
   ImagePreviewModal,
   PromptsDialog,
-  QuickActions,
   SceneHeader,
   OpenRouterModal,
 } from './index';
@@ -304,28 +303,6 @@ export function Step3Content({
         onPageChange={setCurrentPage}
         variant="compact"
       />
-
-      {/* Quick Actions */}
-      {!isReadOnly && (
-        <QuickActions
-          totalScenes={scenes.length}
-          scenesWithImages={scenesWithImages}
-          imageResolution={imageResolution as any}
-          isGeneratingAllImages={isGenerating}
-          onCopyPrompts={() => setShowPromptsDialog(true)}
-          onGenerateAllImages={handleGenerateImages}
-          onGenerateBatch={useInngest ? handleGenerateBatch : undefined}
-          onStopGeneration={handleStopImageGeneration}
-          backgroundJobProgress={useInngest ? backgroundJobProgress : undefined}
-          selectedCount={selectedScenes.size}
-          onSelectAll={() => selectAll(scenes)}
-          onSelectAllWithImages={selectAllWithImages}
-          onClearSelection={clearSelection}
-          onRegenerateSelected={handleRegenerateSelected}
-          onRequestRegeneration={selectedScenes.size > 0 ? () => setShowRequestRegenDialog(true) : undefined}
-          projectId={projectId}
-        />
-      )}
 
       {/* Edit Scene Dialog */}
       <EditSceneDialog
