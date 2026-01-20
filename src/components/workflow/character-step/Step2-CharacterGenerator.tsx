@@ -27,6 +27,8 @@ import {
   CharacterList,
   CharacterModals,
 } from './components';
+import { PaymentMethodToggle } from '../PaymentMethodToggle';
+import { StepApiKeyButton } from '../StepApiKeyButton';
 
 export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
   const t = useTranslations();
@@ -295,6 +297,17 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
   return (
     <div className="space-y-6">
+      {/* API Key Configuration Button */}
+      <StepApiKeyButton operation="image" stepName="Step 2 - Character Generator" />
+
+      {/* Payment Method Toggle */}
+      {!isReadOnly && (
+        <PaymentMethodToggle
+          operation="image"
+          className="mb-2"
+        />
+      )}
+
       <CharacterHeader
         characters={characters}
         maxCharacters={MAX_CHARACTERS}

@@ -151,6 +151,23 @@ export function useSettings() {
     fetchApiKeys();
   }, [setApiConfig]);
 
+  // Listen for API key updates from ApiKeysContext (e.g., when modal saves keys)
+  useEffect(() => {
+    const handleApiKeysUpdate = (event: CustomEvent) => {
+      const updatedKeys = event.detail;
+      if (updatedKeys) {
+        // Update local config with the new keys
+        setLocalConfig(updatedKeys);
+        setApiConfig(updatedKeys);
+      }
+    };
+
+    window.addEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
+    return () => {
+      window.removeEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
+    };
+  }, [setApiConfig]);
+
   const fetchActionCosts = useCallback(async () => {
     if (actionCosts) return;
     setCostsLoading(true);

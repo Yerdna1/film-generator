@@ -19,6 +19,7 @@ interface StoryFormProps {
   updateProject: (id: string, updates: Partial<Project>) => void;
   genres: readonly string[];
   tones: readonly string[];
+  paymentToggle?: React.ReactNode;
 }
 
 export function StoryForm({
@@ -30,6 +31,7 @@ export function StoryForm({
   updateProject,
   genres,
   tones,
+  paymentToggle,
 }: StoryFormProps) {
   const t = useTranslations();
 
@@ -126,6 +128,9 @@ export function StoryForm({
           className="min-h-[200px] glass border-white/10 focus:border-purple-500/50 resize-y text-sm"
         />
       </div>
+
+      {/* Payment Toggle */}
+      {!isReadOnly && paymentToggle}
 
       {/* Generate Button - only show when not read-only */}
       {!isReadOnly && (

@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 import { spendCredits, checkBalance, COSTS } from '@/lib/services/credits';
 import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
 import { getProviderConfig } from '@/lib/providers';
+import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import type { Provider } from '@/lib/services/real-costs';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
@@ -214,19 +215,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Determine if we should charge credits
-    // Charge if: NOT using own key AND NOT using a free Gemini model
-    const shouldChargeCredits = !isUsingOwnKey && !isFreeGeminiModel;
+    // Check user permissions and credit/API key requirements
+    const permissions = await getUserPermissions(userId);
+    const useOwnKeys = await shouldUseOwnApiKeys(userId, 'llm');
 
-    if (shouldChargeCredits) {
-      // Check credits before making API call
+    // Check if user needs API keys
+    if ((useOwnKeys || permissions.requiresApiKeys) && !isUsingOwnKey && !isFreeGeminiModel) {
+      const keyCheck = await checkRequiredApiKeys(userId, 'llm');
+
+      if (!keyCheck.hasKeys) {
+        const error = getMissingRequirementError(permissions, 'llm', keyCheck.missing);
+        return NextResponse.json(
+          {
+            ...error,
+            creditsRequired: PROMPT_ENHANCEMENT_COST,
+            balance: 0
+          },
+          { status: error.code === 'API_KEY_REQUIRED' ? 403 : 402 }
+        );
+      }
+    } else if (permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel) {
+      // Premium/admin user using system keys - check credits
       const balanceCheck = await checkBalance(userId, PROMPT_ENHANCEMENT_COST);
       if (!balanceCheck.hasEnough) {
         return NextResponse.json(
           {
             error: `Insufficient credits. Need ${PROMPT_ENHANCEMENT_COST}, have ${balanceCheck.balance}`,
             creditsRequired: PROMPT_ENHANCEMENT_COST,
-            balance: balanceCheck.balance
+            balance: balanceCheck.balance,
+            code: 'INSUFFICIENT_CREDITS',
+            showCreditsModal: true
           },
           { status: 402 }
         );
@@ -280,6 +298,9 @@ export async function POST(request: NextRequest) {
 
     let fullResponse = '';
     let providerName = llmProvider;
+
+    // Determine if we should charge credits
+    const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
 
     console.log(`[LLM Prompt] Using provider: ${llmProvider}, Charging credits: ${shouldChargeCredits}`);
 

@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useApiKeys } from '@/contexts/ApiKeysContext';
+import { getUserPermissions, checkRequiredApiKeys, shouldUseOwnApiKeys } from '@/lib/client/user-permissions';
 import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 import type { Project, Scene } from '@/types/project';
 import type { VideoMode } from '../types';
@@ -14,6 +16,7 @@ import { getProviderDisplayName, getModelDisplayName, formatDuration } from '@/l
 export function useVideoGenerator(initialProject: Project) {
   const { updateScene, projects } = useProjectStore();
   const { handleApiResponse } = useCredits();
+  const { showApiKeyModal } = useApiKeys();
 
   // Get live project data from store
   const storeProject = projects.find(p => p.id === initialProject.id);
@@ -52,6 +55,31 @@ export function useVideoGenerator(initialProject: Project) {
   // Generate videos using Inngest
   const generateVideos = useCallback(async (sceneIds: string[]) => {
     if (sceneIds.length === 0) return;
+
+    // Check user permissions and API keys
+    try {
+      const permissions = await getUserPermissions();
+      const useOwnKeys = await shouldUseOwnApiKeys('video');
+
+      if (useOwnKeys || permissions.requiresApiKeys) {
+        const keyCheck = await checkRequiredApiKeys('video');
+
+        if (!keyCheck.hasKeys) {
+          // Show API key modal
+          showApiKeyModal({
+            operation: 'video',
+            missingKeys: keyCheck.missing,
+            onSuccess: () => {
+              // Retry generation after keys are saved
+              generateVideos(sceneIds);
+            }
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking user permissions:', error);
+    }
 
     // Update UI to show generating state
     setGeneratingVideos(prev => {

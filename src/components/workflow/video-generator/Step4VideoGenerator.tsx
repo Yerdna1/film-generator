@@ -19,6 +19,8 @@ import {
 } from './components';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
 import { InsufficientCreditsModal } from '@/components/workflow/character-generator/components/InsufficientCreditsModal';
+import { PaymentMethodToggle } from '../PaymentMethodToggle';
+import { StepApiKeyButton } from '../StepApiKeyButton';
 
 interface Step4Props {
   project: Project;
@@ -381,6 +383,9 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
 
   return (
     <div className="max-w-[1920px] mx-auto space-y-6 px-4">
+      {/* API Key Configuration Button */}
+      <StepApiKeyButton operation="video" stepName="Step 4 - Video Generator" />
+
       {/* Warning if no images */}
       {scenesWithImages.length === 0 && <NoImagesWarning />}
 
@@ -455,6 +460,14 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         onPageChange={setCurrentPage}
         variant="compact"
       />
+
+      {/* Payment Method Toggle */}
+      {!isReadOnly && (
+        <PaymentMethodToggle
+          operation="video"
+          className="mb-2"
+        />
+      )}
 
       {/* Progress Overview */}
       <VideoHeader

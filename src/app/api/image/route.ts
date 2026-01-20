@@ -9,6 +9,7 @@ import { optionalAuth, requireCredits, uploadMediaToS3 } from '@/lib/api';
 import { spendCredits, getImageCreditCost, trackRealCostOnly } from '@/lib/services/credits';
 import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
+import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import type { ImageProvider } from '@/types/project';
 
 export const maxDuration = 300; // Allow up to 5 minutes for image generation (Modal cold start can take ~2-3 min)
@@ -615,19 +616,29 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Pre-check credit balance
-      // Skip if:
-      // 1. Credits were prepaid by admin for collaborator regeneration (skipCreditCheck)
-      // 2. User has their own API key (they're paying the provider directly, not using platform credits)
-      if (!skipCreditCheck && !userHasOwnApiKey && sessionUserId) {
-        const creditCost = getImageCreditCost(resolution);
-        const insufficientCredits = await requireCredits(sessionUserId, creditCost);
-        if (insufficientCredits) return insufficientCredits;
-      }
+      // Check user permissions and credit/API key requirements
+      if (sessionUserId && !skipCreditCheck) {
+        const permissions = await getUserPermissions(sessionUserId);
+        const useOwnKeys = await shouldUseOwnApiKeys(sessionUserId, 'image');
 
-      // Log if user has their own API key
-      if (userHasOwnApiKey) {
-        console.log('[Image] User has own API key - skipping credit check and deduction');
+        // Check if user needs API keys
+        if (useOwnKeys || permissions.requiresApiKeys) {
+          const keyCheck = await checkRequiredApiKeys(sessionUserId, 'image');
+
+          if (!keyCheck.hasKeys) {
+            const error = getMissingRequirementError(permissions, 'image', keyCheck.missing);
+            return NextResponse.json(error, { status: error.code === 'API_KEY_REQUIRED' ? 403 : 402 });
+          }
+
+          // User has API keys, skip credit check
+          userHasOwnApiKey = true;
+          console.log('[Image] User using own API keys - skipping credit check and deduction');
+        } else if (permissions.requiresCredits) {
+          // Premium/admin user using system keys - check credits
+          const creditCost = getImageCreditCost(resolution);
+          const insufficientCredits = await requireCredits(sessionUserId, creditCost);
+          if (insufficientCredits) return insufficientCredits;
+        }
       }
     }
 

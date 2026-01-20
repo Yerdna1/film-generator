@@ -5,6 +5,7 @@ import { ThemeProvider } from './theme-provider';
 import { AuthProvider } from './auth-provider';
 import { ProjectSyncProvider } from './project-sync-provider';
 import { CreditsProvider } from '@/contexts/CreditsContext';
+import { ApiKeysProvider } from '@/contexts/ApiKeysContext';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -20,9 +21,11 @@ export function Providers({ children }: ProvidersProps) {
         disableTransitionOnChange
       >
         <CreditsProvider>
-          <ProjectSyncProvider>
-            {children}
-          </ProjectSyncProvider>
+          <ApiKeysProvider>
+            <ProjectSyncProvider>
+              {children}
+            </ProjectSyncProvider>
+          </ApiKeysProvider>
         </CreditsProvider>
       </ThemeProvider>
     </AuthProvider>

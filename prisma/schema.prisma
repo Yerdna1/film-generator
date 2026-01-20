@@ -175,6 +175,7 @@ model ApiKeys {
   modalVideoEndpoint     String?  // e.g., https://your-app--video.modal.run
   modalMusicEndpoint     String?  // e.g., https://your-app--ace-step.modal.run (ACE-Step)
   modalVectcutEndpoint   String?  // e.g., https://your-app--vectcut.modal.run (Video composition)
+  preferOwnKeys    Boolean  @default(false)  // User preference to use own API keys instead of credits
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

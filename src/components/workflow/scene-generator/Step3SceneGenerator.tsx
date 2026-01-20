@@ -13,6 +13,7 @@ import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
 import { Step3Content } from './components';
 import type { Step3Props, UserApiKeys } from './types';
+import { StepApiKeyButton } from '../StepApiKeyButton';
 
 export function Step3SceneGenerator({
   project: initialProject,
@@ -306,6 +307,9 @@ export function Step3SceneGenerator({
 
   return (
     <div className="max-w-[1920px] mx-auto space-y-6 px-4">
+      {/* API Key Configuration Button */}
+      <StepApiKeyButton operation="image" stepName="Step 3 - Scene Generator" />
+
       <Step3Content
         // Project data
         projectId={project.id}

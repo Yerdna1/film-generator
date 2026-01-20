@@ -23,6 +23,7 @@ import {
   SidePanelToggle,
   MobileSidePanelToggle,
 } from './components';
+import { StepApiKeyButton } from '../StepApiKeyButton';
 
 interface Step6Props {
   project: Project;
@@ -58,6 +59,9 @@ export function Step6Export({
 
   return (
     <div className="w-full max-w-[1920px] mx-auto space-y-2 px-1">
+      {/* API Key Configuration Button */}
+      <StepApiKeyButton operation="music" stepName="Step 6 - Export" />
+
       {/* Header */}
       <ExportHeader project={project} stats={stats} />
 

@@ -1,13 +1,17 @@
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
-import type { ApiKeysData } from '@/hooks/use-api-keys';
+import type { ApiKeys } from '@prisma/client';
 import type { UnifiedModelConfig } from '@/types/project';
+import { getUserPermissions, checkRequiredApiKeys, shouldUseOwnApiKeys } from '@/lib/client/user-permissions';
 import { storyPresets } from '../story-presets';
 import type { Step1State } from './types';
 
 interface UseStep1HandlersProps extends Step1State {
-  apiKeys?: ApiKeysData | null;
+  apiKeys?: ApiKeys | null;
+  apiKeysContext?: {
+    showApiKeyModal: (data: { operation: 'llm' | 'image' | 'video' | 'tts' | 'music'; missingKeys: string[]; onSuccess?: () => void }) => void;
+  };
 }
 
 export function useStep1Handlers(props: UseStep1HandlersProps) {
@@ -76,56 +80,46 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
         providerToUse = 'openrouter';
       }
 
-      // Check if free user needs API key
-      if (!effectiveIsPremium) {
-        let isFreeModel = false;
-        if (modelToUse && modelToUse.includes('/')) {
-          const [provider, modelName] = modelToUse.split('/');
-          if (provider === 'google' && (modelName.includes('free') || modelName.includes('flash'))) {
-            isFreeModel = true;
-          }
-        }
+      // Check user permissions and API keys
+      try {
+        const permissions = await getUserPermissions();
 
-        if (!isFreeModel) {
-          // Check for keys in passed apiKeys
-          const { apiKeys } = props;
-          let hasKey = false;
+        // Check if user should use own API keys
+        const useOwnKeys = await shouldUseOwnApiKeys('llm');
 
-          // Logic matching route.ts somewhat - check for relevant key based on provider
-          if (providerToUse === 'openrouter') {
-            hasKey = !!apiKeys?.openRouterApiKey || !!apiKeys?.hasOpenRouterKey;
-          } else if (providerToUse === 'gemini') {
-            hasKey = !!apiKeys?.geminiApiKey || !!apiKeys?.hasGeminiKey;
-          } else if (providerToUse === 'modal') {
-            hasKey = !!apiKeys?.modalLlmEndpoint;
-          } else if (providerToUse === 'claude-sdk') {
-            // Claude SDK usually requires local env or specific key, assuming not supported for web users easily without backend env
-            hasKey = false;
-          } else {
-            // Fallback - check openrouter as default
-            hasKey = !!apiKeys?.openRouterApiKey || !!apiKeys?.hasOpenRouterKey;
-          }
+        if (useOwnKeys || permissions.requiresApiKeys) {
+          // Check if user has required API keys
+          const keyCheck = await checkRequiredApiKeys('llm');
 
-          if (!hasKey) {
-            toast({
-              title: "API Key Required",
-              description: "To generate prompts on the Free plan, please enter your API key in Settings (OpenRouter, Gemini, etc.) or select a free model.",
-              variant: "destructive",
-              action: (
-                <ToastAction
-                  altText="Open Settings"
-                  onClick={() => document.getElementById('settings-tab-trigger')?.click()}
-                >
-                  Open Settings
-                </ToastAction>
-              ),
-            });
+          if (!keyCheck.hasKeys) {
+            // Show API key modal
+            const { apiKeysContext } = props;
+            if (apiKeysContext?.showApiKeyModal) {
+              apiKeysContext.showApiKeyModal({
+                operation: 'llm',
+                missingKeys: keyCheck.missing,
+                onSuccess: () => {
+                  // Retry generation after keys are saved
+                  handleGeneratePrompt();
+                }
+              });
+            } else {
+              // Fallback to toast if context not available
+              toast({
+                title: "API Key Required",
+                description: "Please configure your API keys to continue.",
+                variant: "destructive",
+              });
+            }
+
             setIsGenerating(false);
             setGeneratingModel(undefined);
             setGeneratingProvider(undefined);
             return;
           }
         }
+      } catch (error) {
+        console.error('Error checking user permissions:', error);
       }
 
       // Set the model and provider for display in loading modal

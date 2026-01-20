@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { checkBalance } from '@/lib/services/credits';
+import { getUserPermissions, type OperationType } from '@/lib/services/user-permissions';
 import type { Session } from 'next-auth';
 
 // Authenticated session type
@@ -162,6 +163,69 @@ export async function requireCreditsWithMessage(
       balance: balanceCheck.balance,
       needsPurchase: true,
     }, { status: 402 });
+  }
+
+  return null;
+}
+
+/**
+ * Check credits for a specific user type (considers permissions)
+ * Only checks credits for premium/admin users, not for free users
+ *
+ * @example
+ * const insufficientCredits = await requireCreditsForUser(
+ *   userId,
+ *   COSTS.IMAGE_GENERATION,
+ *   userType
+ * );
+ * if (insufficientCredits) return insufficientCredits;
+ */
+export async function requireCreditsForUser(
+  userId: string,
+  requiredCredits: number,
+  userType: 'free' | 'premium' | 'admin'
+): Promise<NextResponse | null> {
+  // Free users don't use credits system
+  if (userType === 'free') {
+    return null;
+  }
+
+  return requireCredits(userId, requiredCredits);
+}
+
+/**
+ * Check permissions and requirements for an operation
+ * Handles both API key and credit requirements based on user type
+ *
+ * @example
+ * const requirement = await checkOperationRequirements(
+ *   userId,
+ *   'image',
+ *   COSTS.IMAGE_GENERATION
+ * );
+ * if (requirement) return requirement; // Returns error response
+ */
+export async function checkOperationRequirements(
+  userId: string,
+  operation: OperationType,
+  requiredCredits: number
+): Promise<NextResponse | null> {
+  const permissions = await getUserPermissions(userId);
+
+  // Free users must have API keys
+  if (permissions.requiresApiKeys) {
+    return NextResponse.json({
+      error: 'API key required',
+      code: 'API_KEY_REQUIRED',
+      showApiKeyModal: true,
+      operation,
+      userType: permissions.userType
+    }, { status: 403 });
+  }
+
+  // Premium/admin users need credits
+  if (permissions.requiresCredits) {
+    return requireCredits(userId, requiredCredits);
   }
 
   return null;

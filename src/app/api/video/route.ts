@@ -7,6 +7,7 @@ import { optionalAuth, requireCredits, uploadMediaToS3, uploadBase64ToS3, isS3Co
 import { spendCredits, COSTS, trackRealCostOnly } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
+import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import type { VideoProvider } from '@/types/project';
 
 const KIE_API_URL = 'https://api.kie.ai';
@@ -360,18 +361,28 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Pre-check credit balance
-      // Skip if:
-      // 1. Credits were prepaid by admin for collaborator regeneration (skipCreditCheck)
-      // 2. User has their own API key (they're paying the provider directly, not using platform credits)
-      if (!skipCreditCheck && !userHasOwnApiKey && sessionUserId) {
-        const insufficientCredits = await requireCredits(sessionUserId, COSTS.VIDEO_GENERATION);
-        if (insufficientCredits) return insufficientCredits;
-      }
+      // Check user permissions and credit/API key requirements
+      if (sessionUserId && !skipCreditCheck) {
+        const permissions = await getUserPermissions(sessionUserId);
+        const useOwnKeys = await shouldUseOwnApiKeys(sessionUserId, 'video');
 
-      // Log if user has their own API key
-      if (userHasOwnApiKey) {
-        console.log('[Video] User has own API key - skipping credit check and deduction');
+        // Check if user needs API keys
+        if (useOwnKeys || permissions.requiresApiKeys) {
+          const keyCheck = await checkRequiredApiKeys(sessionUserId, 'video');
+
+          if (!keyCheck.hasKeys) {
+            const error = getMissingRequirementError(permissions, 'video', keyCheck.missing);
+            return NextResponse.json(error, { status: error.code === 'API_KEY_REQUIRED' ? 403 : 402 });
+          }
+
+          // User has API keys, skip credit check
+          userHasOwnApiKey = true;
+          console.log('[Video] User using own API keys - skipping credit check and deduction');
+        } else if (permissions.requiresCredits) {
+          // Premium/admin user using system keys - check credits
+          const insufficientCredits = await requireCredits(sessionUserId, COSTS.VIDEO_GENERATION);
+          if (insufficientCredits) return insufficientCredits;
+        }
       }
     }
 

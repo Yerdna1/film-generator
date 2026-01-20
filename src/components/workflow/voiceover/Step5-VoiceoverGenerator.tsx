@@ -21,6 +21,7 @@ import {
   useVoiceoverGeneration,
   useVoiceSettings
 } from './hooks';
+import { StepApiKeyButton } from '../StepApiKeyButton';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
@@ -164,6 +165,9 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
   return (
     <div className="max-w-[1920px] mx-auto space-y-6 px-4">
+      {/* API Key Configuration Button */}
+      <StepApiKeyButton operation="tts" stepName="Step 5 - Voiceover Generator" />
+
       <VoiceoverHeader
         isLoadingDialogue={isLoadingDialogue}
         dialogueCount={allDialogueLines.length}

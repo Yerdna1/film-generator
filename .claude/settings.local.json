@@ -107,7 +107,11 @@
       "Bash(then grep -q \"OPENROUTER_API_KEY\" .env.example)",
       "Bash(else echo \".env.example not found\")",
       "Bash(sqlite3:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(openssl rand:*)",
+      "Bash(printenv:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(ln:*)"
     ]
   }
 }

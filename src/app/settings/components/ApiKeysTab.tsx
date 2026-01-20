@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Key, Cpu, Check, Sparkles, Mic, ImageIcon, Video, Music, Server, ExternalLink, Save } from 'lucide-react';
+import { Key, Cpu, Check, Sparkles, Mic, ImageIcon, Video, Music, Server, ExternalLink, Save, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -20,8 +20,9 @@ import {
   musicProviderOptions,
   modalEndpoints as modalEndpointConfigs,
 } from '../constants';
-import { KIE_IMAGE_MODELS, KIE_VIDEO_MODELS, KIE_TTS_MODELS, KIE_MUSIC_MODELS, formatKiePrice } from '@/lib/constants/kie-models';
+import { formatKiePrice } from '@/lib/constants/kie-models';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints, ApiConfig } from '@/types/project';
+import { useState, useEffect } from 'react';
 
 interface ApiKeysTabProps {
   showKeys: Record<string, boolean>;
@@ -90,6 +91,45 @@ export function ApiKeysTab({
 }: ApiKeysTabProps) {
   const t = useTranslations('settings');
   const tPage = useTranslations('settingsPage');
+
+  // State for KIE models fetched from database
+  const [kieImageModels, setKieImageModels] = useState<any[]>([]);
+  const [kieVideoModels, setKieVideoModels] = useState<any[]>([]);
+  const [kieTtsModels, setKieTtsModels] = useState<any[]>([]);
+  const [kieMusicModels, setKieMusicModels] = useState<any[]>([]);
+  const [loadingKieModels, setLoadingKieModels] = useState(true);
+
+  // Fetch KIE models from API
+  useEffect(() => {
+    async function fetchKieModels() {
+      try {
+        const [imageRes, videoRes, ttsRes, musicRes] = await Promise.all([
+          fetch('/api/kie-models?type=image'),
+          fetch('/api/kie-models?type=video'),
+          fetch('/api/kie-models?type=tts'),
+          fetch('/api/kie-models?type=music'),
+        ]);
+
+        const [imageData, videoData, ttsData, musicData] = await Promise.all([
+          imageRes.json(),
+          videoRes.json(),
+          ttsRes.json(),
+          musicRes.json(),
+        ]);
+
+        setKieImageModels(imageData.models || []);
+        setKieVideoModels(videoData.models || []);
+        setKieTtsModels(ttsData.models || []);
+        setKieMusicModels(musicData.models || []);
+      } catch (error) {
+        console.error('Failed to fetch KIE models:', error);
+      } finally {
+        setLoadingKieModels(false);
+      }
+    }
+
+    fetchKieModels();
+  }, []);
 
   // Check if any Modal provider is selected OR VectCut endpoint is needed
   // VectCut is always available for video composition in Step 6
@@ -217,26 +257,23 @@ export function ApiKeysTab({
                 <div className="flex items-center gap-2 mb-2">
                   <Mic className="w-4 h-4 text-violet-400" />
                   <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                  {loadingKieModels && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>
                 <Select
                   value={kieTtsModel}
                   onValueChange={onKieTtsModelChange}
+                  disabled={loadingKieModels || kieTtsModels.length === 0}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder={t('selectTtsModel')} />
+                    <SelectValue placeholder={loadingKieModels ? 'Loading models...' : t('selectTtsModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {KIE_TTS_MODELS.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
+                    {kieTtsModels.map((model) => (
+                      <SelectItem key={model.modelId} value={model.modelId}>
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-start flex-col">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{model.name}</span>
-                              {model.recommended && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-violet-500/20 text-violet-400">
-                                  {tPage('recommended') || 'Recommended'}
-                                </Badge>
-                              )}
                             </div>
                             {model.description && (
                               <span className="text-[10px] text-muted-foreground mt-1">{model.description}</span>
@@ -297,34 +334,31 @@ export function ApiKeysTab({
                 <div className="flex items-center gap-2 mb-2">
                   <ImageIcon className="w-4 h-4 text-blue-400" />
                   <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                  {loadingKieModels && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>
                 <Select
                   value={kieImageModel}
                   onValueChange={onKieImageModelChange}
+                  disabled={loadingKieModels || kieImageModels.length === 0}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder={t('selectImageModel')} />
+                    <SelectValue placeholder={loadingKieModels ? 'Loading models...' : t('selectImageModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {KIE_IMAGE_MODELS.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
+                    {kieImageModels.map((model) => (
+                      <SelectItem key={model.modelId} value={model.modelId}>
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-start flex-col">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{model.name}</span>
-                              {model.recommended && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400">
-                                  {tPage('recommended') || 'Recommended'}
-                                </Badge>
-                              )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              {model.modality && (
-                                <span className="text-[10px] text-muted-foreground">{model.modality}</span>
+                              {model.modality && model.modality.length > 0 && (
+                                <span className="text-[10px] text-muted-foreground">{model.modality.join(', ')}</span>
                               )}
-                              {model.quality && (
+                              {model.qualityOptions && model.qualityOptions.length > 0 && (
                                 <Badge variant="outline" className="text-[10px] px-1 py-0">
-                                  {model.quality}
+                                  {model.qualityOptions[0]}
                                 </Badge>
                               )}
                             </div>
@@ -384,30 +418,27 @@ export function ApiKeysTab({
                 <div className="flex items-center gap-2 mb-2">
                   <Video className="w-4 h-4 text-orange-400" />
                   <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                  {loadingKieModels && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>
                 <Select
                   value={kieVideoModel}
                   onValueChange={onKieVideoModelChange}
+                  disabled={loadingKieModels || kieVideoModels.length === 0}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder={t('selectVideoModel')} />
+                    <SelectValue placeholder={loadingKieModels ? 'Loading models...' : t('selectVideoModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {KIE_VIDEO_MODELS.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
+                    {kieVideoModels.map((model) => (
+                      <SelectItem key={model.modelId} value={model.modelId}>
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-start flex-col">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{model.name}</span>
-                              {model.recommended && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400">
-                                  {tPage('recommended') || 'Recommended'}
-                                </Badge>
-                              )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              {model.modality && (
-                                <span className="text-[10px] text-muted-foreground">{model.modality}</span>
+                              {model.modality && model.modality.length > 0 && (
+                                <span className="text-[10px] text-muted-foreground">{model.modality.join(', ')}</span>
                               )}
                               {model.quality && (
                                 <Badge variant="outline" className="text-[10px] px-1 py-0">
@@ -476,26 +507,23 @@ export function ApiKeysTab({
                 <div className="flex items-center gap-2 mb-2">
                   <Music className="w-4 h-4 text-pink-400" />
                   <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                  {loadingKieModels && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>
                 <Select
                   value={kieMusicModel}
                   onValueChange={onKieMusicModelChange}
+                  disabled={loadingKieModels || kieMusicModels.length === 0}
                 >
                   <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue placeholder={t('selectMusicModel')} />
+                    <SelectValue placeholder={loadingKieModels ? 'Loading models...' : t('selectMusicModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {KIE_MUSIC_MODELS.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
+                    {kieMusicModels.map((model) => (
+                      <SelectItem key={model.modelId} value={model.modelId}>
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-start flex-col">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{model.name}</span>
-                              {model.recommended && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-pink-500/20 text-pink-400">
-                                  {tPage('recommended') || 'Recommended'}
-                                </Badge>
-                              )}
                             </div>
                             {model.description && (
                               <span className="text-[10px] text-muted-foreground mt-1">{model.description}</span>

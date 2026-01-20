@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useApiKeys } from '@/contexts/ApiKeysContext';
+import { getUserPermissions, checkRequiredApiKeys, shouldUseOwnApiKeys } from '@/lib/client/user-permissions';
 import type { Character, Project } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
 import type { ImageProvider } from '@/types/project';
@@ -10,6 +12,7 @@ import type { CharacterImageState } from '../types';
 export function useCharacterImage(project: Project, aspectRatio: AspectRatio, provider: ImageProvider = 'gemini', model?: string) {
   const { updateCharacter } = useProjectStore();
   const { handleApiResponse } = useCredits();
+  const { showApiKeyModal } = useApiKeys();
   const [imageStates, setImageStates] = useState<CharacterImageState>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
@@ -27,6 +30,35 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
     }));
 
     try {
+      // Check user permissions and API keys
+      const permissions = await getUserPermissions();
+      const useOwnKeys = await shouldUseOwnApiKeys('image');
+
+      if (useOwnKeys || permissions.requiresApiKeys) {
+        const keyCheck = await checkRequiredApiKeys('image');
+
+        if (!keyCheck.hasKeys) {
+          // Reset states
+          setImageStates((prev) => ({
+            ...prev,
+            [character.id]: { status: 'idle', progress: 0 },
+          }));
+          setIsGeneratingSingle(false);
+          setGeneratingCharacterName('');
+          setGenerationProgress({ current: 0, total: 0 });
+
+          // Show API key modal
+          showApiKeyModal({
+            operation: 'image',
+            missingKeys: keyCheck.missing,
+            onSuccess: () => {
+              // Retry generation after keys are saved
+              generateCharacterImage(character);
+            }
+          });
+          return;
+        }
+      }
       setImageStates((prev) => ({
         ...prev,
         [character.id]: { status: 'generating', progress: 30 },

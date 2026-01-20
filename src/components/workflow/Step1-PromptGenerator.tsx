@@ -11,7 +11,9 @@ import { LoadingModal } from './step1/LoadingModal';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
 import { useStep1State, useStep1Handlers } from './step1/hooks';
 import type { UnifiedModelConfig } from '@/types/project';
-import { useApiKeys } from '@/hooks/use-api-keys';
+import { useApiKeys } from '@/contexts/ApiKeysContext';
+import { PaymentMethodToggle } from './PaymentMethodToggle';
+import { StepApiKeyButton } from './StepApiKeyButton';
 import { toast } from 'sonner';
 
 interface Step1Props {
@@ -33,10 +35,10 @@ export function Step1PromptGenerator({
 
   // Custom hooks for state and handlers
   const state = useStep1State({ project: initialProject, isAdmin });
-  // API Keys hook
-  const { data: apiKeysData, mutate: mutateApiKeys } = useApiKeys();
+  // API Keys context
+  const apiKeysContext = useApiKeys();
 
-  const handlers = useStep1Handlers({ ...state, apiKeys: apiKeysData });
+  const handlers = useStep1Handlers({ ...state, apiKeys: apiKeysContext.apiKeys, apiKeysContext });
 
   const {
     project,
@@ -78,25 +80,17 @@ export function Step1PromptGenerator({
   };
 
   const handleSaveApiKey = async (keyName: string, value: string) => {
-    try {
-      const response = await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [keyName]: value }),
-      });
-
-      if (!response.ok) throw new Error('Failed to save API key');
-
-      toast.success(t('step1.modelConfiguration.keySaved'));
-      mutateApiKeys();
-    } catch (error) {
-      toast.error(t('step1.modelConfiguration.keySaveFailed'));
-      console.error(error);
+    const success = await apiKeysContext.updateApiKey(keyName, value);
+    if (!success) {
+      console.error('Failed to save API key');
     }
   };
 
   return (
     <div className="max-w-[1920px] mx-auto">
+      {/* API Key Configuration Button */}
+      <StepApiKeyButton operation="llm" stepName="Step 1 - Prompt Generator" />
+
       {/* 2-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Left Sidebar - Settings */}
@@ -130,6 +124,12 @@ export function Step1PromptGenerator({
             updateProject={state.store.updateProject}
             genres={genres}
             tones={tones}
+            paymentToggle={
+              <PaymentMethodToggle
+                operation="llm"
+                className="mb-3"
+              />
+            }
           />
 
           <PresetStories

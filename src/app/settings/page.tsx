@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Key, Settings, DollarSign, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettings } from './hooks/useSettings';
+import { useApiKeys } from '@/contexts/ApiKeysContext';
 import {
   SettingsHeader,
   ApiKeysTab,
@@ -21,6 +22,9 @@ export default function SettingsPage() {
   const { data: session, status } = useSession();
   const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // API Keys Context
+  const apiKeysContext = useApiKeys();
 
   // Call useSettings hook unconditionally (before any early returns) to follow React hooks rules
   const {
@@ -140,32 +144,91 @@ export default function SettingsPage() {
               <ApiKeysTab
                 showKeys={showKeys}
                 savedKeys={savedKeys}
-                localConfig={localConfig as Record<string, string | undefined>}
-                apiConfig={apiConfig}
-                llmProvider={llmProvider}
-                openRouterModel={openRouterModel}
-                musicProvider={musicProvider}
-                ttsProvider={ttsProvider}
-                imageProvider={imageProvider}
-                videoProvider={videoProvider}
+                localConfig={apiKeysContext.apiKeys || localConfig as Record<string, string | undefined>}
+                apiConfig={apiKeysContext.apiKeys || apiConfig}
+                llmProvider={apiKeysContext.apiKeys?.llmProvider || llmProvider}
+                openRouterModel={apiKeysContext.apiKeys?.openRouterModel || openRouterModel}
+                musicProvider={apiKeysContext.apiKeys?.musicProvider || musicProvider}
+                ttsProvider={apiKeysContext.apiKeys?.ttsProvider || ttsProvider}
+                imageProvider={apiKeysContext.apiKeys?.imageProvider || imageProvider}
+                videoProvider={apiKeysContext.apiKeys?.videoProvider || videoProvider}
                 modalEndpoints={modalEndpoints}
-                kieImageModel={kieImageModel}
-                kieVideoModel={kieVideoModel}
-                kieTtsModel={kieTtsModel}
-                kieMusicModel={kieMusicModel}
+                kieImageModel={apiKeysContext.apiKeys?.kieImageModel || kieImageModel}
+                kieVideoModel={apiKeysContext.apiKeys?.kieVideoModel || kieVideoModel}
+                kieTtsModel={apiKeysContext.apiKeys?.kieTtsModel || kieTtsModel}
+                kieMusicModel={apiKeysContext.apiKeys?.kieMusicModel || kieMusicModel}
                 onToggleVisibility={toggleKeyVisibility}
-                onSaveKey={handleSaveKey}
+                onSaveKey={async (keyName: string) => {
+                  // Get the current value from localConfig
+                  const value = localConfig[keyName] || '';
+                  const success = await apiKeysContext.updateApiKey(keyName, value);
+                  if (success) {
+                    handleSaveKey(keyName, value);
+                    // Refresh ApiKeysContext to ensure sync
+                    await apiKeysContext.refreshApiKeys();
+                  }
+                }}
                 onUpdateConfig={updateLocalConfig}
-                onLLMProviderChange={handleLLMProviderChange}
-                onOpenRouterModelChange={handleOpenRouterModelChange}
-                onMusicProviderChange={handleMusicProviderChange}
-                onTTSProviderChange={handleTTSProviderChange}
-                onImageProviderChange={handleImageProviderChange}
-                onVideoProviderChange={handleVideoProviderChange}
-                onKieImageModelChange={handleKieImageModelChange}
-                onKieVideoModelChange={handleKieVideoModelChange}
-                onKieTtsModelChange={handleKieTtsModelChange}
-                onKieMusicModelChange={handleKieMusicModelChange}
+                onLLMProviderChange={async (provider) => {
+                  const success = await apiKeysContext.updateProvider('llm', provider);
+                  if (success) {
+                    handleLLMProviderChange(provider);
+                  }
+                }}
+                onOpenRouterModelChange={async (model) => {
+                  const success = await apiKeysContext.updateApiKey('openRouterModel', model);
+                  if (success) {
+                    handleOpenRouterModelChange(model);
+                  }
+                }}
+                onMusicProviderChange={async (provider) => {
+                  const success = await apiKeysContext.updateProvider('music', provider);
+                  if (success) {
+                    handleMusicProviderChange(provider);
+                  }
+                }}
+                onTTSProviderChange={async (provider) => {
+                  const success = await apiKeysContext.updateProvider('tts', provider);
+                  if (success) {
+                    handleTTSProviderChange(provider);
+                  }
+                }}
+                onImageProviderChange={async (provider) => {
+                  const success = await apiKeysContext.updateProvider('image', provider);
+                  if (success) {
+                    handleImageProviderChange(provider);
+                  }
+                }}
+                onVideoProviderChange={async (provider) => {
+                  const success = await apiKeysContext.updateProvider('video', provider);
+                  if (success) {
+                    handleVideoProviderChange(provider);
+                  }
+                }}
+                onKieImageModelChange={async (model) => {
+                  const success = await apiKeysContext.updateApiKey('kieImageModel', model);
+                  if (success) {
+                    handleKieImageModelChange(model);
+                  }
+                }}
+                onKieVideoModelChange={async (model) => {
+                  const success = await apiKeysContext.updateApiKey('kieVideoModel', model);
+                  if (success) {
+                    handleKieVideoModelChange(model);
+                  }
+                }}
+                onKieTtsModelChange={async (model) => {
+                  const success = await apiKeysContext.updateApiKey('kieTtsModel', model);
+                  if (success) {
+                    handleKieTtsModelChange(model);
+                  }
+                }}
+                onKieMusicModelChange={async (model) => {
+                  const success = await apiKeysContext.updateApiKey('kieMusicModel', model);
+                  if (success) {
+                    handleKieMusicModelChange(model);
+                  }
+                }}
                 onModalEndpointChange={handleModalEndpointChange}
                 onSaveModalEndpoints={handleSaveModalEndpoints}
               />

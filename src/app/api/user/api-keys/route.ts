@@ -29,35 +29,47 @@ export async function GET() {
 
     if (!apiKeys) {
       // Add cache headers for SWR deduplication (private, longer cache for stable data)
+      const defaultApiKeys = {
+        id: `apikeys_${session.user.id}`,
+        userId: session.user.id,
+        geminiApiKey: '',
+        grokApiKey: '',
+        elevenLabsApiKey: '',
+        claudeApiKey: '',
+        openaiApiKey: '',
+        nanoBananaApiKey: '',
+        sunoApiKey: '',
+        openRouterApiKey: '',
+        openRouterModel: 'anthropic/claude-4.5-sonnet',
+        piapiApiKey: '',
+        kieApiKey: '',
+        resendApiKey: '',
+        kieImageModel: 'seedream/4-5-text-to-image',
+        kieVideoModel: 'grok-imagine/image-to-video',
+        kieTtsModel: 'elevenlabs/text-to-dialogue-v3',
+        kieMusicModel: 'suno/v3-5-music',
+        llmProvider: 'openrouter',
+        musicProvider: 'piapi',
+        ttsProvider: 'gemini-tts',
+        imageProvider: 'gemini',
+        videoProvider: 'kie',
+        modalLlmEndpoint: '',
+        modalTtsEndpoint: '',
+        modalImageEndpoint: '',
+        modalImageEditEndpoint: '',
+        modalVideoEndpoint: '',
+        modalMusicEndpoint: '',
+        modalVectcutEndpoint: '',
+        preferOwnKeys: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
       return NextResponse.json(
         {
-          geminiApiKey: '',
-          grokApiKey: '',
-          elevenLabsApiKey: '',
-          claudeApiKey: '',
-          openaiApiKey: '',
-          nanoBananaApiKey: '',
-          sunoApiKey: '',
-          openRouterApiKey: '',
-          openRouterModel: 'anthropic/claude-4.5-sonnet', // Default model
-          piapiApiKey: '',
-          kieApiKey: '', // KIE AI API key
-          kieImageModel: 'seedream/4-5-text-to-image', // Default KIE image model
-          kieVideoModel: 'grok-imagine/image-to-video', // Default KIE video model
-          kieTtsModel: 'elevenlabs/text-to-dialogue-v3', // Default KIE TTS model
-          llmProvider: 'openrouter', // Default to OpenRouter
-          musicProvider: 'piapi', // Default to PiAPI
-          ttsProvider: 'gemini-tts', // Default to Gemini TTS
-          imageProvider: 'gemini', // Default to Gemini
-          videoProvider: 'kie', // Default to Kie.ai
-          // Modal endpoints (empty by default)
-          modalLlmEndpoint: '',
-          modalTtsEndpoint: '',
-          modalImageEndpoint: '',
-          modalImageEditEndpoint: '',
-          modalVideoEndpoint: '',
-          modalMusicEndpoint: '',
-          modalVectcutEndpoint: '',
+          apiKeys: defaultApiKeys,
+          maskedKeys: {},
+          hasKeys: {},
         },
         {
           headers: {
@@ -67,51 +79,71 @@ export async function GET() {
       );
     }
 
-    // SECURITY: Return masked keys - only show last 4 chars to confirm key is set
-    // Full keys are never sent to client to prevent XSS/extension theft
+    // Return API keys data for the context
+    // This endpoint is used by the ApiKeysContext, not directly by UI components
     // Add cache headers for SWR deduplication (private, longer cache for stable data)
     return NextResponse.json(
       {
-        // Masked API keys (shows ••••xxxx format)
-        geminiApiKey: maskApiKey(apiKeys.geminiApiKey),
-        grokApiKey: maskApiKey(apiKeys.grokApiKey),
-        elevenLabsApiKey: maskApiKey(apiKeys.elevenLabsApiKey),
-        claudeApiKey: maskApiKey(apiKeys.claudeApiKey),
-        openaiApiKey: maskApiKey(apiKeys.openaiApiKey),
-        nanoBananaApiKey: maskApiKey(apiKeys.nanoBananaApiKey),
-        sunoApiKey: maskApiKey(apiKeys.sunoApiKey),
-        openRouterApiKey: maskApiKey(apiKeys.openRouterApiKey),
-        piapiApiKey: maskApiKey(apiKeys.piapiApiKey),
-        kieApiKey: maskApiKey(apiKeys.kieApiKey),
+        apiKeys: {
+          ...apiKeys,
+          // Ensure default values for nullable fields
+          geminiApiKey: apiKeys.geminiApiKey || '',
+          grokApiKey: apiKeys.grokApiKey || '',
+          elevenLabsApiKey: apiKeys.elevenLabsApiKey || '',
+          claudeApiKey: apiKeys.claudeApiKey || '',
+          openaiApiKey: apiKeys.openaiApiKey || '',
+          nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
+          sunoApiKey: apiKeys.sunoApiKey || '',
+          openRouterApiKey: apiKeys.openRouterApiKey || '',
+          piapiApiKey: apiKeys.piapiApiKey || '',
+          kieApiKey: apiKeys.kieApiKey || '',
+          resendApiKey: apiKeys.resendApiKey || '',
+          openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
+          kieImageModel: apiKeys.kieImageModel || 'seedream/4-5-text-to-image',
+          kieVideoModel: apiKeys.kieVideoModel || 'grok-imagine/image-to-video',
+          kieTtsModel: apiKeys.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
+          kieMusicModel: apiKeys.kieMusicModel || 'suno/v3-5-music',
+          llmProvider: apiKeys.llmProvider || 'openrouter',
+          musicProvider: apiKeys.musicProvider || 'piapi',
+          ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
+          imageProvider: apiKeys.imageProvider || 'gemini',
+          videoProvider: apiKeys.videoProvider || 'kie',
+          modalLlmEndpoint: apiKeys.modalLlmEndpoint || '',
+          modalTtsEndpoint: apiKeys.modalTtsEndpoint || '',
+          modalImageEndpoint: apiKeys.modalImageEndpoint || '',
+          modalImageEditEndpoint: apiKeys.modalImageEditEndpoint || '',
+          modalVideoEndpoint: apiKeys.modalVideoEndpoint || '',
+          modalMusicEndpoint: apiKeys.modalMusicEndpoint || '',
+          modalVectcutEndpoint: apiKeys.modalVectcutEndpoint || '',
+          preferOwnKeys: apiKeys.preferOwnKeys ?? false,
+        },
+        // Masked versions for UI display
+        maskedKeys: {
+          geminiApiKey: maskApiKey(apiKeys.geminiApiKey),
+          grokApiKey: maskApiKey(apiKeys.grokApiKey),
+          elevenLabsApiKey: maskApiKey(apiKeys.elevenLabsApiKey),
+          claudeApiKey: maskApiKey(apiKeys.claudeApiKey),
+          openaiApiKey: maskApiKey(apiKeys.openaiApiKey),
+          nanoBananaApiKey: maskApiKey(apiKeys.nanoBananaApiKey),
+          sunoApiKey: maskApiKey(apiKeys.sunoApiKey),
+          openRouterApiKey: maskApiKey(apiKeys.openRouterApiKey),
+          piapiApiKey: maskApiKey(apiKeys.piapiApiKey),
+          kieApiKey: maskApiKey(apiKeys.kieApiKey),
+        },
         // Boolean flags to indicate if key is set (for UI logic)
-        hasGeminiKey: !!apiKeys.geminiApiKey,
-        hasGrokKey: !!apiKeys.grokApiKey,
-        hasElevenLabsKey: !!apiKeys.elevenLabsApiKey,
-        hasClaudeKey: !!apiKeys.claudeApiKey,
-        hasOpenAIKey: !!apiKeys.openaiApiKey,
-        hasNanoBananaKey: !!apiKeys.nanoBananaApiKey,
-        hasSunoKey: !!apiKeys.sunoApiKey,
-        hasOpenRouterKey: !!apiKeys.openRouterApiKey,
-        hasPiapiKey: !!apiKeys.piapiApiKey,
-        hasKieKey: !!apiKeys.kieApiKey,
-        // Non-sensitive settings (can be sent in full)
-        openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
-        kieImageModel: apiKeys.kieImageModel || 'seedream/4-5-text-to-image',
-        kieVideoModel: apiKeys.kieVideoModel || 'grok-imagine/image-to-video',
-        kieTtsModel: apiKeys.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
-        llmProvider: apiKeys.llmProvider || 'openrouter',
-        musicProvider: apiKeys.musicProvider || 'piapi',
-        ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
-        imageProvider: apiKeys.imageProvider || 'gemini',
-        videoProvider: apiKeys.videoProvider || 'kie',
-        // Modal endpoints (URLs, not secrets)
-        modalLlmEndpoint: apiKeys.modalLlmEndpoint || '',
-        modalTtsEndpoint: apiKeys.modalTtsEndpoint || '',
-        modalImageEndpoint: apiKeys.modalImageEndpoint || '',
-        modalImageEditEndpoint: apiKeys.modalImageEditEndpoint || '',
-        modalVideoEndpoint: apiKeys.modalVideoEndpoint || '',
-        modalMusicEndpoint: apiKeys.modalMusicEndpoint || '',
-        modalVectcutEndpoint: apiKeys.modalVectcutEndpoint || '',
+        hasKeys: {
+          geminiApiKey: !!apiKeys.geminiApiKey,
+          grokApiKey: !!apiKeys.grokApiKey,
+          elevenLabsApiKey: !!apiKeys.elevenLabsApiKey,
+          claudeApiKey: !!apiKeys.claudeApiKey,
+          openaiApiKey: !!apiKeys.openaiApiKey,
+          nanoBananaApiKey: !!apiKeys.nanoBananaApiKey,
+          sunoApiKey: !!apiKeys.sunoApiKey,
+          openRouterApiKey: !!apiKeys.openRouterApiKey,
+          piapiApiKey: !!apiKeys.piapiApiKey,
+          kieApiKey: !!apiKeys.kieApiKey,
+          resendApiKey: !!apiKeys.resendApiKey,
+        },
       },
       {
         headers: {
@@ -153,9 +185,11 @@ export async function POST(request: NextRequest) {
       openRouterModel,
       piapiApiKey,
       kieApiKey,
+      resendApiKey,
       kieImageModel,
       kieVideoModel,
       kieTtsModel,
+      kieMusicModel,
       llmProvider,
       musicProvider,
       ttsProvider,
@@ -168,6 +202,7 @@ export async function POST(request: NextRequest) {
       modalVideoEndpoint,
       modalMusicEndpoint,
       modalVectcutEndpoint,
+      preferOwnKeys,
     } = body;
 
     const apiKeys = await prisma.apiKeys.upsert({
@@ -184,9 +219,11 @@ export async function POST(request: NextRequest) {
         ...(openRouterModel !== undefined && { openRouterModel }),
         ...(piapiApiKey !== undefined && { piapiApiKey }),
         ...(kieApiKey !== undefined && { kieApiKey }),
+        ...(resendApiKey !== undefined && { resendApiKey }),
         ...(kieImageModel !== undefined && { kieImageModel }),
         ...(kieVideoModel !== undefined && { kieVideoModel }),
         ...(kieTtsModel !== undefined && { kieTtsModel }),
+        ...(kieMusicModel !== undefined && { kieMusicModel }),
         ...(llmProvider !== undefined && { llmProvider }),
         ...(musicProvider !== undefined && { musicProvider }),
         ...(ttsProvider !== undefined && { ttsProvider }),
@@ -199,8 +236,10 @@ export async function POST(request: NextRequest) {
         ...(modalVideoEndpoint !== undefined && { modalVideoEndpoint }),
         ...(modalMusicEndpoint !== undefined && { modalMusicEndpoint }),
         ...(modalVectcutEndpoint !== undefined && { modalVectcutEndpoint }),
+        ...(preferOwnKeys !== undefined && { preferOwnKeys }),
       },
       create: {
+        id: `apikeys_${session.user.id}`,
         userId: session.user.id,
         geminiApiKey: geminiApiKey || null,
         grokApiKey: grokApiKey || null,
@@ -213,9 +252,11 @@ export async function POST(request: NextRequest) {
         openRouterModel: openRouterModel || 'anthropic/claude-4.5-sonnet',
         piapiApiKey: piapiApiKey || null,
         kieApiKey: kieApiKey || null,
+        resendApiKey: resendApiKey || null,
         kieImageModel: kieImageModel || 'seedream/4-5-text-to-image',
         kieVideoModel: kieVideoModel || 'grok-imagine/image-to-video',
         kieTtsModel: kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
+        kieMusicModel: kieMusicModel || 'suno/v3-5-music',
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',
         ttsProvider: ttsProvider || 'gemini-tts',
@@ -228,15 +269,44 @@ export async function POST(request: NextRequest) {
         modalVideoEndpoint: modalVideoEndpoint || null,
         modalMusicEndpoint: modalMusicEndpoint || null,
         modalVectcutEndpoint: modalVectcutEndpoint || null,
+        preferOwnKeys: preferOwnKeys ?? false,
       },
     });
 
     return NextResponse.json({
       success: true,
       message: 'API keys saved successfully',
+      apiKeys: {
+        ...apiKeys,
+        // Ensure consistent response format
+        geminiApiKey: apiKeys.geminiApiKey || '',
+        grokApiKey: apiKeys.grokApiKey || '',
+        elevenLabsApiKey: apiKeys.elevenLabsApiKey || '',
+        claudeApiKey: apiKeys.claudeApiKey || '',
+        openaiApiKey: apiKeys.openaiApiKey || '',
+        nanoBananaApiKey: apiKeys.nanoBananaApiKey || '',
+        sunoApiKey: apiKeys.sunoApiKey || '',
+        openRouterApiKey: apiKeys.openRouterApiKey || '',
+        openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
+        piapiApiKey: apiKeys.piapiApiKey || '',
+        kieApiKey: apiKeys.kieApiKey || '',
+        resendApiKey: apiKeys.resendApiKey || '',
+        preferOwnKeys: apiKeys.preferOwnKeys ?? false,
+      },
     });
   } catch (error) {
     console.error('Error saving API keys:', error);
+    // Return more detailed error in development
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json(
+        {
+          error: 'Failed to save API keys',
+          details: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to save API keys' },
       { status: 500 }
