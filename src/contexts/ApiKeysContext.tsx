@@ -54,19 +54,23 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
   // Fetch API keys from the server
   const fetchApiKeys = useCallback(async () => {
     if (!session?.user?.id) {
+      console.log('[ApiKeysContext] No session user ID, skipping fetch');
       setLoading(false);
       return;
     }
 
     try {
+      console.log('[ApiKeysContext] Fetching API keys for user:', session.user.id);
       const response = await fetch('/api/user/api-keys');
       if (!response.ok) {
         throw new Error('Failed to fetch API keys');
       }
       const data = await response.json();
-      setApiKeys(data.apiKeys);
+      console.log('[ApiKeysContext] Received API keys:', data);
+      setApiKeys(data);
       setError(null);
     } catch (err) {
+      console.error('[ApiKeysContext] Error fetching API keys:', err);
       setError(err instanceof Error ? err.message : 'Failed to load API keys');
     } finally {
       setLoading(false);

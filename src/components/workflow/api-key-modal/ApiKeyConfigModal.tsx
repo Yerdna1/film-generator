@@ -97,15 +97,33 @@ export function ApiKeyConfigModal({
 
   // Initialize values from existing API keys
   useEffect(() => {
-    if (!apiKeys) return;
+    if (!apiKeys) {
+      console.log('[ApiKeyConfigModal] No apiKeys available yet');
+      return;
+    }
+
+    console.log('[ApiKeyConfigModal] Initializing from apiKeys:', apiKeys);
 
     const initialValues: Record<string, string> = {};
+
+    // Include all API_KEY_FIELDS
     Object.keys(API_KEY_FIELDS).forEach((key) => {
       const value = (apiKeys as any)[key];
       if (value) {
         initialValues[key] = value;
       }
     });
+
+    // Include provider fields (these are NOT in API_KEY_FIELDS)
+    const providerFields = ['llmProvider', 'imageProvider', 'videoProvider', 'ttsProvider', 'musicProvider'];
+    providerFields.forEach((field) => {
+      const value = (apiKeys as any)[field];
+      if (value) {
+        initialValues[field] = value;
+      }
+    });
+
+    console.log('[ApiKeyConfigModal] initialValues set:', initialValues);
     setValues(initialValues);
   }, [apiKeys]);
 
@@ -185,7 +203,14 @@ export function ApiKeyConfigModal({
   const getCurrentProvider = (opType: OperationType) => {
     const providerField = `${opType}Provider` as string;
     // Check local values first (unsaved changes), then fall back to apiKeys
-    return values[providerField] || (apiKeys as any)?.[providerField];
+    const result = values[providerField] || (apiKeys as any)?.[providerField];
+    console.log(`[getCurrentProvider ${opType}]`, {
+      providerField,
+      valuesValue: values[providerField],
+      apiKeysValue: (apiKeys as any)?.[providerField],
+      result
+    });
+    return result;
   };
 
   // Get current model for an operation type (checks local values first, then apiKeys)
