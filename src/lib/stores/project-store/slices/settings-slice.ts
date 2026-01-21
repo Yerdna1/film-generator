@@ -84,7 +84,15 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set, get) => ({
           syncPayload.llmProvider = updatedModelConfig.llm.provider;
         }
         if (updatedModelConfig.llm?.model) {
-          syncPayload.openRouterModel = updatedModelConfig.llm.model;
+          // Save model to provider-specific field
+          if (updatedModelConfig.llm.provider === 'kie') {
+            syncPayload.kieLlmModel = updatedModelConfig.llm.model;
+          } else if (updatedModelConfig.llm.provider === 'openrouter') {
+            syncPayload.openRouterModel = updatedModelConfig.llm.model;
+          } else {
+            // For other providers, also save to openRouterModel as fallback
+            syncPayload.openRouterModel = updatedModelConfig.llm.model;
+          }
         }
         if (updatedModelConfig.image?.provider) {
           syncPayload.imageProvider = updatedModelConfig.image.provider;
