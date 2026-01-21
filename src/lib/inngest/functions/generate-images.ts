@@ -18,12 +18,20 @@ async function generateSingleImage(
   referenceImages: Array<{ name: string; imageUrl: string }>
 ): Promise<{ sceneId: string; success: boolean; error?: string }> {
   try {
-    // Get user's image provider settings
+    // Get project's modelConfig first (current selection), fallback to user's API keys
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { modelConfig: true },
+    });
+
     const userApiKeys = await prisma.apiKeys.findUnique({
       where: { userId },
     });
 
-    const imageProvider = userApiKeys?.imageProvider || 'gemini';
+    // Use project's modelConfig as primary source, user's API keys as fallback
+    const imageProvider = project?.modelConfig?.image?.provider || userApiKeys?.imageProvider || 'gemini';
+    const imageModel = project?.modelConfig?.image?.model || userApiKeys?.kieImageModel;
+
     let imageUrl: string | undefined;
 
     if (imageProvider === 'modal' || imageProvider === 'modal-edit') {
@@ -69,7 +77,7 @@ async function generateSingleImage(
         throw new Error('KIE API key not configured. Please add your API key in Settings.');
       }
 
-      const modelId = userApiKeys?.kieImageModel || 'nano-banana-pro';
+      const modelId = imageModel || 'nano-banana-pro';
       console.log(`[Inngest] Using KIE model: ${modelId}`);
 
       // Query model from database to get apiModelId
@@ -388,17 +396,25 @@ export const generateImagesBatch = inngest.createFunction(
 
     console.log(`[Inngest] Starting batch ${batchId} with ${scenes.length} scenes (parallel: ${PARALLEL_IMAGES})`);
 
-    // Determine provider and model
+    // Determine provider and model from project's modelConfig first
+    const projectData = await step.run('get-project-config', async () => {
+      return await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { modelConfig: true },
+      });
+    });
+
     const userApiKeys = await step.run('get-user-api-keys', async () => {
       return await prisma.apiKeys.findUnique({
         where: { userId },
       });
     });
 
-    const imageProvider = userApiKeys?.imageProvider || 'gemini';
+    // Use project's modelConfig as primary source, user's API keys as fallback
+    const imageProvider = projectData?.modelConfig?.image?.provider || userApiKeys?.imageProvider || 'gemini';
     const imageModel = imageProvider === 'modal' || imageProvider === 'modal-edit'
       ? 'modal'
-      : userApiKeys?.kieImageModel || 'imagen-3.0-generate-001';
+      : projectData?.modelConfig?.image?.model || userApiKeys?.kieImageModel || 'imagen-3.0-generate-001';
 
     console.log(`[Inngest] Using provider: ${imageProvider}, model: ${imageModel}`);
 

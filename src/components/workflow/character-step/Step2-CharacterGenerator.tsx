@@ -78,12 +78,12 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     handleSaveKieApiKey: saveKieApiKey,
   } = useApiKeyManagement();
 
-  // Read current provider and model from user's API keys (not project config)
-  // project.modelConfig may be outdated, so we prefer the user's current settings
-  const currentImageProvider = (userApiKeys?.imageProvider as ImageProvider) || (modelConfig?.image?.provider as ImageProvider);
-  const currentImageModel = userApiKeys?.kieImageModel || modelConfig?.image?.model;
+  // Read current provider and model from project's modelConfig (current selection)
+  // Fallback to user's API keys if project config is not set
+  const currentImageProvider = (modelConfig?.image?.provider as ImageProvider) || (userApiKeys?.imageProvider as ImageProvider);
+  const currentImageModel = modelConfig?.image?.model || userApiKeys?.kieImageModel;
 
-  // Fallback to project config if userApiKeys doesn't have the values
+  // Fallback to defaults if neither source has the value
   const characterImageProvider = (currentImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
   const characterImageModel = currentImageModel || DEFAULT_MODELS.kieImageModel;
 
