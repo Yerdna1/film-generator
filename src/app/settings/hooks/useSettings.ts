@@ -39,6 +39,7 @@ export function useSettings() {
   const [kieVideoModel, setKieVideoModel] = useState<string>(DEFAULT_MODELS.kieVideoModel);
   const [kieTtsModel, setKieTtsModel] = useState<string>(DEFAULT_MODELS.kieTtsModel);
   const [kieMusicModel, setKieMusicModel] = useState<string>(DEFAULT_MODELS.kieMusicModel);
+  const [kieLlmModel, setKieLlmModel] = useState<string>(DEFAULT_MODELS.kieLlmModel);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -508,6 +509,28 @@ export function useSettings() {
     );
   }, [setApiConfig, tPage]);
 
+  const handleKieLlmModelChange = useCallback(async (model: string) => {
+    setKieLlmModel(model);
+    localStorage.setItem('app-kie-llm-model', model);
+    setApiConfig({ kieLlmModel: model });
+
+    // Sync to database for authenticated users
+    try {
+      await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kieLlmModel: model }),
+      });
+    } catch (error) {
+      console.error('Failed to sync kieLlmModel to database:', error);
+    }
+
+    toast.success(
+      tPage('toasts.kieModelChanged') || 'KIE model updated',
+      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
+    );
+  }, [setApiConfig, tPage]);
+
   const handleModalEndpointChange = useCallback((endpointKey: keyof ModalEndpoints, value: string) => {
     setModalEndpoints(prev => ({ ...prev, [endpointKey]: value }));
   }, []);
@@ -619,6 +642,7 @@ export function useSettings() {
     kieVideoModel,
     kieTtsModel,
     kieMusicModel,
+    kieLlmModel,
 
     // Actions
     toggleKeyVisibility,
@@ -643,6 +667,7 @@ export function useSettings() {
     handleKieVideoModelChange,
     handleKieTtsModelChange,
     handleKieMusicModelChange,
+    handleKieLlmModelChange,
     handleModalEndpointChange,
     handleSaveModalEndpoints,
   };

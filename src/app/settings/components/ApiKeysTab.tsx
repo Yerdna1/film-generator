@@ -40,6 +40,7 @@ interface ApiKeysTabProps {
   kieVideoModel: string;
   kieTtsModel: string;
   kieMusicModel: string;
+  kieLlmModel: string;
   onToggleVisibility: (key: string) => void;
   onSaveKey: (key: string) => void;
   onUpdateConfig: (key: string, value: string) => void;
@@ -53,6 +54,7 @@ interface ApiKeysTabProps {
   onKieVideoModelChange: (model: string) => void;
   onKieTtsModelChange: (model: string) => void;
   onKieMusicModelChange: (model: string) => void;
+  onKieLlmModelChange: (model: string) => void;
   onModalEndpointChange: (key: keyof ModalEndpoints, value: string) => void;
   onSaveModalEndpoints: () => void;
 }
@@ -73,6 +75,7 @@ export function ApiKeysTab({
   kieVideoModel,
   kieTtsModel,
   kieMusicModel,
+  kieLlmModel,
   onToggleVisibility,
   onSaveKey,
   onUpdateConfig,
@@ -86,6 +89,7 @@ export function ApiKeysTab({
   onKieVideoModelChange,
   onKieTtsModelChange,
   onKieMusicModelChange,
+  onKieLlmModelChange,
   onModalEndpointChange,
   onSaveModalEndpoints,
 }: ApiKeysTabProps) {
@@ -97,30 +101,34 @@ export function ApiKeysTab({
   const [kieVideoModels, setKieVideoModels] = useState<any[]>([]);
   const [kieTtsModels, setKieTtsModels] = useState<any[]>([]);
   const [kieMusicModels, setKieMusicModels] = useState<any[]>([]);
+  const [kieLlmModels, setKieLlmModels] = useState<any[]>([]);
   const [loadingKieModels, setLoadingKieModels] = useState(true);
 
   // Fetch KIE models from API
   useEffect(() => {
     async function fetchKieModels() {
       try {
-        const [imageRes, videoRes, ttsRes, musicRes] = await Promise.all([
+        const [imageRes, videoRes, ttsRes, musicRes, llmRes] = await Promise.all([
           fetch('/api/kie-models?type=image'),
           fetch('/api/kie-models?type=video'),
           fetch('/api/kie-models?type=tts'),
           fetch('/api/kie-models?type=music'),
+          fetch('/api/kie-models?type=llm'),
         ]);
 
-        const [imageData, videoData, ttsData, musicData] = await Promise.all([
+        const [imageData, videoData, ttsData, musicData, llmData] = await Promise.all([
           imageRes.json(),
           videoRes.json(),
           ttsRes.json(),
           musicRes.json(),
+          llmRes.json(),
         ]);
 
         setKieImageModels(imageData.models || []);
         setKieVideoModels(videoData.models || []);
         setKieTtsModels(ttsData.models || []);
         setKieMusicModels(musicData.models || []);
+        setKieLlmModels(llmData.models || []);
       } catch (error) {
         console.error('Failed to fetch KIE models:', error);
       } finally {
@@ -205,6 +213,43 @@ export function ApiKeysTab({
                               ★
                             </Badge>
                           )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            )}
+
+            {/* KIE LLM Model Selection */}
+            {llmProvider === 'kie' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 rounded-lg bg-muted/50 border border-border"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-orange-400" />
+                  <span className="text-sm font-medium">{tPage('selectKieModel') || 'Select KIE Model'}</span>
+                  {loadingKieModels && <Loader2 className="w-3 h-3 animate-spin" />}
+                </div>
+                <Select
+                  value={kieLlmModel}
+                  onValueChange={onKieLlmModelChange}
+                  disabled={loadingKieModels || kieLlmModels.length === 0}
+                >
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
+                    <SelectValue placeholder={loadingKieModels ? 'Loading models...' : t('selectLlmModel')} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {kieLlmModels.map((model) => (
+                      <SelectItem key={model.modelId} value={model.modelId}>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">{model.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatKiePrice(model.credits)}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}

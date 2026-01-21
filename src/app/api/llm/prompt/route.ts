@@ -215,10 +215,25 @@ export async function POST(request: NextRequest) {
       console.log(`[LLM Prompt] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId || 'none'}, userHasOwnKey: ${isUsingOwnKey}`);
     } catch (configError) {
       // Fallback to legacy behavior if getProviderConfig fails (e.g., no API key)
-      console.log(`[LLM Prompt] getProviderConfig failed, using legacy fallback: ${configError}`);
+      console.log(`[LLM Prompt] getProviderConfig failed, using legacy fallback:`, configError);
 
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId },
+        select: {
+          llmProvider: true,
+          openRouterApiKey: true,
+          openRouterModel: true,
+          modalLlmEndpoint: true,
+          geminiApiKey: true,
+          kieApiKey: true,
+          kieLlmModel: true,
+        },
+      });
+
+      console.log('[LLM Prompt] Fallback - userApiKeys:', {
+        llmProvider: userApiKeys?.llmProvider,
+        hasKieKey: !!userApiKeys?.kieApiKey,
+        kieLlmModel: userApiKeys?.kieLlmModel,
       });
 
       llmProvider = userApiKeys?.llmProvider || 'openrouter';
@@ -232,6 +247,14 @@ export async function POST(request: NextRequest) {
       if (llmProvider === 'kie' && kieApiKey && userApiKeys?.kieApiKey) isUsingOwnKey = true;
       if (llmProvider === 'modal' && modalLlmEndpoint) isUsingOwnKey = true;
       if (llmProvider === 'gemini' && userApiKeys?.geminiApiKey) isUsingOwnKey = true;
+
+      console.log('[LLM Prompt] Fallback - after setting:', {
+        llmProvider,
+        hasKieKey: !!kieApiKey,
+        hasGeminiKey: !!geminiApiKey,
+        hasProviderApiKey: !!providerApiKey,
+        isUsingOwnKey,
+      });
     }
 
     // Check for free Gemini models override
@@ -289,14 +312,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // For premium/admin users without their own key, use default system key
-    if (llmProvider === 'openrouter' && !providerApiKey && (isPremiumUser || isAdmin)) {
-      providerApiKey = process.env.OPENROUTER_API_KEY;
-    }
-    if (llmProvider === 'kie' && !kieApiKey && (isPremiumUser || isAdmin)) {
-      kieApiKey = process.env.KIE_API_KEY;
-    }
-
     // Get Modal endpoint if needed
     if (llmProvider === 'modal' && !modalLlmEndpoint) {
       const userApiKeys = await prisma.apiKeys.findUnique({
@@ -328,8 +343,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Final fallback: Ensure we have API keys for premium/admin users using system keys
+    // This must happen BEFORE validation
+    if (llmProvider === 'openrouter' && !providerApiKey && (isPremiumUser || isAdmin)) {
+      providerApiKey = process.env.OPENROUTER_API_KEY;
+      console.log('[LLM Prompt] Using system OpenRouter key for premium/admin user');
+    }
+    if (llmProvider === 'kie' && !kieApiKey && (isPremiumUser || isAdmin)) {
+      kieApiKey = process.env.KIE_API_KEY;
+      console.log('[LLM Prompt] Using system KIE key for premium/admin user');
+    }
+
+    // Update providerApiKey to match kieApiKey for consistency in validation
+    if (llmProvider === 'kie') {
+      if (kieApiKey && !providerApiKey) {
+        providerApiKey = kieApiKey;
+        console.log('[LLM Prompt] Synced providerApiKey with kieApiKey');
+      } else if (providerApiKey && !kieApiKey) {
+        kieApiKey = providerApiKey;
+        console.log('[LLM Prompt] Synced kieApiKey with providerApiKey');
+      }
+    }
+
+    // Comprehensive validation before proceeding
+    console.log('[LLM Prompt] Pre-execution validation:', {
+      llmProvider,
+      llmModel,
+      hasProviderApiKey: !!providerApiKey,
+      hasKieApiKey: !!kieApiKey,
+      hasGeminiApiKey: !!geminiApiKey,
+      hasModalEndpoint: !!modalLlmEndpoint,
+      isPremiumUser,
+      isAdmin,
+      isFreeGeminiModel
+    });
+
     // Validate API key/endpoint for selected provider
     if (llmProvider === 'openrouter' && !providerApiKey) {
+      console.log('[LLM Prompt] ERROR: OpenRouter provider but no API key');
       return NextResponse.json(
         {
           error: 'OpenRouter API key is required. Premium users can use the default key, or add your own in Settings.',
@@ -342,20 +393,36 @@ export async function POST(request: NextRequest) {
     }
 
     if (llmProvider === 'kie' && !kieApiKey) {
+      console.log('[LLM Prompt] ERROR: KIE provider but no API key');
       return NextResponse.json(
         {
           error: 'KIE.ai API key is required. Please add your own in Settings.',
           requireApiKey: true,
           isPremiumUser,
-          isAdmin
+          isAdmin,
+          debug: { llmProvider, hasKieApiKey: !!kieApiKey, hasProviderApiKey: !!providerApiKey }
         },
         { status: 400 }
       );
     }
 
     if (llmProvider === 'modal' && !modalLlmEndpoint) {
+      console.log('[LLM Prompt] ERROR: Modal provider but no endpoint');
       return NextResponse.json(
         { error: 'Modal LLM endpoint is required. Please configure it in Settings.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that we have a known provider
+    const knownProviders = ['openrouter', 'kie', 'modal', 'claude-sdk', 'gemini'];
+    if (!llmProvider || !knownProviders.includes(llmProvider)) {
+      console.log('[LLM Prompt] ERROR: Unknown or missing provider', { llmProvider });
+      return NextResponse.json(
+        {
+          error: `Invalid LLM provider: ${llmProvider || 'none'}. Valid providers: ${knownProviders.join(', ')}`,
+          debug: { llmProvider, hasAnyKey: !!(providerApiKey || kieApiKey || geminiApiKey) }
+        },
         { status: 400 }
       );
     }
@@ -366,18 +433,37 @@ export async function POST(request: NextRequest) {
     // Determine if we should charge credits
     const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
 
-    console.log(`[LLM Prompt] Using provider: ${llmProvider}, Charging credits: ${shouldChargeCredits}`);
+    console.log(`[LLM Prompt] Using provider: ${llmProvider}, model: ${llmModel}, Charging credits: ${shouldChargeCredits}`);
+    console.log(`[LLM Prompt] API keys status: providerApiKey=${!!providerApiKey}, kieApiKey=${!!kieApiKey}, geminiApiKey=${!!geminiApiKey}, modalLlmEndpoint=${!!modalLlmEndpoint}`);
 
     const defaultSystemPrompt = systemPrompt || 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.';
 
     if (llmProvider === 'modal') {
       // Use Modal self-hosted LLM endpoint
+      if (!modalLlmEndpoint) {
+        return NextResponse.json(
+          { error: 'Modal LLM endpoint is required' },
+          { status: 400 }
+        );
+      }
       fullResponse = await queryModalLLM(prompt, defaultSystemPrompt, modalLlmEndpoint!);
     } else if (llmProvider === 'kie') {
       // Use KIE.ai LLM API
+      if (!kieApiKey) {
+        return NextResponse.json(
+          { error: 'KIE.ai API key is required' },
+          { status: 400 }
+        );
+      }
       fullResponse = await queryKieLlm(prompt, defaultSystemPrompt, kieApiKey!, llmModel);
     } else if (llmProvider === 'openrouter') {
       // Use OpenRouter API
+      if (!providerApiKey) {
+        return NextResponse.json(
+          { error: 'OpenRouter API key is required' },
+          { status: 400 }
+        );
+      }
       fullResponse = await callOpenRouter(
         providerApiKey!,
         defaultSystemPrompt,

@@ -55,6 +55,7 @@ export default function SettingsPage() {
     kieVideoModel,
     kieTtsModel,
     kieMusicModel,
+    kieLlmModel,
 
     // Actions
     toggleKeyVisibility,
@@ -79,6 +80,7 @@ export default function SettingsPage() {
     handleKieVideoModelChange,
     handleKieTtsModelChange,
     handleKieMusicModelChange,
+    handleKieLlmModelChange,
     handleModalEndpointChange,
     handleSaveModalEndpoints,
   } = useSettings();
@@ -169,6 +171,7 @@ export default function SettingsPage() {
                 kieVideoModel={apiKeysContext.apiKeys?.kieVideoModel || kieVideoModel}
                 kieTtsModel={apiKeysContext.apiKeys?.kieTtsModel || kieTtsModel}
                 kieMusicModel={apiKeysContext.apiKeys?.kieMusicModel || kieMusicModel}
+                kieLlmModel={apiKeysContext.apiKeys?.kieLlmModel || kieLlmModel}
                 onToggleVisibility={toggleKeyVisibility}
                 onSaveKey={async (keyName: string) => {
                   // Get the current value from localConfig
@@ -239,6 +242,12 @@ export default function SettingsPage() {
                   const success = await apiKeysContext.updateApiKey('kieMusicModel', model);
                   if (success) {
                     handleKieMusicModelChange(model);
+                  }
+                }}
+                onKieLlmModelChange={async (model) => {
+                  const success = await apiKeysContext.updateApiKey('kieLlmModel', model);
+                  if (success) {
+                    handleKieLlmModelChange(model);
                   }
                 }}
                 onModalEndpointChange={handleModalEndpointChange}
