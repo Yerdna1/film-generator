@@ -143,7 +143,7 @@ export class KieMusicProvider extends BaseMusicProvider implements AsyncProvider
     } = request;
 
     // Get model configuration if provided
-    let apiModelId = this.config.model || 'suno/v3-5-music';
+    let apiModelId = this.config.model || 'suno/v3-music'; // @TODO: import from DEFAULT_MODELS
 
     // Check if we need to map model ID
     if (this.config.model && !this.config.model.includes('/')) {

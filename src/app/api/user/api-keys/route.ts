@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 
 /**
  * SECURITY: Mask API key for safe display in browser
@@ -44,10 +45,10 @@ export async function GET() {
         piapiApiKey: '',
         kieApiKey: '',
         resendApiKey: '',
-        kieImageModel: 'seedream/4-5-text-to-image',
-        kieVideoModel: 'grok-imagine/image-to-video',
-        kieTtsModel: 'elevenlabs/text-to-dialogue-v3',
-        kieMusicModel: 'suno/v3-5-music',
+        kieImageModel: DEFAULT_MODELS.kieImageModel,
+        kieVideoModel: DEFAULT_MODELS.kieVideoModel,
+        kieTtsModel: DEFAULT_MODELS.kieTtsModel,
+        kieMusicModel: DEFAULT_MODELS.kieMusicModel,
         llmProvider: 'openrouter',
         musicProvider: 'piapi',
         ttsProvider: 'gemini-tts',
@@ -109,10 +110,10 @@ export async function GET() {
         kieApiKey: apiKeys.kieApiKey || '',
         resendApiKey: apiKeys.resendApiKey || '',
         openRouterModel: apiKeys.openRouterModel || 'anthropic/claude-4.5-sonnet',
-        kieImageModel: apiKeys.kieImageModel || 'seedream/4-5-text-to-image',
-        kieVideoModel: apiKeys.kieVideoModel || 'grok-imagine/image-to-video',
-        kieTtsModel: apiKeys.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
-        kieMusicModel: apiKeys.kieMusicModel || 'suno/v3-5-music',
+        kieImageModel: apiKeys.kieImageModel || DEFAULT_MODELS.kieImageModel,
+        kieVideoModel: apiKeys.kieVideoModel || DEFAULT_MODELS.kieVideoModel,
+        kieTtsModel: apiKeys.kieTtsModel || DEFAULT_MODELS.kieTtsModel,
+        kieMusicModel: apiKeys.kieMusicModel || DEFAULT_MODELS.kieMusicModel,
         llmProvider: apiKeys.llmProvider || 'openrouter',
         musicProvider: apiKeys.musicProvider || 'piapi',
         ttsProvider: apiKeys.ttsProvider || 'gemini-tts',
@@ -247,10 +248,10 @@ export async function POST(request: NextRequest) {
         piapiApiKey: piapiApiKey || null,
         kieApiKey: kieApiKey || null,
         resendApiKey: resendApiKey || null,
-        kieImageModel: kieImageModel || 'seedream/4-5-text-to-image',
-        kieVideoModel: kieVideoModel || 'grok-imagine/image-to-video',
-        kieTtsModel: kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
-        kieMusicModel: kieMusicModel || 'suno/v3-5-music',
+        kieImageModel: kieImageModel || DEFAULT_MODELS.kieImageModel,
+        kieVideoModel: kieVideoModel || DEFAULT_MODELS.kieVideoModel,
+        kieTtsModel: kieTtsModel || DEFAULT_MODELS.kieTtsModel,
+        kieMusicModel: kieMusicModel || DEFAULT_MODELS.kieMusicModel,
         llmProvider: llmProvider || 'openrouter',
         musicProvider: musicProvider || 'piapi',
         ttsProvider: ttsProvider || 'gemini-tts',

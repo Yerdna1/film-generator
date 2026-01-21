@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Character } from '@/types/project';
 import type { ImageProvider } from '@/types/project';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 
 interface ApiKeyState {
   hasKieKey: boolean;
@@ -31,7 +32,7 @@ export function useApiKeyManagement() {
           const data = await res.json();
           setUserApiKeys({
             hasKieKey: data.apiKeys?.kieApiKey ? true : false,
-            kieImageModel: data.apiKeys?.kieImageModel || 'seedream/4-5-text-to-image',
+            kieImageModel: data.apiKeys?.kieImageModel || DEFAULT_MODELS.kieImageModel,
             imageProvider: data.apiKeys?.imageProvider || null,
           });
         }

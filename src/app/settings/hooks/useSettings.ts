@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { ActionCosts } from '../types';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints } from '@/types/project';
 import { DEFAULT_OPENROUTER_MODEL } from '../constants';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 import { getCurrency, setCurrency as setCurrencyUtil, type Currency } from '@/lib/utils/currency';
 
 export function useSettings() {
@@ -34,10 +35,10 @@ export function useSettings() {
   const [videoProvider, setVideoProvider] = useState<VideoProvider>('kie');
   const [modalEndpoints, setModalEndpoints] = useState<ModalEndpoints>({});
   const [currency, setCurrency] = useState<Currency>('EUR');
-  const [kieImageModel, setKieImageModel] = useState<string>('seedream/4-5-text-to-image');
-  const [kieVideoModel, setKieVideoModel] = useState<string>('grok-imagine/image-to-video');
-  const [kieTtsModel, setKieTtsModel] = useState<string>('elevenlabs/text-to-dialogue-v3');
-  const [kieMusicModel, setKieMusicModel] = useState<string>('suno/v3-5-music');
+  const [kieImageModel, setKieImageModel] = useState<string>(DEFAULT_MODELS.kieImageModel);
+  const [kieVideoModel, setKieVideoModel] = useState<string>(DEFAULT_MODELS.kieVideoModel);
+  const [kieTtsModel, setKieTtsModel] = useState<string>(DEFAULT_MODELS.kieTtsModel);
+  const [kieMusicModel, setKieMusicModel] = useState<string>(DEFAULT_MODELS.kieMusicModel);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -58,10 +59,10 @@ export function useSettings() {
     const savedImageProvider = (localStorage.getItem('app-image-provider') as ImageProvider) || 'gemini';
     const savedVideoProvider = (localStorage.getItem('app-video-provider') as VideoProvider) || 'kie';
     const savedCurrency = getCurrency();
-    const savedKieImageModel = localStorage.getItem('app-kie-image-model') || 'seedream/4-5-text-to-image';
-    const savedKieVideoModel = localStorage.getItem('app-kie-video-model') || 'grok-imagine/image-to-video';
-    const savedKieTtsModel = localStorage.getItem('app-kie-tts-model') || 'elevenlabs/text-to-dialogue-v3';
-    const savedKieMusicModel = localStorage.getItem('app-kie-music-model') || 'suno/v3-5-music';
+    const savedKieImageModel = localStorage.getItem('app-kie-image-model') || DEFAULT_MODELS.kieImageModel;
+    const savedKieVideoModel = localStorage.getItem('app-kie-video-model') || DEFAULT_MODELS.kieVideoModel;
+    const savedKieTtsModel = localStorage.getItem('app-kie-tts-model') || DEFAULT_MODELS.kieTtsModel;
+    const savedKieMusicModel = localStorage.getItem('app-kie-music-model') || DEFAULT_MODELS.kieMusicModel;
 
     setLanguage(savedLanguage);
     setCurrency(savedCurrency);

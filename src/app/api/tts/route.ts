@@ -8,6 +8,7 @@ import { spendCredits, COSTS } from '@/lib/services/credits';
 import { calculateVoiceCost } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { TTSProvider } from '@/types/project';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
@@ -494,7 +495,7 @@ export async function POST(request: NextRequest) {
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     let openaiApiKey = process.env.OPENAI_API_KEY;
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieTtsModel = requestModel || 'elevenlabs/text-to-dialogue-v3'; // Use model from request, fallback to default
+    let kieTtsModel = requestModel || DEFAULT_MODELS.kieTtsModel; // Use model from request, fallback to default
     let modalTtsEndpoint: string | null = null;
 
     let userHasOwnApiKey = false; // Track if user has their own API key (declare outside block)

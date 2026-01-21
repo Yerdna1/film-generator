@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
 import { getUserAccessibleProjectsSummary } from '@/lib/permissions';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 
 // GET - Fetch all projects for user (owned + shared)
 // OPTIMIZED: Returns summary data only (~1KB per project vs ~50KB full)
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
       },
       image: {
         provider: userApiKeys?.imageProvider || 'kie',
-        model: userApiKeys?.kieImageModel || 'seedream/4-5-text-to-image',
+        model: userApiKeys?.kieImageModel || DEFAULT_MODELS.kieImageModel,
         characterResolution: '2k',
         sceneResolution: '2k',
         characterAspectRatio: '1:1',
@@ -128,17 +129,17 @@ export async function POST(request: NextRequest) {
       },
       video: {
         provider: userApiKeys?.videoProvider || 'kie',
-        model: userApiKeys?.kieVideoModel || 'grok-imagine/image-to-video',
+        model: userApiKeys?.kieVideoModel || DEFAULT_MODELS.kieVideoModel,
         exportResolution: '1080p',
       },
       tts: {
         provider: userApiKeys?.ttsProvider || 'kie',
-        model: userApiKeys?.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
+        model: userApiKeys?.kieTtsModel || DEFAULT_MODELS.kieTtsModel,
         defaultLanguage: 'en',
       },
       music: {
         provider: userApiKeys?.musicProvider || 'kie',
-        model: userApiKeys?.kieMusicModel || 'suno/v3-5-music',
+        model: userApiKeys?.kieMusicModel || DEFAULT_MODELS.kieMusicModel,
       },
     };
 

@@ -140,7 +140,7 @@ export class KieImageProvider extends BaseImageProvider implements AsyncProvider
     // Build the request body
     const body: any = {
       text: prompt,
-      model: this.config.model || 'seedream/4-5-text-to-image',
+      model: this.config.model || 'grok-imagine/text-to-image', // @TODO: import from DEFAULT_MODELS
       resolution: kieResolution,
       aspect_ratio: aspectRatio,
     };

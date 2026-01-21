@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { KieImageProvider } from '@/lib/providers/image/kie-provider';
 import type { ImageProvider } from '@/types/project';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 
 const PRESETS = [
   {
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
         const provider = new KieImageProvider({
           provider: 'kie',
           apiKey: kieApiKey,
-          model: 'seedream/4-5-text-to-image',
+          model: DEFAULT_MODELS.kieImageModel,
         });
 
         const { base64, mimeType } = await provider.generateImage(

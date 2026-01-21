@@ -12,6 +12,7 @@ import { spendCredits, COSTS } from '@/lib/services/credits';
 import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/services/piapi';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { Provider } from '@/lib/services/real-costs';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 
 type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
 
@@ -300,7 +301,7 @@ export async function POST(request: NextRequest) {
     const modalMusicEndpoint = userApiKeys?.modalMusicEndpoint;
 
     // Determine which model to use
-    const kieMusicModel = requestModel || userApiKeys?.kieMusicModel || 'suno/v3-5-music';
+    const kieMusicModel = requestModel || userApiKeys?.kieMusicModel || DEFAULT_MODELS.kieMusicModel;
 
     // Track if user has their own API keys (to skip credit check)
     let userHasOwnApiKey = !!userApiKeys?.modalMusicEndpoint;
@@ -512,7 +513,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Use the model from query string or user settings
-      const modelId = searchParams.get('model') || userApiKeys?.kieMusicModel || 'suno/v3-5-music';
+      const modelId = searchParams.get('model') || userApiKeys?.kieMusicModel || DEFAULT_MODELS.kieMusicModel;
 
       const result = await checkKieMusicStatus(
         taskId,

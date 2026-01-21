@@ -135,7 +135,7 @@ export class KieTTSProvider extends BaseTTSProvider implements AsyncProvider<TTS
     // Build the request body
     const body: any = {
       text,
-      model: this.config.model || 'elevenlabs/text-to-dialogue-v3',
+      model: this.config.model || 'elevenlabs/text-to-speech-turbo-2-5', // @TODO: import from DEFAULT_MODELS
       voice: voice || 'adam',
       language: languageCode,
       output_format: format,

@@ -1,5 +1,6 @@
 import type { Project, UnifiedModelConfig, ApiConfig } from '@/types/project';
 import type { UserConstants } from './types';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 
 /**
  * Creates a default UnifiedModelConfig from user's API settings and project settings
@@ -39,7 +40,7 @@ export function createModelConfigFromLegacySettings(
     // Image Generation Configuration
     image: {
       provider: (apiConfig.imageProvider || userConstants?.characterImageProvider || 'gemini') as any,
-      model: apiConfig.kieImageModel || 'seedream/4-5-text-to-image',
+      model: apiConfig.kieImageModel || DEFAULT_MODELS.kieImageModel,
       modalEndpoint: apiConfig.modalEndpoints?.imageEndpoint,
       characterAspectRatio: (userConstants?.characterAspectRatio || '1:1') as any,
       sceneAspectRatio: (userConstants?.sceneAspectRatio || project.settings?.aspectRatio || '16:9') as any,
@@ -49,7 +50,7 @@ export function createModelConfigFromLegacySettings(
     // Video Generation Configuration
     video: {
       provider: (apiConfig.videoProvider || 'kie') as any,
-      model: apiConfig.kieVideoModel || 'grok-imagine/image-to-video',
+      model: apiConfig.kieVideoModel || DEFAULT_MODELS.kieVideoModel,
       modalEndpoint: apiConfig.modalEndpoints?.videoEndpoint,
       resolution: (userConstants?.videoResolution || project.settings?.resolution || 'hd') as any,
     },
@@ -57,7 +58,7 @@ export function createModelConfigFromLegacySettings(
     // Text-to-Speech Configuration
     tts: {
       provider: (apiConfig.ttsProvider || project.settings?.voiceProvider || 'gemini-tts') as any,
-      model: apiConfig.kieTtsModel || 'elevenlabs/text-to-dialogue-v3',
+      model: apiConfig.kieTtsModel || DEFAULT_MODELS.kieTtsModel,
       modalEndpoint: apiConfig.modalEndpoints?.ttsEndpoint,
       defaultLanguage: project.settings?.voiceLanguage || 'en',
     },
@@ -65,7 +66,7 @@ export function createModelConfigFromLegacySettings(
     // Background Music Configuration
     music: {
       provider: (apiConfig.musicProvider || 'piapi') as any,
-      model: apiConfig.kieMusicModel || 'suno/v3-5-music',
+      model: apiConfig.kieMusicModel || DEFAULT_MODELS.kieMusicModel,
       modalEndpoint: apiConfig.modalEndpoints?.musicEndpoint,
     },
   };

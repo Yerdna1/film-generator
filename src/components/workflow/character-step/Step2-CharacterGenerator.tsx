@@ -14,6 +14,7 @@ import {
   CharacterFormData,
   EditCharacterData,
 } from '../character-generator/types';
+import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
 import { useCharacterImage } from '../character-generator/hooks';
 
 // Hooks
@@ -84,7 +85,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
 
   // Fallback to project config if userApiKeys doesn't have the values
   const characterImageProvider = (currentImageProvider || 'gemini') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
-  const characterImageModel = currentImageModel || 'seedream/4-5-text-to-image';
+  const characterImageModel = currentImageModel || DEFAULT_MODELS.kieImageModel;
 
   // Check if project is configured to use KIE with an API key
   // When a project uses KIE provider, it means the user has configured their API key for it

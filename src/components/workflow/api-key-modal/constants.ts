@@ -10,11 +10,11 @@ export const DEFAULT_PROVIDERS: Record<OperationType, string> = {
 };
 
 export const DEFAULT_MODELS: Record<string, string> = {
-  kieLlmModel: 'claude/claude-sonnet-4-20250514',
-  kieImageModel: 'seedream/4-5-text-to-image',
-  kieVideoModel: 'grok-imagine/image-to-video',
-  kieTtsModel: 'elevenlabs/text-to-dialogue-v3',
-  kieMusicModel: 'suno/v3-5-music',
+  kieLlmModel: 'gemini-2.5-flash',
+  kieImageModel: 'grok-imagine/text-to-image',
+  kieVideoModel: 'bytedance/seedance-image-to-video',
+  kieTtsModel: 'elevenlabs/text-to-speech-turbo-2-5',
+  kieMusicModel: 'suno/v3-music',
 };
 
 export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
@@ -26,7 +26,7 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieLlmModel',
-      defaultModel: 'claude/claude-sonnet-4-20250514',
+      defaultModel: 'gemini-2.5-flash',
       description: 'Multiple LLM models: Claude, GPT-4, Gemini, DeepSeek, etc.',
       isDefault: true,
     },
@@ -74,7 +74,7 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieImageModel',
-      defaultModel: 'seedream/4-5-text-to-image',
+      defaultModel: 'grok-imagine/text-to-image',
       description: 'Multiple models: Seedream, Flux-2, Imagen4, Ideogram, etc.',
       isDefault: true,
     },
@@ -111,7 +111,7 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieVideoModel',
-      defaultModel: 'grok-imagine/image-to-video',
+      defaultModel: 'bytedance/seedance-image-to-video',
       description: 'Multiple models: Grok Imagine, Kling, Sora2, Veo 3.1, etc.',
       isDefault: true,
     },
@@ -132,7 +132,7 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieTtsModel',
-      defaultModel: 'elevenlabs/text-to-dialogue-v3',
+      defaultModel: 'elevenlabs/text-to-speech-turbo-2-5',
       description: 'ElevenLabs voices via Kie.ai API',
       isDefault: true,
     },
@@ -177,7 +177,7 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieMusicModel',
-      defaultModel: 'suno/v3-5-music',
+      defaultModel: 'suno/v3-music',
       description: 'AI music generation via Kie.ai',
       isDefault: true,
     },
@@ -330,7 +330,7 @@ export const API_KEY_FIELDS: Record<string, ApiKeyField> = {
   kieImageModel: {
     key: 'kieImageModel',
     label: 'Kie.ai Image Model',
-    placeholder: 'seedream/4-5-text-to-image',
+    placeholder: DEFAULT_MODELS.kieImageModel,
     helpText: 'Default Kie.ai image generation model',
     type: 'select',
     options: [], // Will be populated from API
@@ -338,7 +338,7 @@ export const API_KEY_FIELDS: Record<string, ApiKeyField> = {
   kieVideoModel: {
     key: 'kieVideoModel',
     label: 'Kie.ai Video Model',
-    placeholder: 'grok-imagine/image-to-video',
+    placeholder: DEFAULT_MODELS.kieVideoModel,
     helpText: 'Default Kie.ai video generation model',
     type: 'select',
     options: [], // Will be populated from API
@@ -346,7 +346,7 @@ export const API_KEY_FIELDS: Record<string, ApiKeyField> = {
   kieTtsModel: {
     key: 'kieTtsModel',
     label: 'Kie.ai TTS Model',
-    placeholder: 'elevenlabs/text-to-dialogue-v3',
+    placeholder: DEFAULT_MODELS.kieTtsModel,
     helpText: 'Default Kie.ai text-to-speech model',
     type: 'select',
     options: [], // Will be populated from API
@@ -354,7 +354,7 @@ export const API_KEY_FIELDS: Record<string, ApiKeyField> = {
   kieMusicModel: {
     key: 'kieMusicModel',
     label: 'Kie.ai Music Model',
-    placeholder: 'suno/v3-5-music',
+    placeholder: DEFAULT_MODELS.kieMusicModel,
     helpText: 'Default Kie.ai music generation model',
     type: 'select',
     options: [], // Will be populated from API
@@ -362,7 +362,7 @@ export const API_KEY_FIELDS: Record<string, ApiKeyField> = {
   kieLlmModel: {
     key: 'kieLlmModel',
     label: 'Kie.ai LLM Model',
-    placeholder: 'claude/claude-sonnet-4-20250514',
+    placeholder: DEFAULT_MODELS.kieLlmModel,
     helpText: 'Default Kie.ai LLM model for scene generation',
     type: 'select',
     options: [], // Will be populated from API
