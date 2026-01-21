@@ -26,6 +26,7 @@ const prisma = new PrismaClient();
 const llmModels = [
   {
     modelId: 'claude-opus-4-5-thinking',
+    apiModelId: 'anthropic/claude-opus-4-5-thinking',
     name: 'Claude Opus 4.5 Thinking',
     provider: 'Anthropic',
     description: 'Claude Opus 4.5 with extended thinking capabilities for complex reasoning tasks',
@@ -51,6 +52,7 @@ const llmModels = [
   },
   {
     modelId: 'claude-sonnet-4-5-thinking',
+    apiModelId: 'anthropic/claude-sonnet-4-5-thinking',
     name: 'Claude Sonnet 4.5 Thinking',
     provider: 'Anthropic',
     description: 'Claude Sonnet 4.5 with extended thinking capabilities for balanced performance',
@@ -75,6 +77,7 @@ const llmModels = [
   },
   {
     modelId: 'claude-sonnet-4-5',
+    apiModelId: 'anthropic/claude-sonnet-4-5',
     name: 'Claude Sonnet 4.5',
     provider: 'Anthropic',
     description: "Anthropic's balanced performance model for general purpose AI tasks",
@@ -98,6 +101,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-3-flash',
+    apiModelId: 'google/gemini-3-flash',
     name: 'Gemini 3 Flash',
     provider: 'Google',
     description: "Google's fast-response multimodal model for quick interactions",
@@ -120,6 +124,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-3-pro',
+    apiModelId: 'google/gemini-3-pro',
     name: 'Gemini 3 Pro',
     provider: 'Google DeepMind',
     description: "Google's next-generation multimodal model with advanced reasoning and long-context processing",
@@ -142,6 +147,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-2.5-flash',
+    apiModelId: 'google/gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
     provider: 'Google DeepMind',
     description: "Google's first hybrid reasoning LLM combining fast generation with optional reasoning",
@@ -164,6 +170,76 @@ const llmModels = [
   },
   {
     modelId: 'gemini-2.5-pro',
+    apiModelId: 'google/gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'Google DeepMind',
+    description: "Google's advanced thinking model for complex reasoning and long-context understanding with native multimodal inputs",
+    creditsPerToken: 0.0006,
+    creditsPerRequest: null,
+    cost: 3.00,
+    contextWindow: 1000000,
+    maxOutputTokens: 8192,
+    supportedLanguages: ['English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Japanese', 'Korean', 'Chinese'],
+    inputParameters: {
+      contents: 'array of content objects',
+      generationConfig: {'temperature': '0.0-1.0'}
+    },
+    outputParameters: {
+      format: 'JSON',
+      streaming: 'supported'
+    },
+    capabilities: ['advanced_reasoning', 'multimodal_fusion', 'long_context_processing', 'function_calling', 'streaming', 'structured_outputs', 'thinking_process'],
+    isActive: true
+  },
+  {
+    modelId: 'gemini-3-pro',
+    apiModelId: 'google/gemini-3-pro',
+    name: 'Gemini 3 Pro',
+    provider: 'Google DeepMind',
+    description: "Google's next-generation multimodal model with advanced reasoning and long-context processing",
+    creditsPerToken: 0.0007,
+    creditsPerRequest: null,
+    cost: 3.50,
+    contextWindow: 1000000,
+    maxOutputTokens: 8192,
+    supportedLanguages: ['English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Japanese', 'Korean', 'Chinese', 'Hindi'],
+    inputParameters: {
+      contents: 'array of content objects',
+      generationConfig: {'temperature': '0.0-1.0', 'maxOutputTokens': '1-8192'}
+    },
+    outputParameters: {
+      format: 'JSON',
+      streaming: 'supported'
+    },
+    capabilities: ['advanced_reasoning', 'multimodal_fusion', 'long_context_processing', 'function_calling', 'streaming', 'structured_outputs', 'thinking_process'],
+    isActive: true
+  },
+  {
+    modelId: 'gemini-2.5-flash',
+    apiModelId: 'google/gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    provider: 'Google DeepMind',
+    description: "Google's first hybrid reasoning LLM combining fast generation with optional reasoning",
+    creditsPerToken: 0.00015,
+    creditsPerRequest: null,
+    cost: 0.75,
+    contextWindow: 1000000,
+    maxOutputTokens: 8192,
+    supportedLanguages: ['English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Japanese', 'Korean', 'Chinese'],
+    inputParameters: {
+      contents: 'array of content objects',
+      generationConfig: {'temperature': '0.0-1.0'}
+    },
+    outputParameters: {
+      format: 'JSON',
+      streaming: 'supported'
+    },
+    capabilities: ['hybrid_reasoning', 'fast_generation', 'optional_reasoning', 'multimodal_inputs', 'function_calling'],
+    isActive: true
+  },
+  {
+    modelId: 'gemini-2.5-pro',
+    apiModelId: 'google/gemini-2.5-pro',
     name: 'Gemini 2.5 Pro',
     provider: 'Google DeepMind',
     description: "Google's advanced thinking model for complex reasoning and long-context understanding with native multimodal inputs",

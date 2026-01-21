@@ -116,22 +116,25 @@ async function queryGemini(prompt: string, apiKey: string, model: string = 'gemi
   return text;
 }
 
-// Query KIE.ai LLM API (OpenAI-compatible format)
+// Query KIE.ai LLM API (model-specific endpoint format)
 async function queryKieLlm(prompt: string, systemPrompt: string, apiKey: string, model: string): Promise<string> {
-  const response = await fetch('https://api.kie.ai/v1/chat/completions', {
+  // KIE.ai uses model-specific endpoints: https://api.kie.ai/{model}/v1/chat/completions
+  // Model is specified in URL path, NOT in request body
+  const response = await fetch(`https://api.kie.ai/${model}/v1/chat/completions`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model,
+      // Note: model is NOT included in body - it's in the URL path
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
       ],
       max_tokens: 8192,
       temperature: 0.9,
+      stream: false,  // Disable streaming to get JSON response instead of SSE
     }),
   });
 
@@ -141,10 +144,32 @@ async function queryKieLlm(prompt: string, systemPrompt: string, apiKey: string,
   }
 
   const data = await response.json();
-  const text = data.choices?.[0]?.message?.content;
+
+  // KIE.ai may use different response formats - try multiple paths
+  let text: string | undefined;
+
+  // Standard OpenAI format
+  text = data.choices?.[0]?.message?.content;
+
+  // KIE wrapped format
+  if (!text) {
+    text = data.data?.choices?.[0]?.message?.content;
+  }
+
+  // Alternative KIE format with direct output field
+  if (!text) {
+    text = data.data?.output || data.data?.text || data.data?.result;
+  }
+
+  // Direct format
+  if (!text) {
+    text = data.output || data.text || data.result;
+  }
 
   if (!text) {
-    throw new Error('No text generated from KIE.ai LLM');
+    const responseStr = JSON.stringify(data, null, 2);
+    console.error('KIE.ai LLM response format unexpected:', responseStr);
+    throw new Error(`No text generated from KIE.ai LLM. Response: ${responseStr}`);
   }
 
   return text;
@@ -257,19 +282,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check for free Gemini models override
+    // Check for free Gemini models and model provider hints
     if (model && model.includes('/')) {
       const [providerFromModel, modelName] = model.split('/');
       // Check if it's a free Gemini model
       isFreeGeminiModel = providerFromModel === 'google' && (modelName?.includes('free') || modelName?.includes('flash'));
 
       if (isFreeGeminiModel) {
-        // Use Gemini directly for free models
-        llmProvider = 'gemini';
-        console.log(`[LLM Prompt] Using Gemini directly for free model: ${model}`);
+        // If user has KIE configured, let them use Google models through KIE
+        // Only override to gemini provider if not using KIE or OpenRouter
+        if (llmProvider !== 'kie' && llmProvider !== 'openrouter') {
+          llmProvider = 'gemini';
+          console.log(`[LLM Prompt] Using Gemini directly for free model: ${model}`);
+        } else {
+          console.log(`[LLM Prompt] Using Google model through ${llmProvider}: ${model}`);
+        }
       } else if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
         // Use OpenRouter for paid models if not already set
-        if (llmProvider !== 'openrouter') {
+        if (llmProvider !== 'openrouter' && llmProvider !== 'kie') {
           llmProvider = 'openrouter';
           console.log(`[LLM Prompt] Overriding provider to 'openrouter' based on model: ${model}`);
         }
@@ -330,6 +360,19 @@ export async function POST(request: NextRequest) {
       });
       geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
       if (userApiKeys?.geminiApiKey) isUsingOwnKey = true;
+
+      // Special error message for free Gemini models
+      if (!geminiApiKey && isFreeGeminiModel) {
+        return NextResponse.json(
+          {
+            error: 'Gemini API key is required even for free models. Please add your Gemini API key in Settings or set GEMINI_API_KEY in environment.',
+            requireApiKey: true,
+            isFreeGeminiModel: true,
+            helpLink: 'https://makersuite.google.com/app/apikey'
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Get KIE model if needed (when we already have the key from getProviderConfig)
@@ -455,7 +498,42 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      fullResponse = await queryKieLlm(prompt, defaultSystemPrompt, kieApiKey!, llmModel);
+
+      // Map OpenRouter-style model IDs to KIE.ai format using database
+      let kieModel = llmModel;
+      if (llmModel?.includes('/')) {
+        // Try to find matching model in database
+        const kieLlmModel = await prisma.kieLlmModel.findFirst({
+          where: {
+            OR: [
+              { modelId: llmModel },
+              { apiModelId: llmModel },
+              { modelId: { contains: llmModel.split('/')[1]?.replace(':free', '').replace(':exp', '') || '' } }
+            ]
+          },
+          select: { modelId: true, apiModelId: true, name: true }
+        });
+
+        if (kieLlmModel) {
+          // Use the API model ID if available, otherwise use the model ID
+          kieModel = kieLlmModel.apiModelId || kieLlmModel.modelId;
+          console.log(`[LLM Prompt] Mapped model ${llmModel} to KIE format: ${kieModel} (from DB: ${kieLlmModel.name})`);
+        } else {
+          // Model not found in KIE database - return error
+          return NextResponse.json(
+            {
+              error: `Invalid model for KIE.ai provider: "${llmModel}"`,
+              message: `This model is not available on KIE.ai. Available KIE.ai models: gemini-2.5-flash, gemini-2.5-pro, gemini-3-flash, gemini-3-pro`,
+              availableModels: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3-flash', 'gemini-3-pro']
+            },
+            { status: 400 }
+          );
+        }
+
+        console.log(`[LLM Prompt] Final model for KIE API: ${kieModel}`);
+      }
+
+      fullResponse = await queryKieLlm(prompt, defaultSystemPrompt, kieApiKey!, kieModel);
     } else if (llmProvider === 'openrouter') {
       // Use OpenRouter API
       if (!providerApiKey) {

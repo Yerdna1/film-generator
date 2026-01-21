@@ -124,7 +124,10 @@
       "Bash(MODEL_ID=\"seedream/4-5-text-to-image\")",
       "Bash(__NEW_LINE_42a9706007835236__ echo \"=== Testing KIE API with model: $MODEL_ID ===\")",
       "Bash(npx inngest-cli dev:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npx prisma db seed:*)",
+      "Bash(then grep -i \"KIE_API_KEY\" .env.local)",
+      "Bash(else echo \"No .env.local found\")"
     ]
   }
 }
