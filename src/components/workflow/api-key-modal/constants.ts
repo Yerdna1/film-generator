@@ -3,6 +3,15 @@ import type { ProviderConfig, ApiKeyField, OperationType } from './types';
 export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
   llm: [
     {
+      id: 'kie',
+      name: 'Kie.ai',
+      icon: '🤖',
+      color: 'orange',
+      apiKeyField: 'kieApiKey',
+      modelField: 'kieLlmModel',
+      description: 'Multiple LLM models: Claude, GPT-4, Gemini, DeepSeek, etc.',
+    },
+    {
       id: 'openrouter',
       name: 'OpenRouter',
       icon: '🌐',
@@ -40,21 +49,21 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
   ],
   image: [
     {
+      id: 'kie',
+      name: 'Kie.ai',
+      icon: '🎨',
+      color: 'orange',
+      apiKeyField: 'kieApiKey',
+      modelField: 'kieImageModel',
+      description: 'Multiple models: Seedream, Flux-2, Imagen4, Ideogram, etc.',
+    },
+    {
       id: 'gemini',
       name: 'Gemini',
       icon: '✨',
       color: 'blue',
       apiKeyField: 'geminiApiKey',
       description: 'Google Gemini for image generation',
-    },
-    {
-      id: 'kie',
-      name: 'KIE.ai',
-      icon: '🎨',
-      color: 'orange',
-      apiKeyField: 'kieApiKey',
-      modelField: 'kieImageModel',
-      description: 'Multiple models: Seedream, Flux-2, Imagen4, Ideogram, etc.',
     },
     {
       id: 'modal',
@@ -94,6 +103,15 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
   ],
   tts: [
     {
+      id: 'kie',
+      name: 'Kie.ai (ElevenLabs)',
+      icon: '🎙️',
+      color: 'orange',
+      apiKeyField: 'kieApiKey',
+      modelField: 'kieTtsModel',
+      description: 'ElevenLabs voices via Kie.ai API',
+    },
+    {
       id: 'gemini-tts',
       name: 'Gemini TTS',
       icon: '🔊',
@@ -118,15 +136,6 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       description: 'High-quality voices, best for English',
     },
     {
-      id: 'kie',
-      name: 'KIE.ai (ElevenLabs)',
-      icon: '🎙️',
-      color: 'orange',
-      apiKeyField: 'kieApiKey',
-      modelField: 'kieTtsModel',
-      description: 'ElevenLabs voices via KIE.ai API',
-    },
-    {
       id: 'modal',
       name: 'Modal (Self-Hosted)',
       icon: '⚡',
@@ -136,6 +145,15 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
     },
   ],
   music: [
+    {
+      id: 'kie',
+      name: 'Kie.ai',
+      icon: '🎵',
+      color: 'orange',
+      apiKeyField: 'kieApiKey',
+      modelField: 'kieMusicModel',
+      description: 'AI music generation via Kie.ai',
+    },
     {
       id: 'piapi',
       name: 'PiAPI',
@@ -151,15 +169,6 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'purple',
       apiKeyField: 'sunoApiKey',
       description: 'Direct Suno API via sunoapi.org',
-    },
-    {
-      id: 'kie',
-      name: 'KIE.ai',
-      icon: '🎵',
-      color: 'orange',
-      apiKeyField: 'kieApiKey',
-      modelField: 'kieMusicModel',
-      description: 'AI music generation via KIE.ai',
     },
     {
       id: 'modal',
@@ -210,13 +219,13 @@ export const API_KEY_FIELDS: Record<string, ApiKeyField> = {
   },
   kieApiKey: {
     key: 'kieApiKey',
-    label: 'KIE.ai API Key',
-    placeholder: 'Your KIE.ai API key',
-    helpText: 'Get your API key from KIE.ai',
+    label: 'Kie.ai API Key',
+    placeholder: 'Your Kie.ai API key',
+    helpText: 'Get your API key from Kie.ai',
     helpLink: 'https://kie.ai/api-keys',
     validate: (value) => {
       if (value && value.length < 20) {
-        return { valid: false, error: 'KIE.ai API key should be at least 20 characters' };
+        return { valid: false, error: 'Kie.ai API key should be at least 20 characters' };
       }
       return { valid: true };
     },
@@ -293,33 +302,41 @@ export const API_KEY_FIELDS: Record<string, ApiKeyField> = {
   },
   kieImageModel: {
     key: 'kieImageModel',
-    label: 'KIE Image Model',
+    label: 'Kie.ai Image Model',
     placeholder: 'seedream/4-5-text-to-image',
-    helpText: 'Default KIE image generation model',
+    helpText: 'Default Kie.ai image generation model',
     type: 'select',
     options: [], // Will be populated from API
   },
   kieVideoModel: {
     key: 'kieVideoModel',
-    label: 'KIE Video Model',
+    label: 'Kie.ai Video Model',
     placeholder: 'grok-imagine/image-to-video',
-    helpText: 'Default KIE video generation model',
+    helpText: 'Default Kie.ai video generation model',
     type: 'select',
     options: [], // Will be populated from API
   },
   kieTtsModel: {
     key: 'kieTtsModel',
-    label: 'KIE TTS Model',
+    label: 'Kie.ai TTS Model',
     placeholder: 'elevenlabs/text-to-dialogue-v3',
-    helpText: 'Default KIE text-to-speech model',
+    helpText: 'Default Kie.ai text-to-speech model',
     type: 'select',
     options: [], // Will be populated from API
   },
   kieMusicModel: {
     key: 'kieMusicModel',
-    label: 'KIE Music Model',
+    label: 'Kie.ai Music Model',
     placeholder: 'suno/v3-5-music',
-    helpText: 'Default KIE music generation model',
+    helpText: 'Default Kie.ai music generation model',
+    type: 'select',
+    options: [], // Will be populated from API
+  },
+  kieLlmModel: {
+    key: 'kieLlmModel',
+    label: 'Kie.ai LLM Model',
+    placeholder: 'claude/claude-sonnet-4-20250514',
+    helpText: 'Default Kie.ai LLM model for scene generation',
     type: 'select',
     options: [], // Will be populated from API
   },

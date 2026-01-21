@@ -26,6 +26,7 @@ export function ApiKeyConfigModal({
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<OperationType | 'all'>(operation || 'all');
   const [kieModels, setKieModels] = useState<Record<string, any[]>>({
+    llm: [],
     image: [],
     video: [],
     tts: [],
@@ -37,14 +38,16 @@ export function ApiKeyConfigModal({
   useEffect(() => {
     async function fetchKieModels() {
       try {
-        const [imageRes, videoRes, ttsRes, musicRes] = await Promise.all([
+        const [llmRes, imageRes, videoRes, ttsRes, musicRes] = await Promise.all([
+          fetch('/api/kie-models?type=llm'),
           fetch('/api/kie-models?type=image'),
           fetch('/api/kie-models?type=video'),
           fetch('/api/kie-models?type=tts'),
           fetch('/api/kie-models?type=music'),
         ]);
 
-        const [imageData, videoData, ttsData, musicData] = await Promise.all([
+        const [llmData, imageData, videoData, ttsData, musicData] = await Promise.all([
+          llmRes.json(),
           imageRes.json(),
           videoRes.json(),
           ttsRes.json(),
@@ -52,6 +55,7 @@ export function ApiKeyConfigModal({
         ]);
 
         setKieModels({
+          llm: llmData.models || [],
           image: imageData.models || [],
           video: videoData.models || [],
           tts: ttsData.models || [],
@@ -59,6 +63,12 @@ export function ApiKeyConfigModal({
         });
 
         // Update API_KEY_FIELDS with fetched KIE models
+        if (llmData.models?.length) {
+          API_KEY_FIELDS.kieLlmModel.options = llmData.models.map((m: any) => ({
+            value: m.modelId,
+            label: m.name,
+          }));
+        }
         if (imageData.models?.length) {
           API_KEY_FIELDS.kieImageModel.options = imageData.models.map((m: any) => ({
             value: m.modelId,
@@ -127,7 +137,9 @@ export function ApiKeyConfigModal({
     const newValues = { ...values, [key]: value };
 
     // Auto-set provider when a model is selected
-    if (key === 'kieTtsModel' && value) {
+    if (key === 'kieLlmModel' && value) {
+      newValues.llmProvider = 'kie';
+    } else if (key === 'kieTtsModel' && value) {
       newValues.ttsProvider = 'kie';
     } else if (key === 'kieImageModel' && value) {
       newValues.imageProvider = 'kie';
