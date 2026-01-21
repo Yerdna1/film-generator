@@ -19,6 +19,8 @@ export interface ProviderConfig {
   apiKeyField?: string;
   modelField?: string;
   modelOptions?: { value: string; label: string }[];
+  defaultModel?: string;  // Predefined default model for this provider
+  isDefault?: boolean;    // Whether this is the default provider for the operation type
   description?: string;
 }
 

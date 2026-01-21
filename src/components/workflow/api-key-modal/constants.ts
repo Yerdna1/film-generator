@@ -1,5 +1,22 @@
 import type { ProviderConfig, ApiKeyField, OperationType } from './types';
 
+// Default provider and model settings for new users
+export const DEFAULT_PROVIDERS: Record<OperationType, string> = {
+  llm: 'kie',
+  image: 'kie',
+  video: 'kie',
+  tts: 'kie',
+  music: 'kie',
+};
+
+export const DEFAULT_MODELS: Record<string, string> = {
+  kieLlmModel: 'claude/claude-sonnet-4-20250514',
+  kieImageModel: 'seedream/4-5-text-to-image',
+  kieVideoModel: 'grok-imagine/image-to-video',
+  kieTtsModel: 'elevenlabs/text-to-dialogue-v3',
+  kieMusicModel: 'suno/v3-5-music',
+};
+
 export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
   llm: [
     {
@@ -9,7 +26,9 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieLlmModel',
+      defaultModel: 'claude/claude-sonnet-4-20250514',
       description: 'Multiple LLM models: Claude, GPT-4, Gemini, DeepSeek, etc.',
+      isDefault: true,
     },
     {
       id: 'openrouter',
@@ -55,7 +74,9 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieImageModel',
+      defaultModel: 'seedream/4-5-text-to-image',
       description: 'Multiple models: Seedream, Flux-2, Imagen4, Ideogram, etc.',
+      isDefault: true,
     },
     {
       id: 'gemini',
@@ -85,12 +106,14 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
   video: [
     {
       id: 'kie',
-      name: 'KIE.ai',
+      name: 'Kie.ai',
       icon: '🎬',
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieVideoModel',
+      defaultModel: 'grok-imagine/image-to-video',
       description: 'Multiple models: Grok Imagine, Kling, Sora2, Veo 3.1, etc.',
+      isDefault: true,
     },
     {
       id: 'modal',
@@ -109,7 +132,9 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieTtsModel',
+      defaultModel: 'elevenlabs/text-to-dialogue-v3',
       description: 'ElevenLabs voices via Kie.ai API',
+      isDefault: true,
     },
     {
       id: 'gemini-tts',
@@ -152,7 +177,9 @@ export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
       color: 'orange',
       apiKeyField: 'kieApiKey',
       modelField: 'kieMusicModel',
+      defaultModel: 'suno/v3-5-music',
       description: 'AI music generation via Kie.ai',
+      isDefault: true,
     },
     {
       id: 'piapi',
