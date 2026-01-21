@@ -128,7 +128,7 @@ export interface ApiProvider {
 
 // LLM Provider options for scene generation
 export interface LLMProviderOption {
-  id: 'openrouter' | 'claude-sdk' | 'modal';
+  id: 'openrouter' | 'claude-sdk' | 'modal' | 'kie';
   name: string;
   description: string;
   requiresApiKey: boolean;
@@ -139,8 +139,15 @@ export interface LLMProviderOption {
 
 export const llmProviderOptions: LLMProviderOption[] = [
   {
+    id: 'kie',
+    name: 'KIE.ai (Recommended)',
+    description: 'Multiple LLM models: Claude, GPT-4, Gemini, DeepSeek, etc. Best value.',
+    requiresApiKey: true,
+    apiKeyField: 'kieApiKey',
+  },
+  {
     id: 'openrouter',
-    name: 'OpenRouter (Recommended)',
+    name: 'OpenRouter',
     description: 'Works everywhere - Vercel, local dev, any hosting. Uses Claude models via API.',
     requiresApiKey: true,
     apiKeyField: 'openRouterApiKey',
@@ -163,7 +170,7 @@ export const llmProviderOptions: LLMProviderOption[] = [
 
 // Music Provider options for background music generation
 export interface MusicProviderOption {
-  id: 'piapi' | 'suno' | 'modal';
+  id: 'piapi' | 'suno' | 'modal' | 'kie';
   name: string;
   description: string;
   requiresApiKey: boolean;
@@ -174,9 +181,16 @@ export interface MusicProviderOption {
 
 export const musicProviderOptions: MusicProviderOption[] = [
   {
+    id: 'kie',
+    name: 'KIE.ai (Recommended)',
+    description: 'Multiple music models: Suno v3.5, Udio, etc. Best value and quality.',
+    requiresApiKey: true,
+    apiKeyField: 'kieApiKey',
+  },
+  {
     id: 'piapi',
-    name: 'PiAPI (Recommended)',
-    description: 'Access Suno, Udio, and other music models via unified API. Works everywhere.',
+    name: 'PiAPI',
+    description: 'Access Suno, Udio, and other music models via unified API.',
     requiresApiKey: true,
     apiKeyField: 'piapiApiKey',
   },
