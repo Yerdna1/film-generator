@@ -8,7 +8,6 @@ import type { Character, Project } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
 import type { ImageProvider } from '@/types/project';
 import type { CharacterImageState } from '../types';
-import { GenerateImageDialog } from '../components/GenerateImageDialog';
 
 export function useCharacterImage(project: Project, aspectRatio: AspectRatio, provider: ImageProvider = 'gemini', model?: string) {
   const { updateCharacter } = useProjectStore();

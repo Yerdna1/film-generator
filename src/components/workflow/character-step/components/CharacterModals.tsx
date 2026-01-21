@@ -3,10 +3,10 @@ import {
   EditCharacterDialog,
   ImagePreviewModal,
   CopyPromptsDialog,
-  CharacterImageLoadingModal,
   KieApiKeyModal,
   InsufficientCreditsModal,
 } from '../../character-generator/components';
+import { LoadingModal } from '../../shared';
 import type { Character } from '@/types/project';
 import type { CharacterFormData, EditCharacterData } from '../../character-generator/types';
 import type { AspectRatio } from '@/lib/services/real-costs';
@@ -114,11 +114,12 @@ export function CharacterModals({
       />
 
       {/* Loading Modal */}
-      <CharacterImageLoadingModal
+      <LoadingModal
         isOpen={isGeneratingSingle}
-        current={1}
-        total={1}
-        characterName={generatingCharacterName || undefined}
+        icon="user"
+        title={generatingCharacterName ? `Generating: ${generatingCharacterName}` : 'Generating Character Image'}
+        description="Generating image..."
+        progress={100}
       />
 
       {/* KIE API Key Modal */}

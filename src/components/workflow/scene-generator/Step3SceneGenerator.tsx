@@ -11,9 +11,10 @@ import { getImageCreditCost } from '@/lib/services/credits';
 import type { Scene, ImageProvider } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
-import { Step3Content, GenerateScenesDialog } from './components';
-import type { Step3Props, UserApiKeys } from './types';
+import { Step3Content } from './components';
 import { StepActionBar } from '../shared/StepActionBar';
+import { GenerateConfirmationDialog } from '../shared';
+import type { Step3Props, UserApiKeys } from './types';
 import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
 import { formatCostCompact } from '@/lib/services/real-costs';
@@ -553,15 +554,21 @@ export function Step3SceneGenerator({
       />
 
       {/* Generate Scenes Confirmation Dialog */}
-      <GenerateScenesDialog
+      <GenerateConfirmationDialog
         isOpen={showGenerateDialog}
-        onClose={() => setShowGenerateDialog(false)}
-        onConfirm={handleConfirmGenerateScenes}
-        sceneCount={projectSettings.sceneCount || 12}
+        icon="file"
+        title="Generate Scenes"
+        description={`Confirm generation of ${projectSettings.sceneCount || 12} scenes`}
+        confirmLabel="Generate Scenes"
+        cancelLabel="Cancel"
+        infoItems={[
+          { label: 'Scenes to Generate', value: String(projectSettings.sceneCount || 12) },
+        ]}
         provider={apiKeysData?.llmProvider}
         model={apiKeysData?.openRouterModel}
         isGenerating={isConfirmGenerating}
-        useOwnKey={!!(apiKeysData?.hasOpenRouterKey || apiKeysData?.hasClaudeKey || apiKeysData?.modalLlmEndpoint)}
+        onConfirm={handleConfirmGenerateScenes}
+        onCancel={() => setShowGenerateDialog(false)}
       />
 
       {/* Request Regeneration Dialog */}

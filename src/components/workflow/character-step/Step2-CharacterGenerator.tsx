@@ -28,8 +28,8 @@ import {
   CharacterModals,
 } from './components';
 import { PaymentMethodToggle } from '../PaymentMethodToggle';
-import { GenerateImageDialog } from '../character-generator/components/GenerateImageDialog';
 import { StepActionBar } from '../shared/StepActionBar';
+import { GenerateConfirmationDialog, type InfoItem } from '../shared';
 import { Users, Plus } from 'lucide-react';
 
 export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
@@ -411,16 +411,22 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
       />
 
       {/* Generate Image Confirmation Dialog */}
-      <GenerateImageDialog
+      <GenerateConfirmationDialog
         isOpen={showGenerateDialog}
-        onClose={() => setShowGenerateDialog(false)}
-        onConfirm={confirmGenerateImage}
-        characterName={pendingCharacter?.name || ''}
+        icon="image"
+        title="Generate Character Image"
+        description={`Confirm image generation for ${pendingCharacter?.name || 'character'}`}
+        confirmLabel="Generate Image"
+        cancelLabel="Cancel"
+        infoItems={[
+          { label: 'Resolution', value: (settings.imageResolution || '2k').toUpperCase() },
+          { label: 'Aspect Ratio', value: characterAspectRatio },
+        ]}
         provider={characterImageProvider}
         model={characterImageModel}
         isGenerating={isGeneratingSingle}
-        resolution={settings.imageResolution}
-        aspectRatio={characterAspectRatio}
+        onConfirm={confirmGenerateImage}
+        onCancel={() => setShowGenerateDialog(false)}
       />
     </div>
   );

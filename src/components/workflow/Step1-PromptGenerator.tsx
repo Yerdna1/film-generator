@@ -7,7 +7,7 @@ import { SettingsPanel } from './step1/SettingsPanel';
 import { StoryForm } from './step1/StoryForm';
 import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
-import { LoadingModal } from './step1/LoadingModal';
+import { LoadingModal } from './shared';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
 import { useStep1State, useStep1Handlers } from './step1/hooks';
 import type { UnifiedModelConfig } from '@/types/project';

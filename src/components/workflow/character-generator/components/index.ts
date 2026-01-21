@@ -5,6 +5,5 @@ export { ImagePreviewModal } from './ImagePreviewModal';
 export { CopyPromptsDialog } from './CopyPromptsDialog';
 export { ImageGenerationSettings } from './ImageGenerationSettings';
 export { CharacterProgress } from './CharacterProgress';
-export { CharacterImageLoadingModal } from './CharacterImageLoadingModal';
 export { KieApiKeyModal } from './KieApiKeyModal';
 export { InsufficientCreditsModal } from './InsufficientCreditsModal';

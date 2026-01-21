@@ -15,9 +15,9 @@ import {
   VoiceoverHeader,
   SceneVoiceoverList,
   VoiceoverModals,
-  GenerateAudioDialog,
 } from './components';
 import { VoiceSettingsDialog } from '../voiceover-generator/components';
+import { GenerateConfirmationDialog } from '../shared';
 import {
   useDialogueLoader,
   useRegenerationRequests,
@@ -292,15 +292,22 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         onVoiceSettingsChange={handleVoiceSettingsChange}
       />
 
-      <GenerateAudioDialog
+      <GenerateConfirmationDialog
         isOpen={isGenerateAllDialogOpen}
-        onClose={() => setIsGenerateAllDialogOpen(false)}
-        onConfirm={handleConfirmGenerateAll}
-        dialogueCount={allDialogueLines.length}
+        icon="mic"
+        title="Generovať Hlasové Prejavy"
+        description={`Potvrdiť generovanie ${allDialogueLines.length} hlasových prejavov`}
+        confirmLabel="Generovať Všetky Hlasy"
+        cancelLabel="Zrušiť"
+        infoItems={[
+          { label: 'Jazyk', value: voiceSettings.language === 'sk' ? 'Slovenčina' : voiceSettings.language === 'en' ? 'English' : voiceSettings.language },
+          { label: 'Počet replík', value: String(allDialogueLines.length) },
+        ]}
         provider={apiKeysProvider}
         model={apiKeysModel}
-        language={voiceSettings.language}
         isGenerating={isGeneratingAllDialog}
+        onConfirm={handleConfirmGenerateAll}
+        onCancel={() => setIsGenerateAllDialogOpen(false)}
       />
 
       <VoiceoverModals
