@@ -155,6 +155,7 @@ export async function getProviderConfig(
           kieVideoModel: true,
           kieTtsModel: true,
           kieMusicModel: true,
+          kieLlmModel: true,
         },
       });
     }
@@ -165,6 +166,7 @@ export async function getProviderConfig(
     userSettings = await prisma.apiKeys.findUnique({
       where: { userId: userIdToCheck },
       select: {
+        llmProvider: true,
         imageProvider: true,
         videoProvider: true,
         ttsProvider: true,
@@ -182,6 +184,11 @@ export async function getProviderConfig(
         modalImageEditEndpoint: true,
         modalVideoEndpoint: true,
         modalMusicEndpoint: true,
+        kieLlmModel: true,
+        kieImageModel: true,
+        kieVideoModel: true,
+        kieTtsModel: true,
+        kieMusicModel: true,
       },
     });
 
@@ -190,6 +197,27 @@ export async function getProviderConfig(
       const dbMapping = DB_PROVIDER_MAP[type];
       if (dbMapping) {
         provider = userSettings[dbMapping.providerField as keyof typeof userSettings] as ProviderType;
+      }
+    }
+
+    // Get KIE model from user settings if provider is KIE and no model is set yet
+    if (provider === 'kie' && !model && userSettings) {
+      switch (type) {
+        case 'llm':
+          model = userSettings.kieLlmModel as string;
+          break;
+        case 'image':
+          model = userSettings.kieImageModel as string;
+          break;
+        case 'video':
+          model = userSettings.kieVideoModel as string;
+          break;
+        case 'tts':
+          model = userSettings.kieTtsModel as string;
+          break;
+        case 'music':
+          model = userSettings.kieMusicModel as string;
+          break;
       }
     }
 
@@ -396,6 +424,12 @@ async function getKieModel(
       return modelConfig?.apiModelId || requestModel;
     } else if (type === 'music') {
       const modelConfig = await prisma.kieMusicModel.findUnique({
+        where: { modelId: requestModel },
+        select: { apiModelId: true },
+      });
+      return modelConfig?.apiModelId || requestModel;
+    } else if (type === 'llm') {
+      const modelConfig = await prisma.kieLlmModel.findUnique({
         where: { modelId: requestModel },
         select: { apiModelId: true },
       });

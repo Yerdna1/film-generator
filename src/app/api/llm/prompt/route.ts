@@ -116,6 +116,40 @@ async function queryGemini(prompt: string, apiKey: string, model: string = 'gemi
   return text;
 }
 
+// Query KIE.ai LLM API (OpenAI-compatible format)
+async function queryKieLlm(prompt: string, systemPrompt: string, apiKey: string, model: string): Promise<string> {
+  const response = await fetch('https://api.kie.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 8192,
+      temperature: 0.9,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`KIE.ai LLM request failed (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+
+  if (!text) {
+    throw new Error('No text generated from KIE.ai LLM');
+  }
+
+  return text;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { prompt, systemPrompt = '', model, projectId } = await request.json();
@@ -153,10 +187,11 @@ export async function POST(request: NextRequest) {
 
     // Use getProviderConfig to resolve LLM provider with project config priority
     let llmProvider: string;
-    let openRouterApiKey: string | undefined;
+    let providerApiKey: string | undefined;
     let llmModel: string;
     let modalLlmEndpoint: string | undefined;
     let geminiApiKey: string | undefined;
+    let kieApiKey: string | undefined;
     let isUsingOwnKey = false;
     let isFreeGeminiModel = false;
 
@@ -168,15 +203,16 @@ export async function POST(request: NextRequest) {
       });
 
       llmProvider = providerConfig.provider;
-      openRouterApiKey = providerConfig.apiKey || undefined;
+      providerApiKey = providerConfig.apiKey || undefined;
       llmModel = model || providerConfig.model || DEFAULT_OPENROUTER_MODEL;
+      isUsingOwnKey = providerConfig.userHasOwnApiKey || false;
 
-      // Check if user provided their own OpenRouter key
-      if (llmProvider === 'openrouter' && openRouterApiKey) {
-        isUsingOwnKey = true;
+      // For KIE provider, copy the API key to kieApiKey for consistency
+      if (llmProvider === 'kie' && providerApiKey) {
+        kieApiKey = providerApiKey;
       }
 
-      console.log(`[LLM Prompt] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId || 'none'}`);
+      console.log(`[LLM Prompt] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId || 'none'}, userHasOwnKey: ${isUsingOwnKey}`);
     } catch (configError) {
       // Fallback to legacy behavior if getProviderConfig fails (e.g., no API key)
       console.log(`[LLM Prompt] getProviderConfig failed, using legacy fallback: ${configError}`);
@@ -186,14 +222,16 @@ export async function POST(request: NextRequest) {
       });
 
       llmProvider = userApiKeys?.llmProvider || 'openrouter';
-      openRouterApiKey = userApiKeys?.openRouterApiKey || undefined;
+      providerApiKey = userApiKeys?.openRouterApiKey || undefined;
       llmModel = model || userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
       modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
       geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
+      kieApiKey = userApiKeys?.kieApiKey || process.env.KIE_API_KEY;
 
-      if (llmProvider === 'openrouter' && openRouterApiKey) isUsingOwnKey = true;
+      if (llmProvider === 'openrouter' && providerApiKey) isUsingOwnKey = true;
+      if (llmProvider === 'kie' && kieApiKey && userApiKeys?.kieApiKey) isUsingOwnKey = true;
       if (llmProvider === 'modal' && modalLlmEndpoint) isUsingOwnKey = true;
-      if (llmProvider === 'gemini' && userApiKeys?.geminiApiKey) isUsingOwnKey = true; // Use check against DB value, not env fallback
+      if (llmProvider === 'gemini' && userApiKeys?.geminiApiKey) isUsingOwnKey = true;
     }
 
     // Check for free Gemini models override
@@ -252,8 +290,11 @@ export async function POST(request: NextRequest) {
     }
 
     // For premium/admin users without their own key, use default system key
-    if (!openRouterApiKey && (isPremiumUser || isAdmin)) {
-      openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    if (llmProvider === 'openrouter' && !providerApiKey && (isPremiumUser || isAdmin)) {
+      providerApiKey = process.env.OPENROUTER_API_KEY;
+    }
+    if (llmProvider === 'kie' && !kieApiKey && (isPremiumUser || isAdmin)) {
+      kieApiKey = process.env.KIE_API_KEY;
     }
 
     // Get Modal endpoint if needed
@@ -276,11 +317,34 @@ export async function POST(request: NextRequest) {
       if (userApiKeys?.geminiApiKey) isUsingOwnKey = true;
     }
 
+    // Get KIE model if needed (when we already have the key from getProviderConfig)
+    if (llmProvider === 'kie' && kieApiKey && (!llmModel || llmModel === DEFAULT_OPENROUTER_MODEL)) {
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId },
+        select: { kieLlmModel: true },
+      });
+      if (userApiKeys?.kieLlmModel) {
+        llmModel = userApiKeys.kieLlmModel;
+      }
+    }
+
     // Validate API key/endpoint for selected provider
-    if (llmProvider === 'openrouter' && !openRouterApiKey) {
+    if (llmProvider === 'openrouter' && !providerApiKey) {
       return NextResponse.json(
         {
           error: 'OpenRouter API key is required. Premium users can use the default key, or add your own in Settings.',
+          requireApiKey: true,
+          isPremiumUser,
+          isAdmin
+        },
+        { status: 400 }
+      );
+    }
+
+    if (llmProvider === 'kie' && !kieApiKey) {
+      return NextResponse.json(
+        {
+          error: 'KIE.ai API key is required. Please add your own in Settings.',
           requireApiKey: true,
           isPremiumUser,
           isAdmin
@@ -309,10 +373,13 @@ export async function POST(request: NextRequest) {
     if (llmProvider === 'modal') {
       // Use Modal self-hosted LLM endpoint
       fullResponse = await queryModalLLM(prompt, defaultSystemPrompt, modalLlmEndpoint!);
+    } else if (llmProvider === 'kie') {
+      // Use KIE.ai LLM API
+      fullResponse = await queryKieLlm(prompt, defaultSystemPrompt, kieApiKey!, llmModel);
     } else if (llmProvider === 'openrouter') {
       // Use OpenRouter API
       fullResponse = await callOpenRouter(
-        openRouterApiKey!,
+        providerApiKey!,
         defaultSystemPrompt,
         prompt,
         llmModel,
@@ -328,7 +395,7 @@ export async function POST(request: NextRequest) {
         providerName = 'gemini';
       } else {
         return NextResponse.json(
-          { error: 'No LLM provider configured. Please set up OpenRouter or Gemini in Settings.' },
+          { error: 'No LLM provider configured. Please set up OpenRouter, KIE.ai, or Gemini in Settings.' },
           { status: 400 }
         );
       }
