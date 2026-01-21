@@ -28,9 +28,9 @@ export const DEFAULT_CONFIG: UnifiedModelConfig = {
 // Available models
 export const LLM_MODELS = {
   openrouter: [
-    { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)', badge: 'FREE' },
+    { id: 'anthropic/claude-4.5-sonnet', name: 'Claude 4.5 Sonnet', badge: '★ Recommended' },
+    { id: 'google/gemini-2.5-flash-exp', name: 'Gemini 2.5 Flash Exp', badge: 'FAST' },
     { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo', badge: 'PREMIUM' },
-    { id: 'anthropic/claude-sonnet-4.5', name: 'Claude Sonnet 4.5', badge: 'PREMIUM' },
     { id: 'google/gemini-3-pro', name: 'Gemini 3 Pro', badge: 'PREMIUM' },
   ],
   'claude-sdk': [

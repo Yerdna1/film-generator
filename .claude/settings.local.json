@@ -127,7 +127,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(npx prisma db seed:*)",
       "Bash(then grep -i \"KIE_API_KEY\" .env.local)",
-      "Bash(else echo \"No .env.local found\")"
+      "Bash(else echo \"No .env.local found\")",
+      "Bash(npx prisma db pull:*)"
     ]
   }
 }

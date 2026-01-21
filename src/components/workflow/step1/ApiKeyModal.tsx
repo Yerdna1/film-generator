@@ -18,7 +18,6 @@ import {
 // List of FREE OpenRouter models (updated January 2026)
 const FREE_OPENROUTER_MODELS = [
   { id: 'xiaomi/mimo-v2-flash:free', name: 'Xiaomi Mimo V2 Flash', description: 'Top ranked, 256K context' },
-  { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash Exp', description: '1M+ context, very fast' },
   { id: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B', description: 'Latest Google model' },
   { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', description: 'Popular open source' },
   { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1', description: 'Strong reasoning' },

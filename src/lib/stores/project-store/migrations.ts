@@ -1,6 +1,7 @@
 import type { Project, UnifiedModelConfig, ApiConfig } from '@/types/project';
 import type { UserConstants } from './types';
 import { DEFAULT_MODELS } from '@/lib/constants/default-models';
+import { PROVIDER_DEFAULT_MODELS } from '@/lib/constants/provider-model-defaults';
 
 /**
  * Creates a default UnifiedModelConfig from user's API settings and project settings
@@ -16,16 +17,32 @@ export function createModelConfigFromLegacySettings(
     // Map storyModel selection to actual model ID
     const storyModelMapping: Record<string, string> = {
       'gpt-4': 'openai/gpt-4-turbo',
-      'claude-sonnet-4.5': 'anthropic/claude-sonnet-4.5',
-      'gemini-3-pro': 'google/gemini-2.0-flash-exp:free',
+      'claude-sonnet-4.5': 'anthropic/claude-4.5-sonnet',
+      'gemini-3-pro': 'anthropic/claude-4.5-sonnet', // Updated to current OpenRouter default
     };
 
+    // If user has a specific OpenRouter model configured, use it
     if (apiConfig.llmProvider === 'openrouter' && apiConfig.openRouterModel) {
       return apiConfig.openRouterModel;
     }
 
+    // If user has KIE LLM model configured, use it
+    if (apiConfig.llmProvider === 'kie' && apiConfig.kieLlmModel) {
+      return apiConfig.kieLlmModel;
+    }
+
+    // Get the story model or use default
     const storyModel = project.settings?.storyModel || 'gemini-3-pro';
-    return storyModelMapping[storyModel] || 'google/gemini-2.0-flash-exp:free';
+
+    // If storyModel mapping exists, use it
+    if (storyModelMapping[storyModel]) {
+      return storyModelMapping[storyModel];
+    }
+
+    // Provider-aware fallback based on current provider
+    const provider = apiConfig.llmProvider || 'openrouter';
+
+    return PROVIDER_DEFAULT_MODELS[provider] || PROVIDER_DEFAULT_MODELS.openrouter;
   })();
 
   // Build the unified model configuration

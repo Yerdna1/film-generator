@@ -1,7 +1,3 @@
-// Prisma schema for Film Generator
-// Using Neon PostgreSQL
-// Last forced rebuild: 2026-01-06T16:33:11+01:00
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,22 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// NextAuth.js Models
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -40,95 +34,85 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String    @default("user") // "user" | "admin"
-  costMultiplier Float    @default(1.5)    // Multiplier for cost display (1.0 for admin)
-  isBlocked     Boolean   @default(false)  // Admin can block users
-  isApproved    Boolean   @default(false)  // Admin must approve new users
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts     Account[]
-  sessions     Session[]
-  apiKeys      ApiKeys?
-  projects     Project[]
-  credits      Credits?
-  subscription Subscription?
-  userConstants UserConstants?
-
-  // Collaboration relations
-  projectMemberships ProjectMember[]
-  invitationsSent    ProjectInvitation[] @relation("InvitationsSent")
-  deletionRequests       DeletionRequest[]       @relation("DeletionRequests")
-  deletionReviews        DeletionRequest[]       @relation("DeletionReviews")
-  regenerationRequests   RegenerationRequest[]   @relation("RegenerationRequests")
-  regenerationReviews    RegenerationRequest[]   @relation("RegenerationReviews")
+  id                       String                @id @default(cuid())
+  name                     String?
+  email                    String?               @unique
+  emailVerified            DateTime?
+  image                    String?
+  password                 String?
+  role                     String                @default("user")
+  costMultiplier           Float                 @default(1.5)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  isBlocked                Boolean               @default(false)
+  isApproved               Boolean               @default(false)
+  accounts                 Account[]
+  apiKeys                  ApiKeys?
+  credits                  Credits?
+  deletionRequests         DeletionRequest[]     @relation("DeletionRequests")
+  deletionReviews          DeletionRequest[]     @relation("DeletionReviews")
+  notifications            Notification[]
+  projects                 Project[]
+  invitationsSent          ProjectInvitation[]   @relation("InvitationsSent")
+  projectMemberships       ProjectMember[]
+  promptEditRequests       PromptEditRequest[]   @relation("PromptEditRequests")
+  promptEditReviews        PromptEditRequest[]   @relation("PromptEditReviews")
   regenerationFinalReviews RegenerationRequest[] @relation("RegenerationFinalReviews")
-  promptEditRequests     PromptEditRequest[]     @relation("PromptEditRequests")
-  promptEditReviews      PromptEditRequest[]     @relation("PromptEditReviews")
-  notifications          Notification[]
+  regenerationRequests     RegenerationRequest[] @relation("RegenerationRequests")
+  regenerationReviews      RegenerationRequest[] @relation("RegenerationReviews")
+  sessions                 Session[]
+  subscription             Subscription?
+  userConstants            UserConstants?
 }
 
-// User subscription for payment plans
 model Subscription {
   id                  String    @id @default(cuid())
   userId              String    @unique
   polarCustomerId     String?   @unique
   polarSubscriptionId String?   @unique
-  status              String    @default("free") // "free", "active", "canceled", "past_due"
-  plan                String    @default("free") // "free", "starter", "pro", "studio"
+  status              String    @default("free")
+  plan                String    @default("free")
   currentPeriodEnd    DateTime?
   cancelAtPeriodEnd   Boolean   @default(false)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// User credits for AI generation
 model Credits {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  balance         Int      @default(0)   // Starting credits (from AppConfig)
-  totalSpent      Int      @default(0)   // Total credits spent
-  totalEarned     Int      @default(0)   // Total credits earned/purchased
-  totalRealCost   Float    @default(0)   // Total real USD cost
-  lastUpdated     DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions CreditTransaction[]
+  id            String              @id @default(cuid())
+  userId        String              @unique
+  balance       Int                 @default(0)
+  totalSpent    Int                 @default(0)
+  totalEarned   Int                 @default(0)
+  totalRealCost Float               @default(0)
+  lastUpdated   DateTime            @default(now())
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  transactions  CreditTransaction[]
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Credit transaction history
 model CreditTransaction {
   id          String   @id @default(cuid())
   creditsId   String
-  amount      Int      // Negative for spending, positive for earning
-  realCost    Float    @default(0)  // Actual USD cost for this transaction
-  type        String   // 'image', 'video', 'voiceover', 'scene', 'prompt', 'bonus', 'purchase'
-  provider    String?  // 'gemini', 'elevenlabs', 'grok', 'kie', 'nanoBanana', 'claude'
+  amount      Int
+  realCost    Float    @default(0)
+  type        String
+  provider    String?
   description String?
-  projectId   String?  // Optional reference to project
-  metadata    Json?    // Additional metadata (character count, tokens, etc.)
+  projectId   String?
+  metadata    Json?
   createdAt   DateTime @default(now())
-
-  credits Credits @relation(fields: [creditsId], references: [id], onDelete: Cascade)
+  credits     Credits  @relation(fields: [creditsId], references: [id], onDelete: Cascade)
 
   @@index([creditsId])
   @@index([projectId])
   @@index([type])
   @@index([provider])
-  // OPTIMIZATION: Composite indexes for common query patterns
-  @@index([creditsId, type])              // Filtering by user's credits + type
-  @@index([creditsId, type, projectId])   // Transaction grouping queries
-  @@index([creditsId, createdAt])         // Recent transactions for user
+  @@index([creditsId, type])
+  @@index([creditsId, type, projectId])
+  @@index([creditsId, createdAt])
 }
 
 model VerificationToken {
@@ -139,73 +123,61 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// API Keys stored securely per user
 model ApiKeys {
-  id               String  @id @default(cuid())
-  userId           String  @unique
-  geminiApiKey     String?
-  grokApiKey       String?
-  kieApiKey        String?  // Kie.ai API key for Grok Imagine
-  elevenLabsApiKey String?
-  claudeApiKey     String?
-  openaiApiKey     String?
-  nanoBananaApiKey String?
-  sunoApiKey       String?  // Suno.ai API key for music generation
-  openRouterApiKey String?  // OpenRouter API key for LLM access
-  resendApiKey     String?  // Resend API key for email invitations
-  openRouterModel  String   @default("anthropic/claude-4.5-sonnet") // Selected OpenRouter model
-  piapiApiKey      String?  // PiAPI key for music generation (Suno/Udio via PiAPI)
-  llmProvider      String   @default("kie") // "kie" | "openrouter" | "claude-sdk" | "modal"
-  musicProvider    String   @default("kie") // "kie" | "piapi" | "suno" | "modal"
-  ttsProvider      String   @default("kie") // "kie" | "gemini-tts" | "elevenlabs" | "openai-tts" | "modal"
-  imageProvider    String   @default("kie") // "kie" | "gemini" | "modal" | "modal-edit"
-  videoProvider    String   @default("kie") // "kie" | "modal"
-
-  // Kie.ai model selections
-  kieLlmModel      String?  @default("claude/claude-sonnet-4-20250514")
-  kieImageModel    String?  @default("seedream/4-5-text-to-image")
-  kieVideoModel    String?  @default("grok-imagine/image-to-video")
-  kieTtsModel      String?  @default("elevenlabs/text-to-dialogue-v3")
-  kieMusicModel    String?  @default("suno/v3-5-music")
-
-  // Modal.com self-hosted endpoints
-  modalLlmEndpoint       String?  // e.g., https://your-app--llm.modal.run
-  modalTtsEndpoint       String?  // e.g., https://your-app--tts.modal.run
-  modalImageEndpoint     String?  // e.g., https://your-app--image.modal.run
-  modalImageEditEndpoint String?  // e.g., https://your-app--image-edit.modal.run (Qwen-Image-Edit)
-  modalVideoEndpoint     String?  // e.g., https://your-app--video.modal.run
-  modalMusicEndpoint     String?  // e.g., https://your-app--ace-step.modal.run (ACE-Step)
-  modalVectcutEndpoint   String?  // e.g., https://your-app--vectcut.modal.run (Video composition)
-  preferOwnKeys    Boolean  @default(false)  // User preference to use own API keys instead of credits
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  geminiApiKey           String?
+  grokApiKey             String?
+  kieApiKey              String?
+  elevenLabsApiKey       String?
+  claudeApiKey           String?
+  openaiApiKey           String?
+  nanoBananaApiKey       String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  sunoApiKey             String?
+  llmProvider            String   @default("kie")
+  openRouterApiKey       String?
+  musicProvider          String   @default("kie")
+  piapiApiKey            String?
+  openRouterModel        String   @default("anthropic/claude-4.5-sonnet")
+  imageProvider          String   @default("kie")
+  modalImageEndpoint     String?
+  modalLlmEndpoint       String?
+  modalMusicEndpoint     String?
+  modalTtsEndpoint       String?
+  modalVideoEndpoint     String?
+  ttsProvider            String   @default("kie")
+  videoProvider          String   @default("kie")
+  modalImageEditEndpoint String?
+  resendApiKey           String?
+  modalVectcutEndpoint   String?
+  kieImageModel          String?  @default("seedream/4-5-text-to-image")
+  kieMusicModel          String?  @default("suno/v3-5-music")
+  kieTtsModel            String?  @default("elevenlabs/text-to-dialogue-v3")
+  kieVideoModel          String?  @default("grok-imagine/image-to-video")
+  preferOwnKeys          Boolean  @default(false)
+  kieLlmModel            String?  @default("claude/claude-sonnet-4-20250514")
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Organization API Keys - shared keys for premium/admin users
 model OrganizationApiKeys {
-  id               String  @id @default(cuid())
-  geminiApiKey     String?
-  grokApiKey       String?
-  kieApiKey        String?
-  elevenLabsApiKey String?
-  claudeApiKey     String?
-  openaiApiKey     String?
-  nanoBananaApiKey String?
-  sunoApiKey       String?
-  openRouterApiKey String?
-  piapiApiKey      String?
-
-  // Model selections (defaults for organization)
-  openRouterModel  String   @default("anthropic/claude-4.5-sonnet")
-  kieLlmModel      String?  @default("claude/claude-sonnet-4-20250514")
-  kieImageModel    String?  @default("seedream/4-5-text-to-image")
-  kieVideoModel    String?  @default("grok-imagine/image-to-video")
-  kieTtsModel      String?  @default("elevenlabs/text-to-dialogue-v3")
-  kieMusicModel    String?  @default("suno/v3-5-music")
-
-  // Modal.com self-hosted endpoints
+  id                     String   @id @default(cuid())
+  geminiApiKey           String?
+  grokApiKey             String?
+  kieApiKey              String?
+  elevenLabsApiKey       String?
+  claudeApiKey           String?
+  openaiApiKey           String?
+  nanoBananaApiKey       String?
+  sunoApiKey             String?
+  openRouterApiKey       String?
+  piapiApiKey            String?
+  openRouterModel        String   @default("anthropic/claude-4.5-sonnet")
+  kieImageModel          String?  @default("seedream/4-5-text-to-image")
+  kieVideoModel          String?  @default("grok-imagine/image-to-video")
+  kieTtsModel            String?  @default("elevenlabs/text-to-dialogue-v3")
+  kieMusicModel          String?  @default("suno/v3-5-music")
   modalLlmEndpoint       String?
   modalTtsEndpoint       String?
   modalImageEndpoint     String?
@@ -213,121 +185,103 @@ model OrganizationApiKeys {
   modalVideoEndpoint     String?
   modalMusicEndpoint     String?
   modalVectcutEndpoint   String?
-
-  // Metadata
-  lastUpdatedBy String?   // userId of admin who last updated
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  lastUpdatedBy          String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  kieLlmModel            String?  @default("claude/claude-sonnet-4-20250514")
 }
 
-// Film projects
 model Project {
-  id          String   @id @default(cuid())
-  name        String
-  userId      String
-  style       String   @default("disney-pixar")
-  masterPrompt String? @db.Text
-  currentStep Int      @default(1)
-  isComplete  Boolean  @default(false)
-  visibility  String   @default("private") // "private" | "public"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Rendered video output (persisted after export)
-  renderedVideoUrl String? @db.Text
-  renderedDraftUrl String? @db.Text
-
-  // JSON fields for complex data
-  settings      Json @default("{\"sceneCount\": 12, \"characterCount\": 2, \"aspectRatio\": \"16:9\", \"resolution\": \"hd\", \"imageResolution\": \"2k\", \"voiceLanguage\": \"sk\", \"voiceProvider\": \"gemini-tts\", \"storyModel\": \"claude-sonnet-4.5\"}")
-  story         Json @default("{\"title\": \"\", \"concept\": \"\", \"genre\": \"adventure\", \"tone\": \"heartfelt\", \"setting\": \"\"}")
-  voiceSettings Json @default("{\"language\": \"sk\", \"provider\": \"gemini-tts\", \"characterVoices\": {}}")
-  modelConfig   Json?
-
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  characters Character[]
-  scenes     Scene[]
-
-  // Collaboration relations
-  members              ProjectMember[]
-  invitations          ProjectInvitation[]
+  id                   String                @id @default(cuid())
+  name                 String
+  userId               String
+  style                String                @default("disney-pixar")
+  masterPrompt         String?
+  currentStep          Int                   @default(1)
+  isComplete           Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  settings             Json                  @default("{\"resolution\": \"hd\", \"sceneCount\": 12, \"storyModel\": \"claude-sonnet-4.5\", \"aspectRatio\": \"16:9\", \"voiceLanguage\": \"sk\", \"voiceProvider\": \"gemini-tts\", \"characterCount\": 2, \"imageResolution\": \"2k\"}")
+  story                Json                  @default("{\"tone\": \"heartfelt\", \"genre\": \"adventure\", \"title\": \"\", \"concept\": \"\", \"setting\": \"\"}")
+  voiceSettings        Json                  @default("{\"language\": \"sk\", \"provider\": \"gemini-tts\", \"characterVoices\": {}}")
+  visibility           String                @default("private")
+  renderedDraftUrl     String?
+  renderedVideoUrl     String?
+  modelConfig          Json?
+  characters           Character[]
   deletionRequests     DeletionRequest[]
-  regenerationRequests RegenerationRequest[]
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitations          ProjectInvitation[]
+  members              ProjectMember[]
   promptEditRequests   PromptEditRequest[]
+  regenerationRequests RegenerationRequest[]
+  scenes               Scene[]
 
   @@index([userId])
   @@index([visibility])
-  // OPTIMIZATION: Composite indexes for project list queries
-  @@index([userId, updatedAt])    // User's projects sorted by recent
-  @@index([visibility, updatedAt]) // Public projects listing
+  @@index([userId, updatedAt])
+  @@index([visibility, updatedAt])
 }
 
-// Characters
 model Character {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   projectId         String
   name              String
-  description       String  @db.Text
-  visualDescription String  @db.Text
+  description       String
+  visualDescription String
   personality       String?
-  masterPrompt      String  @db.Text
-  imageUrl          String? @db.Text
+  masterPrompt      String
+  imageUrl          String?
   voiceId           String?
   voiceName         String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
 }
 
-// Scenes
 model Scene {
   id                        String    @id @default(cuid())
   projectId                 String
   number                    Int
   title                     String
-  description               String    @db.Text
-  textToImagePrompt         String    @db.Text
-  imageToVideoPrompt        String    @db.Text
+  description               String
+  textToImagePrompt         String
+  imageToVideoPrompt        String
   cameraShot                String    @default("medium")
-  imageUrl                  String?   @db.Text
-  videoUrl                  String?   @db.Text
-  audioUrl                  String?   @db.Text
+  imageUrl                  String?
+  videoUrl                  String?
+  audioUrl                  String?
   duration                  Int       @default(6)
   dialogue                  Json      @default("[]")
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
-  // Scene locking and image-video sync tracking
-  locked                    Boolean   @default(false)
   imageUpdatedAt            DateTime?
+  locked                    Boolean   @default(false)
   videoGeneratedFromImageAt DateTime?
-  useTtsInVideo             Boolean   @default(true)  // Use TTS audio in video composition
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  useTtsInVideo             Boolean   @default(true)
+  project                   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
-  // OPTIMIZATION: Composite index for ordered scene fetching
   @@index([projectId, number])
 }
 
-// Action costs - stored in database for admin control
-// These define the real USD cost per action and provider
 model ActionCost {
   id          String    @id @default(cuid())
-  actionType  String    // 'image', 'video', 'voiceover', 'scene', 'character', 'prompt', 'music'
-  provider    String    // 'gemini', 'modal', 'modal-edit', 'elevenlabs', 'grok', 'kie', 'claude', etc.
-  model       String?   // Specific model within provider (e.g., 'seedream/4-5', 'kling/v2-6')
-  modality    String?   // e.g., 'text-to-image', 'image-to-image', 'image-to-video'
-  quality     String?   // e.g., '1k', '2k', '4k', 'standard', 'hd', 'fast', 'quality'
-  length      String?   // e.g., '5s', '10s', '30s' (for video models)
-  cost        Float     // Cost in USD
-  description String?   // Human-readable description
+  actionType  String
+  provider    String
+  cost        Float
+  description String?
   isActive    Boolean   @default(true)
-  validFrom   DateTime  @default(now())  // When this pricing becomes effective
-  validTo     DateTime? // When this pricing expires (null = no expiry)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  validFrom   DateTime  @default(now())
+  validTo     DateTime?
+  length      String?
+  modality    String?
+  model       String?
+  quality     String?
 
   @@unique([actionType, provider, model, modality, quality, length])
   @@index([actionType])
@@ -335,62 +289,59 @@ model ActionCost {
   @@index([validFrom])
 }
 
-// Image generation job for background processing via Inngest
 model ImageGenerationJob {
   id              String    @id @default(cuid())
   projectId       String
   userId          String
-  status          String    @default("pending") // pending, processing, completed, completed_with_errors, failed, cancelled
+  status          String    @default("pending")
   totalScenes     Int
   completedScenes Int       @default(0)
   failedScenes    Int       @default(0)
-  progress        Int       @default(0) // 0-100
-  errorDetails    String?   @db.Text
-  imageProvider   String?   // gemini, modal, kie
-  imageModel      String?   // specific model used
+  progress        Int       @default(0)
+  errorDetails    String?
   createdAt       DateTime  @default(now())
   startedAt       DateTime?
   completedAt     DateTime?
+  imageModel      String?
+  imageProvider   String?
 
   @@index([projectId])
   @@index([userId])
   @@index([status])
 }
 
-// Scene generation job for background processing via Inngest
 model SceneGenerationJob {
   id              String    @id @default(cuid())
   projectId       String
   userId          String
-  status          String    @default("pending") // pending, processing, completed, failed
+  status          String    @default("pending")
   totalScenes     Int
   completedScenes Int       @default(0)
-  progress        Int       @default(0) // 0-100
-  errorDetails    String?   @db.Text
-  llmProvider     String?   // openrouter, claude-sdk, modal, gemini
-  llmModel        String?   // specific model used
+  progress        Int       @default(0)
+  errorDetails    String?
   createdAt       DateTime  @default(now())
   startedAt       DateTime?
   completedAt     DateTime?
+  llmModel        String?
+  llmProvider     String?
 
   @@index([projectId])
   @@index([userId])
   @@index([status])
 }
 
-// Video generation job for background processing via Inngest
 model VideoGenerationJob {
   id              String    @id @default(cuid())
   projectId       String
   userId          String
-  status          String    @default("pending") // pending, processing, completed, completed_with_errors, failed, cancelled
+  status          String    @default("pending")
   totalVideos     Int
   completedVideos Int       @default(0)
   failedVideos    Int       @default(0)
-  progress        Int       @default(0) // 0-100
-  errorDetails    String?   @db.Text
-  videoProvider   String?   // kie, modal
-  videoModel      String?   // specific model used
+  progress        Int       @default(0)
+  errorDetails    String?
+  videoProvider   String?
+  videoModel      String?
   createdAt       DateTime  @default(now())
   startedAt       DateTime?
   completedAt     DateTime?
@@ -400,26 +351,25 @@ model VideoGenerationJob {
   @@index([status])
 }
 
-// Video composition job for rendering final videos with VectCutAPI
 model VideoCompositionJob {
   id              String    @id @default(cuid())
   projectId       String
   userId          String
-  status          String    @default("pending") // pending, processing, complete, error
-  progress        Int       @default(0)         // 0-100
-  phase           String?                       // downloading, composing, rendering, uploading
-  outputFormat    String    @default("both")    // mp4, draft, both
-  resolution      String    @default("hd")      // hd, 4k
+  status          String    @default("pending")
+  progress        Int       @default(0)
+  phase           String?
+  outputFormat    String    @default("both")
+  resolution      String    @default("hd")
   includeMusic    Boolean   @default(false)
   includeCaptions Boolean   @default(false)
-  videoUrl        String?   @db.Text            // S3 URL of rendered MP4
-  draftUrl        String?   @db.Text            // S3 URL of zipped CapCut draft
-  srtUrl          String?   @db.Text            // S3 URL of SRT subtitle file
-  errorMessage    String?   @db.Text
+  videoUrl        String?
+  draftUrl        String?
+  srtUrl          String?
+  errorMessage    String?
   creditsCost     Int       @default(0)
   realCost        Float     @default(0)
-  duration        Float     @default(0)         // Final video duration in seconds
-  fileSize        Int       @default(0)         // Final video file size in bytes
+  duration        Float     @default(0)
+  fileSize        Int       @default(0)
   createdAt       DateTime  @default(now())
   startedAt       DateTime?
   completedAt     DateTime?
@@ -429,42 +379,34 @@ model VideoCompositionJob {
   @@index([status])
 }
 
-// ============================================
-// COLLABORATION MODELS
-// ============================================
-
-// Project membership for collaboration
 model ProjectMember {
   id        String   @id @default(cuid())
   projectId String
   userId    String
-  role      String   @default("reader") // "admin" | "collaborator" | "reader"
+  role      String   @default("reader")
   joinedAt  DateTime @default(now())
-  invitedBy String?  // userId of who invited them
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy String?
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@index([projectId])
   @@index([userId])
 }
 
-// Invitations (supports pending invites for non-registered users)
 model ProjectInvitation {
   id         String    @id @default(cuid())
   projectId  String
-  email      String    // Email of invitee
-  role       String    @default("reader") // Role to assign on acceptance
-  token      String    @unique @default(cuid()) // Unique token for invite link
-  invitedBy  String    // userId of inviter
-  expiresAt  DateTime  // 30 days from creation
-  acceptedAt DateTime? // When invitation was accepted
-  status     String    @default("pending") // "pending" | "accepted" | "expired" | "revoked"
+  email      String
+  role       String    @default("reader")
+  token      String    @unique @default(cuid())
+  invitedBy  String
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  status     String    @default("pending")
   createdAt  DateTime  @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  inviter User    @relation("InvitationsSent", fields: [invitedBy], references: [id])
+  inviter    User      @relation("InvitationsSent", fields: [invitedBy], references: [id])
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([email])
@@ -472,63 +414,57 @@ model ProjectInvitation {
   @@index([status])
 }
 
-// Deletion requests requiring admin approval
 model DeletionRequest {
   id          String    @id @default(cuid())
   projectId   String
-  requesterId String    // User requesting deletion
-  targetType  String    // "project" | "scene" | "character" | "video"
-  targetId    String    // ID of item to delete
-  targetName  String?   // Human-readable name for notification
-  reason      String?   // Optional reason
-  status      String    @default("pending") // "pending" | "approved" | "rejected"
-  reviewedBy  String?   // Admin who reviewed
+  requesterId String
+  targetType  String
+  targetId    String
+  targetName  String?
+  reason      String?
+  status      String    @default("pending")
+  reviewedBy  String?
   reviewedAt  DateTime?
-  reviewNote  String?   // Admin's note on decision
+  reviewNote  String?
   createdAt   DateTime  @default(now())
-
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  requester User    @relation("DeletionRequests", fields: [requesterId], references: [id])
-  reviewer  User?   @relation("DeletionReviews", fields: [reviewedBy], references: [id])
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester   User      @relation("DeletionRequests", fields: [requesterId], references: [id])
+  reviewer    User?     @relation("DeletionReviews", fields: [reviewedBy], references: [id])
 
   @@index([projectId])
   @@index([requesterId])
   @@index([status])
 }
 
-// Regeneration requests requiring admin approval
-// Flow: pending → approved → generating → selecting → awaiting_final → completed/rejected
 model RegenerationRequest {
-  id             String    @id @default(cuid())
-  projectId      String
-  requesterId    String    // User requesting regeneration
-  targetType     String    // "image" | "video"
-  targetId       String    // Scene ID (scenes hold both imageUrl and videoUrl)
-  targetName     String?   // Scene title for display
-  reason         String?   // Optional reason for regeneration
-  batchId        String?   // Groups multiple requests for bulk approval (null = single request)
-  // Status flow: pending → approved → generating → selecting → awaiting_final → completed/rejected/failed
-  status         String    @default("pending")
-  maxAttempts    Int       @default(3)  // Maximum regeneration attempts allowed per approval
-  attemptsUsed   Int       @default(0)  // How many regeneration attempts have been used
-  creditsPaid    Int       @default(0)  // Credits prepaid by admin on approval (3x cost)
-  generatedUrls  Json?     // Array of generated image/video URLs from all attempts
-  selectedUrl    String?   // URL selected by collaborator as the best option
-  reviewedBy     String?   // Admin who approved/rejected (initial approval)
-  reviewedAt     DateTime?
-  reviewNote     String?   // Admin's note on decision
-  finalReviewBy  String?   // Admin who did final approval after selection
-  finalReviewAt  DateTime?
-  finalReviewNote String?  // Admin's note on final approval
-  completedAt    DateTime? // When regeneration was completed (final approval given)
-  errorMessage   String?   // Error message if regeneration failed
-  logs           Json?     // Array of log entries for admin visibility [{timestamp, message, type, details}]
-  createdAt      DateTime  @default(now())
-
-  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  requester     User    @relation("RegenerationRequests", fields: [requesterId], references: [id])
-  reviewer      User?   @relation("RegenerationReviews", fields: [reviewedBy], references: [id])
-  finalReviewer User?   @relation("RegenerationFinalReviews", fields: [finalReviewBy], references: [id])
+  id              String    @id @default(cuid())
+  projectId       String
+  requesterId     String
+  targetType      String
+  targetId        String
+  targetName      String?
+  reason          String?
+  status          String    @default("pending")
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNote      String?
+  completedAt     DateTime?
+  errorMessage    String?
+  createdAt       DateTime  @default(now())
+  attemptsUsed    Int       @default(0)
+  maxAttempts     Int       @default(3)
+  finalReviewAt   DateTime?
+  finalReviewBy   String?
+  finalReviewNote String?
+  generatedUrls   Json?
+  selectedUrl     String?
+  creditsPaid     Int       @default(0)
+  logs            Json?
+  batchId         String?
+  finalReviewer   User?     @relation("RegenerationFinalReviews", fields: [finalReviewBy], references: [id])
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester       User      @relation("RegenerationRequests", fields: [requesterId], references: [id])
+  reviewer        User?     @relation("RegenerationReviews", fields: [reviewedBy], references: [id])
 
   @@index([projectId])
   @@index([requesterId])
@@ -537,25 +473,23 @@ model RegenerationRequest {
   @@index([batchId])
 }
 
-// Prompt edit tracking for collaborator changes
 model PromptEditRequest {
-  id           String    @id @default(cuid())
-  projectId    String
-  requesterId  String    // Collaborator who made the edit
-  sceneId      String    // Scene being edited
-  sceneName    String?   // Scene title for display
-  fieldName    String    // "textToImagePrompt" | "imageToVideoPrompt" | "description"
-  oldValue     String    @db.Text // Original prompt value
-  newValue     String    @db.Text // New prompt value
-  status       String    @default("pending") // "pending" | "approved" | "rejected" | "reverted"
-  reviewedBy   String?   // Admin who reviewed
-  reviewedAt   DateTime?
-  reviewNote   String?   // Admin's note on decision
-  createdAt    DateTime  @default(now())
-
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  requester User    @relation("PromptEditRequests", fields: [requesterId], references: [id])
-  reviewer  User?   @relation("PromptEditReviews", fields: [reviewedBy], references: [id])
+  id          String    @id @default(cuid())
+  projectId   String
+  requesterId String
+  sceneId     String
+  sceneName   String?
+  fieldName   String
+  oldValue    String
+  newValue    String
+  status      String    @default("pending")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNote  String?
+  createdAt   DateTime  @default(now())
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester   User      @relation("PromptEditRequests", fields: [requesterId], references: [id])
+  reviewer    User?     @relation("PromptEditReviews", fields: [reviewedBy], references: [id])
 
   @@index([projectId])
   @@index([requesterId])
@@ -563,30 +497,26 @@ model PromptEditRequest {
   @@index([status])
 }
 
-// In-app notifications
 model Notification {
   id        String   @id @default(cuid())
-  userId    String   // Recipient
-  type      String   // "deletion_request" | "invitation" | "role_change" | "request_approved" | "request_rejected" | "regeneration_request" | "regeneration_completed" | "regeneration_failed"
+  userId    String
+  type      String
   title     String
   message   String
-  metadata  Json?    // Additional data (projectId, requestId, etc.)
+  metadata  Json?
   read      Boolean  @default(false)
-  actionUrl String?  // Optional link to relevant page
+  actionUrl String?
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([read])
   @@index([createdAt])
-  // OPTIMIZATION: Composite indexes for notification polling
-  @@index([userId, read])           // Unread notification count
-  @@index([userId, createdAt])      // Recent notifications
-  @@index([userId, read, createdAt]) // Filtered notification queries
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([userId, read, createdAt])
 }
 
-// Key-value settings storage
 model Setting {
   id        String   @id @default(cuid())
   key       String   @unique
@@ -597,191 +527,155 @@ model Setting {
   @@index([key])
 }
 
-// App configuration - admin-controlled settings
 model AppConfig {
-  id        String   @id @default("app-config") // Single row
-  startingCredits Int @default(0) // Credits for new users (0 = no starting credits)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default("app-config")
+  startingCredits Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
-// User-specific constants and preferences
 model UserConstants {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  // Character generation defaults
-  characterImageProvider  String  @default("gemini")  // "gemini" | "modal" | "modal-edit"
-  characterAspectRatio     String  @default("1:1")  // "1:1" | "16:9" | "21:9" | "4:3" | "9:16" | "3:4"
-  // Scene generation defaults
-  sceneImageProvider      String  @default("gemini")  // "gemini" | "modal" | "modal-edit"
-  sceneAspectRatio        String  @default("16:9") // "16:9" | "21:9" | "4:3" | "1:1" | "9:16" | "3:4"
-  sceneImageResolution    String  @default("2k")  // "1k" | "2k" | "4k"
-  // Video generation defaults
-  videoResolution          String  @default("hd")  // "hd" | "4k"
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  characterAspectRatio   String   @default("1:1")
+  sceneImageResolution   String   @default("2k")
+  sceneAspectRatio       String   @default("16:9")
+  videoResolution        String   @default("hd")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  characterImageProvider String   @default("gemini")
+  sceneImageProvider     String   @default("gemini")
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
-// KIE.ai Model Configuration Tables
-// These tables store all KIE.ai model information fetched from official documentation
-
 model KieImageModel {
-  id                String   @id @default(cuid())
-  modelId           String   @unique // e.g., "google-nano-banana-pro" (internal DB ID)
-  apiModelId        String?  // e.g., "nano-banana-pro" (actual KIE.ai API model ID)
-  name              String
-  provider          String   // e.g., "Google", "Black Forest Labs"
-  baseModel         String?  // e.g., "Gemini 3 Pro Image"
-  description       String?
-  modality          String[] // ["text-to-image", "image-to-image"]
-  credits           Int      // Base credit cost
-  cost              Float    // USD cost
-  qualityOptions    String[] // ["1K", "2K", "4K"]
-  speedVariants     String[] // ["Fast", "Standard", "Ultra"]
-  maxPromptLength   Int?
-  maxImages         Int?
+  id                    String   @id @default(cuid())
+  modelId               String   @unique
+  name                  String
+  provider              String
+  baseModel             String?
+  description           String?
+  modality              String[]
+  credits               Int
+  cost                  Float
+  qualityOptions        String[]
+  speedVariants         String[]
+  maxPromptLength       Int?
+  maxImages             Int?
   supportedAspectRatios String[]
-  inputParameters   Json     // {required: {}, optional: {}}
-  outputParameters  Json     // {formats: [], resolutions: []}
-  constraints       Json?    // {maxFileSize: "10MB", ...}
-  keyFeatures       String[] // ["4K support", "Text rendering"]
-  useCases          String[] // ["E-commerce", "Advertising"]
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  inputParameters       Json
+  outputParameters      Json
+  constraints           Json?
+  keyFeatures           String[]
+  useCases              String[]
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  apiModelId            String?
 
   @@map("kie_image_models")
 }
 
 model KieVideoModel {
-  id                      String   @id @default(cuid())
-  modelId                 String   @unique // e.g., "grok-imagine/image-to-video" (internal DB ID)
-  apiModelId              String?  // e.g., "grok-imagine/image-to-video" (actual KIE.ai API model ID)
-  name                    String
-  provider                String
-  description             String?
-  modality                String[] // ["image-to-video", "text-to-video"]
-  quality                 String?  // "fast", "standard", "pro"
-  length                  String?  // "5s", "10s"
-
-  // Pricing - base credits
-  credits                 Int
-  cost                    Float
-
-  // Video-specific parameters
-  supportedResolutions    String[] // ["720p", "1080p", "4K", "768P"]
-  supportedDurations      String[] // ["5s", "10s", "15s", "30s"]
-  supportedAspectRatios   String[] // ["16:9", "9:16", "1:1"]
-  defaultResolution       String
-  defaultDuration         String
-  defaultAspectRatio      String
-
-  // Pricing matrix (resolution-duration combinations)
-  pricing                 Json     // {"720p-5s": 17, "720p-10s": 33}
-
-  // Resolution-duration constraints
-  resolutionDurationConstraints Json? // {"720p": ["5s", "10s"], "1080p": ["5s"]}
-
-  // Input/output parameters
-  inputParameters         Json?
-  outputParameters        Json?
-
-  // Additional metadata
-  keyFeatures             String[]
-  constraints             Json?
-  isActive                Boolean  @default(true)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                            String   @id @default(cuid())
+  modelId                       String   @unique
+  name                          String
+  provider                      String
+  description                   String?
+  modality                      String[]
+  quality                       String?
+  length                        String?
+  credits                       Int
+  cost                          Float
+  supportedResolutions          String[]
+  supportedDurations            String[]
+  supportedAspectRatios         String[]
+  defaultResolution             String
+  defaultDuration               String
+  defaultAspectRatio            String
+  pricing                       Json
+  resolutionDurationConstraints Json?
+  inputParameters               Json?
+  outputParameters              Json?
+  keyFeatures                   String[]
+  constraints                   Json?
+  isActive                      Boolean  @default(true)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+  apiModelId                    String?
 
   @@map("kie_video_models")
 }
 
 model KieTtsModel {
-  id                    String   @id @default(cuid())
-  modelId               String   @unique // e.g., "elevenlabs/text-to-dialogue-v3" (internal DB ID)
-  apiModelId            String?  // e.g., "elevenlabs/text-to-dialogue-v3" (actual KIE.ai API model ID)
-  name                  String
-  provider              String
-  description           String?
-  modality              String[] // ["text-to-speech", "speech-to-text", ...]
-  credits               Int
-  cost                  Float
-  costUnit              String?  // "per_request", "per_1000_chars", "per_minute"
-
-  // Language and voice support
-  supportedLanguages    Int      // Number of languages
-  languageList          String[] // ["English", "Spanish", ...]
-  voiceOptions          String[] // ["Rachel", "Aria", ...]
-
-  // Audio specifications
-  audioQualityOptions   Json     // {mp3_formats: [], pcm_formats: []}
-  maxTextLength         Int?
-  specialFeatures       String[]
-
-  // Parameters
-  inputParameters       Json
-  outputParameters      Json?
-
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  modelId             String   @unique
+  name                String
+  provider            String
+  description         String?
+  credits             Int
+  cost                Float
+  costUnit            String?
+  supportedLanguages  Int
+  languageList        String[]
+  voiceOptions        String[]
+  audioQualityOptions Json
+  maxTextLength       Int?
+  specialFeatures     String[]
+  inputParameters     Json
+  outputParameters    Json?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  modality            String[]
+  apiModelId          String?
 
   @@map("kie_tts_models")
 }
 
 model KieMusicModel {
-  id                    String   @id @default(cuid())
-  modelId               String   @unique // e.g., "suno/v3-5-music" (internal DB ID)
-  apiModelId            String?  // e.g., "suno/v3-5-music" (actual KIE.ai API model ID)
-  name                  String
-  provider              String
-  description           String?
-  credits               Int
-  cost                  Float
-  modality              String[] // ["text-to-music"]
-
-  // Music-specific
-  durationOptions       String[] // ["30s", "60s", "120s"]
-  genreSupport          String[] // ["Pop", "Rock", "Classical", ...]
-
-  inputParameters       Json?
-  outputParameters      Json?
-
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id               String   @id @default(cuid())
+  modelId          String   @unique
+  name             String
+  provider         String
+  description      String?
+  credits          Int
+  cost             Float
+  modality         String[]
+  durationOptions  String[]
+  genreSupport     String[]
+  inputParameters  Json?
+  outputParameters Json?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  apiModelId       String?
 
   @@map("kie_music_models")
 }
 
 model KieLlmModel {
-  id                    String   @id @default(cuid())
-  modelId               String   @unique // e.g., "google/gemini-3-pro" (internal DB ID)
-  apiModelId            String?  // e.g., "google/gemini-3-pro" (actual KIE.ai API model ID)
-  name                  String
-  provider              String
-  description           String?
-  modality              String[] // ["chat", "text-generation", ...]
-  creditsPerToken       Float?
-  creditsPerRequest     Int?
-  cost                  Float
-
-  // LLM specifications
-  contextWindow         Int?
-  maxOutputTokens       Int?
-  supportedLanguages    String[]
-
-  inputParameters       Json?
-  outputParameters      Json?
-  capabilities          String[] // ["function-calling", "streaming", ...]
-
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  modelId            String   @unique
+  name               String
+  provider           String
+  description        String?
+  creditsPerToken    Float?
+  creditsPerRequest  Int?
+  cost               Float
+  contextWindow      Int?
+  maxOutputTokens    Int?
+  supportedLanguages String[]
+  inputParameters    Json?
+  outputParameters   Json?
+  capabilities       String[]
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  modality           String[]
+  apiModelId         String?
 
   @@map("kie_llm_models")
 }
