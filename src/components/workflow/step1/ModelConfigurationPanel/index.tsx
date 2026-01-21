@@ -29,6 +29,13 @@ export function ModelConfigurationPanel({
 
   const [config, setConfig] = useState<UnifiedModelConfig>(getInitialConfig);
 
+  // Sync local state with prop changes (e.g., when modal opens with different project config)
+  useEffect(() => {
+    if (modelConfig) {
+      setConfig(modelConfig);
+    }
+  }, [modelConfig]);
+
   // Config updates are handled by user selection
   // All users can select any provider now
 
