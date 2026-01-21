@@ -14,7 +14,7 @@ import {
   CharacterFormData,
   EditCharacterData,
 } from '../character-generator/types';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { useCharacterImage } from '../character-generator/hooks';
 
 // Hooks

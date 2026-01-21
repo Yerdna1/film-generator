@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { KieImageProvider } from '@/lib/providers/image/kie-provider';
 import type { ImageProvider } from '@/types/project';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 const PRESETS = [
   {

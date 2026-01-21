@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
 import { getUserAccessibleProjectsSummary } from '@/lib/permissions';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 // GET - Fetch all projects for user (owned + shared)
 // OPTIMIZED: Returns summary data only (~1KB per project vs ~50KB full)

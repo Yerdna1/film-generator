@@ -11,7 +11,7 @@ import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import type { ImageProvider } from '@/types/project';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 export const maxDuration = 300; // Allow up to 5 minutes for image generation (Modal cold start can take ~2-3 min)
 

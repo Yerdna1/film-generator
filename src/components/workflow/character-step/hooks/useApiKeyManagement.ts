@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Character } from '@/types/project';
 import type { ImageProvider } from '@/types/project';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 interface ApiKeyState {
   hasKieKey: boolean;

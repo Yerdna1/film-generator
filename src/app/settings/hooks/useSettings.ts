@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import type { ActionCosts } from '../types';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints } from '@/types/project';
 import { DEFAULT_OPENROUTER_MODEL } from '../constants';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { getCurrency, setCurrency as setCurrencyUtil, type Currency } from '@/lib/utils/currency';
 
 export function useSettings() {

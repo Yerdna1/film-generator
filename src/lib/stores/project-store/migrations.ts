@@ -1,6 +1,6 @@
 import type { Project, UnifiedModelConfig, ApiConfig } from '@/types/project';
 import type { UserConstants } from './types';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 /**
  * Creates a default UnifiedModelConfig from user's API settings and project settings

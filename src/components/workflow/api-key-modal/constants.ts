@@ -1,4 +1,5 @@
 import type { ProviderConfig, ApiKeyField, OperationType } from './types';
+import { DEFAULT_MODELS as SHARED_DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 // Default provider and model settings for new users
 export const DEFAULT_PROVIDERS: Record<OperationType, string> = {
@@ -9,13 +10,8 @@ export const DEFAULT_PROVIDERS: Record<OperationType, string> = {
   music: 'kie',
 };
 
-export const DEFAULT_MODELS: Record<string, string> = {
-  kieLlmModel: 'gemini-2.5-flash',
-  kieImageModel: 'grok-imagine/text-to-image',
-  kieVideoModel: 'bytedance/seedance-image-to-video',
-  kieTtsModel: 'elevenlabs/text-to-speech-turbo-2-5',
-  kieMusicModel: 'suno/v3-music',
-};
+// Re-export from shared location for backward compatibility
+export const DEFAULT_MODELS = SHARED_DEFAULT_MODELS;
 
 export const PROVIDER_CONFIGS: Record<OperationType, ProviderConfig[]> = {
   llm: [

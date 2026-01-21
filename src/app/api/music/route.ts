@@ -12,7 +12,7 @@ import { spendCredits, COSTS } from '@/lib/services/credits';
 import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/services/piapi';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { Provider } from '@/lib/services/real-costs';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
 

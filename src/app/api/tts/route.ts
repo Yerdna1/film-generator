@@ -8,7 +8,7 @@ import { spendCredits, COSTS } from '@/lib/services/credits';
 import { calculateVoiceCost } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { TTSProvider } from '@/types/project';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';

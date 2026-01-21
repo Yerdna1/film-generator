@@ -10,7 +10,7 @@ import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { getImageCreditCost } from '@/lib/services/credits';
 import type { Scene, ImageProvider } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
-import { DEFAULT_MODELS } from '@/components/workflow/api-key-modal/constants';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
 import { Step3Content } from './components';
 import { StepActionBar } from '../shared/StepActionBar';
