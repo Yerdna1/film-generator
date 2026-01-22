@@ -78,7 +78,7 @@ export function useCharacterImage(project: Project, aspectRatio: AspectRatio, pr
         [pendingCharacter.id]: { status: 'generating', progress: 30 },
       }));
 
-      const imageResolution = project.modelConfig?.image?.sceneResolution || project.settings?.imageResolution || '2k';
+      const imageResolution = project.settings?.imageResolution || '2k';
       const response = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

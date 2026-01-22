@@ -24,7 +24,6 @@ interface VideoGenerationRequest {
   sceneId?: string;
   skipCreditCheck?: boolean;
   ownerId?: string;
-  videoProvider?: VideoProvider;
   model?: string;
 }
 
@@ -275,7 +274,6 @@ export async function POST(request: NextRequest) {
       sceneId,
       skipCreditCheck = false,
       ownerId,
-      videoProvider: requestProvider,
       model: requestModel
     }: VideoGenerationRequest = await request.json();
 
@@ -292,7 +290,6 @@ export async function POST(request: NextRequest) {
       userId: settingsUserId,
       projectId,
       type: 'video',
-      requestProvider: requestProvider || undefined,
     });
 
     const videoProvider = config.provider;

@@ -29,7 +29,6 @@ interface ImageGenerationRequest {
   sceneId?: string; // Optional scene ID for tracking
   skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
   ownerId?: string; // Use owner's settings instead of session user (for collaborator regeneration)
-  imageProvider?: ImageProvider; // Override the default provider from user settings
   model?: string; // Model ID from project model config (for free users)
 }
 
@@ -350,7 +349,6 @@ export async function POST(request: NextRequest) {
       sceneId,
       skipCreditCheck = false,
       ownerId,
-      imageProvider: requestProvider,
       model: requestModel
     }: ImageGenerationRequest = await request.json();
 
@@ -367,7 +365,6 @@ export async function POST(request: NextRequest) {
       userId: settingsUserId,
       projectId,
       type: 'image',
-      requestProvider: requestProvider || undefined,
     });
 
     const imageProvider = config.provider;
@@ -399,36 +396,10 @@ export async function POST(request: NextRequest) {
 
     // Special handling for Modal-Edit without reference images
     if (imageProvider === 'modal-edit' && referenceImages.length === 0) {
-      console.log('[Image] No reference images - falling back to Gemini for character generation');
-
-      // Get Gemini API key
-      const geminiConfig = await getProviderConfig({
-        userId: settingsUserId,
-        projectId,
-        type: 'image',
-        requestProvider: 'gemini',
-      });
-
-      if (!geminiConfig.apiKey) {
-        return NextResponse.json(
-          { error: 'Gemini API key required for character generation. Modal-Edit only works with reference images.' },
-          { status: 400 }
-        );
-      }
-
-      const result = await generateWithGemini(
-        prompt,
-        aspectRatio,
-        resolution,
-        projectId,
-        referenceImages,
-        geminiConfig.apiKey,
-        effectiveUserId,
-        realCostUserId,
-        isRegeneration,
-        sceneId
+      return NextResponse.json(
+        { error: 'Modal-Edit requires reference images. Please provide reference images or switch to a different image provider (Gemini, KIE, or Modal) in your settings.' },
+        { status: 400 }
       );
-      return NextResponse.json(result);
     }
 
     // Use Gemini AI SDK for Gemini provider

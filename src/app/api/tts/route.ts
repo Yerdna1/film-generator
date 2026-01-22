@@ -19,7 +19,6 @@ interface TTSRequest {
   voiceName?: string;
   language?: string;
   projectId?: string;
-  provider?: TTSProvider;
   skipCreditCheck?: boolean;
   model?: string;
   // Voice customization settings
@@ -328,7 +327,6 @@ export async function POST(request: NextRequest) {
       voiceName,
       language = 'en',
       projectId,
-      provider: requestProvider,
       skipCreditCheck = false,
       model: requestModel,
       voiceInstructions,
@@ -349,7 +347,6 @@ export async function POST(request: NextRequest) {
       userId: userId || 'system',
       projectId,
       type: 'tts',
-      requestProvider: requestProvider || undefined,
     });
 
     const ttsProvider = config.provider;

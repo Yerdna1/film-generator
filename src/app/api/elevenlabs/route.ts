@@ -36,17 +36,15 @@ export async function POST(request: NextRequest) {
   try {
     const { text, voiceId, projectId, stability = 0.5, similarityBoost = 0.75, style = 0.5 } = await request.json();
 
-    // Get API key from user's database settings or fallback to env
+    // Get API key from user's database settings only
     const session = await auth();
-    let apiKey = process.env.ELEVENLABS_API_KEY;
+    let apiKey: string | undefined;
 
     if (session?.user?.id) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: session.user.id },
       });
-      if (userApiKeys?.elevenLabsApiKey) {
-        apiKey = userApiKeys.elevenLabsApiKey;
-      }
+      apiKey = userApiKeys?.elevenLabsApiKey || undefined;
 
       // Pre-check credit balance before starting generation
       const balanceCheck = await checkBalance(session.user.id, COSTS.VOICEOVER_LINE);
@@ -157,7 +155,16 @@ export async function POST(request: NextRequest) {
 // GET endpoint to list available voices
 export async function GET(request: NextRequest) {
   try {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
+    // Get API key from user's database settings only
+    const session = await auth();
+    let apiKey: string | undefined;
+
+    if (session?.user?.id) {
+      const userApiKeys = await prisma.apiKeys.findUnique({
+        where: { userId: session.user.id },
+      });
+      apiKey = userApiKeys?.elevenLabsApiKey || undefined;
+    }
 
     if (!apiKey) {
       // Return default voices if no API key

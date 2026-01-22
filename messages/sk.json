@@ -1709,7 +1709,9 @@
       "affordableModelsNote": "Najlacnejšie modely pre generovanie postáv. Grok Imagine je najlacnejší!",
       "apiKeyLabel": "KIE AI API kľúč",
       "apiKeyPlaceholder": "Váš KIE AI API kľúč",
-      "creditsNote": "Obrázky použijú kredity z vášho KIE AI účtu"
+      "creditsNote": "Obrázky použijú kredity z vášho KIE AI účtu",
+      "saving": "Ukladám...",
+      "saveAndGenerate": "Uložiť a generovať"
     },
     "kieVideo": {
       "title": "KIE AI API kľúč pre videá",

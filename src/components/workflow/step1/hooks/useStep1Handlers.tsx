@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import type { ApiKeys } from '@prisma/client';
-import type { UnifiedModelConfig } from '@/types/project';
 import { getUserPermissions, checkRequiredApiKeys, shouldUseOwnApiKeys } from '@/lib/client/user-permissions';
 import { storyPresets } from '../story-presets';
 import type { Step1State } from './types';
@@ -68,14 +67,11 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
       // Small delay to ensure all settings are saved
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Use the model from the unified model configuration if available
-      const modelConfig = project.modelConfig;
+      // Use the provider from user's API keys
+      let providerToUse = props.apiKeys?.llmProvider;
 
-      // Get provider first to determine appropriate fallback
-      let providerToUse = modelConfig?.llm?.provider;
-
-      // Determine model to use with provider-aware fallback
-      let modelToUse = modelConfig?.llm?.model;
+      // Determine model to use
+      let modelToUse = props.apiKeys?.kieLlmModel;
       if (!modelToUse && effectiveIsPremium) {
         // Use provider-specific default instead of hardcoded OpenRouter model
         if (storyModel === 'gpt-4') {
@@ -167,11 +163,11 @@ Concept: ${project.story.concept}
 Visual Style: ${project.style}
 
 Technical Settings:
-- Aspect Ratio: ${modelConfig?.image?.sceneAspectRatio || aspectRatio}
-- Video Language: ${modelConfig?.tts?.defaultLanguage || videoLanguage}
-- LLM Model: ${modelConfig?.llm?.model || storyModel}
-- Image Provider: ${modelConfig?.image?.provider || imageProvider}
-- Voice Provider: ${modelConfig?.tts?.provider || voiceProvider}
+- Aspect Ratio: ${aspectRatio}
+- Video Language: ${videoLanguage}
+- LLM Model: ${modelToUse || storyModel}
+- Image Provider: ${props.apiKeys?.imageProvider || imageProvider}
+- Voice Provider: ${props.apiKeys?.ttsProvider || voiceProvider}
 - Characters: ${currentSettings.characterCount}
 - Scenes: ${currentSettings.sceneCount}
 
@@ -225,18 +221,40 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
         }
       }
 
-      // Show insufficient credits error
+      // Handle 402 Payment Required (could be insufficient credits or missing API key)
       if (response.status === 402) {
         const errorData = await response.json();
         setIsGenerating(false);
         setGeneratingModel(undefined);
         setGeneratingProvider(undefined);
 
-        toast({
-          title: "Insufficient Credits",
-          description: errorData.error || "You don't have enough credits to generate the master prompt. Please upgrade your plan.",
-          variant: "destructive",
-        });
+        // Check if it's an API key configuration issue
+        if (errorData.code === 'API_KEY_REQUIRED') {
+          const { apiKeysContext } = props;
+          if (apiKeysContext?.showApiKeyModal) {
+            apiKeysContext.showApiKeyModal({
+              operation: errorData.type || 'llm',
+              missingKeys: [errorData.type || 'llm'],
+              onSuccess: () => {
+                // Retry generation after keys are saved
+                handleGeneratePrompt();
+              }
+            });
+          } else {
+            toast({
+              title: "API Key Required",
+              description: errorData.error || "Please configure your API keys to continue.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          // It's an insufficient credits error
+          toast({
+            title: "Insufficient Credits",
+            description: errorData.error || "You don't have enough credits to generate the master prompt. Please upgrade your plan.",
+            variant: "destructive",
+          });
+        }
         return;
       }
 
@@ -319,8 +337,8 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
         return;
       }
 
-      // Determine model to use - first try project config, then provider default
-      let modelToUse = project.modelConfig?.llm?.model;
+      // Determine model to use from user's API keys
+      let modelToUse = props.apiKeys?.kieLlmModel;
 
       // If no model set, use provider's default model
       if (!modelToUse && providerToUse in PROVIDER_DEFAULT_MODELS) {
@@ -404,17 +422,12 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     });
   }, [store, project.id, setSelectedPresetId]);
 
-  const handleModelConfigChange = useCallback((modelConfig: UnifiedModelConfig) => {
-    store.updateModelConfig(project.id, modelConfig);
-  }, [store, project.id]);
-
   // Modal-related functions removed - all configuration is now in the left panel
 
   return {
     handleGeneratePrompt,
     handleSaveEditedPrompt,
     handleApplyPreset,
-    handleModelConfigChange,
     // Dialog state
     isConfirmDialogOpen,
     setIsConfirmDialogOpen,

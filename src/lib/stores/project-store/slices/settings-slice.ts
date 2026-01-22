@@ -1,11 +1,10 @@
-import type { ProjectSettings, VoiceSettings, ApiConfig, UnifiedModelConfig } from '@/types/project';
+import type { ProjectSettings, VoiceSettings, ApiConfig } from '@/types/project';
 import type { StateCreator } from '../types';
 import { debounceSync } from '../utils';
 import { defaultSettings } from '../defaults';
 
 export interface SettingsSlice {
   updateSettings: (projectId: string, settings: Partial<ProjectSettings>) => void;
-  updateModelConfig: (projectId: string, modelConfig: Partial<UnifiedModelConfig>) => void;
   updateVoiceSettings: (projectId: string, settings: Partial<VoiceSettings>) => void;
   setApiConfig: (config: Partial<ApiConfig>) => void;
 }
@@ -38,48 +37,6 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set, get) => ({
         });
       } catch (error) {
         console.error('Error syncing settings to DB:', error);
-      }
-    });
-  },
-
-  updateModelConfig: (projectId, modelConfig) => {
-    const project = get().projects.find((p) => p.id === projectId);
-    if (!project) return;
-
-    // Deep merge for nested config
-    const updatedModelConfig = project.modelConfig ? {
-      llm: { ...project.modelConfig.llm, ...(modelConfig.llm || {}) },
-      image: { ...project.modelConfig.image, ...(modelConfig.image || {}) },
-      video: { ...project.modelConfig.video, ...(modelConfig.video || {}) },
-      tts: { ...project.modelConfig.tts, ...(modelConfig.tts || {}) },
-      music: { ...project.modelConfig.music, ...(modelConfig.music || {}) },
-    } : modelConfig as UnifiedModelConfig;
-
-    set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === projectId
-          ? { ...p, modelConfig: updatedModelConfig, updatedAt: new Date().toISOString() }
-          : p
-      ),
-      currentProject:
-        state.currentProject?.id === projectId
-          ? { ...state.currentProject, modelConfig: updatedModelConfig, updatedAt: new Date().toISOString() }
-          : state.currentProject,
-    }));
-
-    debounceSync(async () => {
-      try {
-        // Sync to project database
-        await fetch(`/api/projects/${projectId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ modelConfig: updatedModelConfig }),
-        });
-
-        // NOTE: We no longer sync preferences to user's ApiKeys table
-        // modelConfig is now the single source of truth - stored per-project
-      } catch (error) {
-        console.error('Error syncing model config to DB:', error);
       }
     });
   },

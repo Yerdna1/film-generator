@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
       });
 
       llmProvider = userApiKeys?.llmProvider || 'openrouter';
-      openRouterApiKey = userApiKeys?.openRouterApiKey || process.env.OPENROUTER_API_KEY;
+      openRouterApiKey = userApiKeys?.openRouterApiKey || undefined;
       llmModel = userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
       modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
     }

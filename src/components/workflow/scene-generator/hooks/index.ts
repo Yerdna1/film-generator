@@ -23,29 +23,21 @@ export function useSceneGenerator(initialProject: Project) {
   const characters = project.characters || [];
   const projectSettings = project.settings || { sceneCount: 12, imageResolution: '2k' };
 
-  // Aspect ratio state (from model config or project settings)
+  // Aspect ratio state (from project settings)
   const [sceneAspectRatio, setSceneAspectRatio] = useState<AspectRatio>(
-    project.modelConfig?.image?.sceneAspectRatio || projectSettings.aspectRatio || '16:9'
+    projectSettings.aspectRatio || '16:9'
   );
 
-  // Sync aspect ratio when project settings or model config changes
+  // Sync aspect ratio when project settings change
   useEffect(() => {
-    const configAspectRatio = project.modelConfig?.image?.sceneAspectRatio;
-    if (configAspectRatio) {
-      setSceneAspectRatio(configAspectRatio);
-    } else if (projectSettings.aspectRatio) {
+    if (projectSettings.aspectRatio) {
       setSceneAspectRatio(projectSettings.aspectRatio);
     }
-  }, [project.modelConfig?.image?.sceneAspectRatio, projectSettings.aspectRatio]);
+  }, [projectSettings.aspectRatio]);
 
   // Computed values
   const scenesWithImages = scenes.filter((s) => s.imageUrl).length;
-  const imageResolution = project.modelConfig?.image?.sceneResolution || projectSettings.imageResolution || '2k';
-
-  // Get model configuration from project
-  const modelConfig = project.modelConfig;
-  const imageProvider = modelConfig?.image?.provider;
-  const imageModel = modelConfig?.image?.model;
+  const imageResolution = projectSettings.imageResolution || '2k';
 
   // Use sub-hooks for different concerns
   const polling = useScenePolling(project);

@@ -22,7 +22,6 @@ interface MusicGenerationRequest {
   projectId?: string;
   title?: string;
   style?: string;
-  provider?: MusicProvider;
 }
 
 // Helper function to download audio and convert to base64
@@ -237,8 +236,7 @@ export async function POST(request: NextRequest) {
       instrumental = true,
       projectId,
       title,
-      style,
-      provider: requestProvider
+      style
     }: MusicGenerationRequest = await request.json();
 
     if (!prompt) {
@@ -254,7 +252,6 @@ export async function POST(request: NextRequest) {
       userId,
       projectId,
       type: 'music',
-      requestProvider: requestProvider || undefined,
     });
 
     const musicProvider = config.provider as MusicProvider;
@@ -372,7 +369,7 @@ export async function GET(request: NextRequest) {
         include: { apiKeys: true },
       });
 
-      const piapiKey = user?.apiKeys?.piapiApiKey || process.env.PIAPI_API_KEY;
+      const piapiKey = user?.apiKeys?.piapiApiKey;
       if (!piapiKey) {
         return NextResponse.json(
           { error: 'PiAPI key not configured' },

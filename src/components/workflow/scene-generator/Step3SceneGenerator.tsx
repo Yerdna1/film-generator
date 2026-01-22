@@ -156,14 +156,9 @@ export function Step3SceneGenerator({
     updateSettings,
   } = useSceneGenerator(initialProject);
 
-  // Use ONLY apiKeys.imageProvider (from Configure API Keys & Providers modal)
+  // Use image provider and model from user's API keys settings
   const imageProvider: ImageProvider = (apiKeysImageProvider || 'kie') as ImageProvider;
-
-  // Use project's modelConfig.model if provider matches, otherwise use provider's default
-  const modelConfig = project.modelConfig;
-  const imageModel = (modelConfig?.image?.provider === imageProvider && modelConfig?.image?.model)
-    ? modelConfig.image.model
-    : DEFAULT_MODELS.kieImageModel;
+  const imageModel = apiKeys?.kieImageModel || DEFAULT_MODELS.kieImageModel;
 
   // Collaboration hooks
   const {

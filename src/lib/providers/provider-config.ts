@@ -2,18 +2,6 @@ import { prisma } from '@/lib/db/prisma';
 import { ProviderConfig, ProviderType, GenerationType, ProviderError } from './types';
 import { ImageProvider, VideoProvider, TTSProvider, MusicProvider, LLMProvider } from '@/types/project';
 
-// Environment variable mapping
-const ENV_KEY_MAP: Partial<Record<ProviderType, string>> = {
-  'gemini': 'GEMINI_API_KEY',
-  'modal': 'MODAL_API_KEY',
-  'modal-edit': 'MODAL_API_KEY',
-  'kie': 'KIE_API_KEY',
-  'elevenlabs': 'ELEVENLABS_API_KEY',
-  'openai-tts': 'OPENAI_API_KEY',
-  'piapi': 'PIAPI_API_KEY',
-  'suno': 'SUNO_API_KEY',
-};
-
 // Provider to database field mapping
 const DB_PROVIDER_MAP = {
   image: {
@@ -65,65 +53,92 @@ export interface ProviderConfigOptions {
   userId?: string;
   settingsUserId?: string;
   ownerId?: string;
-  requestProvider?: ProviderType;
-  projectId?: string;
   type: GenerationType;
 }
 
 /**
  * Resolves provider configuration with the following priority:
- * 1. Request-specific provider override
- * 2. Project model configuration (if projectId provided)
- * 3. Organization API keys (for premium/admin users)
- * 4. User settings from database (if settingsUserId provided)
- * 5. Owner settings from database (if ownerId provided)
- * 6. Default from environment variables
+ * 1. User settings from database (if userId provided)
+ * 2. Organization API keys (for premium/admin users)
  */
 export async function getProviderConfig(
   options: ProviderConfigOptions
 ): Promise<ProviderConfig> {
-  const { userId, settingsUserId, ownerId, requestProvider, projectId, type } = options;
+  const { userId, settingsUserId, ownerId, type } = options;
 
-  let provider: ProviderType | undefined = requestProvider;
+  let provider: ProviderType | undefined;
   let apiKey: string | undefined;
   let userHasOwnApiKey = false;
   let endpoint: string | undefined;
   let model: string | undefined;
   let userSettings: any = null;
-  let projectModelConfig: any = null;
 
-  // Priority 1: Request provider is already set
+  const userIdToCheck = settingsUserId || ownerId || userId;
+  let orgSettings: any = null;
 
-  // Priority 2: Check project model configuration if projectId is provided
-  if (projectId && !provider) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+  // Priority 1: Get user's settings including provider preferences
+  if (userIdToCheck) {
+    userSettings = await prisma.apiKeys.findUnique({
+      where: { userId: userIdToCheck },
       select: {
-        modelConfig: true,
+        // Provider preferences
+        llmProvider: true,
+        imageProvider: true,
+        videoProvider: true,
+        ttsProvider: true,
+        musicProvider: true,
+        // KIE model preferences
+        kieLlmModel: true,
+        kieImageModel: true,
+        kieVideoModel: true,
+        kieTtsModel: true,
+        kieMusicModel: true,
+        // API keys
+        geminiApiKey: true,
+        kieApiKey: true,
+        elevenLabsApiKey: true,
+        openaiApiKey: true,
+        piapiApiKey: true,
+        sunoApiKey: true,
+        openRouterApiKey: true,
+        // Modal endpoints
+        modalLlmEndpoint: true,
+        modalTtsEndpoint: true,
+        modalImageEndpoint: true,
+        modalImageEditEndpoint: true,
+        modalVideoEndpoint: true,
+        modalMusicEndpoint: true,
       },
     });
 
-    if (project?.modelConfig) {
-      projectModelConfig = project.modelConfig as any;
-      // Check if project has a specific provider configured for this type
-      if (projectModelConfig[type]?.provider) {
-        provider = projectModelConfig[type].provider as ProviderType;
-        model = projectModelConfig[type]?.model;
+    // Get provider from user settings
+    if (userSettings) {
+      const dbMapping = DB_PROVIDER_MAP[type];
+      provider = userSettings[dbMapping.providerField] as ProviderType;
 
-        // If project is configured to use KIE, it means user has provided their API key
-        if (provider === 'kie') {
-          userHasOwnApiKey = true;
+      // Get KIE model if using KIE provider
+      if (provider === 'kie') {
+        switch (type) {
+          case 'llm':
+            model = userSettings.kieLlmModel;
+            break;
+          case 'image':
+            model = userSettings.kieImageModel;
+            break;
+          case 'video':
+            model = userSettings.kieVideoModel;
+            break;
+          case 'tts':
+            model = userSettings.kieTtsModel;
+            break;
+          case 'music':
+            model = userSettings.kieMusicModel;
+            break;
         }
       }
     }
-  }
 
-  // Priority 3: Check for organization API keys (for premium/admin users)
-  let orgSettings: any = null;
-  const userIdToCheck = settingsUserId || ownerId || userId;
-
-  if (userIdToCheck) {
-    // First check if user is premium or admin
+    // Priority 2: Check for organization API keys (for premium/admin users)
     const user = await prisma.user.findUnique({
       where: { id: userIdToCheck },
       include: {
@@ -135,7 +150,6 @@ export async function getProviderConfig(
     const isPremium = user?.subscription?.plan && user.subscription.plan !== 'free';
 
     if (isAdmin || isPremium) {
-      // Check for organization API keys (actual API keys only, not preferences)
       orgSettings = await prisma.organizationApiKeys.findFirst({
         select: {
           geminiApiKey: true,
@@ -154,35 +168,6 @@ export async function getProviderConfig(
         },
       });
     }
-  }
-
-  // Priority 4 & 5: User's own settings (actual API keys only, not preferences)
-  if (userIdToCheck) {
-    userSettings = await prisma.apiKeys.findUnique({
-      where: { userId: userIdToCheck },
-      select: {
-        geminiApiKey: true,
-        kieApiKey: true,
-        elevenLabsApiKey: true,
-        openaiApiKey: true,
-        piapiApiKey: true,
-        sunoApiKey: true,
-        openRouterApiKey: true,
-        modalLlmEndpoint: true,
-        modalTtsEndpoint: true,
-        modalImageEndpoint: true,
-        modalImageEditEndpoint: true,
-        modalVideoEndpoint: true,
-        modalMusicEndpoint: true,
-      },
-    });
-
-    // Note: Provider preferences are no longer stored in user settings
-    // They are now per-project in modelConfig
-    // If no provider is configured, use DEFAULT_MODEL_CONFIG (handled by caller)
-
-    // Note: KIE model preferences are also no longer stored in user settings
-    // They are now per-project in modelConfig
   }
 
   if (provider) {
@@ -226,33 +211,13 @@ export async function getProviderConfig(
       }
   }
 
-  // Priority 5: Environment defaults
+  // If no provider configured, return error (user must configure providers)
   if (!provider) {
-    // Set default provider based on type
-    switch (type) {
-      case 'image':
-        provider = 'gemini' as ImageProvider;
-        break;
-      case 'video':
-        provider = 'kie' as VideoProvider;
-        break;
-      case 'tts':
-        provider = 'gemini-tts' as TTSProvider;
-        break;
-      case 'music':
-        provider = 'piapi' as MusicProvider;
-        break;
-      case 'llm':
-        provider = 'openrouter' as LLMProvider;
-        break;
-    }
-  }
-
-  if (!apiKey) {
-    const envKey = ENV_KEY_MAP[provider];
-    if (envKey) {
-      apiKey = process.env[envKey];
-    }
+    throw new ProviderError(
+      `No ${type} provider configured. Please configure your providers in settings.`,
+      'NO_PROVIDER_CONFIGURED',
+      undefined
+    );
   }
 
   // Get Modal endpoints if applicable
@@ -276,7 +241,7 @@ export async function getProviderConfig(
     } : undefined;
 
     // Prefer organization endpoints, fallback to user endpoints
-    endpoint = await getModalEndpoint(type, projectId, orgEndpoints || userEndpoints);
+    endpoint = await getModalEndpoint(type, orgEndpoints || userEndpoints);
   }
 
   // Get model configuration for KIE providers
@@ -302,14 +267,13 @@ export async function getProviderConfig(
 }
 
 /**
- * Get Modal endpoint from user settings, project config, or environment
+ * Get Modal endpoint from user or organization settings
  */
 async function getModalEndpoint(
   type: GenerationType,
-  projectId?: string,
   userEndpoints?: Record<string, string | null>
 ): Promise<string | undefined> {
-  // First check user endpoints if provided
+  // Check user/org endpoints if provided
   if (userEndpoints) {
     switch (type) {
       case 'image':
@@ -328,34 +292,7 @@ async function getModalEndpoint(
     }
   }
 
-  // Check project model config
-  if (projectId) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        modelConfig: true,
-      },
-    });
-
-    if (project?.modelConfig) {
-      const config = project.modelConfig as any;
-      if (config[type]?.modalEndpoint) {
-        return config[type].modalEndpoint;
-      }
-    }
-  }
-
-  // Fall back to environment variables
-  switch (type) {
-    case 'image':
-      return process.env.MODAL_IMAGE_ENDPOINT;
-    case 'video':
-      return process.env.MODAL_VIDEO_ENDPOINT;
-    case 'tts':
-      return process.env.MODAL_TTS_ENDPOINT;
-    case 'music':
-      return process.env.MODAL_MUSIC_ENDPOINT;
-  }
+  return undefined;
 }
 
 /**

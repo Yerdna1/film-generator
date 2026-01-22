@@ -58,32 +58,17 @@ export async function POST(request: NextRequest) {
         type: 'llm',
       });
     } catch (error) {
-      console.log('[LLM Prompt] getProviderConfig failed, using defaults:', error);
-      // For premium/admin users, we can fallback to system keys
-      if (isPremiumUser || isAdmin) {
-        const userSettings = await prisma.apiKeys.findUnique({
-          where: { userId },
-          select: {
-            llmProvider: true,
-            openRouterModel: true,
-            kieLlmModel: true,
-            modalLlmEndpoint: true,
-          },
-        });
-
-        config = {
-          provider: userSettings?.llmProvider || 'kie',
-          model: model || userSettings?.openRouterModel || userSettings?.kieLlmModel || 'gemini-2.5-flash',
-          apiKey: process.env.KIE_API_KEY || process.env.OPENROUTER_API_KEY,
-          endpoint: userSettings?.modalLlmEndpoint,
-          userHasOwnApiKey: false,
-        };
-      } else {
-        return NextResponse.json(
-          { error: 'API configuration required. Please configure your API keys in Settings.' },
-          { status: 403 }
-        );
-      }
+      // Return error indicating API key configuration is required
+      return NextResponse.json(
+        {
+          error: error instanceof Error && error.message.includes('NO_PROVIDER_CONFIGURED')
+            ? 'No LLM provider configured. Please configure your providers in settings.'
+            : 'API configuration required. Please configure your API keys in Settings.',
+          code: 'API_KEY_REQUIRED',
+          type: 'llm'
+        },
+        { status: 402 }
+      );
     }
 
     const isUsingOwnKey = config.userHasOwnApiKey || false;

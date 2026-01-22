@@ -28,17 +28,15 @@ export async function POST(request: NextRequest) {
   try {
     const { prompt, aspectRatio = '1:1', resolution = '2k', projectId, referenceImages = [] }: ImageGenerationRequest = await request.json();
 
-    // Get API key from user's database settings or fallback to env
-    let apiKey = process.env.GEMINI_API_KEY;
-
+    // Get API key from user's database settings only
     const session = await auth();
+    let apiKey: string | undefined;
+
     if (session?.user?.id) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: session.user.id },
       });
-      if (userApiKeys?.geminiApiKey) {
-        apiKey = userApiKeys.geminiApiKey;
-      }
+      apiKey = userApiKeys?.geminiApiKey || undefined;
 
       // Pre-check credit balance before starting generation
       const creditCost = getImageCreditCost(resolution);

@@ -41,15 +41,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get API key from user's database settings or fallback to env
-    let apiKey = process.env.GEMINI_API_KEY;
-
+    // Get API key from user's database settings only
     const userApiKeys = await prisma.apiKeys.findUnique({
       where: { userId },
     });
-    if (userApiKeys?.geminiApiKey) {
-      apiKey = userApiKeys.geminiApiKey;
-    }
+
+    const apiKey = userApiKeys?.geminiApiKey;
 
     if (!apiKey) {
       return NextResponse.json(

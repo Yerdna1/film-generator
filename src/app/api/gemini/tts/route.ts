@@ -67,17 +67,15 @@ export async function POST(request: NextRequest) {
   try {
     const { text, voiceName = 'Aoede', language = 'sk', projectId } = await request.json();
 
-    // Get API key from user's database settings or fallback to env
+    // Get API key from user's database settings only
     const session = await auth();
-    let apiKey = process.env.GEMINI_API_KEY;
+    let apiKey: string | undefined;
 
     if (session?.user?.id) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: session.user.id },
       });
-      if (userApiKeys?.geminiApiKey) {
-        apiKey = userApiKeys.geminiApiKey;
-      }
+      apiKey = userApiKeys?.geminiApiKey || undefined;
 
       // Pre-check credit balance before starting generation
       const balanceCheck = await checkBalance(session.user.id, COSTS.VOICEOVER_LINE);

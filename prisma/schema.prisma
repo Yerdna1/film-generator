@@ -207,7 +207,6 @@ model Project {
   visibility           String                @default("private")
   renderedDraftUrl     String?
   renderedVideoUrl     String?
-  modelConfig          Json?
   characters           Character[]
   deletionRequests     DeletionRequest[]
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)

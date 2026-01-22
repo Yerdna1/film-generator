@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
 import { getUserAccessibleProjectsSummary } from '@/lib/permissions';
-import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
 
 // GET - Fetch all projects for user (owned + shared)
 // OPTIMIZED: Returns summary data only (~1KB per project vs ~50KB full)
@@ -96,9 +95,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, style, settings, story, voiceSettings } = body;
 
-    // New projects get default configuration
-    const modelConfig = DEFAULT_MODEL_CONFIG;
-
     const project = await prisma.project.create({
       data: {
         name: name || 'New Project',
@@ -124,7 +120,6 @@ export async function POST(request: NextRequest) {
           provider: 'gemini-tts',
           characterVoices: {},
         },
-        modelConfig: modelConfig as any, // Initialize with default configuration
       },
       include: {
         characters: true,
@@ -145,7 +140,6 @@ export async function POST(request: NextRequest) {
       settings: project.settings as object,
       story: project.story as object,
       voiceSettings: project.voiceSettings as object,
-      modelConfig: project.modelConfig as object,
       characters: [],
       scenes: [],
     };

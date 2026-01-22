@@ -7,7 +7,6 @@ import type {
   StoryConfig,
   VoiceSettings,
   ApiConfig,
-  UnifiedModelConfig,
 } from '@/types/project';
 
 export interface UserConstants {
@@ -61,9 +60,6 @@ export interface ProjectActions {
 
   // Settings actions
   updateSettings: (projectId: string, settings: Partial<ProjectSettings>) => void;
-
-  // Model configuration actions
-  updateModelConfig: (projectId: string, modelConfig: Partial<UnifiedModelConfig>) => void;
 
   // Voice actions
   updateVoiceSettings: (projectId: string, settings: Partial<VoiceSettings>) => void;

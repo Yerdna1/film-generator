@@ -56,16 +56,10 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
   const [pendingCharacter, setPendingCharacter] = useState<Character | null>(null);
 
-  // Use ONLY apiKeys.imageProvider (from Configure API Keys & Providers modal)
+  // Use image provider and model from user's API keys settings
   const characterImageProvider = (apiKeys?.imageProvider || 'kie') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
-
-  // Use project's modelConfig.model if set and provider matches, otherwise use provider's default
-  const modelConfig = project.modelConfig;
-  const characterImageModel = (modelConfig?.image?.provider === characterImageProvider && modelConfig?.image?.model)
-    ? modelConfig.image.model
-    : DEFAULT_MODELS.kieImageModel;
-
-  const characterAspectRatio = (modelConfig?.image?.characterAspectRatio || userConstants?.characterAspectRatio || '1:1') as AspectRatio;
+  const characterImageModel = apiKeys?.kieImageModel || DEFAULT_MODELS.kieImageModel;
+  const characterAspectRatio = (userConstants?.characterAspectRatio || '1:1') as AspectRatio;
 
   // Character management hooks
   const {

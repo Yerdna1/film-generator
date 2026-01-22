@@ -614,7 +614,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         onConfirm={handleConfirmGeneration}
         operation="video"
         provider={apiKeysData?.videoProvider || 'kie'}
-        model={project.modelConfig?.video?.model || apiKeysData?.kieVideoModel || 'default'}
+        model={apiKeysData?.kieVideoModel || 'default'}
         title={
           confirmDialogType === 'single'
             ? 'Generate Video'

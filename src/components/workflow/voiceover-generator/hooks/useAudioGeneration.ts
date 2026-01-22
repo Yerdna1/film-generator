@@ -68,11 +68,10 @@ export function useAudioGeneration({ project, apiKeys }: UseAudioGenerationProps
         [lineId]: { status: 'generating', progress: 30 },
       }));
 
-      // Use ONLY apiKeys.ttsProvider (from Configure API Keys & Providers modal)
+      // Use TTS provider from user's API keys settings
       // When skipCreditCheck is true, force provider to 'kie' (user's own API key)
       let provider = apiKeys?.ttsProvider || 'gemini-tts';
-      const modelConfig = freshProject?.modelConfig || project.modelConfig;
-      const ttsModel = modelConfig?.tts?.model;
+      const ttsModel = apiKeys?.kieTtsModel;
       if (skipCreditCheck) {
         provider = 'kie';
       }
@@ -102,7 +101,7 @@ export function useAudioGeneration({ project, apiKeys }: UseAudioGenerationProps
           text: line.text,
           voiceName: getValidGeminiVoice(voiceId),
           voiceId,
-          language: modelConfig?.tts?.defaultLanguage || project.voiceSettings?.language || 'sk',
+          language: project.voiceSettings?.language || 'sk',
           provider,
           ...(ttsModel && { model: ttsModel }), // Include TTS model if specified
           projectId: project.id,

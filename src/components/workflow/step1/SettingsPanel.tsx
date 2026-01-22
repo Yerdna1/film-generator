@@ -6,8 +6,7 @@ import { Settings2, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import type { Project, UnifiedModelConfig } from '@/types/project';
-import { ModelConfigModal } from './ModelConfigModal';
+import type { Project } from '@/types/project';
 import {
   AspectRatioSelector,
   VideoLanguageSelector,
@@ -29,8 +28,6 @@ interface SettingsPanelProps {
   sceneOptions: readonly number[];
   styleModels: readonly string[];
   videoLanguages: readonly string[];
-  modelConfig?: UnifiedModelConfig;
-  onModelConfigChange?: (config: UnifiedModelConfig) => void;
   isPremiumUser?: boolean;
 }
 
@@ -48,29 +45,14 @@ export function SettingsPanel({
   sceneOptions,
   styleModels,
   videoLanguages,
-  modelConfig,
-  onModelConfigChange,
   isPremiumUser = false,
 }: SettingsPanelProps) {
   const t = useTranslations();
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="glass rounded-xl p-4 space-y-4 lg:col-span-1">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-purple-400">{t('project.settings.title')}</h3>
-        {onModelConfigChange && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsModalOpen(true)}
-            disabled={isReadOnly}
-            className="h-7 text-xs border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10"
-          >
-            <Settings2 className="w-3 h-3 mr-1" />
-            {t('settings.advanced')}
-          </Button>
-        )}
       </div>
 
       {/* Aspect Ratio */}
@@ -122,18 +104,6 @@ export function SettingsPanel({
         isReadOnly={isReadOnly}
       />
 
-      {/* Model Configuration Modal */}
-      {onModelConfigChange && (
-        <ModelConfigModal
-          isOpen={isModalOpen}
-          onSubmit={() => setIsModalOpen(false)}
-          onClose={() => setIsModalOpen(false)}
-          modelConfig={modelConfig}
-          onConfigChange={onModelConfigChange}
-          disabled={isReadOnly}
-          isFreeUser={!isPremiumUser}
-        />
-      )}
     </div>
   );
 }

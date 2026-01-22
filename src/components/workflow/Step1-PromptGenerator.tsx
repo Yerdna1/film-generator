@@ -10,7 +10,6 @@ import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './shared';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
 import { useStep1State, useStep1Handlers } from './step1/hooks';
-import type { UnifiedModelConfig } from '@/types/project';
 import { useApiKeys } from '@/contexts/ApiKeysContext';
 import { PaymentMethodToggle } from './PaymentMethodToggle';
 import { StepActionBar } from './shared/StepActionBar';
@@ -72,18 +71,11 @@ export function Step1PromptGenerator({
     handleGeneratePrompt,
     handleSaveEditedPrompt,
     handleApplyPreset,
-    handleModelConfigChange,
     isConfirmDialogOpen,
     setIsConfirmDialogOpen,
     confirmDialogData,
     doGeneratePrompt,
   } = handlers;
-
-  const handleModelConfigChangeWrapper = (modelConfig: UnifiedModelConfig) => {
-    if (!isReadOnly && project.id) {
-      handleModelConfigChange(modelConfig);
-    }
-  };
 
   const handleSaveApiKey = async (keyName: string, value: string) => {
     const success = await apiKeysContext.updateApiKey(keyName, value);
@@ -128,8 +120,6 @@ export function Step1PromptGenerator({
           sceneOptions={sceneOptions}
           styleModels={styleModels}
           videoLanguages={videoLanguages}
-          modelConfig={project.modelConfig}
-          onModelConfigChange={handleModelConfigChangeWrapper}
           isPremiumUser={effectiveIsPremium}
         />
 

@@ -60,17 +60,15 @@ export async function POST(request: NextRequest) {
       style,
     }: MusicGenerationRequest = await request.json();
 
-    // Get API key from user's database settings or fallback to env
-    let apiKey = process.env.SUNO_API_KEY;
-
+    // Get API key from user's database settings only
     const session = await auth();
+    let apiKey: string | undefined;
+
     if (session?.user?.id) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: session.user.id },
       });
-      if (userApiKeys?.sunoApiKey) {
-        apiKey = userApiKeys.sunoApiKey;
-      }
+      apiKey = userApiKeys?.sunoApiKey || undefined;
 
       // Pre-check credit balance before starting generation
       const balanceCheck = await checkBalance(session.user.id, COSTS.MUSIC_GENERATION);
@@ -157,17 +155,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get API key
-    let apiKey = process.env.SUNO_API_KEY;
-
+    // Get API key from user's database settings only
     const session = await auth();
+    let apiKey: string | undefined;
+
     if (session?.user?.id) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: session.user.id },
       });
-      if (userApiKeys?.sunoApiKey) {
-        apiKey = userApiKeys.sunoApiKey;
-      }
+      apiKey = userApiKeys?.sunoApiKey || undefined;
     }
 
     if (!apiKey) {
