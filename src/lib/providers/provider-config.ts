@@ -53,6 +53,7 @@ export interface ProviderConfigOptions {
   userId?: string;
   settingsUserId?: string;
   ownerId?: string;
+  projectId?: string;
   type: GenerationType;
 }
 
@@ -171,44 +172,44 @@ export async function getProviderConfig(
   }
 
   if (provider) {
-      // First try to get API key from organization settings for premium/admin users
-      if (orgSettings) {
-        const dbMapping = DB_PROVIDER_MAP[type];
-        if (dbMapping?.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields]) {
-          const apiKeyField = dbMapping.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields];
-          apiKey = orgSettings[apiKeyField as keyof typeof orgSettings] as string;
+    // First try to get API key from organization settings for premium/admin users
+    if (orgSettings) {
+      const dbMapping = DB_PROVIDER_MAP[type];
+      if (dbMapping?.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields]) {
+        const apiKeyField = dbMapping.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields];
+        apiKey = orgSettings[apiKeyField as keyof typeof orgSettings] as string;
 
-          // Organization keys are not user's own keys
-          if (apiKey) {
-            userHasOwnApiKey = false;
-          }
-        }
-
-        // Special case for KIE
-        if (provider === 'kie' && !apiKey && orgSettings.kieApiKey) {
-          apiKey = orgSettings.kieApiKey;
+        // Organization keys are not user's own keys
+        if (apiKey) {
           userHasOwnApiKey = false;
         }
       }
 
-      // If no org key found or user is not premium/admin, try user's own settings
-      if (!apiKey && userSettings) {
-        const dbMapping = DB_PROVIDER_MAP[type];
-        if (dbMapping?.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields]) {
-          const apiKeyField = dbMapping.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields];
-          apiKey = userSettings[apiKeyField as keyof typeof userSettings] as string;
-          if (apiKey) {
-            userHasOwnApiKey = true;
-          }
-        }
+      // Special case for KIE
+      if (provider === 'kie' && !apiKey && orgSettings.kieApiKey) {
+        apiKey = orgSettings.kieApiKey;
+        userHasOwnApiKey = false;
+      }
+    }
 
-        // Special case: If project is configured to use KIE but no API key found yet,
-        // and user has a KIE API key in their settings, use it
-        if (provider === 'kie' && !apiKey && userSettings.kieApiKey) {
-          apiKey = userSettings.kieApiKey;
+    // If no org key found or user is not premium/admin, try user's own settings
+    if (!apiKey && userSettings) {
+      const dbMapping = DB_PROVIDER_MAP[type];
+      if (dbMapping?.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields]) {
+        const apiKeyField = dbMapping.apiKeyFields[provider as keyof typeof dbMapping.apiKeyFields];
+        apiKey = userSettings[apiKeyField as keyof typeof userSettings] as string;
+        if (apiKey) {
           userHasOwnApiKey = true;
         }
       }
+
+      // Special case: If project is configured to use KIE but no API key found yet,
+      // and user has a KIE API key in their settings, use it
+      if (provider === 'kie' && !apiKey && userSettings.kieApiKey) {
+        apiKey = userSettings.kieApiKey;
+        userHasOwnApiKey = true;
+      }
+    }
   }
 
   // If no provider configured, return error (user must configure providers)
@@ -216,7 +217,7 @@ export async function getProviderConfig(
     throw new ProviderError(
       `No ${type} provider configured. Please configure your providers in settings.`,
       'NO_PROVIDER_CONFIGURED',
-      undefined
+      'none'
     );
   }
 

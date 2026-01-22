@@ -158,7 +158,7 @@ export function Step3SceneGenerator({
 
   // Use image provider and model from user's API keys settings
   const imageProvider: ImageProvider = (apiKeysImageProvider || 'kie') as ImageProvider;
-  const imageModel = apiKeys?.kieImageModel || DEFAULT_MODELS.kieImageModel;
+  const imageModel = apiKeysData?.kieImageModel || DEFAULT_MODELS.kieImageModel;
 
   // Collaboration hooks
   const {
@@ -364,15 +364,15 @@ export function Step3SceneGenerator({
   // Wrap to prevent click event from being passed as argument
   const doGenerateImages = useInngest
     ? () => {
-        console.log('[Step3] Starting background image generation via Inngest');
-        setShowGenerateImagesDialog(false);
-        return handleStartBackgroundGeneration();
-      }
+      console.log('[Step3] Starting background image generation via Inngest');
+      setShowGenerateImagesDialog(false);
+      return handleStartBackgroundGeneration();
+    }
     : () => {
-        console.log('[Step3] Starting direct image generation');
-        setShowGenerateImagesDialog(false);
-        return handleGenerateAllWithCreditCheck();
-      };
+      console.log('[Step3] Starting direct image generation');
+      setShowGenerateImagesDialog(false);
+      return handleGenerateAllWithCreditCheck();
+    };
 
   // Show confirmation dialog before generating images
   const handleGenerateImages = () => {
