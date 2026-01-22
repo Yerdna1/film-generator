@@ -224,13 +224,16 @@ async function generateWithWrapper(
       // Store for cost calculation later
       kieModelId = rawModelId;
 
+      // KIE uses createTask with model and input structure
       requestBody = {
-        text: prompt,
         model: modelToUse,
-        aspect_ratio: aspectRatio,
-        // Map resolution to KIE format (they expect numeric string like '1024', '2048')
-        resolution: resolution === '2k' ? '2048' : resolution === '4k' ? '4096' : '1024',
-        seed: randomSeed,
+        input: {
+          prompt: prompt,
+          aspect_ratio: aspectRatio,
+          // Additional parameters based on model type
+          ...(modelToUse.includes('ideogram') && { render_text: true }),
+          ...(modelToUse.includes('flux') && { guidance_scale: 7.5 }),
+        },
       };
       break;
 
@@ -257,8 +260,8 @@ async function generateWithWrapper(
 
   // Handle KIE response
   if (provider === 'kie') {
-    // KIE /api/v1/generate/image returns task ID in response.data.taskId
-    const taskId = response.data?.taskId;
+    // KIE createTask returns the response in data field with taskId
+    const taskId = response.data?.data?.taskId;
 
     if (!taskId) {
       console.error('[Image API] KIE response:', JSON.stringify(response.data, null, 2));
@@ -281,7 +284,7 @@ async function generateWithWrapper(
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      const statusResponse = await fetch(`${KIE_API_URL}/api/v1/fetch/image/${taskId}`, {
+      const statusResponse = await fetch(`${KIE_API_URL}/api/v1/jobs/recordInfo?taskId=${taskId}`, {
         headers: {
           'Authorization': `Bearer ${configForPolling.apiKey}`,
         },
@@ -292,20 +295,47 @@ async function generateWithWrapper(
       }
 
       const statusData = await statusResponse.json();
-      const state = statusData.data?.state;
+
+      // Check if we have the expected response structure
+      if (statusData.code !== 200) {
+        throw new Error(statusData.msg || 'Failed to check task status');
+      }
+
+      const taskData = statusData.data;
+      const state = taskData?.state;
 
       console.log(`[KIE] Status: ${state}, attempt ${attempts + 1}/${maxAttempts}`);
 
-      if (state === 'COMPLETED') {
-        imageUrl = statusData.data?.result?.url;
+      if (state === 'success') {
+        // Extract image URL from resultJson
+        if (taskData.resultJson) {
+          try {
+            const result = typeof taskData.resultJson === 'string'
+              ? JSON.parse(taskData.resultJson)
+              : taskData.resultJson;
+            imageUrl = result.resultUrls?.[0] || result.imageUrl || result.image_url || result.url;
+            if (!imageUrl && result.images?.length > 0) {
+              imageUrl = result.images[0];
+            }
+          } catch (e) {
+            console.error('[KIE] Failed to parse resultJson:', e);
+          }
+        }
+
+        // Fallback to direct URL fields
+        if (!imageUrl) {
+          imageUrl = taskData.imageUrl || taskData.image_url || taskData.resultUrl;
+        }
+
         if (!imageUrl) {
           throw new Error('KIE completed but no image URL in result');
         }
         break;
       }
 
-      if (state === 'FAILED') {
-        throw new Error(`KIE task failed: ${statusData.data?.error || 'Unknown error'}`);
+      if (state === 'fail') {
+        const failReason = taskData.fail_reason || taskData.resultJson?.error || 'Unknown error';
+        throw new Error(`KIE task failed: ${failReason}`);
       }
 
       attempts++;
