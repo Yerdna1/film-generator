@@ -5,12 +5,24 @@ import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 import { cache, cacheKeys } from '@/lib/cache';
 import { callExternalApi, pollKieTask } from '@/lib/providers/api-wrapper';
 import { getProviderConfig } from '@/lib/providers';
+import { buildApiUrl } from '@/lib/constants/api-endpoints';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import type { ImageResolution, Provider } from '@/lib/services/real-costs';
 
 // Number of images to generate in parallel
 const PARALLEL_IMAGES = 5;
+
+// KIE model mapping: UI names to API model names
+const KIE_MODEL_MAPPING: Record<string, string> = {
+  'nano-banana-pro': 'google/gemini-3-pro-image-preview',
+  'google-nano-banana-pro': 'google/gemini-3-pro-image-preview',
+  'google-nano-banana-pro-4k': 'google/gemini-3-pro-image-preview',
+  'seedream-4-5': 'seedream/4-5-text-to-image',
+  'seedream/4-5-text-to-image': 'seedream/4-5-text-to-image',
+  'grok-imagine': 'grok-imagine/text-to-image',
+  'flux-pro': 'flux-2/pro-1.1-text-to-image',
+};
 
 // Generate a single image using the API wrapper
 async function generateSingleImage(
@@ -126,23 +138,17 @@ async function generateSingleImage(
           break;
 
         case 'kie':
-          // Query model from database
-          const modelConfig = await prisma.kieImageModel.findUnique({
-            where: { modelId: model || 'nano-banana-pro' }
-          });
-
-          if (!modelConfig || !modelConfig.isActive || !modelConfig.apiModelId) {
-            throw new Error(`Invalid KIE image model: ${model}`);
-          }
+          // Map model name from UI to API format
+          const rawModel = model || 'seedream/4-5-text-to-image';
+          const kieModel = KIE_MODEL_MAPPING[rawModel] || rawModel;
 
           requestBody = {
-            model: modelConfig.apiModelId,
-            input: {
-              prompt: scene.prompt,
-              aspect_ratio: aspectRatio,
-              ...(modelConfig.apiModelId.includes('ideogram') && { render_text: true }),
-              ...(modelConfig.apiModelId.includes('flux') && { guidance_scale: 7.5 }),
-            },
+            text: scene.prompt,
+            model: kieModel,
+            aspect_ratio: aspectRatio,
+            // Map resolution to KIE format (they expect numeric string like '1024', '2048')
+            resolution: resolution === '2k' ? '2048' : resolution === '4k' ? '4096' : '1024',
+            seed: randomSeed,
           };
           break;
 
@@ -165,53 +171,60 @@ async function generateSingleImage(
         throw new Error(response.error);
       }
 
-      // Handle KIE polling
+      // Handle KIE response
       if (provider === 'kie') {
-        const taskId = response.data?.data?.taskId;
+        // KIE /api/v1/generate/image returns task ID in response.data.taskId
+        const taskId = response.data?.taskId;
+
         if (!taskId) {
+          console.error('[Inngest] KIE response:', JSON.stringify(response.data, null, 2));
           throw new Error('KIE AI did not return a task ID');
         }
 
         console.log(`[Inngest] KIE task created: ${taskId}`);
-        const taskData = await pollKieTask(taskId, apiKey!);
 
-        // Extract image URL from result
-        if (taskData.resultJson) {
-          try {
-            const result = typeof taskData.resultJson === 'string'
-              ? JSON.parse(taskData.resultJson)
-              : taskData.resultJson;
-            imageUrl = result.resultUrls?.[0] || result.imageUrl || result.image_url || result.url;
-            if (!imageUrl && result.images?.length > 0) {
-              imageUrl = result.images[0];
+        // Poll for task completion using the same pattern as the working script
+        let attempts = 0;
+        const maxAttempts = 60;
+
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+
+          const statusResponse = await fetch(
+            `${buildApiUrl('kie' as any, `/api/v1/fetch/image/${taskId}`)}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+              },
             }
-          } catch (e) {
-            console.error('[Inngest] Failed to parse KIE resultJson:', e);
+          );
+
+          if (!statusResponse.ok) {
+            throw new Error(`Failed to check KIE status: ${statusResponse.statusText}`);
           }
-        }
 
-        // Fallback to direct URL fields
-        if (!imageUrl) {
-          imageUrl = taskData.imageUrl || taskData.image_url || taskData.resultUrl;
-        }
+          const statusData = await statusResponse.json();
+          const state = statusData.data?.state;
 
-        if (!imageUrl) {
-          throw new Error('KIE completed successfully but did not return an image URL');
-        }
+          console.log(`[Inngest] KIE status: ${state}, attempt ${attempts + 1}/${maxAttempts}`);
 
-        // Upload KIE image to S3 for consistency
-        if (isS3Configured() && imageUrl.startsWith('http')) {
-          console.log(`[Inngest] Uploading KIE image to S3: ${imageUrl}`);
-          try {
-            const imageResponse = await fetch(imageUrl);
-            if (!imageResponse.ok) {
-              throw new Error(`Failed to fetch KIE image: ${imageResponse.status}`);
+          if (state === 'COMPLETED') {
+            imageUrl = statusData.data?.result?.url;
+            if (!imageUrl) {
+              throw new Error('KIE completed but no image URL in result');
             }
-            const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-            imageUrl = `data:image/png;base64,${imageBuffer.toString('base64')}`;
-          } catch (error) {
-            console.error('[Inngest] Failed to download KIE image:', error);
+            break;
           }
+
+          if (state === 'FAILED') {
+            throw new Error(`KIE task failed: ${statusData.data?.error || 'Unknown error'}`);
+          }
+
+          attempts++;
+        }
+
+        if (!imageUrl) {
+          throw new Error('KIE task timed out');
         }
 
       } else {
@@ -249,9 +262,19 @@ async function generateSingleImage(
 
     // Spend credits
     const creditCost = getImageCreditCost(resolution as ImageResolution);
-    const realCost = provider === 'kie' ?
-      (await prisma.kieImageModel.findUnique({ where: { modelId: model || 'nano-banana-pro' } }))?.cost || 0.09 :
-      0.09; // Default cost
+    let realCost = 0.09; // Default cost
+    if (provider === 'kie' && model) {
+      // Set costs based on model
+      if (model.includes('nano-banana')) {
+        realCost = model.includes('4k') ? 0.12 : 0.09;
+      } else if (model.includes('seedream')) {
+        realCost = 0.10; // Seedream 4.5
+      } else if (model.includes('grok')) {
+        realCost = 0.02;
+      } else if (model.includes('flux')) {
+        realCost = 0.15; // Flux Pro
+      }
+    }
 
     await spendCredits(
       userId,

@@ -16,6 +16,17 @@ import type { ImageProvider } from '@/types/project';
 
 export const maxDuration = 300; // Allow up to 5 minutes for image generation (Modal cold start can take ~2-3 min)
 
+// KIE model mapping: UI names to API model names
+const KIE_MODEL_MAPPING: Record<string, string> = {
+  'nano-banana-pro': 'google/gemini-3-pro-image-preview',
+  'google-nano-banana-pro': 'google/gemini-3-pro-image-preview',
+  'google-nano-banana-pro-4k': 'google/gemini-3-pro-image-preview',
+  'seedream-4-5': 'seedream/4-5-text-to-image',
+  'seedream/4-5-text-to-image': 'seedream/4-5-text-to-image',
+  'grok-imagine': 'grok-imagine/text-to-image',
+  'flux-pro': 'flux-2/pro-1.1-text-to-image',
+};
+
 interface ImageGenerationRequest {
   prompt: string;
   aspectRatio?: string;
@@ -197,40 +208,28 @@ async function generateWithWrapper(
       break;
 
     case 'kie':
-      // For KIE, we'll get the model from config
+      // Get model from config
       const config = await getProviderConfig({
         userId: userId || 'system',
         type: 'image'
       });
 
       // Use request model if provided, otherwise use config model
-      const modelToUse = requestModel || config.model;
+      const rawModelId = requestModel || config.model || 'seedream/4-5-text-to-image';
 
-      if (!modelToUse) {
-        throw new Error('No KIE image model specified. Please select a model in your settings.');
-      }
+      // Map model name from UI to API format
+      const modelToUse = KIE_MODEL_MAPPING[rawModelId] || rawModelId;
 
       // Store for cost calculation later
-      kieModelId = modelToUse;
-
-      // Query model from database
-      const modelConfig = await prisma.kieImageModel.findUnique({
-        where: { modelId: modelToUse }
-      });
-
-      if (!modelConfig || !modelConfig.isActive || !modelConfig.apiModelId) {
-        throw new Error(`Invalid or unsupported KIE image model: ${modelToUse}`);
-      }
+      kieModelId = rawModelId;
 
       requestBody = {
-        model: modelConfig.apiModelId,
-        input: {
-          prompt,
-          aspect_ratio: aspectRatio,
-          // Model-specific parameters
-          ...(modelConfig.apiModelId.includes('ideogram') && { render_text: true }),
-          ...(modelConfig.apiModelId.includes('flux') && { guidance_scale: 7.5 }),
-        },
+        text: prompt,
+        model: modelToUse,
+        aspect_ratio: aspectRatio,
+        // Map resolution to KIE format (they expect numeric string like '1024', '2048')
+        resolution: resolution === '2k' ? '2048' : resolution === '4k' ? '4096' : '1024',
+        seed: randomSeed,
       };
       break;
 
@@ -255,42 +254,64 @@ async function generateWithWrapper(
 
   let imageUrl: string | undefined;
 
-  // Handle KIE polling
+  // Handle KIE response
   if (provider === 'kie') {
-    const taskId = response.data?.data?.taskId;
+    // KIE /api/v1/generate/image returns task ID in response.data.taskId
+    const taskId = response.data?.taskId;
+
     if (!taskId) {
+      console.error('[Image API] KIE response:', JSON.stringify(response.data, null, 2));
       throw new Error('KIE AI did not return a task ID');
     }
 
     console.log(`[KIE] Task created: ${taskId}, polling for completion...`);
 
     // Get API key from config for polling
-    const config = await getProviderConfig({
+    const configForPolling = await getProviderConfig({
       userId: userId || 'system',
-
       type: 'image'
     });
 
-    const taskData = await pollKieTask(taskId, config.apiKey!);
+    // Poll for task completion using the same pattern as the working script
+    const KIE_API_URL = 'https://api.kie.ai';
+    let attempts = 0;
+    const maxAttempts = 60;
 
-    // Extract image URL from result
-    if (taskData.resultJson) {
-      try {
-        const result = typeof taskData.resultJson === 'string'
-          ? JSON.parse(taskData.resultJson)
-          : taskData.resultJson;
-        imageUrl = result.resultUrls?.[0] || result.imageUrl || result.image_url || result.url;
-        if (!imageUrl && result.images?.length > 0) {
-          imageUrl = result.images[0];
-        }
-      } catch (e) {
-        console.error('[KIE] Failed to parse resultJson:', e);
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      const statusResponse = await fetch(`${KIE_API_URL}/api/v1/fetch/image/${taskId}`, {
+        headers: {
+          'Authorization': `Bearer ${configForPolling.apiKey}`,
+        },
+      });
+
+      if (!statusResponse.ok) {
+        throw new Error(`Failed to check KIE status: ${statusResponse.statusText}`);
       }
+
+      const statusData = await statusResponse.json();
+      const state = statusData.data?.state;
+
+      console.log(`[KIE] Status: ${state}, attempt ${attempts + 1}/${maxAttempts}`);
+
+      if (state === 'COMPLETED') {
+        imageUrl = statusData.data?.result?.url;
+        if (!imageUrl) {
+          throw new Error('KIE completed but no image URL in result');
+        }
+        break;
+      }
+
+      if (state === 'FAILED') {
+        throw new Error(`KIE task failed: ${statusData.data?.error || 'Unknown error'}`);
+      }
+
+      attempts++;
     }
 
-    // Fallback to direct URL fields
     if (!imageUrl) {
-      imageUrl = taskData.imageUrl || taskData.image_url || taskData.resultUrl;
+      throw new Error('KIE task timed out');
     }
   } else {
     // Modal providers
@@ -310,12 +331,16 @@ async function generateWithWrapper(
   // Calculate costs
   let realCost = 0.09; // Default cost
   if (provider === 'kie' && kieModelId) {
-    // For KIE, get cost from model config
-    const costQuery = await prisma.kieImageModel.findUnique({
-      where: { modelId: kieModelId },
-      select: { cost: true }
-    });
-    realCost = costQuery?.cost || 0.09;
+    // Set costs based on model
+    if (kieModelId.includes('nano-banana')) {
+      realCost = kieModelId.includes('4k') ? 0.12 : 0.09;
+    } else if (kieModelId.includes('seedream')) {
+      realCost = 0.10; // Seedream 4.5
+    } else if (kieModelId.includes('grok')) {
+      realCost = 0.02;
+    } else if (kieModelId.includes('flux')) {
+      realCost = 0.15; // Flux Pro
+    }
   }
 
   const creditCost = getImageCreditCost(resolution);

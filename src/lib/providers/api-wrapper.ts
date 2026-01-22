@@ -239,7 +239,7 @@ function buildProviderUrl(provider: string, type: GenerationType, model?: string
     case 'image':
       switch (provider) {
         case 'kie':
-          return getEndpointUrl('kie', 'createTask');
+          return getEndpointUrl('kie', 'generateImage');
         case 'gemini':
           return getEndpointUrl('gemini', 'generateContent', model || 'gemini-3-pro-image-preview');
         case 'grok':

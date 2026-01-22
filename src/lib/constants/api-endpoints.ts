@@ -55,6 +55,11 @@ export const API_PATHS = {
     createTask: '/api/v1/jobs/createTask',
     taskStatus: '/api/v1/jobs/recordInfo',
     models: '/api/v1/models',
+    // Direct generation endpoints
+    generateImage: '/api/v1/generate/image',
+    generateVideo: '/api/v1/generate/video',
+    generateTts: '/api/v1/generate/tts',
+    generateMusic: '/api/v1/generate/music',
   },
 
   // Grok
