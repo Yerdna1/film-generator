@@ -43,8 +43,9 @@ async function generateSingleVideo(
 
     // Use project's modelConfig, or DEFAULT_MODEL_CONFIG as fallback
     const config = project?.modelConfig || DEFAULT_MODEL_CONFIG;
-    const effectiveProvider = videoProvider || config.video.provider;
-    const effectiveModel = videoModel || config.video.model || DEFAULT_MODELS.kieVideoModel;
+    const configObj = typeof config === 'object' ? config as any : DEFAULT_MODEL_CONFIG;
+    const effectiveProvider = videoProvider || configObj.video.provider;
+    const effectiveModel = videoModel || configObj.video.model || DEFAULT_MODELS.kieVideoModel;
 
     console.log(`[Video ${scene.sceneNumber}] Starting generation with ${effectiveProvider}/${effectiveModel}`);
 

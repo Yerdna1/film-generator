@@ -1,6 +1,9 @@
 import type { UnifiedModelConfig } from '@/types/project';
 import { DEFAULT_MODELS } from './default-models';
 
+// Re-export DEFAULT_MODELS for use in other modules
+export { DEFAULT_MODELS };
+
 /**
  * Default model configuration for new projects
  * This is the SINGLE SOURCE OF TRUTH for defaults

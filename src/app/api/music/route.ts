@@ -284,6 +284,7 @@ export async function POST(request: NextRequest) {
       instrumental = true,
       title,
       style,
+      projectId,
       provider: requestProvider,
     }: MusicGenerationRequest = await request.json();
 
@@ -298,8 +299,11 @@ export async function POST(request: NextRequest) {
         where: { id: projectId },
         select: { modelConfig: true },
       });
-      if (project?.modelConfig?.music) {
-        projectModelConfig = project.modelConfig.music;
+      if (project?.modelConfig && typeof project.modelConfig === 'object') {
+        const config = project.modelConfig as any;
+        if (config.music) {
+          projectModelConfig = config.music;
+        }
       }
     }
 
@@ -512,8 +516,11 @@ export async function GET(request: NextRequest) {
         where: { id: projectId },
         select: { modelConfig: true },
       });
-      if (project?.modelConfig?.music) {
-        projectModelConfig = project.modelConfig.music;
+      if (project?.modelConfig && typeof project.modelConfig === 'object') {
+        const config = project.modelConfig as any;
+        if (config.music) {
+          projectModelConfig = config.music;
+        }
       }
     }
 

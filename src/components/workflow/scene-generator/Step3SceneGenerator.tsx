@@ -184,7 +184,7 @@ export function Step3SceneGenerator({
           const data = await res.json();
           setUserApiKeys({
             hasKieKey: data.hasKieKey || false,
-            kieImageModel: data.kieImageModel || DEFAULT_MODELS.kieImageModel,
+            kieApiKey: data.kieApiKey,
           });
         }
       } catch (error) {

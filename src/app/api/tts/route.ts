@@ -498,8 +498,11 @@ export async function POST(request: NextRequest) {
         where: { id: projectId },
         select: { modelConfig: true },
       });
-      if (project?.modelConfig?.tts) {
-        projectModelConfig = project.modelConfig.tts;
+      if (project?.modelConfig && typeof project.modelConfig === 'object') {
+        const config = project.modelConfig as any;
+        if (config.tts) {
+          projectModelConfig = config.tts;
+        }
       }
     }
 

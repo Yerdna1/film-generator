@@ -11,5 +11,5 @@ export interface Step3Props {
 
 export interface UserApiKeys {
   hasKieKey: boolean;
-  kieImageModel: string;
+  kieApiKey?: string;
 }

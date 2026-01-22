@@ -595,8 +595,11 @@ export async function POST(request: NextRequest) {
         where: { id: projectId },
         select: { modelConfig: true },
       });
-      if (project?.modelConfig?.image) {
-        projectModelConfig = project.modelConfig.image;
+      if (project?.modelConfig && typeof project.modelConfig === 'object') {
+        const config = project.modelConfig as any;
+        if (config.image) {
+          projectModelConfig = config.image;
+        }
       }
     }
 

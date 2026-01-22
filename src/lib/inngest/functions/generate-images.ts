@@ -32,8 +32,9 @@ async function generateSingleImage(
 
     // Use project's modelConfig, or DEFAULT_MODEL_CONFIG as fallback
     const config = project?.modelConfig || DEFAULT_MODEL_CONFIG;
-    const imageProvider = config.image.provider;
-    const imageModel = config.image.model || DEFAULT_MODELS.kieImageModel;
+    const configObj = typeof config === 'object' ? config as any : DEFAULT_MODEL_CONFIG;
+    const imageProvider = configObj.image.provider;
+    const imageModel = configObj.image.model || DEFAULT_MODELS.kieImageModel;
 
     let imageUrl: string | undefined;
 

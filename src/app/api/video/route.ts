@@ -339,8 +339,11 @@ export async function POST(request: NextRequest) {
         where: { id: projectId },
         select: { modelConfig: true },
       });
-      if (project?.modelConfig?.video) {
-        projectModelConfig = project.modelConfig.video;
+      if (project?.modelConfig && typeof project.modelConfig === 'object') {
+        const config = project.modelConfig as any;
+        if (config.video) {
+          projectModelConfig = config.video;
+        }
       }
     }
 
@@ -476,8 +479,11 @@ export async function GET(request: NextRequest) {
         where: { id: projectId },
         select: { modelConfig: true },
       });
-      if (project?.modelConfig?.video) {
-        projectModelConfig = project.modelConfig.video;
+      if (project?.modelConfig && typeof project.modelConfig === 'object') {
+        const config = project.modelConfig as any;
+        if (config.video) {
+          projectModelConfig = config.video;
+        }
       }
     }
 
