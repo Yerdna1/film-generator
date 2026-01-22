@@ -67,6 +67,13 @@ export async function getProviderConfig(
 ): Promise<ProviderConfig> {
   const { userId, settingsUserId, ownerId, type } = options;
 
+  console.log(`[Provider Config] Getting config for:`, {
+    userId,
+    settingsUserId,
+    ownerId,
+    type,
+  });
+
   let provider: ProviderType | undefined;
   let apiKey: string | undefined;
   let userHasOwnApiKey = false;
@@ -136,6 +143,17 @@ export async function getProviderConfig(
             model = userSettings.kieMusicModel;
             break;
         }
+        console.log(`[Provider Config] KIE model from user settings:`, {
+          type,
+          model,
+          allKieModels: {
+            llm: userSettings.kieLlmModel,
+            image: userSettings.kieImageModel,
+            video: userSettings.kieVideoModel,
+            tts: userSettings.kieTtsModel,
+            music: userSettings.kieMusicModel,
+          }
+        });
       }
     }
 
@@ -247,7 +265,14 @@ export async function getProviderConfig(
 
   // Get model configuration for KIE providers
   if (provider === 'kie') {
-    model = await getKieModel(type, model);
+    const kieModel = await getKieModel(type, model);
+    console.log(`[Provider Config] KIE model resolution:`, {
+      inputModel: model,
+      resolvedModel: kieModel,
+      type,
+      userId: userIdToCheck,
+    });
+    model = kieModel;
   }
 
   if (!apiKey && !endpoint) {
@@ -258,13 +283,24 @@ export async function getProviderConfig(
     );
   }
 
-  return {
+  const config = {
     provider,
     apiKey: apiKey || '',
     endpoint,
     model,
     userHasOwnApiKey,
   };
+
+  console.log(`[Provider Config] Final configuration:`, {
+    type,
+    provider: config.provider,
+    model: config.model,
+    hasApiKey: !!config.apiKey,
+    userHasOwnApiKey: config.userHasOwnApiKey,
+    endpoint: config.endpoint,
+  });
+
+  return config;
 }
 
 /**
