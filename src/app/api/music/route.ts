@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
       userId,
       projectId,
       type: 'music',
-      requestOverrides: requestProvider ? { provider: requestProvider, model } : undefined,
+      requestProvider: requestProvider || undefined,
     });
 
     const musicProvider = config.provider as MusicProvider;

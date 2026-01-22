@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
       userId: settingsUserId,
       projectId,
       type: 'video',
-      requestOverrides: requestProvider ? { provider: requestProvider, model: requestModel } : undefined,
+      requestProvider: requestProvider || undefined,
     });
 
     const videoProvider = config.provider;

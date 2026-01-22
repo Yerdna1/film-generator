@@ -367,7 +367,7 @@ export async function POST(request: NextRequest) {
       userId: settingsUserId,
       projectId,
       type: 'image',
-      requestOverrides: requestProvider ? { provider: requestProvider, model: requestModel } : undefined,
+      requestProvider: requestProvider || undefined,
     });
 
     const imageProvider = config.provider;
@@ -406,7 +406,7 @@ export async function POST(request: NextRequest) {
         userId: settingsUserId,
         projectId,
         type: 'image',
-        requestOverrides: { provider: 'gemini' },
+        requestProvider: 'gemini',
       });
 
       if (!geminiConfig.apiKey) {

@@ -349,7 +349,7 @@ export async function POST(request: NextRequest) {
       userId: userId || 'system',
       projectId,
       type: 'tts',
-      requestOverrides: requestProvider ? { provider: requestProvider, model: requestModel } : undefined,
+      requestProvider: requestProvider || undefined,
     });
 
     const ttsProvider = config.provider;

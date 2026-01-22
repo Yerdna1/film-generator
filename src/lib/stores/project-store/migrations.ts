@@ -49,41 +49,41 @@ export function createModelConfigFromLegacySettings(
   const modelConfig: UnifiedModelConfig = {
     // LLM Configuration
     llm: {
-      provider: (apiConfig.llmProvider || 'openrouter') as any,
+      provider: apiConfig.llmProvider as any,
       model: llmModel,
       modalEndpoint: apiConfig.modalEndpoints?.llmEndpoint,
     },
 
     // Image Generation Configuration
     image: {
-      provider: (apiConfig.imageProvider || userConstants?.characterImageProvider || 'gemini') as any,
-      model: apiConfig.kieImageModel || DEFAULT_MODELS.kieImageModel,
+      provider: (apiConfig.imageProvider || userConstants?.characterImageProvider) as any,
+      model: apiConfig.kieImageModel,
       modalEndpoint: apiConfig.modalEndpoints?.imageEndpoint,
-      characterAspectRatio: (userConstants?.characterAspectRatio || '1:1') as any,
-      sceneAspectRatio: (userConstants?.sceneAspectRatio || project.settings?.aspectRatio || '16:9') as any,
-      sceneResolution: (userConstants?.sceneImageResolution || project.settings?.imageResolution || '2k') as any,
+      characterAspectRatio: userConstants?.characterAspectRatio as any,
+      sceneAspectRatio: userConstants?.sceneAspectRatio || project.settings?.aspectRatio as any,
+      sceneResolution: userConstants?.sceneImageResolution || project.settings?.imageResolution as any,
     },
 
     // Video Generation Configuration
     video: {
-      provider: (apiConfig.videoProvider || 'kie') as any,
-      model: apiConfig.kieVideoModel || DEFAULT_MODELS.kieVideoModel,
+      provider: apiConfig.videoProvider as any,
+      model: apiConfig.kieVideoModel,
       modalEndpoint: apiConfig.modalEndpoints?.videoEndpoint,
-      resolution: (userConstants?.videoResolution || project.settings?.resolution || 'hd') as any,
+      resolution: userConstants?.videoResolution || project.settings?.resolution as any,
     },
 
     // Text-to-Speech Configuration
     tts: {
-      provider: (apiConfig.ttsProvider || project.settings?.voiceProvider || 'gemini-tts') as any,
-      model: apiConfig.kieTtsModel || DEFAULT_MODELS.kieTtsModel,
+      provider: (apiConfig.ttsProvider || project.settings?.voiceProvider) as any,
+      model: apiConfig.kieTtsModel,
       modalEndpoint: apiConfig.modalEndpoints?.ttsEndpoint,
-      defaultLanguage: project.settings?.voiceLanguage || 'en',
+      defaultLanguage: project.settings?.voiceLanguage,
     },
 
     // Background Music Configuration
     music: {
-      provider: (apiConfig.musicProvider || 'piapi') as any,
-      model: apiConfig.kieMusicModel || DEFAULT_MODELS.kieMusicModel,
+      provider: apiConfig.musicProvider as any,
+      model: apiConfig.kieMusicModel,
       modalEndpoint: apiConfig.modalEndpoints?.musicEndpoint,
     },
   };
