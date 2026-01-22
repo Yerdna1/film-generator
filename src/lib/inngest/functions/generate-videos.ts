@@ -56,7 +56,6 @@ async function generateSingleVideo(
       userId,
       projectId,
       type: 'video',
-      requestProvider: videoProvider || undefined,
     });
 
     const { provider, apiKey, model, endpoint } = config;
@@ -263,7 +262,6 @@ export const generateVideosBatch = inngest.createFunction(
         userId,
         projectId,
         type: 'video',
-        requestProvider: videoProvider || undefined,
       });
     });
 

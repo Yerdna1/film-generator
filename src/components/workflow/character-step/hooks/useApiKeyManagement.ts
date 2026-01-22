@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { Character } from '@/types/project';
-import type { ApiKeys } from '@prisma/client';
+import type { ApiKeysData } from '@/hooks/use-api-keys';
 
 interface UseApiKeyManagementProps {
-  apiKeysData: ApiKeys | null | undefined;
+  apiKeysData: ApiKeysData | null | undefined;
   isLoading: boolean;
   onApiKeysUpdated?: () => void;
 }

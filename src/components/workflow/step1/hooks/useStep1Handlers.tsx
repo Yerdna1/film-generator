@@ -80,9 +80,9 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
         } else if (storyModel === 'claude-sonnet-4.5') {
           modelToUse = 'anthropic/claude-sonnet-4.5';
           providerToUse = providerToUse || 'openrouter';
-        } else if (providerToUse && PROVIDER_DEFAULT_MODELS[providerToUse]) {
+        } else if (providerToUse && providerToUse in PROVIDER_DEFAULT_MODELS) {
           // Use provider-specific default model
-          modelToUse = PROVIDER_DEFAULT_MODELS[providerToUse];
+          modelToUse = PROVIDER_DEFAULT_MODELS[providerToUse as keyof typeof PROVIDER_DEFAULT_MODELS];
         } else {
           // Final fallback to current OpenRouter default
           modelToUse = 'anthropic/claude-4.5-sonnet';
@@ -144,8 +144,8 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
       }
 
       // Set the model and provider for display in loading modal
-      setGeneratingModel(modelToUse);
-      setGeneratingProvider(providerToUse);
+      setGeneratingModel(modelToUse || undefined);
+      setGeneratingProvider(providerToUse || undefined);
 
       // Try to enhance with user's configured LLM provider
       const response = await fetch('/api/llm/prompt', {

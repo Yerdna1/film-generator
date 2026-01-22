@@ -13,7 +13,7 @@ interface UseStep1StateProps {
 }
 
 export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
-  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants, nextStep, updateModelConfig } = useProjectStore();
+  const { updateStory, setMasterPrompt, updateSettings, updateProject, projects, updateUserConstants, userConstants, nextStep } = useProjectStore();
   const { data: session } = useSession();
 
   // Get live project data from store, but prefer initialProject for full data
@@ -139,7 +139,6 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
       updateProject,
       updateUserConstants,
       nextStep,
-      updateModelConfig,
     },
     userConstants,
 

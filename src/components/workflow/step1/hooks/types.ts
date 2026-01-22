@@ -13,7 +13,6 @@ export interface Step1State {
     updateProject: (id: string, updates: any) => void;
     updateUserConstants: (constants: any) => void;
     nextStep: (id: string) => void;
-    updateModelConfig: (id: string, config: any) => void;
   };
   userConstants: any;
 
