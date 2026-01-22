@@ -300,7 +300,6 @@ async function generateSingleAudio(
     // Update scene with audio URL
     const scene = await prisma.scene.findUnique({
       where: { id: audioLine.sceneId },
-      include: { dialogue: true },
     });
 
     if (scene) {
