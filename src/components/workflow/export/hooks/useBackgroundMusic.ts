@@ -51,14 +51,25 @@ export interface UseBackgroundMusicReturn {
 
 const POLL_INTERVAL = 3000; // 3 seconds
 
-export function useBackgroundMusic(project: Project): UseBackgroundMusicReturn {
+export interface UseBackgroundMusicProps {
+  project: Project;
+  apiKeys?: {
+    musicProvider?: string;
+    [key: string]: any;
+  } | null;
+}
+
+export function useBackgroundMusic({ project, apiKeys }: UseBackgroundMusicProps): UseBackgroundMusicReturn {
   const { updateProject } = useProjectStore();
 
   // Form state
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState<SunoModel>('V4.5');
   const [instrumental, setInstrumental] = useState(true);
-  const [provider, setProvider] = useState<MusicProvider>('piapi'); // Default to PiAPI
+  // Use ONLY apiKeys.musicProvider (from Configure API Keys & Providers modal)
+  const [provider, setProvider] = useState<MusicProvider>(
+    (apiKeys?.musicProvider || 'piapi') as MusicProvider
+  );
 
   // Generation state
   const [generationState, setGenerationState] = useState<GenerationState>({

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useProjectStore } from '@/lib/stores/project-store';
-import { useCredits } from '@/hooks';
+import { useCredits, useApiKeys } from '@/hooks';
 import { getImageCreditCost } from '@/lib/services/credits';
 import type { Character } from '@/types/project';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
@@ -14,7 +14,6 @@ import {
   CharacterFormData,
   EditCharacterData,
 } from '../character-generator/types';
-import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
 import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { useCharacterImage } from '../character-generator/hooks';
 
@@ -38,6 +37,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const t = useTranslations();
   const { updateSettings, projects, userConstants } = useProjectStore();
   const { data: creditsData } = useCredits();
+  const { data: apiKeys } = useApiKeys();
 
   // Get live project data from store, but prefer initialProject for full data
   const storeProject = projects.find(p => p.id === initialProject.id);
@@ -56,11 +56,18 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
   const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
   const [pendingCharacter, setPendingCharacter] = useState<Character | null>(null);
 
-  // Use model configuration for character generation
+  // Use ONLY apiKeys.imageProvider (from Configure API Keys & Providers modal)
+  const characterImageProvider = (apiKeys?.imageProvider || 'kie') as 'gemini' | 'modal' | 'modal-edit' | 'kie';
+
+  // Use project's modelConfig.model if set and provider matches, otherwise use provider's default
   const modelConfig = project.modelConfig;
+  const characterImageModel = (modelConfig?.image?.provider === characterImageProvider && modelConfig?.image?.model)
+    ? modelConfig.image.model
+    : DEFAULT_MODELS.kieImageModel;
+
   const characterAspectRatio = (modelConfig?.image?.characterAspectRatio || userConstants?.characterAspectRatio || '1:1') as AspectRatio;
 
-  // Custom hooks
+  // Character management hooks
   const {
     handleAddCharacter,
     handleUpdateCharacter,
@@ -78,15 +85,6 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
     setModalReason,
     handleSaveKieApiKey: saveKieApiKey,
   } = useApiKeyManagement();
-
-  // Use project's modelConfig with DEFAULT_MODEL_CONFIG as fallback (single source of truth)
-  const config = modelConfig?.image || DEFAULT_MODEL_CONFIG.image;
-  const characterImageProvider = config.provider as 'gemini' | 'modal' | 'modal-edit' | 'kie';
-  const characterImageModel = config.model || DEFAULT_MODELS.kieImageModel;
-
-  // Check if project is configured to use KIE with an API key
-  // When a project uses KIE provider, it means the user has configured their API key for it
-  const projectUsesKieProvider = modelConfig?.image?.provider === 'kie';
 
   const {
     imageStates,

@@ -26,7 +26,19 @@ interface AudioGenerationHookResult {
   ) => void;
 }
 
-export function useAudioGeneration(project: Project): AudioGenerationHookResult {
+interface UseAudioGenerationProps {
+  project: Project;
+  apiKeys?: {
+    ttsProvider?: string;
+    [key: string]: any;
+  } | null;
+}
+
+export function useAudioGeneration({ project, apiKeys }: UseAudioGenerationProps): AudioGenerationHookResult {
+  if (!project) {
+    // Support legacy call signature
+    project = (arguments[0] as any) as Project;
+  }
   const { updateScene } = useProjectStore();
   const { handleApiResponse } = useCredits();
 
@@ -56,10 +68,10 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
         [lineId]: { status: 'generating', progress: 30 },
       }));
 
-      // Use unified TTS endpoint - pass provider from model config or UI selection
+      // Use ONLY apiKeys.ttsProvider (from Configure API Keys & Providers modal)
       // When skipCreditCheck is true, force provider to 'kie' (user's own API key)
+      let provider = apiKeys?.ttsProvider || 'gemini-tts';
       const modelConfig = freshProject?.modelConfig || project.modelConfig;
-      let provider = modelConfig?.tts?.provider || project.voiceSettings?.provider || 'gemini-tts';
       const ttsModel = modelConfig?.tts?.model;
       if (skipCreditCheck) {
         provider = 'kie';
@@ -67,7 +79,7 @@ export function useAudioGeneration(project: Project): AudioGenerationHookResult 
 
       // Get valid voice for the current provider
       // Returns null if character doesn't have a voice configured for this provider
-      const voiceId = getVoiceForProvider(character?.voiceId, provider);
+      const voiceId = getVoiceForProvider(character?.voiceId, provider as VoiceProvider);
 
       if (!voiceId) {
         const characterName = character?.name || line.characterName || 'Unknown';

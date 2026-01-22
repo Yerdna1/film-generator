@@ -306,41 +306,25 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     };
 
     try {
-      // Use the model from the unified model configuration if available
-      const modelConfig = project.modelConfig;
+      // Use ONLY the provider from user's API keys (Configure API Keys & Providers modal)
+      const providerToUse = props.apiKeys?.llmProvider;
 
-      // Get provider first to determine appropriate fallback
-      let providerToUse = modelConfig?.llm?.provider;
-
-      // Determine model to use with provider-aware fallback
-      let modelToUse = modelConfig?.llm?.model;
-      if (!modelToUse && effectiveIsPremium) {
-        // Use provider-specific default instead of hardcoded OpenRouter model
-        if (storyModel === 'gpt-4') {
-          modelToUse = 'openai/gpt-4-turbo';
-          providerToUse = providerToUse || 'openrouter';
-        } else if (storyModel === 'claude-sonnet-4.5') {
-          modelToUse = 'anthropic/claude-sonnet-4.5';
-          providerToUse = providerToUse || 'openrouter';
-        } else if (providerToUse && PROVIDER_DEFAULT_MODELS[providerToUse]) {
-          // Use provider-specific default model
-          modelToUse = PROVIDER_DEFAULT_MODELS[providerToUse];
-        } else {
-          // Final fallback to current OpenRouter default
-          modelToUse = 'anthropic/claude-4.5-sonnet';
-          providerToUse = 'openrouter';
-        }
+      // If no provider configured, show error
+      if (!providerToUse) {
+        toast({
+          title: "Provider Not Configured",
+          description: "Please select an LLM provider in the Configure API Keys & Providers modal.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Extract provider from model or use modelConfig provider
-      if (modelToUse && modelToUse.includes('/')) {
-        const [providerFromModel] = modelToUse.split('/');
-        if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'google' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
-          providerToUse = providerToUse || 'openrouter';
-        }
-      } else if (!providerToUse) {
-        // Default to openrouter if no provider set and no model specific provider derivation
-        providerToUse = 'openrouter';
+      // Determine model to use - first try project config, then provider default
+      let modelToUse = project.modelConfig?.llm?.model;
+
+      // If no model set, use provider's default model
+      if (!modelToUse && providerToUse in PROVIDER_DEFAULT_MODELS) {
+        modelToUse = PROVIDER_DEFAULT_MODELS[providerToUse as keyof typeof PROVIDER_DEFAULT_MODELS];
       }
 
       // Check user permissions and API keys

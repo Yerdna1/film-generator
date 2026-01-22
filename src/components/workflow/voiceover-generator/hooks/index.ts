@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Project } from '@/types/project';
+import { useApiKeys } from '@/hooks';
 import type { DialogueLineWithScene } from '../types';
 import { useAudioUIState } from './useAudioUIState';
 import { useAudioGeneration } from './useAudioGeneration';
@@ -11,6 +12,9 @@ import { useAudioManagement } from './useAudioManagement';
 export function useVoiceoverAudio(project: Project) {
   // UI State
   const uiState = useAudioUIState();
+
+  // Get API keys for provider configuration
+  const { data: apiKeys } = useApiKeys();
 
   // Safety check for scenes array (may be undefined in summary data)
   const allDialogueLines: DialogueLineWithScene[] = (project.scenes || []).flatMap((scene) =>
@@ -22,8 +26,8 @@ export function useVoiceoverAudio(project: Project) {
     }))
   );
 
-  // Audio Generation
-  const generation = useAudioGeneration(project);
+  // Audio Generation - pass apiKeys for provider configuration
+  const generation = useAudioGeneration({ project, apiKeys });
 
   // Audio Playback
   const playback = useAudioPlayback(

@@ -613,7 +613,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         onClose={() => setShowConfirmDialog(false)}
         onConfirm={handleConfirmGeneration}
         operation="video"
-        provider={project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'kie'}
+        provider={apiKeysData?.videoProvider || 'kie'}
         model={project.modelConfig?.video?.model || apiKeysData?.kieVideoModel || 'default'}
         title={
           confirmDialogType === 'single'
@@ -624,10 +624,10 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         }
         description={
           confirmDialogType === 'single' && confirmDialogScene
-            ? `This will generate a video for "${confirmDialogScene.title}" using ${project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'KIE'}.`
+            ? `This will generate a video for "${confirmDialogScene.title}" using ${apiKeysData?.videoProvider || 'KIE'}.`
             : confirmDialogType === 'selected'
-            ? `This will generate videos for ${selectedScenes.size} selected scenes using ${project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'KIE'}.`
-            : `This will generate videos for ${scenesNeedingGeneration.length} scenes using ${project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'KIE'}.`
+            ? `This will generate videos for ${selectedScenes.size} selected scenes using ${apiKeysData?.videoProvider || 'KIE'}.`
+            : `This will generate videos for ${scenesNeedingGeneration.length} scenes using ${apiKeysData?.videoProvider || 'KIE'}.`
         }
         details={[
           confirmDialogType === 'single' && confirmDialogScene

@@ -10,7 +10,6 @@ import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { getImageCreditCost } from '@/lib/services/credits';
 import type { Scene, ImageProvider } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
-import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
 import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
 import { Step3Content } from './components';
@@ -157,10 +156,14 @@ export function Step3SceneGenerator({
     updateSettings,
   } = useSceneGenerator(initialProject);
 
-  // Use project's modelConfig with DEFAULT_MODEL_CONFIG as fallback (single source of truth)
-  const projectImageConfig = project.modelConfig?.image || DEFAULT_MODEL_CONFIG.image;
-  const imageProvider: ImageProvider = projectImageConfig.provider as ImageProvider;
-  const imageModel = projectImageConfig.model || DEFAULT_MODELS.kieImageModel;
+  // Use ONLY apiKeys.imageProvider (from Configure API Keys & Providers modal)
+  const imageProvider: ImageProvider = (apiKeysImageProvider || 'kie') as ImageProvider;
+
+  // Use project's modelConfig.model if provider matches, otherwise use provider's default
+  const modelConfig = project.modelConfig;
+  const imageModel = (modelConfig?.image?.provider === imageProvider && modelConfig?.image?.model)
+    ? modelConfig.image.model
+    : DEFAULT_MODELS.kieImageModel;
 
   // Collaboration hooks
   const {

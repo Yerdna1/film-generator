@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useProjectStore } from '@/lib/stores/project-store';
+import { useApiKeys } from '@/hooks';
 import type { Project } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
 
@@ -54,10 +55,13 @@ export function Step6Export({
   // Safe accessor for scenes array
   const scenes = project.scenes || [];
 
+  // Get API keys for provider configuration
+  const { data: apiKeys } = useApiKeys();
+
   // Custom hooks
   const { stats } = useProjectStats(project);
   const previewPlayer = usePreviewPlayer(project);
-  const backgroundMusic = useBackgroundMusic(project);
+  const backgroundMusic = useBackgroundMusic({ project, apiKeys });
   const videoComposer = useVideoComposer(project);
   const exportHandlers = useExportHandlers(project);
 
