@@ -157,14 +157,12 @@ async function generateSingleImage(
           break;
 
         case 'kie':
-          // Map model name from UI to API format
-          const rawModel = model || 'seedream/4-5-text-to-image';
-          const kieModel = KIE_MODEL_MAPPING[rawModel] || rawModel;
+          // Use the model name directly from config - KIE API uses the model name as-is
+          const kieModel = model || 'seedream/4-5-text-to-image';
 
-          console.log(`[Inngest] KIE model mapping:`, {
-            rawModel,
+          console.log(`[Inngest] KIE model:`, {
             kieModel,
-            mapping: KIE_MODEL_MAPPING[rawModel]
+            mapping: KIE_MODEL_MAPPING[kieModel]
           });
 
           // KIE uses createTask with model and input structure
@@ -210,8 +208,10 @@ async function generateSingleImage(
         model: response.model,
         hasData: !!response.data,
         dataType: typeof response.data,
+        dataString: typeof response.data === 'string' ? response.data : undefined,
         error: response.error,
-        dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : null
+        dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : null,
+        fullResponse: JSON.stringify(response, null, 2)
       });
 
       if (response.error) {
@@ -221,10 +221,20 @@ async function generateSingleImage(
       // Handle KIE response
       if (provider === 'kie') {
         // KIE createTask returns the response in data field with taskId
-        const taskId = response.data?.data?.taskId;
+        // The response.data is the full API response: { code: 200, msg: "success", data: { taskId: "..." } }
+        const responseData = response.data;
+        const taskId = responseData?.data?.taskId;
 
         if (!taskId) {
-          console.error('[Inngest] KIE response:', JSON.stringify(response.data, null, 2));
+          console.error('[Inngest] KIE response structure issue:', {
+            hasResponseData: !!responseData,
+            responseDataType: typeof responseData,
+            responseDataKeys: responseData && typeof responseData === 'object' ? Object.keys(responseData) : null,
+            hasNestedData: !!responseData?.data,
+            nestedDataType: typeof responseData?.data,
+            nestedDataKeys: responseData?.data && typeof responseData.data === 'object' ? Object.keys(responseData.data) : null,
+            fullResponse: JSON.stringify(responseData, null, 2),
+          });
           throw new Error('KIE AI did not return a task ID');
         }
 

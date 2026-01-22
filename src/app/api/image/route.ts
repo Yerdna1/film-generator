@@ -216,23 +216,17 @@ async function generateWithWrapper(
       });
 
       // Use request model if provided, otherwise use config model
-      const rawModelId = requestModel || config.model || 'seedream/4-5-text-to-image';
+      kieModelId = requestModel || config.model || 'seedream/4-5-text-to-image';
 
-      // Map model name from UI to API format
-      const modelToUse = KIE_MODEL_MAPPING[rawModelId] || rawModelId;
-
-      // Store for cost calculation later
-      kieModelId = rawModelId;
-
-      // KIE uses createTask with model and input structure
+      // KIE uses createTask with model and input structure - use model name as-is
       requestBody = {
-        model: modelToUse,
+        model: kieModelId,
         input: {
           prompt: prompt,
           aspect_ratio: aspectRatio,
           // Additional parameters based on model type
-          ...(modelToUse.includes('ideogram') && { render_text: true }),
-          ...(modelToUse.includes('flux') && { guidance_scale: 7.5 }),
+          ...(kieModelId.includes('ideogram') && { render_text: true }),
+          ...(kieModelId.includes('flux') && { guidance_scale: 7.5 }),
         },
       };
       break;
@@ -252,6 +246,14 @@ async function generateWithWrapper(
     loadingMessage: `Generating image using ${provider}...`,
   });
 
+  console.log(`[Image API] ${provider} response:`, {
+    status: response.status,
+    hasData: !!response.data,
+    dataType: typeof response.data,
+    error: response.error,
+    dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : null,
+  });
+
   if (response.error) {
     throw new Error(response.error);
   }
@@ -261,10 +263,19 @@ async function generateWithWrapper(
   // Handle KIE response
   if (provider === 'kie') {
     // KIE createTask returns the response in data field with taskId
-    const taskId = response.data?.data?.taskId;
+    const responseData = response.data;
+    const taskId = responseData?.data?.taskId;
 
     if (!taskId) {
-      console.error('[Image API] KIE response:', JSON.stringify(response.data, null, 2));
+      console.error('[Image API] KIE response structure issue:', {
+        hasResponseData: !!responseData,
+        responseDataType: typeof responseData,
+        responseDataKeys: responseData && typeof responseData === 'object' ? Object.keys(responseData) : null,
+        hasNestedData: !!responseData?.data,
+        nestedDataType: typeof responseData?.data,
+        nestedDataKeys: responseData?.data && typeof responseData.data === 'object' ? Object.keys(responseData.data) : null,
+        fullResponse: JSON.stringify(responseData, null, 2),
+      });
       throw new Error('KIE AI did not return a task ID');
     }
 
