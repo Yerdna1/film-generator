@@ -47,7 +47,7 @@ export async function GET(
       settings: project.settings as object,
       story: project.story as object,
       voiceSettings: project.voiceSettings as object,
-      modelConfig: project.modelConfig as object,
+
       characters: project.characters.map((c) => ({
         id: c.id,
         name: c.name,
@@ -144,7 +144,7 @@ export async function PUT(
       voiceSettings,
       scenes,
       backgroundMusic,
-      modelConfig,
+
     } = body;
 
     // If scenes are provided, batch update their order using a transaction
@@ -170,7 +170,7 @@ export async function PUT(
     if (settings !== undefined) updateData.settings = settings;
     if (story !== undefined) updateData.story = story;
     if (voiceSettings !== undefined) updateData.voiceSettings = voiceSettings;
-    if (modelConfig !== undefined) updateData.modelConfig = modelConfig;
+
     if (backgroundMusic !== undefined) {
       updateData.settings = { ...((settings as object) || {}), backgroundMusic };
     }
@@ -192,7 +192,6 @@ export async function PUT(
         ...(settings !== undefined && { settings: true }),
         ...(story !== undefined && { story: true }),
         ...(voiceSettings !== undefined && { voiceSettings: true }),
-        ...(modelConfig !== undefined && { modelConfig: true }),
       },
     });
 

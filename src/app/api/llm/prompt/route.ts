@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     switch (config.provider) {
       case 'openrouter':
-      case 'openai':
+
       case 'kie':
         // Map model format if needed for KIE
         let finalModel = llmModel;
@@ -257,23 +257,23 @@ export async function POST(request: NextRequest) {
 
     switch (response.provider) {
       case 'openrouter':
-      case 'openai':
+
       case 'kie':
         generatedText = response.data?.choices?.[0]?.message?.content;
         // KIE wrapped format
         if (!generatedText && response.data?.data) {
           generatedText = response.data.data.choices?.[0]?.message?.content ||
-                         response.data.data.output ||
-                         response.data.data.text ||
-                         response.data.data.result;
+            response.data.data.output ||
+            response.data.data.text ||
+            response.data.data.result;
         }
         break;
 
       case 'modal':
         generatedText = response.data?.response ||
-                       response.data?.text ||
-                       response.data?.content ||
-                       (typeof response.data === 'string' ? response.data : undefined);
+          response.data?.text ||
+          response.data?.content ||
+          (typeof response.data === 'string' ? response.data : undefined);
         break;
 
       case 'gemini':

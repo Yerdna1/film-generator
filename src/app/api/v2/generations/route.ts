@@ -48,11 +48,12 @@ export const POST = withAuth(async (request, _, { userId }) => {
       providerConfig = await getProviderConfig({
         userId,
         type,
-        requestProvider: requestedProvider,
         projectId: metadata.projectId,
         settingsUserId: config.settingsUserId,
         ownerId: config.ownerId,
       });
+      // Manually override provider
+      providerConfig.provider = requestedProvider;
       selectedProvider = requestedProvider;
     } else {
       // Auto-select optimal provider
@@ -66,11 +67,12 @@ export const POST = withAuth(async (request, _, { userId }) => {
       providerConfig = await getProviderConfig({
         userId,
         type,
-        requestProvider: selectedProvider,
         projectId: metadata.projectId,
         settingsUserId: config.settingsUserId,
         ownerId: config.ownerId,
       });
+      // Manually override provider
+      providerConfig.provider = selectedProvider;
     }
 
     // Create provider instance

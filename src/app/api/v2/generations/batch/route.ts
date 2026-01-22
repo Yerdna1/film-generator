@@ -98,8 +98,8 @@ export const POST = withAuth(async (request, _, { userId }) => {
     const response: BatchGenerationResponse = {
       id: batchId,
       status: failed === results.length ? 'error' :
-              failed > 0 ? 'partial' :
-              'complete',
+        failed > 0 ? 'partial' :
+          'complete',
       total: items.length,
       completed,
       failed,
@@ -136,11 +136,12 @@ async function processGenerationItem(
     providerConfig = await getProviderConfig({
       userId,
       type,
-      requestProvider: requestedProvider,
       projectId: metadata.projectId,
       settingsUserId: config.settingsUserId,
       ownerId: config.ownerId,
     });
+    // Manually override provider
+    providerConfig.provider = requestedProvider;
     selectedProvider = requestedProvider;
   } else {
     // Auto-select optimal provider
@@ -152,11 +153,12 @@ async function processGenerationItem(
     providerConfig = await getProviderConfig({
       userId,
       type,
-      requestProvider: selectedProvider,
       projectId: metadata.projectId,
       settingsUserId: config.settingsUserId,
       ownerId: config.ownerId,
     });
+    // Manually override provider
+    providerConfig.provider = selectedProvider;
   }
 
   // Create provider instance
