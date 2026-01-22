@@ -1,29 +1,8 @@
 import type { UnifiedModelConfig } from '@/types/project';
+import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
 
-// Default configurations
-export const DEFAULT_CONFIG: UnifiedModelConfig = {
-  llm: {
-    provider: 'kie',
-    model: '', // Will be set to cheapest model from database
-  },
-  image: {
-    provider: 'kie',
-    characterAspectRatio: '1:1',
-    sceneAspectRatio: '16:9',
-    sceneResolution: '2k',
-  },
-  video: {
-    provider: 'kie',
-    resolution: 'hd',
-  },
-  tts: {
-    provider: 'kie',
-    defaultLanguage: 'en',
-  },
-  music: {
-    provider: 'kie',
-  },
-};
+// Re-export centralized default configuration
+export const DEFAULT_CONFIG = DEFAULT_MODEL_CONFIG;
 
 // Available models
 export const LLM_MODELS = {

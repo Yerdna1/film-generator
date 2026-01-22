@@ -10,6 +10,7 @@ import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { getImageCreditCost } from '@/lib/services/credits';
 import type { Scene, ImageProvider } from '@/types/project';
 import type { ProjectPermissions, ProjectRole } from '@/types/collaboration';
+import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
 import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
 import { Step3Content } from './components';
@@ -84,8 +85,6 @@ export function Step3SceneGenerator({
     }
   }, [apiKeysData, setApiConfig]);
 
-  const imageProvider: ImageProvider = apiConfig.imageProvider || apiKeysImageProvider || 'gemini';
-
   // Modal state
   const [isKieModalOpen, setIsKieModalOpen] = useState(false);
   const [isSavingKieKey, setIsSavingKieKey] = useState(false);
@@ -155,6 +154,10 @@ export function Step3SceneGenerator({
     updateSettings,
   } = useSceneGenerator(initialProject);
 
+  // Use project's modelConfig with DEFAULT_MODEL_CONFIG as fallback (single source of truth)
+  const projectImageConfig = project.modelConfig?.image || DEFAULT_MODEL_CONFIG.image;
+  const imageProvider: ImageProvider = projectImageConfig.provider as ImageProvider;
+
   // Collaboration hooks
   const {
     pendingImageRegenSceneIds,
@@ -193,8 +196,9 @@ export function Step3SceneGenerator({
 
   // Wrapper for image generation with credit check
   const handleGenerateSceneImageWithCreditCheck = useCallback(async (scene: Scene) => {
-    const hasKieApiKey = userApiKeys?.hasKieKey || project.modelConfig?.image?.provider === 'kie';
-    if (hasKieApiKey) {
+    // Check if user has their own KIE API key (not using platform credits)
+    const hasOwnKieApiKey = !!userApiKeys?.kieApiKey;
+    if (hasOwnKieApiKey) {
       await handleGenerateSceneImage(scene.id);
       return;
     }
@@ -211,14 +215,15 @@ export function Step3SceneGenerator({
       // Show KIE modal directly when no credits
       setIsKieModalOpen(true);
     }
-  }, [creditsData, imageResolution, userApiKeys, project.modelConfig, handleGenerateSceneImage]);
+  }, [creditsData, imageResolution, userApiKeys, handleGenerateSceneImage]);
 
   // Wrapper for "Generate All" with credit check
   const handleGenerateAllWithCreditCheck = useCallback(async () => {
     const scenesNeedingImages = scenes.filter(s => !s.imageUrl);
     if (scenesNeedingImages.length === 0) return;
-    const hasKieApiKey = userApiKeys?.hasKieKey || project.modelConfig?.image?.provider === 'kie';
-    if (hasKieApiKey) {
+    // Check if user has their own KIE API key (not using platform credits)
+    const hasOwnKieApiKey = !!userApiKeys?.kieApiKey;
+    if (hasOwnKieApiKey) {
       await handleGenerateAllSceneImages();
       return;
     }
@@ -235,7 +240,7 @@ export function Step3SceneGenerator({
       // Show KIE modal directly when no credits
       setIsKieModalOpen(true);
     }
-  }, [creditsData, imageResolution, scenes, userApiKeys, project.modelConfig, handleGenerateAllSceneImages]);
+  }, [creditsData, imageResolution, scenes, userApiKeys, handleGenerateAllSceneImages]);
 
   // Wrapper for scene text generation with credit check
   const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {

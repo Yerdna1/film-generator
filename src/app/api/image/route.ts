@@ -1,4 +1,4 @@
-// Unified Image API Route - Routes to appropriate provider based on user settings
+// Unified Image API Route - Routes to appropriate provider based on project modelConfig
 // Supports: Gemini, Modal (Qwen-Image), Modal-Edit (Qwen-Image-Edit for character consistency)
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,7 +11,7 @@ import { getImageCost, type ImageResolution } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import type { ImageProvider } from '@/types/project';
-import { DEFAULT_MODELS } from '@/lib/constants/default-models';
+import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
 
 export const maxDuration = 300; // Allow up to 5 minutes for image generation (Modal cold start can take ~2-3 min)
 
@@ -587,10 +587,25 @@ export async function POST(request: NextRequest) {
 
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
-    let imageProvider: ImageProvider = requestProvider || 'gemini';
+
+    // Fetch project modelConfig if projectId is provided (single source of truth)
+    let projectModelConfig = DEFAULT_MODEL_CONFIG.image;
+    if (projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { modelConfig: true },
+      });
+      if (project?.modelConfig?.image) {
+        projectModelConfig = project.modelConfig.image;
+      }
+    }
+
+    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
+    const imageProvider: ImageProvider = requestProvider || projectModelConfig.provider;
+    const kieImageModel = requestModel || projectModelConfig.model || DEFAULT_MODELS.kieImageModel;
+
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieImageModel = requestModel || DEFAULT_MODELS.kieImageModel; // Use model from request, fallback to default
     let modalImageEndpoint: string | null = null;
     let modalImageEditEndpoint: string | null = null;
 
@@ -606,10 +621,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (userApiKeys) {
-        // Only use database provider if not provided in request (for backward compatibility)
-        if (!requestProvider) imageProvider = (userApiKeys.imageProvider as ImageProvider) || 'gemini';
-
-        // Get provider-specific settings
+        // Only use actual API keys from database (not preferences)
         if (userApiKeys.geminiApiKey) {
           geminiApiKey = userApiKeys.geminiApiKey;
           userHasOwnApiKey = true;
@@ -617,10 +629,6 @@ export async function POST(request: NextRequest) {
         if (userApiKeys.kieApiKey) {
           kieApiKey = userApiKeys.kieApiKey;
           userHasOwnApiKey = true;
-        }
-        // Only use database model if not provided in request (for backward compatibility)
-        if (!requestModel && userApiKeys.kieImageModel) {
-          kieImageModel = userApiKeys.kieImageModel;
         }
         if (userApiKeys.modalImageEndpoint) {
           modalImageEndpoint = userApiKeys.modalImageEndpoint;

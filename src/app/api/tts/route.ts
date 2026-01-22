@@ -1,4 +1,4 @@
-// Unified TTS API Route - Routes to appropriate provider based on user settings
+// Unified TTS API Route - Routes to appropriate provider based on project modelConfig
 // Supports: Gemini TTS, ElevenLabs, Modal (self-hosted), OpenAI TTS
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,7 +8,7 @@ import { spendCredits, COSTS } from '@/lib/services/credits';
 import { calculateVoiceCost } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { TTSProvider } from '@/types/project';
-import { DEFAULT_MODELS } from '@/lib/constants/default-models';
+import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
@@ -490,12 +490,27 @@ export async function POST(request: NextRequest) {
 
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
-    let ttsProvider: TTSProvider = requestedProvider || 'gemini-tts';  // Use UI provider first
+
+    // Fetch project modelConfig if projectId is provided (single source of truth)
+    let projectModelConfig = DEFAULT_MODEL_CONFIG.tts;
+    if (projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { modelConfig: true },
+      });
+      if (project?.modelConfig?.tts) {
+        projectModelConfig = project.modelConfig.tts;
+      }
+    }
+
+    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
+    const ttsProvider: TTSProvider = requestedProvider || projectModelConfig.provider;
+    const kieTtsModel = requestModel || projectModelConfig.model || DEFAULT_MODELS.kieTtsModel;
+
     let geminiApiKey = process.env.GEMINI_API_KEY;
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     let openaiApiKey = process.env.OPENAI_API_KEY;
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieTtsModel = requestModel || DEFAULT_MODELS.kieTtsModel; // Use model from request, fallback to default
     let modalTtsEndpoint: string | null = null;
 
     let userHasOwnApiKey = false; // Track if user has their own API key (declare outside block)
@@ -506,10 +521,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (userApiKeys) {
-        // Only use DB provider if not specified in request
-        if (!requestedProvider) {
-          ttsProvider = (userApiKeys.ttsProvider as TTSProvider) || 'gemini-tts';
-        }
+        // Only use actual API keys from database (not preferences)
         if (userApiKeys.geminiApiKey) {
           geminiApiKey = userApiKeys.geminiApiKey;
           userHasOwnApiKey = true;
@@ -525,10 +537,6 @@ export async function POST(request: NextRequest) {
         if (userApiKeys.kieApiKey) {
           kieApiKey = userApiKeys.kieApiKey;
           userHasOwnApiKey = true;
-        }
-        // Only use database model if not provided in request (for backward compatibility)
-        if (!requestModel && userApiKeys.kieTtsModel) {
-          kieTtsModel = userApiKeys.kieTtsModel;
         }
         if (userApiKeys.modalTtsEndpoint) {
           modalTtsEndpoint = userApiKeys.modalTtsEndpoint;

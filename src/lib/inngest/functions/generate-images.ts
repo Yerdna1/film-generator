@@ -4,6 +4,8 @@ import { spendCredits, getImageCreditCost } from '@/lib/services/credits';
 import { uploadImageToS3, isS3Configured } from '@/lib/services/s3-upload';
 import { cache, cacheKeys } from '@/lib/cache';
 import type { ImageResolution, Provider } from '@/lib/services/real-costs';
+import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 // Number of images to generate in parallel
 const PARALLEL_IMAGES = 5;
@@ -18,7 +20,7 @@ async function generateSingleImage(
   referenceImages: Array<{ name: string; imageUrl: string }>
 ): Promise<{ sceneId: string; success: boolean; error?: string }> {
   try {
-    // Get project's modelConfig first (current selection), fallback to user's API keys
+    // Get project's modelConfig (single source of truth)
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       select: { modelConfig: true },
@@ -28,9 +30,10 @@ async function generateSingleImage(
       where: { userId },
     });
 
-    // Use project's modelConfig as primary source, user's API keys as fallback
-    const imageProvider = project?.modelConfig?.image?.provider || userApiKeys?.imageProvider || 'gemini';
-    const imageModel = project?.modelConfig?.image?.model || userApiKeys?.kieImageModel;
+    // Use project's modelConfig, or DEFAULT_MODEL_CONFIG as fallback
+    const config = project?.modelConfig || DEFAULT_MODEL_CONFIG;
+    const imageProvider = config.image.provider;
+    const imageModel = config.image.model || DEFAULT_MODELS.kieImageModel;
 
     let imageUrl: string | undefined;
 
@@ -396,7 +399,7 @@ export const generateImagesBatch = inngest.createFunction(
 
     console.log(`[Inngest] Starting batch ${batchId} with ${scenes.length} scenes (parallel: ${PARALLEL_IMAGES})`);
 
-    // Determine provider and model from project's modelConfig first
+    // Get project's modelConfig (single source of truth)
     const projectData = await step.run('get-project-config', async () => {
       return await prisma.project.findUnique({
         where: { id: projectId },
@@ -410,11 +413,12 @@ export const generateImagesBatch = inngest.createFunction(
       });
     });
 
-    // Use project's modelConfig as primary source, user's API keys as fallback
-    const imageProvider = projectData?.modelConfig?.image?.provider || userApiKeys?.imageProvider || 'gemini';
+    // Use project's modelConfig, or DEFAULT_MODEL_CONFIG as fallback
+    const config = projectData?.modelConfig || DEFAULT_MODEL_CONFIG;
+    const imageProvider = config.image.provider;
     const imageModel = imageProvider === 'modal' || imageProvider === 'modal-edit'
       ? 'modal'
-      : projectData?.modelConfig?.image?.model || userApiKeys?.kieImageModel || 'imagen-3.0-generate-001';
+      : config.image.model || DEFAULT_MODELS.kieImageModel;
 
     console.log(`[Inngest] Using provider: ${imageProvider}, model: ${imageModel}`);
 

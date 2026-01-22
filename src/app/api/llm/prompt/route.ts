@@ -1,6 +1,6 @@
 // Unified LLM API Route for Master Prompt Enhancement
-// Uses user's configured LLM provider (OpenRouter, Claude SDK, Modal, or Gemini)
-// Now integrates with project.modelConfig via getProviderConfig
+// Uses project's configured LLM provider (OpenRouter, Claude SDK, Modal, Gemini, or KIE)
+// Integrates with project.modelConfig via getProviderConfig
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
@@ -10,6 +10,7 @@ import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrou
 import { getProviderConfig } from '@/lib/providers';
 import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import type { Provider } from '@/lib/services/real-costs';
+import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
 
@@ -239,31 +240,24 @@ export async function POST(request: NextRequest) {
 
       console.log(`[LLM Prompt] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId || 'none'}, userHasOwnKey: ${isUsingOwnKey}`);
     } catch (configError) {
-      // Fallback to legacy behavior if getProviderConfig fails (e.g., no API key)
-      console.log(`[LLM Prompt] getProviderConfig failed, using legacy fallback:`, configError);
+      // Fallback to DEFAULT_MODEL_CONFIG if getProviderConfig fails (e.g., no API key)
+      console.log(`[LLM Prompt] getProviderConfig failed, using DEFAULT_MODEL_CONFIG:`, configError);
 
+      // Fetch user's actual API keys (not preferences)
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId },
         select: {
-          llmProvider: true,
           openRouterApiKey: true,
-          openRouterModel: true,
           modalLlmEndpoint: true,
           geminiApiKey: true,
           kieApiKey: true,
-          kieLlmModel: true,
         },
       });
 
-      console.log('[LLM Prompt] Fallback - userApiKeys:', {
-        llmProvider: userApiKeys?.llmProvider,
-        hasKieKey: !!userApiKeys?.kieApiKey,
-        kieLlmModel: userApiKeys?.kieLlmModel,
-      });
-
-      llmProvider = userApiKeys?.llmProvider || 'openrouter';
+      // Use DEFAULT_MODEL_CONFIG instead of user preferences (single source of truth)
+      llmProvider = DEFAULT_MODEL_CONFIG.llm.provider;
       providerApiKey = userApiKeys?.openRouterApiKey || undefined;
-      llmModel = model || userApiKeys?.openRouterModel || DEFAULT_OPENROUTER_MODEL;
+      llmModel = model || DEFAULT_MODEL_CONFIG.llm.model || DEFAULT_MODELS.kieLlmModel;
       modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
       geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
       kieApiKey = userApiKeys?.kieApiKey || process.env.KIE_API_KEY;

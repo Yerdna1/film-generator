@@ -238,11 +238,11 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
 
   // Credit check wrapper for single video generation
   const handleGenerateVideoWithCreditCheck = useCallback(async (scene: any) => {
-    // Check if user has KIE API key configured (either globally or for this project)
-    const hasKieApiKey = apiKeysData?.hasKieKey || project.modelConfig?.video?.provider === 'kie';
+    // Check if user has their own KIE API key (not using platform credits)
+    const hasOwnKieApiKey = !!apiKeysData?.kieApiKey;
 
     // If user has own API key, skip credit check and modal
-    if (hasKieApiKey) {
+    if (hasOwnKieApiKey) {
       await handleGenerateVideo(scene);
       return;
     }
@@ -257,15 +257,15 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
     // Only check credits if user doesn't have their own API key
     setPendingVideoGeneration({ type: 'single', scene });
     setIsInsufficientCreditsModalOpen(true);
-  }, [apiKeysData, project.modelConfig, handleGenerateVideo]);
+  }, [apiKeysData, handleGenerateVideo]);
 
   // Credit check wrapper for all videos generation
   const handleGenerateAllWithCreditCheck = useCallback(async () => {
-    // Check if user has KIE API key configured (either globally or for this project)
-    const hasKieApiKey = apiKeysData?.hasKieKey || project.modelConfig?.video?.provider === 'kie';
+    // Check if user has their own KIE API key (not using platform credits)
+    const hasOwnKieApiKey = !!apiKeysData?.kieApiKey;
 
     // If user has own API key, skip credit check and modal
-    if (hasKieApiKey) {
+    if (hasOwnKieApiKey) {
       await handleGenerateAll();
       return;
     }
@@ -280,15 +280,15 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
     // Only check credits if user doesn't have their own API key
     setPendingVideoGeneration({ type: 'all', scenes: scenesNeedingGeneration });
     setIsInsufficientCreditsModalOpen(true);
-  }, [apiKeysData, project.modelConfig, handleGenerateAll, scenesNeedingGeneration]);
+  }, [apiKeysData, handleGenerateAll, scenesNeedingGeneration]);
 
   // Credit check wrapper for selected videos generation
   const handleGenerateSelectedWithCreditCheck = useCallback(async () => {
-    // Check if user has KIE API key configured (either globally or for this project)
-    const hasKieApiKey = apiKeysData?.hasKieKey || project.modelConfig?.video?.provider === 'kie';
+    // Check if user has their own KIE API key (not using platform credits)
+    const hasOwnKieApiKey = !!apiKeysData?.kieApiKey;
 
     // If user has own API key, skip credit check and modal
-    if (hasKieApiKey) {
+    if (hasOwnKieApiKey) {
       const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
       await handleGenerateSelected();
       return;
@@ -305,7 +305,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
     const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
     setPendingVideoGeneration({ type: 'selected', scenes: selectedScenesArray });
     setIsInsufficientCreditsModalOpen(true);
-  }, [scenes, selectedScenes, apiKeysData, project.modelConfig, handleGenerateSelected]);
+  }, [scenes, selectedScenes, apiKeysData, handleGenerateSelected]);
 
   // Proceed with generation using app credits
   const handleUseAppCredits = useCallback(async () => {

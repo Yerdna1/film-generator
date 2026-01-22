@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { cache, cacheKeys, cacheTTL } from '@/lib/cache';
 import { getUserAccessibleProjectsSummary } from '@/lib/permissions';
-import { DEFAULT_MODELS } from '@/lib/constants/default-models';
+import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
 
 // GET - Fetch all projects for user (owned + shared)
 // OPTIMIZED: Returns summary data only (~1KB per project vs ~50KB full)
@@ -96,52 +96,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, style, settings, story, voiceSettings } = body;
 
-    // Fetch user's saved preferences to initialize modelConfig
-    const userApiKeys = await prisma.apiKeys.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        llmProvider: true,
-        openRouterModel: true,
-        imageProvider: true,
-        kieImageModel: true,
-        videoProvider: true,
-        kieVideoModel: true,
-        ttsProvider: true,
-        kieTtsModel: true,
-        musicProvider: true,
-        kieMusicModel: true,
-      },
-    });
-
-    // Build modelConfig from user's saved preferences (or use defaults)
-    const modelConfig = {
-      llm: {
-        provider: userApiKeys?.llmProvider || 'kie',
-        model: userApiKeys?.openRouterModel || 'anthropic/claude-sonnet-4',
-      },
-      image: {
-        provider: userApiKeys?.imageProvider || 'kie',
-        model: userApiKeys?.kieImageModel || DEFAULT_MODELS.kieImageModel,
-        characterResolution: '2k',
-        sceneResolution: '2k',
-        characterAspectRatio: '1:1',
-        sceneAspectRatio: '16:9',
-      },
-      video: {
-        provider: userApiKeys?.videoProvider || 'kie',
-        model: userApiKeys?.kieVideoModel || DEFAULT_MODELS.kieVideoModel,
-        exportResolution: '1080p',
-      },
-      tts: {
-        provider: userApiKeys?.ttsProvider || 'kie',
-        model: userApiKeys?.kieTtsModel || DEFAULT_MODELS.kieTtsModel,
-        defaultLanguage: 'en',
-      },
-      music: {
-        provider: userApiKeys?.musicProvider || 'kie',
-        model: userApiKeys?.kieMusicModel || DEFAULT_MODELS.kieMusicModel,
-      },
-    };
+    // New projects get default configuration
+    const modelConfig = DEFAULT_MODEL_CONFIG;
 
     const project = await prisma.project.create({
       data: {

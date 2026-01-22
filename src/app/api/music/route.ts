@@ -12,7 +12,7 @@ import { spendCredits, COSTS } from '@/lib/services/credits';
 import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/services/piapi';
 import { rateLimit } from '@/lib/services/rate-limit';
 import type { Provider } from '@/lib/services/real-costs';
-import { DEFAULT_MODELS } from '@/lib/constants/default-models';
+import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
 
 type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
 
@@ -291,17 +291,27 @@ export async function POST(request: NextRequest) {
     if (isErrorResponse(authResult)) return authResult;
     const { userId } = authResult;
 
-    // Get user's API keys and provider preference
+    // Fetch project modelConfig if projectId is provided (single source of truth)
+    let projectModelConfig = DEFAULT_MODEL_CONFIG.music;
+    if (projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { modelConfig: true },
+      });
+      if (project?.modelConfig?.music) {
+        projectModelConfig = project.modelConfig.music;
+      }
+    }
+
+    // Get user's API keys (for actual API keys only, not preferences)
     const userApiKeys = await prisma.apiKeys.findUnique({
       where: { userId },
     });
 
-    // Determine which provider to use
-    const provider = requestProvider || userApiKeys?.musicProvider || 'piapi';
+    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
+    const provider = requestProvider || projectModelConfig.provider;
     const modalMusicEndpoint = userApiKeys?.modalMusicEndpoint;
-
-    // Determine which model to use
-    const kieMusicModel = requestModel || userApiKeys?.kieMusicModel || DEFAULT_MODELS.kieMusicModel;
+    const kieMusicModel = requestModel || projectModelConfig.model || DEFAULT_MODELS.kieMusicModel;
 
     // Track if user has their own API keys (to skip credit check)
     let userHasOwnApiKey = !!userApiKeys?.modalMusicEndpoint;
@@ -495,12 +505,25 @@ export async function GET(request: NextRequest) {
     if (isErrorResponse(authResult)) return authResult;
     const { userId } = authResult;
 
-    // Get user's API keys and provider preference
+    // Fetch project modelConfig if projectId is provided (single source of truth)
+    let projectModelConfig = DEFAULT_MODEL_CONFIG.music;
+    if (projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { modelConfig: true },
+      });
+      if (project?.modelConfig?.music) {
+        projectModelConfig = project.modelConfig.music;
+      }
+    }
+
+    // Get user's API keys (for actual API keys only, not preferences)
     const userApiKeys = await prisma.apiKeys.findUnique({
       where: { userId },
     });
 
-    const provider = requestProvider || userApiKeys?.musicProvider || 'piapi';
+    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
+    const provider = requestProvider || projectModelConfig.provider;
 
     // Handle KIE provider
     if (provider === 'kie') {
@@ -512,8 +535,8 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Use the model from query string or user settings
-      const modelId = searchParams.get('model') || userApiKeys?.kieMusicModel || DEFAULT_MODELS.kieMusicModel;
+      // Use the model from query string or project config
+      const modelId = searchParams.get('model') || projectModelConfig.model || DEFAULT_MODELS.kieMusicModel;
 
       const result = await checkKieMusicStatus(
         taskId,

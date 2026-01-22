@@ -1,20 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
-import { useProjectStore } from '@/lib/stores/project-store';
 import type { Character } from '@/types/project';
-import type { ImageProvider } from '@/types/project';
-import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 interface ApiKeyState {
   hasKieKey: boolean;
-  kieImageModel: string;
-  imageProvider: ImageProvider | null;
+  kieApiKey?: string;
 }
 
 export function useApiKeyManagement() {
   const { data: session } = useSession();
-  const { updateUserConstants } = useProjectStore();
 
   const [isKieModalOpen, setIsKieModalOpen] = useState(false);
   const [isSavingKieKey, setIsSavingKieKey] = useState(false);
@@ -32,8 +27,7 @@ export function useApiKeyManagement() {
           const data = await res.json();
           setUserApiKeys({
             hasKieKey: data.apiKeys?.kieApiKey ? true : false,
-            kieImageModel: data.apiKeys?.kieImageModel || DEFAULT_MODELS.kieImageModel,
-            imageProvider: data.apiKeys?.imageProvider || null,
+            kieApiKey: data.apiKeys?.kieApiKey,
           });
         }
       } catch (error) {
@@ -55,7 +49,6 @@ export function useApiKeyManagement() {
 
   const handleSaveKieApiKey = async (apiKey: string, model: string): Promise<void> => {
     setIsSavingKieKey(true);
-    const characterImageProvider = 'kie';
 
     try {
       const response = await fetch('/api/user/api-keys', {
@@ -64,7 +57,6 @@ export function useApiKeyManagement() {
         body: JSON.stringify({
           kieApiKey: apiKey,
           kieImageModel: model,
-          characterImageProvider
         }),
       });
 
@@ -77,12 +69,8 @@ export function useApiKeyManagement() {
       setUserApiKeys(prev => ({
         ...prev,
         hasKieKey: true,
-        kieImageModel: model,
-        imageProvider: 'kie',
+        kieApiKey: apiKey,
       }));
-
-      // Update user constants with image provider
-      updateUserConstants({ characterImageProvider });
 
       toast.success('KIE AI API Key saved', {
         description: 'Generating character image...',

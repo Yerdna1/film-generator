@@ -128,7 +128,8 @@
       "Bash(npx prisma db seed:*)",
       "Bash(then grep -i \"KIE_API_KEY\" .env.local)",
       "Bash(else echo \"No .env.local found\")",
-      "Bash(npx prisma db pull:*)"
+      "Bash(npx prisma db pull:*)",
+      "Bash(npm run type-check:*)"
     ]
   }
 }

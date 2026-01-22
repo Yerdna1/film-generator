@@ -1,4 +1,4 @@
-// Unified Video API Route - Routes to appropriate provider based on user settings
+// Unified Video API Route - Routes to appropriate provider based on project modelConfig
 // Supports: Kie.ai (Grok Imagine), Modal (self-hosted)
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -9,6 +9,7 @@ import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import type { VideoProvider } from '@/types/project';
+import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
 
 const KIE_API_URL = 'https://api.kie.ai';
 
@@ -330,9 +331,24 @@ export async function POST(request: NextRequest) {
 
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
-    let videoProvider: VideoProvider = requestProvider || 'kie'; // Use provider from request body, fallback to 'kie'
+
+    // Fetch project modelConfig if projectId is provided (single source of truth)
+    let projectModelConfig = DEFAULT_MODEL_CONFIG.video;
+    if (projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { modelConfig: true },
+      });
+      if (project?.modelConfig?.video) {
+        projectModelConfig = project.modelConfig.video;
+      }
+    }
+
+    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
+    const videoProvider: VideoProvider = requestProvider || projectModelConfig.provider;
+    const kieVideoModel = requestModel || projectModelConfig.model || DEFAULT_MODELS.kieVideoModel;
+
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieVideoModel = requestModel || 'grok-imagine/image-to-video'; // Use model from request body, fallback to default
     let modalVideoEndpoint: string | null = null;
 
     // When ownerId is provided (collaborator regeneration), use owner's settings
@@ -347,14 +363,11 @@ export async function POST(request: NextRequest) {
       });
 
       if (userApiKeys) {
-        // Only use database values if not provided in request (for backward compatibility)
-        if (!requestProvider) videoProvider = (userApiKeys.videoProvider as VideoProvider) || 'kie';
+        // Only use actual API keys from database (not preferences)
         if (userApiKeys.kieApiKey) {
           kieApiKey = userApiKeys.kieApiKey;
           userHasOwnApiKey = true;
         }
-        // Only use database model if not provided in request (for backward compatibility)
-        if (!requestModel && userApiKeys.kieVideoModel) kieVideoModel = userApiKeys.kieVideoModel;
         if (userApiKeys.modalVideoEndpoint) {
           modalVideoEndpoint = userApiKeys.modalVideoEndpoint;
           userHasOwnApiKey = true;
@@ -455,8 +468,22 @@ export async function GET(request: NextRequest) {
 
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
+
+    // Fetch project modelConfig if projectId is provided (single source of truth)
+    let projectModelConfig = DEFAULT_MODEL_CONFIG.video;
+    if (projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { modelConfig: true },
+      });
+      if (project?.modelConfig?.video) {
+        projectModelConfig = project.modelConfig.video;
+      }
+    }
+
     let kieApiKey = process.env.KIE_API_KEY;
-    let kieVideoModel = model || 'grok-imagine/image-to-video'; // Use model from query string, fallback to default
+    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
+    const kieVideoModel = model || projectModelConfig.model || DEFAULT_MODELS.kieVideoModel;
 
     // When ownerId is provided, use owner's settings
     const settingsUserId = ownerId || sessionUserId;
@@ -465,12 +492,9 @@ export async function GET(request: NextRequest) {
       const userApiKeys = await prisma.apiKeys.findUnique({
         where: { userId: settingsUserId },
       });
+      // Only use actual API keys from database (not preferences)
       if (userApiKeys?.kieApiKey) {
         kieApiKey = userApiKeys.kieApiKey;
-      }
-      // Only use database model if not provided in query string (for backward compatibility)
-      if (!model && userApiKeys?.kieVideoModel) {
-        kieVideoModel = userApiKeys.kieVideoModel;
       }
     }
 

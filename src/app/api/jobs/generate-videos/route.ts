@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api';
 import { prisma } from '@/lib/db/prisma';
 import { inngest } from '@/lib/inngest/client';
 import type { VideoProvider } from '@/types/project';
+import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
 
 /**
  * Start a background video generation job using Inngest
@@ -102,10 +103,11 @@ export const POST = withAuth(async (request, _, context) => {
       }
     });
 
-    // Get video provider from project model config or user settings
+    // Get video provider from project model config or default (no fallback to userApiKeys preferences)
     const projectModelConfig = project.modelConfig as Record<string, any> | null;
-    const videoProvider = (projectModelConfig?.video?.provider || userApiKeys?.videoProvider || 'kie') as VideoProvider;
-    const videoModel = projectModelConfig?.video?.model || userApiKeys?.kieVideoModel;
+    const videoConfig = projectModelConfig?.video || DEFAULT_MODEL_CONFIG.video;
+    const videoProvider = videoConfig.provider as VideoProvider;
+    const videoModel = videoConfig.model || DEFAULT_MODELS.kieVideoModel;
 
     // Create job record
     const job = await prisma.videoGenerationJob.create({

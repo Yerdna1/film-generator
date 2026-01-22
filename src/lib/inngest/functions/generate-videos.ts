@@ -6,6 +6,8 @@ import { cache, cacheKeys } from '@/lib/cache';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import type { VideoProvider } from '@/types/project';
 import type { Provider } from '@/lib/services/real-costs';
+import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 // Number of videos to generate in parallel
 const PARALLEL_VIDEOS = 3; // Lower than images due to longer generation time
@@ -29,13 +31,20 @@ async function generateSingleVideo(
   videoModel?: string
 ): Promise<{ sceneId: string; success: boolean; videoUrl?: string; error?: string }> {
   try {
-    // Get user's video provider settings
+    // Get project's modelConfig (single source of truth)
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { modelConfig: true },
+    });
+
     const userApiKeys = await prisma.apiKeys.findUnique({
       where: { userId },
     });
 
-    const effectiveProvider = videoProvider || userApiKeys?.videoProvider || 'kie';
-    const effectiveModel = videoModel || userApiKeys?.kieVideoModel || 'grok-imagine/image-to-video';
+    // Use project's modelConfig, or DEFAULT_MODEL_CONFIG as fallback
+    const config = project?.modelConfig || DEFAULT_MODEL_CONFIG;
+    const effectiveProvider = videoProvider || config.video.provider;
+    const effectiveModel = videoModel || config.video.model || DEFAULT_MODELS.kieVideoModel;
 
     console.log(`[Video ${scene.sceneNumber}] Starting generation with ${effectiveProvider}/${effectiveModel}`);
 

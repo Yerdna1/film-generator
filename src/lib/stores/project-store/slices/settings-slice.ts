@@ -69,64 +69,15 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set, get) => ({
 
     debounceSync(async () => {
       try {
-        // Sync to project
+        // Sync to project database
         await fetch(`/api/projects/${projectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ modelConfig: updatedModelConfig }),
         });
 
-        // Also sync preferences to user's defaults (apiKeys table)
-        // This makes Step 1 settings become the new defaults for future projects
-        const syncPayload: Record<string, string | null> = {};
-
-        if (updatedModelConfig.llm?.provider) {
-          syncPayload.llmProvider = updatedModelConfig.llm.provider;
-        }
-        if (updatedModelConfig.llm?.model) {
-          // Save model to provider-specific field
-          if (updatedModelConfig.llm.provider === 'kie') {
-            syncPayload.kieLlmModel = updatedModelConfig.llm.model;
-          } else if (updatedModelConfig.llm.provider === 'openrouter') {
-            syncPayload.openRouterModel = updatedModelConfig.llm.model;
-          } else {
-            // For other providers, also save to openRouterModel as fallback
-            syncPayload.openRouterModel = updatedModelConfig.llm.model;
-          }
-        }
-        if (updatedModelConfig.image?.provider) {
-          syncPayload.imageProvider = updatedModelConfig.image.provider;
-        }
-        if (updatedModelConfig.image?.model) {
-          syncPayload.kieImageModel = updatedModelConfig.image.model;
-        }
-        if (updatedModelConfig.video?.provider) {
-          syncPayload.videoProvider = updatedModelConfig.video.provider;
-        }
-        if (updatedModelConfig.video?.model) {
-          syncPayload.kieVideoModel = updatedModelConfig.video.model;
-        }
-        if (updatedModelConfig.tts?.provider) {
-          syncPayload.ttsProvider = updatedModelConfig.tts.provider;
-        }
-        if (updatedModelConfig.tts?.model) {
-          syncPayload.kieTtsModel = updatedModelConfig.tts.model;
-        }
-        if (updatedModelConfig.music?.provider) {
-          syncPayload.musicProvider = updatedModelConfig.music.provider;
-        }
-        if (updatedModelConfig.music?.model) {
-          syncPayload.kieMusicModel = updatedModelConfig.music.model;
-        }
-
-        if (Object.keys(syncPayload).length > 0) {
-          await fetch('/api/user/api-keys', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(syncPayload),
-          });
-          console.log('[ModelConfig] Synced preferences to user defaults:', Object.keys(syncPayload));
-        }
+        // NOTE: We no longer sync preferences to user's ApiKeys table
+        // modelConfig is now the single source of truth - stored per-project
       } catch (error) {
         console.error('Error syncing model config to DB:', error);
       }
