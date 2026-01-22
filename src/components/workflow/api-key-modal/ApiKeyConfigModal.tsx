@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, Info, Loader2, Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SaveStatus, type SaveStatus as SaveStatusType } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
 import { useApiKeys } from '@/contexts/ApiKeysContext';
 import { formatApiKeyName } from '@/lib/services/user-permissions';
+import { debounce } from '@/lib/utils/debounce';
 import { CurrentSelectionSummary } from './CurrentSelectionSummary';
 import { OperationTabContent } from './OperationTabContent';
 import { API_KEY_FIELDS, OPERATION_INFO, PROVIDER_CONFIGS } from './constants';
@@ -24,6 +26,7 @@ export function ApiKeyConfigModal({
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatusType>('idle');
   const [activeTab, setActiveTab] = useState<OperationType | 'all'>(operation || 'all');
   const [kieModels, setKieModels] = useState<Record<string, any[]>>({
     llm: [],
@@ -33,6 +36,7 @@ export function ApiKeyConfigModal({
     music: [],
   });
   const [loadingKieModels, setLoadingKieModels] = useState(true);
+  const pendingSaveRef = useRef<Record<string, string>>({});
 
   // Fetch KIE models from database
   useEffect(() => {
@@ -133,6 +137,88 @@ export function ApiKeyConfigModal({
     setValues(initialValues);
   }, [apiKeys]);
 
+  // Reset save status when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSaveStatus('idle');
+      pendingSaveRef.current = {};
+    }
+  }, [isOpen]);
+
+  // Auto-save function (debounced)
+  const performAutoSave = useCallback(async (changesToSave: Record<string, string>) => {
+    // Validate the changes
+    const newErrors: Record<string, string> = {};
+    let hasErrors = false;
+
+    for (const [key, value] of Object.entries(changesToSave)) {
+      const field = API_KEY_FIELDS[key];
+      if (field?.validate && value) {
+        const validation = field.validate(value);
+        if (!validation.valid) {
+          newErrors[key] = validation.error || 'Invalid format';
+          hasErrors = true;
+        }
+      }
+    }
+
+    if (hasErrors) {
+      setErrors(newErrors);
+      setSaveStatus('error');
+      return;
+    }
+
+    // Clear errors for valid fields
+    for (const key of Object.keys(changesToSave)) {
+      if (errors[key]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[key];
+          return newErrors;
+        });
+      }
+    }
+
+    setSaveStatus('saving');
+    setSaving(true);
+
+    try {
+      const success = await updateMultipleKeys(changesToSave);
+
+      if (success) {
+        setSaveStatus('saved');
+        // Reset to idle after a delay
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else {
+        setSaveStatus('error');
+        // Reset to idle after a delay
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } finally {
+      setSaving(false);
+    }
+  }, [updateMultipleKeys, errors]);
+
+  // Create debounced version of auto-save (500ms delay)
+  const debouncedAutoSave = useMemo(
+    () => debounce((changes: Record<string, string>) => {
+      pendingSaveRef.current = {};
+      performAutoSave(changes);
+    }, 500),
+    [performAutoSave]
+  );
+
+  // Cancel pending debounced saves when modal closes
+  useEffect(() => {
+    return () => {
+      debouncedAutoSave.cancel();
+    };
+  }, [debouncedAutoSave]);
+
   const handleInputChange = (key: string, value: string) => {
     const newValues = { ...values, [key]: value };
 
@@ -155,6 +241,42 @@ export function ApiKeyConfigModal({
 
     setValues(newValues);
 
+    // Determine what changed
+    const changedFields: string[] = [];
+    if (value !== ((apiKeys as any)?.[key] || '')) {
+      changedFields.push(key);
+    }
+    // Check for auto-set provider changes
+    if (key === 'kieLlmModel' && value && newValues.llmProvider !== ((apiKeys as any)?.llmProvider || '')) {
+      changedFields.push('llmProvider');
+    }
+    if (key === 'kieTtsModel' && value && newValues.ttsProvider !== ((apiKeys as any)?.ttsProvider || '')) {
+      changedFields.push('ttsProvider');
+    }
+    if (key === 'kieImageModel' && value && newValues.imageProvider !== ((apiKeys as any)?.imageProvider || '')) {
+      changedFields.push('imageProvider');
+    }
+    if (key === 'kieVideoModel' && value && newValues.videoProvider !== ((apiKeys as any)?.videoProvider || '')) {
+      changedFields.push('videoProvider');
+    }
+    if (key === 'kieMusicModel' && value && newValues.musicProvider !== ((apiKeys as any)?.musicProvider || '')) {
+      changedFields.push('musicProvider');
+    }
+
+    // Queue the changes for auto-save
+    if (changedFields.length > 0) {
+      const changes: Record<string, string> = {};
+      for (const field of changedFields) {
+        changes[field] = newValues[field];
+      }
+
+      // Store pending changes
+      pendingSaveRef.current = { ...pendingSaveRef.current, ...changes };
+
+      // Trigger debounced auto-save
+      debouncedAutoSave({ ...pendingSaveRef.current });
+    }
+
     // Clear error when user starts typing
     if (errors[key]) {
       setErrors((prev) => {
@@ -164,7 +286,7 @@ export function ApiKeyConfigModal({
       });
     }
 
-    // Validate on change
+    // Validate on change (but don't save yet - let auto-save handle it)
     const field = API_KEY_FIELDS[key];
     if (field.validate && value) {
       const validation = field.validate(value);
@@ -341,17 +463,22 @@ export function ApiKeyConfigModal({
         </div>
 
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-700">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Info className="w-4 h-4" />
-            <span>API keys are stored securely and never shared</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Info className="w-4 h-4" />
+              <span>API keys are stored securely and never shared</span>
+            </div>
+            <SaveStatus status={saveStatus} />
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose} disabled={saving}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save Configuration
+            {Object.keys(errors).length > 0 && (
+              <Button onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save Configuration
+              </Button>
+            )}
+            <Button variant={Object.keys(errors).length > 0 ? 'outline' : 'default'} onClick={onClose} disabled={saving}>
+              {Object.keys(errors).length > 0 ? 'Cancel' : 'Done'}
             </Button>
           </div>
         </div>

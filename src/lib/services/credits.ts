@@ -25,14 +25,32 @@ export const COSTS = {
   TRANSITION_SUGGESTION: 1,     // AI transition suggestions ($0.01)
 } as const;
 
-// Helper to get image credit cost by resolution
-export function getImageCreditCost(resolution: '1k' | '2k' | '4k' = '2k'): number {
-  switch (resolution) {
-    case '1k': return COSTS.IMAGE_GENERATION_1K;
-    case '2k': return COSTS.IMAGE_GENERATION_2K;
-    case '4k': return COSTS.IMAGE_GENERATION_4K;
-    default: return COSTS.IMAGE_GENERATION_2K;
+// Helper to get image credit cost by resolution and provider
+// Uses getActionCost for provider-specific pricing from DB or fallback
+export function getImageCreditCost(
+  aspectRatio: string = '16:9',
+  resolution: '1k' | '2k' | '4k' = '2k',
+  provider: string = 'gemini'
+): number {
+  // Map provider to real-costs Provider type
+  const providerMap: Record<string, import('./real-costs').Provider> = {
+    'gemini': 'gemini',
+    'nanoBanana': 'gemini',
+    'modal': 'modal',
+    'modal-edit': 'modal-edit',
+    'kie': 'kie',
+  };
+
+  const mappedProvider = providerMap[provider] || 'gemini';
+  const cost = getActionCost('image', mappedProvider);
+
+  // Apply resolution multiplier if applicable
+  // Some providers charge more for higher resolutions
+  if (resolution === '4k' && (provider === 'gemini' || provider === 'nanoBanana')) {
+    return Math.ceil(cost * 1.5); // 4K is 1.5x the base cost for Gemini
   }
+
+  return Math.ceil(cost); // Round up to nearest credit
 }
 
 export type CostType = keyof typeof COSTS;

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import type { ApiKeys } from '@prisma/client';
@@ -17,6 +17,14 @@ interface UseStep1HandlersProps extends Step1State {
 
 export function useStep1Handlers(props: UseStep1HandlersProps) {
   const { toast } = useToast();
+
+  // Confirmation dialog state
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [confirmDialogData, setConfirmDialogData] = useState<{
+    provider: string;
+    model: string;
+    estimatedTokens?: number;
+  }>({ provider: '', model: '' });
   const {
     project,
     store,
@@ -39,11 +47,9 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     setGeneratingProvider,
   } = props;
 
-  const handleGeneratePrompt = useCallback(async () => {
-    // No more modal for any users - all configuration is in the left panel
-    console.log('[Step1] handleGeneratePrompt called');
-
+  const doGeneratePrompt = useCallback(async () => {
     setIsGenerating(true);
+    setIsConfirmDialogOpen(false);
 
     // Get current settings from project (they should already be synced via useEffect)
     // Define outside try block for fallback access in catch
@@ -284,6 +290,120 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     setEditedPrompt,
   ]);
 
+  const handleGeneratePrompt = useCallback(async () => {
+    console.log('[Step1] handleGeneratePrompt called');
+
+    // Get current settings from project
+    const currentSettings: import('@/types/project').ProjectSettings = {
+      aspectRatio,
+      resolution: (styleModel === 'flux' ? '4k' : 'hd') as 'hd' | '4k',
+      voiceLanguage: videoLanguage as 'sk' | 'en',
+      sceneCount: (project.settings?.sceneCount || 12) as 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360,
+      characterCount: project.settings?.characterCount || 3,
+      imageResolution: (styleModel === 'flux' ? '4k' : '2k') as '1k' | '2k' | '4k',
+      voiceProvider,
+      storyModel,
+    };
+
+    try {
+      // Use the model from the unified model configuration if available
+      const modelConfig = project.modelConfig;
+
+      // Get provider first to determine appropriate fallback
+      let providerToUse = modelConfig?.llm?.provider;
+
+      // Determine model to use with provider-aware fallback
+      let modelToUse = modelConfig?.llm?.model;
+      if (!modelToUse && effectiveIsPremium) {
+        // Use provider-specific default instead of hardcoded OpenRouter model
+        if (storyModel === 'gpt-4') {
+          modelToUse = 'openai/gpt-4-turbo';
+          providerToUse = providerToUse || 'openrouter';
+        } else if (storyModel === 'claude-sonnet-4.5') {
+          modelToUse = 'anthropic/claude-sonnet-4.5';
+          providerToUse = providerToUse || 'openrouter';
+        } else if (providerToUse && PROVIDER_DEFAULT_MODELS[providerToUse]) {
+          // Use provider-specific default model
+          modelToUse = PROVIDER_DEFAULT_MODELS[providerToUse];
+        } else {
+          // Final fallback to current OpenRouter default
+          modelToUse = 'anthropic/claude-4.5-sonnet';
+          providerToUse = 'openrouter';
+        }
+      }
+
+      // Extract provider from model or use modelConfig provider
+      if (modelToUse && modelToUse.includes('/')) {
+        const [providerFromModel] = modelToUse.split('/');
+        if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'google' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
+          providerToUse = providerToUse || 'openrouter';
+        }
+      } else if (!providerToUse) {
+        // Default to openrouter if no provider set and no model specific provider derivation
+        providerToUse = 'openrouter';
+      }
+
+      // Check user permissions and API keys
+      const permissions = await getUserPermissions();
+
+      // Check if user should use own API keys
+      const useOwnKeys = await shouldUseOwnApiKeys('llm');
+
+      if (useOwnKeys || permissions.requiresApiKeys) {
+        // Check if user has required API keys
+        const keyCheck = await checkRequiredApiKeys('llm');
+
+        if (!keyCheck.hasKeys) {
+          // Show API key modal
+          const { apiKeysContext } = props;
+          if (apiKeysContext?.showApiKeyModal) {
+            apiKeysContext.showApiKeyModal({
+              operation: 'llm',
+              missingKeys: keyCheck.missing,
+              onSuccess: () => {
+                // Retry generation after keys are saved
+                handleGeneratePrompt();
+              }
+            });
+          } else {
+            // Fallback to toast if context not available
+            toast({
+              title: "API Key Required",
+              description: "Please configure your API keys to continue.",
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+      }
+
+      // Show confirmation dialog
+      setConfirmDialogData({
+        provider: providerToUse || 'openrouter',
+        model: modelToUse || 'anthropic/claude-4.5-sonnet',
+        estimatedTokens: currentSettings.sceneCount * 100, // Rough estimate
+      });
+      setIsConfirmDialogOpen(true);
+    } catch (error) {
+      console.error('Error preparing prompt generation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare prompt generation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [
+    aspectRatio,
+    videoLanguage,
+    storyModel,
+    styleModel,
+    voiceProvider,
+    project,
+    effectiveIsPremium,
+    props,
+    toast,
+  ]);
+
   const handleSaveEditedPrompt = useCallback(() => {
     store.setMasterPrompt(project.id, editedPrompt);
     setIsEditing(false);
@@ -311,5 +431,10 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     handleSaveEditedPrompt,
     handleApplyPreset,
     handleModelConfigChange,
+    // Dialog state
+    isConfirmDialogOpen,
+    setIsConfirmDialogOpen,
+    confirmDialogData,
+    doGeneratePrompt,
   };
 }

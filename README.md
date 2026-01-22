@@ -81,15 +81,27 @@ Open http://localhost:8288 to view the Inngest dashboard.
 
 ### AI Providers
 
-Configure AI providers in the Settings page:
+Configure AI providers in the Settings page or via the unified provider modal:
 
 | Feature | Providers |
 |---------|-----------|
-| LLM (Story) | OpenRouter, Claude CLI, Modal |
-| Images | Gemini, Modal (Qwen) |
-| Videos | Kie.ai, Modal (Hallo3) |
-| TTS | Gemini TTS, ElevenLabs, Modal |
-| Music | PiAPI/Suno, Modal |
+| LLM (Story) | OpenRouter, Claude SDK/CLI, Gemini, Modal, KIE |
+| Images | Gemini, Nano Banana, KIE.ai, Modal, Modal Edit |
+| Videos | KIE.ai, Modal (Hallo3) |
+| TTS | Gemini TTS, ElevenLabs, OpenAI TTS, KIE, Modal |
+| Music | PiAPI, Suno, KIE, Modal |
+
+#### Provider Configuration System
+
+The application uses a unified provider configuration system with:
+
+- **Auto-save**: Changes are automatically saved after 500ms
+- **Bidirectional sync**: Settings page ↔ Configuration modal
+- **Per-project config**: Each project can use different providers
+- **Priority resolution**: Project > Org > User > Environment defaults
+- **Confirmation dialogs**: See provider, model, and cost before generation
+
+For detailed provider configuration documentation, see [docs/provider-configuration.md](docs/provider-configuration.md).
 
 ### Modal Endpoints (Self-hosted)
 
@@ -113,13 +125,87 @@ src/
 │   └── collaboration/     # Team collaboration features
 ├── lib/
 │   ├── inngest/           # Background job definitions
+│   ├── providers/         # AI provider abstraction layer
 │   ├── services/          # Business logic
 │   └── stores/            # Zustand state management
+├── tests/
+│   └── e2e/               # End-to-end tests with Playwright
 └── types/                 # TypeScript definitions
 
 modal/                     # Python Modal endpoints
 prisma/schema.prisma       # Database schema
 ```
+
+## Testing
+
+### Unit Tests
+
+Run unit tests for provider configuration and business logic:
+
+```bash
+# Run all unit tests
+npm test
+
+# Run with coverage
+npm test:coverage
+
+# Run in watch mode
+npm test:watch
+```
+
+### Component Tests
+
+Test React components with Vitest and React Testing Library:
+
+```bash
+# Run component tests
+npm run test:components
+```
+
+### E2E Tests
+
+Test full user flows with Playwright:
+
+```bash
+# Install Playwright browsers
+npx playwright install
+
+# Run E2E tests
+npm run test:e2e
+
+# Run with UI
+npm run test:e2e:ui
+
+# Run specific test file
+npx playwright test tests/e2e/confirmation-dialogs.spec.ts
+```
+
+### Test Coverage
+
+The project maintains >90% code coverage on core provider configuration logic.
+
+## Architecture
+
+### Provider Resolution System
+
+The application uses a priority-based provider resolution system:
+
+```
+1. Request-specific provider override (explicit in API call)
+2. Project model configuration (per-project settings)
+3. Organization API keys (for premium/admin users)
+4. User settings from database (personal API keys)
+5. Owner settings (for collaborators)
+6. Environment defaults (fallback)
+```
+
+### Key Components
+
+- **`src/lib/providers/provider-config.ts`** - Provider resolution logic
+- **`src/contexts/ApiKeysContext.tsx`** - API key state management
+- **`src/components/workflow/api-key-modal/`** - Unified configuration modal
+- **`src/components/workflow/shared/UnifiedGenerateConfirmationDialog.tsx`** - Confirmation dialogs
+- **`src/components/ui/SaveStatus.tsx`** - Auto-save status indicator
 
 ## License
 

@@ -16,6 +16,7 @@ import { PaymentMethodToggle } from './PaymentMethodToggle';
 import { StepActionBar } from './shared/StepActionBar';
 import { FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { UnifiedGenerateConfirmationDialog } from './shared/UnifiedGenerateConfirmationDialog';
 
 interface Step1Props {
   project: Project;
@@ -72,6 +73,10 @@ export function Step1PromptGenerator({
     handleSaveEditedPrompt,
     handleApplyPreset,
     handleModelConfigChange,
+    isConfirmDialogOpen,
+    setIsConfirmDialogOpen,
+    confirmDialogData,
+    doGeneratePrompt,
   } = handlers;
 
   const handleModelConfigChangeWrapper = (modelConfig: UnifiedModelConfig) => {
@@ -171,6 +176,26 @@ export function Step1PromptGenerator({
         isOpen={isGenerating}
         model={generatingModel}
         provider={generatingProvider}
+      />
+
+      <UnifiedGenerateConfirmationDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={doGeneratePrompt}
+        operation="llm"
+        provider={confirmDialogData.provider}
+        model={confirmDialogData.model}
+        title="Generate Main Prompt"
+        description={`This will generate a comprehensive master prompt for your ${project.settings?.sceneCount || 12}-scene film using ${confirmDialogData.provider}.`}
+        details={[
+          { label: 'Story Title', value: project.story?.title || 'Untitled' },
+          { label: 'Genre', value: project.story?.genre || 'Unknown' },
+          { label: 'Tone', value: project.story?.tone || 'Unknown' },
+          { label: 'Scene Count', value: project.settings?.sceneCount || 12 },
+          { label: 'Character Count', value: project.settings?.characterCount || 3 },
+          { label: 'Aspect Ratio', value: aspectRatio },
+        ]}
+        estimatedCost={0.1} // Rough estimate for prompt generation
       />
 
     </div>

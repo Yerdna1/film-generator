@@ -17,7 +17,7 @@ import {
   VoiceoverModals,
 } from './components';
 import { VoiceSettingsDialog } from '../voiceover-generator/components';
-import { GenerateConfirmationDialog } from '../shared';
+import { UnifiedGenerateConfirmationDialog } from '../shared/UnifiedGenerateConfirmationDialog';
 import {
   useDialogueLoader,
   useRegenerationRequests,
@@ -44,6 +44,10 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
 
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [volume, setVolume] = useState([75]);
+
+  // Individual line generation dialog state
+  const [showIndividualDialog, setShowIndividualDialog] = useState(false);
+  const [pendingLineGeneration, setPendingLineGeneration] = useState<{ lineId: string; sceneId: string; text: string } | null>(null);
 
   // Determine if user can delete directly (admin) or must request (collaborator)
   const canDeleteDirectly = permissions?.canDelete ?? true;
@@ -184,6 +188,25 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
     handleLanguageChange,
   } = useVoiceSettings(project.id, voiceSettings);
 
+  // Handler for individual line generation with dialog
+  const handleGenerateLineWithDialog = (lineId: string, sceneId: string) => {
+    // Find the dialogue text
+    const scene = (project.scenes || []).find(s => s.id === sceneId);
+    const line = scene?.dialogue?.find(d => d.id === lineId);
+    if (line) {
+      setPendingLineGeneration({ lineId, sceneId, text: line.text });
+      setShowIndividualDialog(true);
+    }
+  };
+
+  // Confirm individual line generation
+  const handleConfirmIndividualGeneration = async () => {
+    setShowIndividualDialog(false);
+    if (pendingLineGeneration) {
+      await handleGenerateAudioWithCreditCheck(pendingLineGeneration.lineId, pendingLineGeneration.sceneId);
+    }
+  };
+
   // Calculate counts directly from project.scenes (live from store)
   const liveDialogueLines = useMemo(() =>
     (project.scenes || []).flatMap(s => s.dialogue || []),
@@ -255,7 +278,7 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         pendingDeletionLineIds={pendingDeletionLineIds}
         approvedRegenByLineId={approvedRegenByLineId}
         onTogglePlay={togglePlay}
-        onGenerateAudio={generateAudioForLine}
+        onGenerateAudio={handleGenerateLineWithDialog}
         onAudioRef={setAudioRef}
         onAudioEnded={handleAudioEnded}
         onDownloadLine={downloadLine}
@@ -292,22 +315,21 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         onVoiceSettingsChange={handleVoiceSettingsChange}
       />
 
-      <GenerateConfirmationDialog
+      <UnifiedGenerateConfirmationDialog
         isOpen={isGenerateAllDialogOpen}
-        icon="mic"
-        title="Generovať Hlasové Prejavy"
-        description={`Potvrdiť generovanie ${allDialogueLines.length} hlasových prejavov`}
-        confirmLabel="Generovať Všetky Hlasy"
-        cancelLabel="Zrušiť"
-        infoItems={[
-          { label: 'Jazyk', value: voiceSettings.language === 'sk' ? 'Slovenčina' : voiceSettings.language === 'en' ? 'English' : voiceSettings.language },
-          { label: 'Počet replík', value: String(allDialogueLines.length) },
-        ]}
+        onClose={() => setIsGenerateAllDialogOpen(false)}
+        onConfirm={handleConfirmGenerateAll}
+        operation="tts"
         provider={apiKeysProvider}
         model={apiKeysModel}
-        isGenerating={isGeneratingAllDialog}
-        onConfirm={handleConfirmGenerateAll}
-        onCancel={() => setIsGenerateAllDialogOpen(false)}
+        title={t('steps.voiceover.generateAll')}
+        description={`This will generate voiceovers for ${allDialogueLines.length} dialogue lines using ${apiKeysProvider}.`}
+        details={[
+          { label: 'Language', value: voiceSettings.language === 'sk' ? 'Slovenčina' : voiceSettings.language === 'en' ? 'English' : voiceSettings.language, icon: Mic },
+          { label: 'Dialogue Lines', value: allDialogueLines.length, icon: Mic },
+          { label: 'Total Characters', value: `~${Math.ceil(allDialogueLines.reduce((sum, line) => sum + (line.text?.length || 0), 0) / 1000)}k`, icon: Mic },
+        ]}
+        estimatedCost={ACTION_COSTS.voiceover.geminiTts * allDialogueLines.length}
       />
 
       <VoiceoverModals
@@ -327,6 +349,24 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         )}
         onUseAppCredits={handleUseAppCredits}
         onSaveKieApiKey={handleSaveKieApiKey}
+      />
+
+      {/* Individual Line Generation Dialog */}
+      <UnifiedGenerateConfirmationDialog
+        isOpen={showIndividualDialog}
+        onClose={() => setShowIndividualDialog(false)}
+        onConfirm={handleConfirmIndividualGeneration}
+        operation="tts"
+        provider={apiKeysProvider}
+        model={apiKeysModel}
+        title="Generate Voiceover"
+        description={`This will generate voiceover for a dialogue line using ${apiKeysProvider}.`}
+        details={[
+          { label: 'Text', value: pendingLineGeneration?.text?.substring(0, 50) + (pendingLineGeneration?.text?.length || 0 > 50 ? '...' : '') || '', icon: Mic },
+          { label: 'Language', value: voiceSettings.language === 'sk' ? 'Slovenčina' : voiceSettings.language === 'en' ? 'English' : voiceSettings.language, icon: Mic },
+          { label: 'Characters', value: pendingLineGeneration?.text?.length || 0, icon: Mic },
+        ]}
+        estimatedCost={ACTION_COSTS.voiceover.geminiTts}
       />
     </div>
   );

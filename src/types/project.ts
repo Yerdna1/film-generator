@@ -274,6 +274,20 @@ export interface ApiConfig {
   openRouterApiKey?: string;  // OpenRouter API key for LLM access
   piapiApiKey?: string;  // PiAPI key for music generation
   sunoApiKey?: string;  // Suno API key (alternative)
+  nanoBananaApiKey?: string;  // Nano Banana API key
+  // Provider selections
+  llmProvider?: LLMProvider;
+  imageProvider?: ImageProvider;
+  videoProvider?: VideoProvider;
+  ttsProvider?: TTSProvider;
+  musicProvider?: MusicProvider;
+  // Model selections
+  openRouterModel?: string;
+  kieImageModel?: string;
+  kieVideoModel?: string;
+  kieTtsModel?: string;
+  kieMusicModel?: string;
+  kieLlmModel?: string;
   // Modal.com self-hosted endpoints
   modalEndpoints?: ModalEndpoints;
 }

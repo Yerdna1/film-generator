@@ -18,6 +18,12 @@ export interface ApiKeysData {
   modalImageEditEndpoint?: string;
   modalVideoEndpoint?: string;
   modalMusicEndpoint?: string;
+  // KIE model selections
+  kieLlmModel?: string;
+  kieImageModel?: string;
+  kieVideoModel?: string;
+  kieTtsModel?: string;
+  kieMusicModel?: string;
   // API keys (masked or presence indicators)
   kieApiKey?: string;
   openRouterApiKey?: string;

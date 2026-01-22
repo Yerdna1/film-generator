@@ -31,8 +31,8 @@ import {
 } from './components';
 import { PaymentMethodToggle } from '../PaymentMethodToggle';
 import { StepActionBar } from '../shared/StepActionBar';
-import { GenerateConfirmationDialog, type InfoItem } from '../shared';
-import { Users, Plus } from 'lucide-react';
+import { UnifiedGenerateConfirmationDialog } from '../shared/UnifiedGenerateConfirmationDialog';
+import { Users, Plus, ImageIcon } from 'lucide-react';
 
 export function Step2CharacterGenerator({ project: initialProject, isReadOnly = false }: Step2Props) {
   const t = useTranslations();
@@ -408,22 +408,25 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
       />
 
       {/* Generate Image Confirmation Dialog */}
-      <GenerateConfirmationDialog
+      <UnifiedGenerateConfirmationDialog
         isOpen={showGenerateDialog}
-        icon="image"
-        title="Generate Character Image"
-        description={`Confirm image generation for ${pendingCharacter?.name || 'character'}`}
-        confirmLabel="Generate Image"
-        cancelLabel="Cancel"
-        infoItems={[
-          { label: 'Resolution', value: (settings.imageResolution || '2k').toUpperCase() },
-          { label: 'Aspect Ratio', value: characterAspectRatio },
-        ]}
+        onClose={() => setShowGenerateDialog(false)}
+        onConfirm={confirmGenerateImage}
+        operation="image"
         provider={characterImageProvider}
         model={characterImageModel}
-        isGenerating={isGeneratingSingle}
-        onConfirm={confirmGenerateImage}
-        onCancel={() => setShowGenerateDialog(false)}
+        title="Generate Character Image"
+        description={`This will generate an image for ${pendingCharacter?.name || 'character'} using ${characterImageProvider}.`}
+        details={[
+          { label: 'Character Name', value: pendingCharacter?.name || 'Unknown', icon: Users },
+          { label: 'Resolution', value: (settings.imageResolution || '2k').toUpperCase(), icon: ImageIcon },
+          { label: 'Aspect Ratio', value: characterAspectRatio, icon: ImageIcon },
+        ]}
+        estimatedCost={getImageCreditCost(
+          characterAspectRatio as AspectRatio,
+          settings.imageResolution as ImageResolution,
+          characterImageProvider as ImageProvider
+        )}
       />
     </div>
   );

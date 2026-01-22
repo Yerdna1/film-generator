@@ -122,7 +122,7 @@ export function getEndpointUrl(
 
   // Handle function paths (e.g., for parameterized endpoints)
   const path = typeof pathConfig === 'function'
-    ? pathConfig(...params)
+    ? (pathConfig as (...args: string[]) => string)(...params)
     : pathConfig;
 
   return buildApiUrl(provider as keyof typeof API_BASE_URLS, path);

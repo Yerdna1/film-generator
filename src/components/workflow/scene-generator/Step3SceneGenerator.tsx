@@ -15,12 +15,12 @@ import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { useSceneGenerator, useStep3Collaboration, useStep3Pagination } from './hooks';
 import { Step3Content } from './components';
 import { StepActionBar } from '../shared/StepActionBar';
-import { GenerateConfirmationDialog } from '../shared';
+import { UnifiedGenerateConfirmationDialog } from '../shared/UnifiedGenerateConfirmationDialog';
 import type { Step3Props, UserApiKeys } from './types';
 import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
 import { formatCostCompact } from '@/lib/services/real-costs';
-import { Image, Copy, Download, RefreshCw } from 'lucide-react';
+import { Image, Copy, Download, RefreshCw, FileText, ImageIcon } from 'lucide-react';
 
 export function Step3SceneGenerator({
   project: initialProject,
@@ -101,6 +101,9 @@ export function Step3SceneGenerator({
   const [isConfirmGenerating, setIsConfirmGenerating] = useState(false);
   const [showRequestRegenDialog, setShowRequestRegenDialog] = useState(false);
 
+  // Generate images confirmation dialog state
+  const [showGenerateImagesDialog, setShowGenerateImagesDialog] = useState(false);
+
   // Use scene generator hook
   const {
     project,
@@ -157,6 +160,7 @@ export function Step3SceneGenerator({
   // Use project's modelConfig with DEFAULT_MODEL_CONFIG as fallback (single source of truth)
   const projectImageConfig = project.modelConfig?.image || DEFAULT_MODEL_CONFIG.image;
   const imageProvider: ImageProvider = projectImageConfig.provider as ImageProvider;
+  const imageModel = projectImageConfig.model || DEFAULT_MODELS.kieImageModel;
 
   // Collaboration hooks
   const {
@@ -360,15 +364,22 @@ export function Step3SceneGenerator({
   const isGenerating = useInngest ? isBackgroundJobRunning : isGeneratingAllImages;
 
   // Wrap to prevent click event from being passed as argument
-  const handleGenerateImages = useInngest
+  const doGenerateImages = useInngest
     ? () => {
         console.log('[Step3] Starting background image generation via Inngest');
+        setShowGenerateImagesDialog(false);
         return handleStartBackgroundGeneration();
       }
     : () => {
         console.log('[Step3] Starting direct image generation');
+        setShowGenerateImagesDialog(false);
         return handleGenerateAllWithCreditCheck();
       };
+
+  // Show confirmation dialog before generating images
+  const handleGenerateImages = () => {
+    setShowGenerateImagesDialog(true);
+  };
 
   // Build selection options for SelectionQuickActions
   const selectionOptions = useMemo(() => {
@@ -560,21 +571,42 @@ export function Step3SceneGenerator({
       />
 
       {/* Generate Scenes Confirmation Dialog */}
-      <GenerateConfirmationDialog
+      <UnifiedGenerateConfirmationDialog
         isOpen={showGenerateDialog}
-        icon="file"
-        title="Generate Scenes"
-        description={`Confirm generation of ${projectSettings.sceneCount || 12} scenes`}
-        confirmLabel="Generate Scenes"
-        cancelLabel="Cancel"
-        infoItems={[
-          { label: 'Scenes to Generate', value: String(projectSettings.sceneCount || 12) },
-        ]}
-        provider={apiKeysData?.llmProvider}
-        model={apiKeysData?.openRouterModel}
-        isGenerating={isConfirmGenerating}
+        onClose={() => setShowGenerateDialog(false)}
         onConfirm={handleConfirmGenerateScenes}
-        onCancel={() => setShowGenerateDialog(false)}
+        operation="llm"
+        provider={apiKeysData?.llmProvider || 'openrouter'}
+        model={apiKeysData?.openRouterModel || 'default'}
+        title="Generate Scenes"
+        description={`This will generate text descriptions for ${projectSettings.sceneCount || 12} scenes using ${apiKeysData?.llmProvider || 'OpenRouter'}.`}
+        details={[
+          { label: 'Scenes to Generate', value: String(projectSettings.sceneCount || 12), icon: FileText },
+          { label: 'Current Scenes', value: String(scenes.length), icon: FileText },
+        ]}
+        estimatedCost={sceneTextCreditsNeeded}
+      />
+
+      {/* Generate Images Confirmation Dialog */}
+      <UnifiedGenerateConfirmationDialog
+        isOpen={showGenerateImagesDialog}
+        onClose={() => setShowGenerateImagesDialog(false)}
+        onConfirm={doGenerateImages}
+        operation="image"
+        provider={imageProvider || 'gemini'}
+        model={imageModel || 'default'}
+        title="Generate Scene Images"
+        description={`This will generate images for ${scenes.filter(s => !s.imageUrl).length} scenes using ${imageProvider}.`}
+        details={[
+          { label: 'Scenes without Images', value: scenes.filter(s => !s.imageUrl).length, icon: ImageIcon },
+          { label: 'Resolution', value: (projectSettings.imageResolution || '2k').toUpperCase(), icon: ImageIcon },
+          { label: 'Aspect Ratio', value: projectSettings.aspectRatio || '16:9', icon: ImageIcon },
+        ]}
+        estimatedCost={scenes.filter(s => !s.imageUrl).length * getImageCreditCost(
+          (projectSettings.aspectRatio || '16:9') as any,
+          (projectSettings.imageResolution || '2k') as any,
+          imageProvider as ImageProvider
+        )}
       />
 
       {/* Request Regeneration Dialog */}

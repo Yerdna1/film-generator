@@ -17,12 +17,13 @@ import {
   KieVideoModal,
 } from './components';
 import { SelectionQuickActions } from '@/components/shared/SelectionQuickActions';
-import { RefreshCw, Cloud, X } from 'lucide-react';
+import { RefreshCw, Cloud, X, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RequestRegenerationDialog } from '@/components/collaboration/RequestRegenerationDialog';
 import { InsufficientCreditsModal } from '@/components/workflow/character-generator/components/InsufficientCreditsModal';
 import { PaymentMethodToggle } from '../PaymentMethodToggle';
 import { StepActionBar } from '../shared/StepActionBar';
+import { UnifiedGenerateConfirmationDialog } from '../shared/UnifiedGenerateConfirmationDialog';
 import { Film } from 'lucide-react';
 
 interface Step4Props {
@@ -116,6 +117,11 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
     scene?: any;
     scenes?: any[];
   } | null>(null);
+
+  // Confirmation dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogType, setConfirmDialogType] = useState<'single' | 'all' | 'selected'>('all');
+  const [confirmDialogScene, setConfirmDialogScene] = useState<any>(null);
 
   // Fetch regeneration requests for this project
   const fetchRegenerationRequests = useCallback(async () => {
@@ -238,74 +244,65 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
 
   // Credit check wrapper for single video generation
   const handleGenerateVideoWithCreditCheck = useCallback(async (scene: any) => {
-    // Check if user has their own KIE API key (not using platform credits)
-    const hasOwnKieApiKey = !!apiKeysData?.kieApiKey;
-
-    // If user has own API key, skip credit check and modal
-    if (hasOwnKieApiKey) {
-      await handleGenerateVideo(scene);
-      return;
-    }
-
-    // If apiKeysData is still loading (null), don't check credits yet
-    // Proceed with generation (API will check on backend)
-    if (apiKeysData === null) {
-      await handleGenerateVideo(scene);
-      return;
-    }
-
-    // Only check credits if user doesn't have their own API key
-    setPendingVideoGeneration({ type: 'single', scene });
-    setIsInsufficientCreditsModalOpen(true);
-  }, [apiKeysData, handleGenerateVideo]);
+    // Show confirmation dialog
+    setConfirmDialogType('single');
+    setConfirmDialogScene(scene);
+    setShowConfirmDialog(true);
+  }, []);
 
   // Credit check wrapper for all videos generation
   const handleGenerateAllWithCreditCheck = useCallback(async () => {
-    // Check if user has their own KIE API key (not using platform credits)
-    const hasOwnKieApiKey = !!apiKeysData?.kieApiKey;
-
-    // If user has own API key, skip credit check and modal
-    if (hasOwnKieApiKey) {
-      await handleGenerateAll();
-      return;
-    }
-
-    // If apiKeysData is still loading (null), don't check credits yet
-    // Proceed with generation (API will check on backend)
-    if (apiKeysData === null) {
-      await handleGenerateAll();
-      return;
-    }
-
-    // Only check credits if user doesn't have their own API key
-    setPendingVideoGeneration({ type: 'all', scenes: scenesNeedingGeneration });
-    setIsInsufficientCreditsModalOpen(true);
-  }, [apiKeysData, handleGenerateAll, scenesNeedingGeneration]);
+    // Show confirmation dialog
+    setConfirmDialogType('all');
+    setConfirmDialogScene(null);
+    setShowConfirmDialog(true);
+  }, []);
 
   // Credit check wrapper for selected videos generation
   const handleGenerateSelectedWithCreditCheck = useCallback(async () => {
+    // Show confirmation dialog
+    setConfirmDialogType('selected');
+    setConfirmDialogScene(null);
+    setShowConfirmDialog(true);
+  }, []);
+
+  // Confirm video generation from dialog
+  const handleConfirmGeneration = useCallback(async () => {
+    setShowConfirmDialog(false);
+
     // Check if user has their own KIE API key (not using platform credits)
     const hasOwnKieApiKey = !!apiKeysData?.kieApiKey;
 
-    // If user has own API key, skip credit check and modal
-    if (hasOwnKieApiKey) {
-      const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
-      await handleGenerateSelected();
-      return;
+    if (confirmDialogType === 'single' && confirmDialogScene) {
+      // If user has own API key, skip credit check
+      if (hasOwnKieApiKey || apiKeysData === null) {
+        await handleGenerateVideo(confirmDialogScene);
+      } else {
+        // Check credits
+        setPendingVideoGeneration({ type: 'single', scene: confirmDialogScene });
+        setIsInsufficientCreditsModalOpen(true);
+      }
+    } else if (confirmDialogType === 'all') {
+      // If user has own API key, skip credit check
+      if (hasOwnKieApiKey || apiKeysData === null) {
+        await handleGenerateAll();
+      } else {
+        // Check credits
+        setPendingVideoGeneration({ type: 'all', scenes: scenesNeedingGeneration });
+        setIsInsufficientCreditsModalOpen(true);
+      }
+    } else if (confirmDialogType === 'selected') {
+      // If user has own API key, skip credit check
+      if (hasOwnKieApiKey || apiKeysData === null) {
+        await handleGenerateSelected();
+      } else {
+        // Check credits
+        const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
+        setPendingVideoGeneration({ type: 'selected', scenes: selectedScenesArray });
+        setIsInsufficientCreditsModalOpen(true);
+      }
     }
-
-    // If apiKeysData is still loading (null), don't check credits yet
-    // Proceed with generation (API will check on backend)
-    if (apiKeysData === null) {
-      await handleGenerateSelected();
-      return;
-    }
-
-    // Only check credits if user doesn't have their own API key
-    const selectedScenesArray = scenes.filter(s => selectedScenes.has(s.id));
-    setPendingVideoGeneration({ type: 'selected', scenes: selectedScenesArray });
-    setIsInsufficientCreditsModalOpen(true);
-  }, [scenes, selectedScenes, apiKeysData, handleGenerateSelected]);
+  }, [confirmDialogType, confirmDialogScene, apiKeysData, handleGenerateVideo, handleGenerateAll, handleGenerateSelected, scenesNeedingGeneration, scenes, selectedScenes]);
 
   // Proceed with generation using app credits
   const handleUseAppCredits = useCallback(async () => {
@@ -506,7 +503,7 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
               onToggleSelect={() => toggleSceneSelection(scene.id)}
               onPlay={() => setPlayingVideo(scene.id)}
               onPause={() => setPlayingVideo(null)}
-              onGenerateVideo={() => handleGenerateVideo(scene)}
+              onGenerateVideo={() => handleGenerateVideoWithCreditCheck(scene)}
               buildFullI2VPrompt={buildFullI2VPrompt}
               onDeletionRequested={fetchDeletionRequests}
               onUseRegenerationAttempt={handleUseRegenerationAttempt}
@@ -608,6 +605,46 @@ export function Step4VideoGenerator({ project: initialProject, permissions, user
         onClose={() => setIsKieModalOpen(false)}
         onSave={handleSaveKieApiKey}
         isLoading={isSavingKieKey}
+      />
+
+      {/* Generate Videos Confirmation Dialog */}
+      <UnifiedGenerateConfirmationDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmGeneration}
+        operation="video"
+        provider={project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'kie'}
+        model={project.modelConfig?.video?.model || apiKeysData?.kieVideoModel || 'default'}
+        title={
+          confirmDialogType === 'single'
+            ? 'Generate Video'
+            : confirmDialogType === 'selected'
+            ? 'Generate Selected Videos'
+            : 'Generate All Videos'
+        }
+        description={
+          confirmDialogType === 'single' && confirmDialogScene
+            ? `This will generate a video for "${confirmDialogScene.title}" using ${project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'KIE'}.`
+            : confirmDialogType === 'selected'
+            ? `This will generate videos for ${selectedScenes.size} selected scenes using ${project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'KIE'}.`
+            : `This will generate videos for ${scenesNeedingGeneration.length} scenes using ${project.modelConfig?.video?.provider || apiKeysData?.videoProvider || 'KIE'}.`
+        }
+        details={[
+          confirmDialogType === 'single' && confirmDialogScene
+            ? { label: 'Scene', value: confirmDialogScene.title, icon: Video }
+            : confirmDialogType === 'selected'
+            ? { label: 'Selected Scenes', value: selectedScenes.size, icon: Video }
+            : { label: 'Scenes to Generate', value: scenesNeedingGeneration.length, icon: Video },
+          { label: 'Resolution', value: '1024x576 (16:9)', icon: Video },
+          { label: 'Duration', value: '~2 seconds', icon: Video },
+        ]}
+        estimatedCost={
+          confirmDialogType === 'single'
+            ? ACTION_COSTS.video.grok
+            : confirmDialogType === 'selected'
+            ? ACTION_COSTS.video.grok * selectedScenes.size
+            : ACTION_COSTS.video.grok * scenesNeedingGeneration.length
+        }
       />
     </div>
   );

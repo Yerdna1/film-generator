@@ -1,11 +1,13 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import type { ApiKeys } from '@prisma/client';
 import type { OperationType } from '@/lib/services/user-permissions';
 import { toast } from 'sonner';
 import { ApiKeyConfigModal } from '@/components/workflow/ApiKeyConfigModal';
+import { debounce } from '@/lib/utils/debounce';
+import { isValidApiKeysData } from '@/lib/utils/validate-api-keys';
 
 interface ApiKeyModalData {
   operation: OperationType;
@@ -208,20 +210,48 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(event);
   }, [apiKeys]);
 
+  // Create a debounced update function
+  const debouncedSetApiKeys = useMemo(
+    () => debounce((validatedData: ApiKeys) => {
+      setApiKeys(validatedData);
+    }, 300),
+    []
+  );
+
   // Listen for API key changes from other sources (e.g., settings page)
   useEffect(() => {
     const handleApiKeysUpdate = (event: CustomEvent) => {
       const updatedKeys = event.detail;
-      if (updatedKeys && updatedKeys.id !== apiKeys?.id) {
-        setApiKeys(updatedKeys);
+
+      // Validate the incoming data
+      if (!updatedKeys) {
+        console.warn('[ApiKeysContext] Received empty API keys update');
+        return;
       }
+
+      // Skip if it's the same data (prevent loops)
+      if (updatedKeys && updatedKeys.id === apiKeys?.id &&
+          updatedKeys.updatedAt === apiKeys?.updatedAt) {
+        return;
+      }
+
+      // Validate the data structure
+      if (!isValidApiKeysData(updatedKeys)) {
+        console.error('[ApiKeysContext] Received invalid API keys data:', updatedKeys);
+        return;
+      }
+
+      // Update with debouncing to prevent rapid updates
+      debouncedSetApiKeys(updatedKeys);
     };
 
     window.addEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
     return () => {
       window.removeEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
+      // Cancel any pending debounced updates
+      debouncedSetApiKeys.cancel();
     };
-  }, [apiKeys?.id]);
+  }, [apiKeys?.id, apiKeys?.updatedAt, debouncedSetApiKeys]);
 
   return (
     <ApiKeysContext.Provider

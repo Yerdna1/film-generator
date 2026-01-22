@@ -11,6 +11,48 @@ import { DEFAULT_OPENROUTER_MODEL } from '../constants';
 import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 import { getCurrency, setCurrency as setCurrencyUtil, type Currency } from '@/lib/utils/currency';
 
+// Helper function to broadcast API key updates
+const broadcastApiKeysUpdate = (apiKeys: any) => {
+  window.dispatchEvent(new CustomEvent('apiKeysUpdated', {
+    detail: apiKeys
+  }));
+};
+
+// Generic handler for KIE model changes
+const handleKieModelChange = async (
+  modelKey: string,
+  modelValue: string,
+  setterFunction: (value: string) => void,
+  tPage: (key: string) => string
+) => {
+  setterFunction(modelValue);
+  localStorage.setItem(`app-${modelKey}`, modelValue);
+
+  // Sync to database for authenticated users
+  try {
+    const response = await fetch('/api/user/api-keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [modelKey]: modelValue }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.apiKeys) {
+        // Broadcast the update to other components
+        broadcastApiKeysUpdate(data.apiKeys);
+      }
+    }
+  } catch (error) {
+    console.error(`Failed to sync ${modelKey} to database:`, error);
+  }
+
+  return {
+    title: tPage('toasts.kieModelChanged') || 'KIE model updated',
+    description: `${tPage('toasts.nowUsing') || 'Now using'} ${modelValue}`
+  };
+};
+
 export function useSettings() {
   const tPage = useTranslations('settingsPage');
   const router = useRouter();
@@ -41,29 +83,81 @@ export function useSettings() {
   const [kieMusicModel, setKieMusicModel] = useState<string>(DEFAULT_MODELS.kieMusicModel);
   const [kieLlmModel, setKieLlmModel] = useState<string>(DEFAULT_MODELS.kieLlmModel);
 
-  // Load settings from localStorage on mount
+  // One-time migration from localStorage to database (for existing users)
+  useEffect(() => {
+    const migrateLocalStorage = async () => {
+      // Check if migration has already been done
+      const migrationDone = localStorage.getItem('app-settings-migrated');
+      if (migrationDone === 'true') return;
+
+      // Collect all localStorage values for migration
+      const localStorageData: Record<string, any> = {};
+      const keys = [
+        'app-llm-provider',
+        'app-openrouter-model',
+        'app-music-provider',
+        'app-tts-provider',
+        'app-image-provider',
+        'app-video-provider',
+        'app-kie-image-model',
+        'app-kie-video-model',
+        'app-kie-tts-model',
+        'app-kie-music-model',
+        'app-kie-llm-model',
+      ];
+
+      // Collect existing values
+      let hasData = false;
+      for (const key of keys) {
+        const value = localStorage.getItem(key);
+        if (value) {
+          hasData = true;
+          // Convert key format (remove 'app-' prefix and convert to camelCase)
+          const dbKey = key.replace('app-', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+          localStorageData[dbKey] = value;
+        }
+      }
+
+      // If we have data to migrate, save it to the database
+      if (hasData) {
+        try {
+          await fetch('/api/user/api-keys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(localStorageData),
+          });
+
+          // Mark migration as complete
+          localStorage.setItem('app-settings-migrated', 'true');
+
+          // Clean up old localStorage items
+          for (const key of keys) {
+            localStorage.removeItem(key);
+          }
+        } catch (error) {
+          console.error('Failed to migrate localStorage settings:', error);
+        }
+      }
+    };
+
+    migrateLocalStorage();
+  }, []);
+
+  // Load UI preferences from localStorage (these can stay local)
   useEffect(() => {
     // Read language from cookie first (this is what next-intl uses)
     const getCookieValue = (name: string) => {
       const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
       return match ? match[2] : null;
     };
+
+    // UI preferences can remain in localStorage
     const savedLanguage = getCookieValue('NEXT_LOCALE') || localStorage.getItem('app-language') || 'en';
     const savedDarkMode = localStorage.getItem('app-dark-mode') !== 'false';
     const savedReducedMotion = localStorage.getItem('app-reduced-motion') === 'true';
     const savedNotify = localStorage.getItem('app-notify-complete') !== 'false';
     const savedAutoSave = localStorage.getItem('app-auto-save') !== 'false';
-    const savedLLMProvider = (localStorage.getItem('app-llm-provider') as LLMProvider) || 'openrouter';
-    const savedOpenRouterModel = localStorage.getItem('app-openrouter-model') || DEFAULT_OPENROUTER_MODEL;
-    const savedMusicProvider = (localStorage.getItem('app-music-provider') as MusicProvider) || 'piapi';
-    const savedTTSProvider = (localStorage.getItem('app-tts-provider') as TTSProvider) || 'gemini-tts';
-    const savedImageProvider = (localStorage.getItem('app-image-provider') as ImageProvider) || 'gemini';
-    const savedVideoProvider = (localStorage.getItem('app-video-provider') as VideoProvider) || 'kie';
     const savedCurrency = getCurrency();
-    const savedKieImageModel = localStorage.getItem('app-kie-image-model') || DEFAULT_MODELS.kieImageModel;
-    const savedKieVideoModel = localStorage.getItem('app-kie-video-model') || DEFAULT_MODELS.kieVideoModel;
-    const savedKieTtsModel = localStorage.getItem('app-kie-tts-model') || DEFAULT_MODELS.kieTtsModel;
-    const savedKieMusicModel = localStorage.getItem('app-kie-music-model') || DEFAULT_MODELS.kieMusicModel;
 
     setLanguage(savedLanguage);
     setCurrency(savedCurrency);
@@ -71,16 +165,6 @@ export function useSettings() {
     setReducedMotion(savedReducedMotion);
     setNotifyOnComplete(savedNotify);
     setAutoSave(savedAutoSave);
-    setLLMProvider(savedLLMProvider);
-    setOpenRouterModel(savedOpenRouterModel);
-    setMusicProvider(savedMusicProvider);
-    setTTSProvider(savedTTSProvider);
-    setImageProvider(savedImageProvider);
-    setVideoProvider(savedVideoProvider);
-    setKieImageModel(savedKieImageModel);
-    setKieVideoModel(savedKieVideoModel);
-    setKieTtsModel(savedKieTtsModel);
-    setKieMusicModel(savedKieMusicModel);
   }, []);
 
   // Fetch API keys from database for authenticated users
@@ -96,44 +180,37 @@ export function useSettings() {
           // Update provider settings if returned from API
           if (data.llmProvider) {
             setLLMProvider(data.llmProvider);
-            localStorage.setItem('app-llm-provider', data.llmProvider);
           }
           if (data.openRouterModel) {
             setOpenRouterModel(data.openRouterModel);
-            localStorage.setItem('app-openrouter-model', data.openRouterModel);
           }
           if (data.musicProvider) {
             setMusicProvider(data.musicProvider);
-            localStorage.setItem('app-music-provider', data.musicProvider);
           }
           if (data.ttsProvider) {
             setTTSProvider(data.ttsProvider);
-            localStorage.setItem('app-tts-provider', data.ttsProvider);
           }
           if (data.imageProvider) {
             setImageProvider(data.imageProvider);
-            localStorage.setItem('app-image-provider', data.imageProvider);
           }
           if (data.videoProvider) {
             setVideoProvider(data.videoProvider);
-            localStorage.setItem('app-video-provider', data.videoProvider);
           }
           // Load KIE model selections
           if (data.kieImageModel) {
             setKieImageModel(data.kieImageModel);
-            localStorage.setItem('app-kie-image-model', data.kieImageModel);
           }
           if (data.kieVideoModel) {
             setKieVideoModel(data.kieVideoModel);
-            localStorage.setItem('app-kie-video-model', data.kieVideoModel);
           }
           if (data.kieTtsModel) {
             setKieTtsModel(data.kieTtsModel);
-            localStorage.setItem('app-kie-tts-model', data.kieTtsModel);
           }
           if (data.kieMusicModel) {
             setKieMusicModel(data.kieMusicModel);
-            localStorage.setItem('app-kie-music-model', data.kieMusicModel);
+          }
+          if (data.kieLlmModel) {
+            setKieLlmModel(data.kieLlmModel);
           }
           // Load Modal endpoints
           setModalEndpoints({
@@ -188,15 +265,40 @@ export function useSettings() {
     setShowKeys((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  const handleSaveKey = useCallback((key: string) => {
-    setApiConfig({ [key]: localConfig[key as keyof typeof localConfig] });
-    setSavedKeys((prev) => ({ ...prev, [key]: true }));
-    toast.success(tPage('toasts.apiKeySaved'), {
-      description: tPage('toasts.apiKeySavedDesc'),
-    });
-    setTimeout(() => {
-      setSavedKeys((prev) => ({ ...prev, [key]: false }));
-    }, 2000);
+  const handleSaveKey = useCallback(async (key: string) => {
+    const value = localConfig[key as keyof typeof localConfig];
+
+    // Save to database
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Update local store
+          setApiConfig({ [key]: value });
+          setSavedKeys((prev) => ({ ...prev, [key]: true }));
+
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+
+          toast.success(tPage('toasts.apiKeySaved'), {
+            description: tPage('toasts.apiKeySavedDesc'),
+          });
+
+          setTimeout(() => {
+            setSavedKeys((prev) => ({ ...prev, [key]: false }));
+          }, 2000);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save API key:', error);
+      toast.error(tPage('toasts.saveFailed') || 'Failed to save');
+    }
   }, [localConfig, setApiConfig, tPage]);
 
   const updateLocalConfig = useCallback((key: string, value: string) => {
@@ -263,11 +365,19 @@ export function useSettings() {
 
     // Sync to database for authenticated users
     try {
-      await fetch('/api/user/api-keys', {
+      const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ llmProvider: provider }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+        }
+      }
     } catch (error) {
       console.error('Failed to sync llmProvider to database:', error);
     }
@@ -291,11 +401,19 @@ export function useSettings() {
 
     // Sync to database for authenticated users
     try {
-      await fetch('/api/user/api-keys', {
+      const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ openRouterModel: model }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+        }
+      }
     } catch (error) {
       console.error('Failed to sync openRouterModel to database:', error);
     }
@@ -315,11 +433,19 @@ export function useSettings() {
 
     // Sync to database for authenticated users
     try {
-      await fetch('/api/user/api-keys', {
+      const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ musicProvider: provider }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+        }
+      }
     } catch (error) {
       console.error('Failed to sync musicProvider to database:', error);
     }
@@ -343,11 +469,19 @@ export function useSettings() {
 
     // Sync to database for authenticated users
     try {
-      await fetch('/api/user/api-keys', {
+      const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ttsProvider: provider }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+        }
+      }
     } catch (error) {
       console.error('Failed to sync ttsProvider to database:', error);
     }
@@ -372,11 +506,19 @@ export function useSettings() {
 
     // Sync to database for authenticated users
     try {
-      await fetch('/api/user/api-keys', {
+      const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageProvider: provider }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+        }
+      }
     } catch (error) {
       console.error('Failed to sync imageProvider to database:', error);
     }
@@ -400,11 +542,19 @@ export function useSettings() {
 
     // Sync to database for authenticated users
     try {
-      await fetch('/api/user/api-keys', {
+      const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoProvider: provider }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+        }
+      }
     } catch (error) {
       console.error('Failed to sync videoProvider to database:', error);
     }
@@ -420,113 +570,33 @@ export function useSettings() {
   }, [setApiConfig, tPage]);
 
   const handleKieImageModelChange = useCallback(async (model: string) => {
-    setKieImageModel(model);
-    localStorage.setItem('app-kie-image-model', model);
     setApiConfig({ kieImageModel: model });
-
-    // Sync to database for authenticated users
-    try {
-      await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kieImageModel: model }),
-      });
-    } catch (error) {
-      console.error('Failed to sync kieImageModel to database:', error);
-    }
-
-    toast.success(
-      tPage('toasts.kieModelChanged') || 'KIE model updated',
-      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
-    );
+    const toastData = await handleKieModelChange('kie-image-model', model, setKieImageModel, tPage);
+    toast.success(toastData.title, { description: toastData.description });
   }, [setApiConfig, tPage]);
 
   const handleKieVideoModelChange = useCallback(async (model: string) => {
-    setKieVideoModel(model);
-    localStorage.setItem('app-kie-video-model', model);
     setApiConfig({ kieVideoModel: model });
-
-    // Sync to database for authenticated users
-    try {
-      await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kieVideoModel: model }),
-      });
-    } catch (error) {
-      console.error('Failed to sync kieVideoModel to database:', error);
-    }
-
-    toast.success(
-      tPage('toasts.kieModelChanged') || 'KIE model updated',
-      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
-    );
+    const toastData = await handleKieModelChange('kie-video-model', model, setKieVideoModel, tPage);
+    toast.success(toastData.title, { description: toastData.description });
   }, [setApiConfig, tPage]);
 
   const handleKieTtsModelChange = useCallback(async (model: string) => {
-    setKieTtsModel(model);
-    localStorage.setItem('app-kie-tts-model', model);
     setApiConfig({ kieTtsModel: model });
-
-    // Sync to database for authenticated users
-    try {
-      await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kieTtsModel: model }),
-      });
-    } catch (error) {
-      console.error('Failed to sync kieTtsModel to database:', error);
-    }
-
-    toast.success(
-      tPage('toasts.kieModelChanged') || 'KIE model updated',
-      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
-    );
+    const toastData = await handleKieModelChange('kie-tts-model', model, setKieTtsModel, tPage);
+    toast.success(toastData.title, { description: toastData.description });
   }, [setApiConfig, tPage]);
 
   const handleKieMusicModelChange = useCallback(async (model: string) => {
-    setKieMusicModel(model);
-    localStorage.setItem('app-kie-music-model', model);
     setApiConfig({ kieMusicModel: model });
-
-    // Sync to database for authenticated users
-    try {
-      await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kieMusicModel: model }),
-      });
-    } catch (error) {
-      console.error('Failed to sync kieMusicModel to database:', error);
-    }
-
-    toast.success(
-      tPage('toasts.kieModelChanged') || 'KIE model updated',
-      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
-    );
+    const toastData = await handleKieModelChange('kie-music-model', model, setKieMusicModel, tPage);
+    toast.success(toastData.title, { description: toastData.description });
   }, [setApiConfig, tPage]);
 
   const handleKieLlmModelChange = useCallback(async (model: string) => {
-    setKieLlmModel(model);
-    localStorage.setItem('app-kie-llm-model', model);
     setApiConfig({ kieLlmModel: model });
-
-    // Sync to database for authenticated users
-    try {
-      await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kieLlmModel: model }),
-      });
-    } catch (error) {
-      console.error('Failed to sync kieLlmModel to database:', error);
-    }
-
-    toast.success(
-      tPage('toasts.kieModelChanged') || 'KIE model updated',
-      { description: `${tPage('toasts.nowUsing') || 'Now using'} ${model}` }
-    );
+    const toastData = await handleKieModelChange('kie-llm-model', model, setKieLlmModel, tPage);
+    toast.success(toastData.title, { description: toastData.description });
   }, [setApiConfig, tPage]);
 
   const handleModalEndpointChange = useCallback((endpointKey: keyof ModalEndpoints, value: string) => {
@@ -548,6 +618,12 @@ export function useSettings() {
         }),
       });
       if (response.ok) {
+        const data = await response.json();
+        if (data.apiKeys) {
+          // Broadcast the update to other components
+          broadcastApiKeysUpdate(data.apiKeys);
+        }
+
         toast.success(
           tPage('toasts.modalEndpointsSaved') || 'Modal endpoints saved',
           { description: tPage('toasts.modalEndpointsSavedDesc') || 'Your self-hosted endpoints are configured' }
