@@ -25,7 +25,7 @@ export interface SceneGenerationData {
 }
 
 export interface LLMConfig {
-  provider: 'openrouter' | 'gemini' | 'claude-sdk' | 'modal';
+  provider: 'openrouter' | 'gemini' | 'claude-sdk' | 'modal' | 'kie';
   model: string;
   endpoint?: string;
 }
@@ -50,6 +50,9 @@ export interface LLMProviderSettings {
   openRouterApiKey?: string | null;
   modalLlmEndpoint?: string | null;
   openRouterModel?: string | null;
+  llmProvider?: string | null;
+  kieApiKey?: string | null;
+  kieLlmModel?: string | null;
 }
 
 export interface BatchGenerationResult {

@@ -43,6 +43,7 @@ export function Step3SceneGenerator({
     imageProvider: apiKeysImageProvider,
     llmProvider: apiKeysLlmProvider,
     openRouterModel: apiKeysOpenRouterModel,
+    kieLlmModel: apiKeysKieLlmModel,
     data: apiKeysData
   } = useApiKeys();
   const { data: creditsData } = useCredits();
@@ -52,9 +53,10 @@ export function Step3SceneGenerator({
     console.log('[Step3] API Keys data:', {
       llmProvider: apiKeysLlmProvider,
       openRouterModel: apiKeysOpenRouterModel,
+      kieLlmModel: apiKeysKieLlmModel,
       fullData: apiKeysData,
     });
-  }, [apiKeysLlmProvider, apiKeysOpenRouterModel, apiKeysData]);
+  }, [apiKeysLlmProvider, apiKeysOpenRouterModel, apiKeysKieLlmModel, apiKeysData]);
 
   // Sync provider settings to store when API keys data is loaded
   useEffect(() => {
@@ -574,10 +576,14 @@ export function Step3SceneGenerator({
         onClose={() => setShowGenerateDialog(false)}
         onConfirm={handleConfirmGenerateScenes}
         operation="llm"
-        provider={apiKeysData?.llmProvider || 'openrouter'}
-        model={apiKeysData?.openRouterModel || 'default'}
+        provider={apiKeysLlmProvider || 'openrouter'}
+        model={
+          apiKeysLlmProvider === 'kie'
+            ? (apiKeysKieLlmModel || DEFAULT_MODELS.kieLlmModel)
+            : (apiKeysOpenRouterModel || 'default')
+        }
         title="Generate Scenes"
-        description={`This will generate text descriptions for ${projectSettings.sceneCount || 12} scenes using ${apiKeysData?.llmProvider || 'OpenRouter'}.`}
+        description={`This will generate text descriptions for ${projectSettings.sceneCount || 12} scenes using ${apiKeysLlmProvider === 'kie' ? 'KIE' : apiKeysLlmProvider || 'OpenRouter'}.`}
         details={[
           { label: 'Scenes to Generate', value: String(projectSettings.sceneCount || 12), icon: FileText },
           { label: 'Current Scenes', value: String(scenes.length), icon: FileText },

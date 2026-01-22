@@ -113,6 +113,12 @@ export function useApiKeys(options?: { enabled?: boolean }) {
     imageProvider: data?.imageProvider,
     videoProvider: data?.videoProvider,
     modalEndpoints,
+    // KIE model settings
+    kieLlmModel: data?.kieLlmModel,
+    kieImageModel: data?.kieImageModel,
+    kieVideoModel: data?.kieVideoModel,
+    kieTtsModel: data?.kieTtsModel,
+    kieMusicModel: data?.kieMusicModel,
     // State
     isLoading,
     error,

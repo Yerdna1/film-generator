@@ -16,6 +16,16 @@ export function parseLLMConfig(options: {
 }): LLMParseResult {
   const { storyModel, userSettings, envOpenRouterKey } = options;
 
+  // Check if user has KIE provider configured
+  if (userSettings?.llmProvider === 'kie' && userSettings?.kieLlmModel) {
+    console.log(`[Inngest Scenes] Using KIE provider with model: ${userSettings.kieLlmModel}`);
+    return {
+      llmConfig: { provider: 'kie' as any, model: userSettings.kieLlmModel },
+      llmProvider: 'kie' as any,
+      llmModel: userSettings.kieLlmModel,
+    };
+  }
+
   const openRouterApiKey = userSettings?.openRouterApiKey || envOpenRouterKey;
   const userSelectedOpenRouterModel = userSettings?.openRouterModel;
 
@@ -71,6 +81,36 @@ export async function callLLM(options: {
     fullResponse = data.response || data.text || data.content || '';
   } else if (llmProvider === 'claude-sdk') {
     fullResponse = await callClaudeSDK(prompt, SYSTEM_PROMPT);
+  } else if (llmProvider === 'kie' && userSettings?.kieApiKey) {
+    try {
+      // Use the new API wrapper for KIE provider
+      const response = await callExternalApi({
+        userId: 'system', // This is a system call without user context
+        type: 'llm',
+        body: {
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: prompt }
+          ],
+          model: llmModel,
+          max_tokens: 16384,
+          provider: 'kie'
+        },
+        showLoadingMessage: false
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      fullResponse = response.data.choices?.[0]?.message?.content || '';
+    } catch (kieError: any) {
+      // Check if it's an insufficient credits error
+      if (kieError.message?.includes('Insufficient credits')) {
+        return { fullResponse: '', error: 'Insufficient credits on KIE.' };
+      }
+      throw kieError;
+    }
   } else if (openRouterApiKey) {
     try {
       // Use the new API wrapper instead of deprecated service
@@ -167,6 +207,7 @@ export function validateLLMProviderSettings(
 ): { valid: boolean; error?: string } {
   const openRouterApiKey = userSettings?.openRouterApiKey || envOpenRouterKey;
   const modalLlmEndpoint = userSettings?.modalLlmEndpoint;
+  const kieApiKey = userSettings?.kieApiKey;
 
   if (llmProvider === 'openrouter' && !openRouterApiKey) {
     return { valid: false, error: 'OpenRouter API key not configured' };
@@ -174,6 +215,10 @@ export function validateLLMProviderSettings(
 
   if (llmProvider === 'modal' && !modalLlmEndpoint) {
     return { valid: false, error: 'Modal LLM endpoint not configured' };
+  }
+
+  if (llmProvider === 'kie' && !kieApiKey) {
+    return { valid: false, error: 'KIE API key not configured' };
   }
 
   return { valid: true };
