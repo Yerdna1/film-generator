@@ -22,6 +22,7 @@ const KIE_MODEL_MAPPING: Record<string, string> = {
   'seedream/4-5-text-to-image': 'seedream/4-5-text-to-image',
   'grok-imagine': 'grok-imagine/text-to-image',
   'flux-pro': 'flux-2/pro-1.1-text-to-image',
+  'flux-kontext-dev/max': 'flux-kontext-dev/max', // Direct mapping
 };
 
 // Generate a single image using the API wrapper
@@ -33,6 +34,12 @@ async function generateSingleImage(
   resolution: string,
   referenceImages: Array<{ name: string; imageUrl: string }>
 ): Promise<{ sceneId: string; success: boolean; error?: string }> {
+  // Declare variables outside try block for error handler access
+  let provider: string | undefined;
+  let apiKey: string | undefined;
+  let model: string | undefined;
+  let endpoint: string | undefined;
+
   try {
     // Get provider configuration - single source of truth
     const config = await getProviderConfig({
@@ -41,7 +48,11 @@ async function generateSingleImage(
       type: 'image',
     });
 
-    const { provider, apiKey, model, endpoint } = config;
+    // Assign values from config
+    provider = config.provider;
+    apiKey = config.apiKey;
+    model = config.model;
+    endpoint = config.endpoint;
 
     console.log(`[Inngest] Provider config loaded:`, {
       provider,
@@ -305,7 +316,11 @@ async function generateSingleImage(
       } else if (model.includes('grok')) {
         realCost = 0.02;
       } else if (model.includes('flux')) {
-        realCost = 0.15; // Flux Pro
+        if (model.includes('kontext')) {
+          realCost = 0.20; // Flux Kontext models are more expensive
+        } else {
+          realCost = 0.15; // Flux Pro
+        }
       }
     }
 

@@ -25,6 +25,7 @@ const KIE_MODEL_MAPPING: Record<string, string> = {
   'seedream/4-5-text-to-image': 'seedream/4-5-text-to-image',
   'grok-imagine': 'grok-imagine/text-to-image',
   'flux-pro': 'flux-2/pro-1.1-text-to-image',
+  'flux-kontext-dev/max': 'flux-kontext-dev/max', // Direct mapping
 };
 
 interface ImageGenerationRequest {
@@ -339,7 +340,11 @@ async function generateWithWrapper(
     } else if (kieModelId.includes('grok')) {
       realCost = 0.02;
     } else if (kieModelId.includes('flux')) {
-      realCost = 0.15; // Flux Pro
+      if (kieModelId.includes('kontext')) {
+        realCost = 0.20; // Flux Kontext models are more expensive
+      } else {
+        realCost = 0.15; // Flux Pro
+      }
     }
   }
 
