@@ -201,6 +201,18 @@ export const DEFAULT_RESULT_EXTRACTORS: Record<string, ResultExtractor<string>> 
     }
     return data.audioUrl || null;
   },
+  kie_tts: (data) => {
+    // KIE TTS result extraction
+    if (data.resultJson) {
+      try {
+        const result = JSON.parse(data.resultJson);
+        return result.resultUrls?.[0] || result.audioUrl || result.audio_url || null;
+      } catch {
+        return null;
+      }
+    }
+    return data.audioUrl || data.audio_url || data.resultUrl || null;
+  },
   suno: (data) => {
     // Suno result extraction
     return data.audio_url || data.audioUrl || null;

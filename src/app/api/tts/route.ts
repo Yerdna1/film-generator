@@ -302,18 +302,43 @@ async function generateWithWrapper(
             ? JSON.parse(taskData.resultJson)
             : taskData.resultJson;
 
-          const audioBase64 = result.audio || result.audioData || result.audio_base64;
-          if (audioBase64) {
+          console.log('[TTS] KIE result structure:', {
+            hasAudio: !!result.audio,
+            hasAudioData: !!result.audioData,
+            hasAudioBase64: !!result.audio_base64,
+            hasAudioUrl: !!result.audioUrl,
+            hasAudioUrlUnderscore: !!result.audio_url,
+            hasResultUrls: !!result.resultUrls,
+            resultUrlsArray: Array.isArray(result.resultUrls) ? result.resultUrls.length : 'not array',
+            firstResultUrl: Array.isArray(result.resultUrls) ? result.resultUrls[0] : null,
+          });
+
+          // Check for resultUrls array (KIE TTS uses this)
+          if (result.resultUrls && Array.isArray(result.resultUrls) && result.resultUrls.length > 0) {
+            audioUrl = result.resultUrls[0];
+          }
+          // Check for base64 audio data
+          else if (result.audio || result.audioData || result.audio_base64) {
+            const audioBase64 = result.audio || result.audioData || result.audio_base64;
             audioUrl = `data:audio/mpeg;base64,${audioBase64}`;
-          } else if (result.audioUrl || result.audio_url) {
+          }
+          // Check for direct audio URL
+          else if (result.audioUrl || result.audio_url) {
             audioUrl = result.audioUrl || result.audio_url;
           }
-        } catch {
-          console.error('Failed to parse KIE resultJson');
+
+          console.log('[TTS] Extracted audio URL:', audioUrl ? audioUrl.substring(0, 100) + '...' : 'none');
+        } catch (e) {
+          console.error('[TTS] Failed to parse KIE resultJson:', e);
         }
       }
 
       if (!audioUrl) {
+        console.error('[TTS] No audio URL found in KIE result:', {
+          hasResultJson: !!taskData.resultJson,
+          resultJsonType: typeof taskData.resultJson,
+          resultJsonPreview: typeof taskData.resultJson === 'string' ? taskData.resultJson.substring(0, 200) : JSON.stringify(taskData.resultJson).substring(0, 200),
+        });
         throw new Error('KIE AI completed but did not return audio');
       }
 
