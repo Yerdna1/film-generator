@@ -1,12 +1,11 @@
 import { inngest } from '../client';
 import { NonRetriableError } from 'inngest';
 import { prisma } from '@/lib/db/prisma';
+import { getProviderConfig } from '@/lib/providers/provider-config';
+import { callExternalApi } from '@/lib/providers/api-wrapper';
 import {
   SCENES_PER_BATCH,
   DEFAULT_STORY_MODEL,
-  parseLLMConfig,
-  validateLLMProviderSettings,
-  callLLM,
   buildCharacterDescriptions,
   getCharacterNames,
   getStyleDescription,
@@ -17,7 +16,6 @@ import {
   getExistingSceneCount,
   spendSceneCredits,
   type SceneGenerationData,
-  type LLMConfig,
   type Scene,
 } from './scene-generation';
 
@@ -65,21 +63,37 @@ export const generateScenesBatch = inngest.createFunction(
 
     console.log(`[Inngest Scenes] Using storyModel from project settings: ${storyModel}`);
 
-    // Get user's API keys for LLM provider
-    const userSettings = await step.run('get-user-settings', async () => {
-      return prisma.apiKeys.findUnique({
-        where: { userId },
+    // Get provider configuration using centralized system
+    let providerConfig;
+    let llmProvider: string;
+    let llmModel: string;
+
+    try {
+      providerConfig = await step.run('get-provider-config', async () => {
+        return getProviderConfig({
+          userId, // Use actual userId from event data
+          projectId,
+          type: 'llm',
+        });
       });
-    });
 
-    // Parse LLM configuration
-    const { llmConfig, llmProvider, llmModel } = parseLLMConfig({
-      storyModel,
-      userSettings,
-      envOpenRouterKey: process.env.OPENROUTER_API_KEY,
-    });
+      llmProvider = providerConfig.provider;
+      llmModel = providerConfig.model || storyModel;
 
-    console.log(`[Inngest Scenes] LLM config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}, hasUserOpenRouterKey=${!!userSettings?.openRouterApiKey}, userSelectedModel=${userSettings?.openRouterModel || 'none'}`);
+      console.log(`[Inngest Scenes] Provider config: provider=${llmProvider}, model=${llmModel}, storyModel=${storyModel}`);
+    } catch (error: any) {
+      console.error('[Inngest Scenes] Failed to get provider config:', error);
+      await step.run('update-job-failed-no-provider', async () => {
+        await prisma.sceneGenerationJob.update({
+          where: { id: jobId },
+          data: {
+            status: 'failed',
+            errorDetails: error.message || 'No LLM provider configured',
+          },
+        });
+      });
+      return { success: false, error: error.message || 'No LLM provider configured' };
+    }
 
     // Update job with LLM provider and model
     await step.run('update-job-with-llm-info', async () => {
@@ -91,18 +105,6 @@ export const generateScenesBatch = inngest.createFunction(
         },
       });
     });
-
-    // Validate provider settings
-    const validation = validateLLMProviderSettings(llmProvider, userSettings, process.env.OPENROUTER_API_KEY);
-    if (!validation.valid) {
-      await step.run('update-job-failed-validation', async () => {
-        await prisma.sceneGenerationJob.update({
-          where: { id: jobId },
-          data: { status: 'failed', errorDetails: validation.error },
-        });
-      });
-      return { success: false, error: validation.error };
-    }
 
     // Prepare prompt data
     const characterDescriptions = buildCharacterDescriptions(characters);
@@ -154,14 +156,23 @@ export const generateScenesBatch = inngest.createFunction(
           totalBatches,
         });
 
-        // Call LLM
-        const { fullResponse, error: llmError } = await callLLM({
-          llmProvider,
-          llmModel,
-          prompt,
-          userSettings,
-          envOpenRouterKey: process.env.OPENROUTER_API_KEY,
+        // Call LLM using centralized API wrapper
+        const llmResponse = await callExternalApi({
+          userId, // Use actual userId from event data
+          projectId,
+          type: 'llm',
+          body: {
+            messages: [
+              { role: 'system', content: 'You are an expert storyteller and screenwriter. Generate scenes for a movie based on the provided story.' },
+              { role: 'user', content: prompt }
+            ],
+            max_tokens: 16384,
+          },
+          showLoadingMessage: false,
         });
+
+        const fullResponse = llmResponse.data?.choices?.[0]?.message?.content || '';
+        const llmError = llmResponse.error;
 
         if (llmError) {
           return { success: false, error: llmError };
@@ -223,7 +234,7 @@ export const generateScenesBatch = inngest.createFunction(
         await spendSceneCredits({
           userId,
           sceneCount: finalSceneCount,
-          llmProvider,
+          llmProvider: llmProvider as 'openrouter' | 'gemini' | 'claude-sdk' | 'modal' | 'kie',
           storyModel,
           projectId,
           totalBatches,
@@ -283,28 +294,32 @@ export async function generateScenesSynchronously(data: SceneGenerationData) {
 
   console.log(`[Sync Scenes] Using storyModel from project settings: ${storyModel}`);
 
-  // Get user's API keys for LLM provider
-  const userSettings = await prisma.apiKeys.findUnique({
-    where: { userId },
-  });
+  // Get provider configuration using centralized system
+  let providerConfig;
+  let llmProvider: string;
+  let llmModel: string;
 
-  // Parse LLM configuration
-  const { llmProvider, llmModel } = parseLLMConfig({
-    storyModel,
-    userSettings,
-    envOpenRouterKey: process.env.OPENROUTER_API_KEY,
-  });
+  try {
+    providerConfig = await getProviderConfig({
+      userId,
+      projectId,
+      type: 'llm',
+    });
 
-  console.log(`[Sync Scenes] LLM config: provider=${llmProvider}, model=${llmModel}`);
+    llmProvider = providerConfig.provider;
+    llmModel = providerConfig.model || storyModel;
 
-  // Validate provider settings
-  const validation = validateLLMProviderSettings(llmProvider, userSettings, process.env.OPENROUTER_API_KEY);
-  if (!validation.valid) {
+    console.log(`[Sync Scenes] Provider config: provider=${llmProvider}, model=${llmModel}`);
+  } catch (error: any) {
+    console.error('[Sync Scenes] Failed to get provider config:', error);
     await prisma.sceneGenerationJob.update({
       where: { id: jobId },
-      data: { status: 'failed', errorDetails: validation.error },
+      data: {
+        status: 'failed',
+        errorDetails: error.message || 'No LLM provider configured',
+      },
     });
-    return { success: false, error: validation.error };
+    return { success: false, error: error.message || 'No LLM provider configured' };
   }
 
   // Prepare prompt data
@@ -354,18 +369,26 @@ export async function generateScenesSynchronously(data: SceneGenerationData) {
       totalBatches,
     });
 
-    // Call LLM
-    const { fullResponse, error: llmError } = await callLLM({
-      llmProvider,
-      llmModel,
-      prompt,
-      userSettings,
-      envOpenRouterKey: process.env.OPENROUTER_API_KEY,
+    // Call LLM using centralized API wrapper
+    const llmResponse = await callExternalApi({
+      userId,
+      projectId,
+      type: 'llm',
+      body: {
+        messages: [
+          { role: 'system', content: 'You are an expert storyteller and screenwriter. Generate scenes for a movie based on the provided story.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 16384,
+      },
+      showLoadingMessage: false,
     });
 
-    if (llmError) {
-      throw new Error(llmError);
+    if (llmResponse.error) {
+      throw new Error(llmResponse.error);
     }
+
+    const fullResponse = llmResponse.data?.choices?.[0]?.message?.content || '';
 
     // Parse response
     const scenes = parseLLMResponse(fullResponse, batchIndex);
@@ -396,7 +419,7 @@ export async function generateScenesSynchronously(data: SceneGenerationData) {
     await spendSceneCredits({
       userId,
       sceneCount: finalSceneCount,
-      llmProvider,
+      llmProvider: llmProvider as 'openrouter' | 'gemini' | 'claude-sdk' | 'modal' | 'kie',
       storyModel,
       projectId,
       totalBatches,

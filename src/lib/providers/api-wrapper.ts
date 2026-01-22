@@ -97,6 +97,39 @@ export async function callExternalApi<T = any>(
     // Build headers using centralized configuration
     const headers = getProviderHeaders(provider, undefined, customHeaders);
 
+    // Special case for claude-sdk - use local CLI instead of HTTP
+    if (provider === 'claude-sdk') {
+      try {
+        // Extract messages from body to build prompt
+        const messages = body?.messages || [];
+        const systemMessage = messages.find((m: any) => m.role === 'system')?.content || '';
+        const userMessage = messages.find((m: any) => m.role === 'user')?.content || '';
+        const fullPrompt = systemMessage ? `${systemMessage}\n\n${userMessage}` : userMessage;
+
+        // Call Claude SDK CLI
+        const response = await callClaudeSDK(fullPrompt);
+
+        return {
+          data: {
+            choices: [{
+              message: { content: response },
+              finish_reason: 'stop'
+            }]
+          } as T,
+          status: 200,
+          provider,
+          model: 'claude-sdk',
+        };
+      } catch (error: any) {
+        return {
+          error: error.message || 'Claude SDK call failed',
+          status: 500,
+          provider,
+          model: 'claude-sdk',
+        };
+      }
+    }
+
     // Add authentication based on provider
     if (provider === 'gemini') {
       // Gemini uses API key in URL, not header
@@ -248,6 +281,60 @@ function buildProviderUrl(provider: string, type: GenerationType, model?: string
 
     default:
       throw new Error(`Unsupported generation type: ${type}`);
+  }
+}
+
+/**
+ * Call Claude SDK CLI for local LLM access
+ */
+async function callClaudeSDK(prompt: string): Promise<string> {
+  const { spawnSync } = await import('child_process');
+  const fs = await import('fs');
+  const os = await import('os');
+  const path = await import('path');
+
+  // Write prompt to temp file to avoid stdin issues
+  const tmpFile = path.join(os.tmpdir(), `claude-prompt-${Date.now()}.txt`);
+  fs.writeFileSync(tmpFile, prompt, 'utf-8');
+
+  // Full path to claude CLI (nvm installation)
+  const claudePath = '/Users/andrejpt/.nvm/versions/node/v22.21.1/bin/claude';
+
+  try {
+    // Build env without ANTHROPIC_API_KEY so CLI uses OAuth instead
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.ANTHROPIC_API_KEY; // Remove so CLI uses OAuth session
+
+    // Call claude CLI with --print for non-interactive output
+    const result = spawnSync(claudePath, ['-p', '--output-format', 'text'], {
+      input: prompt,
+      encoding: 'utf-8',
+      maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large responses
+      timeout: 300000, // 5 minute timeout
+      env: {
+        ...cleanEnv,
+        PATH: process.env.PATH + ':/Users/andrejpt/.nvm/versions/node/v22.21.1/bin',
+        HOME: '/Users/andrejpt',
+        USER: 'andrejpt',
+      },
+      cwd: '/Volumes/DATA/Python/film-generator',
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    if (result.status !== 0) {
+      console.error('[Claude CLI] stderr:', result.stderr);
+      console.error('[Claude CLI] stdout:', result.stdout?.slice(0, 500));
+      console.error('[Claude CLI] signal:', result.signal);
+      throw new Error(`Claude CLI exited with code ${result.status}. stderr: ${result.stderr}. stdout: ${result.stdout?.slice(0, 200)}`);
+    }
+
+    return result.stdout;
+  } finally {
+    // Clean up temp file
+    try { fs.unlinkSync(tmpFile); } catch { }
   }
 }
 
