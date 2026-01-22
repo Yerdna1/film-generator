@@ -43,6 +43,14 @@ async function generateSingleImage(
 
     const { provider, apiKey, model, endpoint } = config;
 
+    console.log(`[Inngest] Provider config loaded:`, {
+      provider,
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length,
+      model,
+      endpoint,
+    });
+
     let imageUrl: string | undefined;
 
     if (provider === 'gemini') {
@@ -142,6 +150,12 @@ async function generateSingleImage(
           const rawModel = model || 'seedream/4-5-text-to-image';
           const kieModel = KIE_MODEL_MAPPING[rawModel] || rawModel;
 
+          console.log(`[Inngest] KIE model mapping:`, {
+            rawModel,
+            kieModel,
+            mapping: KIE_MODEL_MAPPING[rawModel]
+          });
+
           requestBody = {
             text: scene.prompt,
             model: kieModel,
@@ -150,6 +164,8 @@ async function generateSingleImage(
             resolution: resolution === '2k' ? '2048' : resolution === '4k' ? '4096' : '1024',
             seed: randomSeed,
           };
+
+          console.log(`[Inngest] KIE request body:`, JSON.stringify(requestBody, null, 2));
           break;
 
         default:
@@ -157,6 +173,13 @@ async function generateSingleImage(
       }
 
       console.log(`[Inngest] Calling ${provider} API with model: ${model}`);
+      console.log(`[Inngest] API call details:`, {
+        provider,
+        type: 'image',
+        endpoint,
+        hasRequestBody: !!requestBody,
+        bodyKeys: requestBody ? Object.keys(requestBody) : null
+      });
 
       const response = await callExternalApi({
         userId,
@@ -165,6 +188,16 @@ async function generateSingleImage(
         body: requestBody,
         endpoint,
         showLoadingMessage: false,
+      });
+
+      console.log(`[Inngest] API response:`, {
+        status: response.status,
+        provider: response.provider,
+        model: response.model,
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        error: response.error,
+        dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : null
       });
 
       if (response.error) {
@@ -291,8 +324,18 @@ async function generateSingleImage(
     return { sceneId: scene.sceneId, success: true };
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[Inngest] Scene ${scene.sceneNumber} failed: ${errorMessage}`);
+    const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'No message available');
+    console.error(`[Inngest] Scene ${scene.sceneNumber} failed:`, error);
+    console.error(`[Inngest] Error details:`, {
+      sceneNumber: scene.sceneNumber,
+      provider,
+      model,
+      errorMessage,
+      errorType: error?.constructor?.name,
+      errorStack: error instanceof Error ? error.stack : undefined,
+      errorValue: error,
+      errorStringified: JSON.stringify(error)
+    });
     return { sceneId: scene.sceneId, success: false, error: errorMessage };
   }
 }
