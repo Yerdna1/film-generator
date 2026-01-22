@@ -89,4 +89,26 @@ export type InngestEvents = {
       batchId?: string;
     };
   };
+  'voiceover/generate.batch': {
+    data: {
+      projectId: string;
+      userId: string;
+      batchId: string;
+      audioLines: Array<{
+        lineId: string;
+        sceneId: string;
+        sceneNumber: number;
+        text: string;
+        characterId: string;
+        voiceId: string;
+      }>;
+      language: string;
+      userHasOwnApiKey?: boolean;
+    };
+  };
+  'voiceover/batch.cancel': {
+    data: {
+      batchId: string;
+    };
+  };
 };
