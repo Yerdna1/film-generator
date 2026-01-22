@@ -185,70 +185,59 @@ export default function SettingsPage() {
                 }}
                 onUpdateConfig={updateLocalConfig}
                 onLLMProviderChange={async (provider) => {
-                  const success = await apiKeysContext.updateProvider('llm', provider);
-                  if (success) {
-                    handleLLMProviderChange(provider);
-                  }
+                  // Note: Provider preferences are now per-project (stored in modelConfig)
+                  // Global provider preferences are no longer supported
+                  handleLLMProviderChange(provider);
                 }}
                 onOpenRouterModelChange={async (model) => {
-                  const success = await apiKeysContext.updateApiKey('openRouterModel', model);
-                  if (success) {
-                    handleOpenRouterModelChange(model);
-                  }
+                  // Note: Model preferences are now per-project (stored in modelConfig)
+                  // Global model preferences are no longer supported
+                  handleOpenRouterModelChange(model);
                 }}
                 onMusicProviderChange={async (provider) => {
-                  const success = await apiKeysContext.updateProvider('music', provider);
-                  if (success) {
-                    handleMusicProviderChange(provider);
-                  }
+                  // Note: Provider preferences are now per-project (stored in modelConfig)
+                  // Global provider preferences are no longer supported
+                  handleMusicProviderChange(provider);
                 }}
                 onTTSProviderChange={async (provider) => {
-                  const success = await apiKeysContext.updateProvider('tts', provider);
-                  if (success) {
-                    handleTTSProviderChange(provider);
-                  }
+                  // Note: Provider preferences are now per-project (stored in modelConfig)
+                  // Global provider preferences are no longer supported
+                  handleTTSProviderChange(provider);
                 }}
                 onImageProviderChange={async (provider) => {
-                  const success = await apiKeysContext.updateProvider('image', provider);
-                  if (success) {
-                    handleImageProviderChange(provider);
-                  }
+                  // Note: Provider preferences are now per-project (stored in modelConfig)
+                  // Global provider preferences are no longer supported
+                  handleImageProviderChange(provider);
                 }}
                 onVideoProviderChange={async (provider) => {
-                  const success = await apiKeysContext.updateProvider('video', provider);
-                  if (success) {
-                    handleVideoProviderChange(provider);
-                  }
+                  // Note: Provider preferences are now per-project (stored in modelConfig)
+                  // Global provider preferences are no longer supported
+                  handleVideoProviderChange(provider);
                 }}
                 onKieImageModelChange={async (model) => {
-                  const success = await apiKeysContext.updateApiKey('kieImageModel', model);
-                  if (success) {
-                    handleKieImageModelChange(model);
-                  }
+                  // Note: Model preferences are now per-project (stored in modelConfig)
+                  // Global model preferences are no longer supported
+                  handleKieImageModelChange(model);
                 }}
                 onKieVideoModelChange={async (model) => {
-                  const success = await apiKeysContext.updateApiKey('kieVideoModel', model);
-                  if (success) {
-                    handleKieVideoModelChange(model);
-                  }
+                  // Note: Model preferences are now per-project (stored in modelConfig)
+                  // Global model preferences are no longer supported
+                  handleKieVideoModelChange(model);
                 }}
                 onKieTtsModelChange={async (model) => {
-                  const success = await apiKeysContext.updateApiKey('kieTtsModel', model);
-                  if (success) {
-                    handleKieTtsModelChange(model);
-                  }
+                  // Note: Model preferences are now per-project (stored in modelConfig)
+                  // Global model preferences are no longer supported
+                  handleKieTtsModelChange(model);
                 }}
                 onKieMusicModelChange={async (model) => {
-                  const success = await apiKeysContext.updateApiKey('kieMusicModel', model);
-                  if (success) {
-                    handleKieMusicModelChange(model);
-                  }
+                  // Note: Model preferences are now per-project (stored in modelConfig)
+                  // Global model preferences are no longer supported
+                  handleKieMusicModelChange(model);
                 }}
                 onKieLlmModelChange={async (model) => {
-                  const success = await apiKeysContext.updateApiKey('kieLlmModel', model);
-                  if (success) {
-                    handleKieLlmModelChange(model);
-                  }
+                  // Note: Model preferences are now per-project (stored in modelConfig)
+                  // Global model preferences are no longer supported
+                  handleKieLlmModelChange(model);
                 }}
                 onModalEndpointChange={handleModalEndpointChange}
                 onSaveModalEndpoints={handleSaveModalEndpoints}

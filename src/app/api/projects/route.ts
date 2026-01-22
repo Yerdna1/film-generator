@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
           provider: 'gemini-tts',
           characterVoices: {},
         },
-        modelConfig, // Initialize with user's preferences
+        modelConfig: modelConfig as any, // Initialize with default configuration
       },
       include: {
         characters: true,

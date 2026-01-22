@@ -30,9 +30,6 @@ interface ApiKeysContextType {
   updateMultipleKeys: (keys: Record<string, string>) => Promise<boolean>;
   clearApiKey: (key: string) => Promise<boolean>;
 
-  // Provider management
-  updateProvider: (providerType: string, provider: string) => Promise<boolean>;
-
   // Payment preference
   updatePaymentPreference: (useOwnKeys: boolean) => Promise<boolean>;
 
@@ -146,14 +143,6 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
     return updateApiKey(key, '');
   }, [updateApiKey]);
 
-  // Update provider selection
-  const updateProvider = useCallback(async (providerType: string, provider: string): Promise<boolean> => {
-    if (!session?.user?.id) return false;
-
-    const providerKey = `${providerType}Provider`;
-    return updateApiKey(providerKey, provider);
-  }, [session?.user?.id, updateApiKey]);
-
   // Update payment preference
   const updatePaymentPreference = useCallback(async (useOwnKeys: boolean): Promise<boolean> => {
     if (!session?.user?.id) return false;
@@ -248,7 +237,6 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
         updateApiKey,
         updateMultipleKeys,
         clearApiKey,
-        updateProvider,
         updatePaymentPreference,
         hasApiKey,
         getApiKey,

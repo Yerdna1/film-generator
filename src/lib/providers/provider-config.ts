@@ -135,7 +135,7 @@ export async function getProviderConfig(
     const isPremium = user?.subscription?.plan && user.subscription.plan !== 'free';
 
     if (isAdmin || isPremium) {
-      // Check for organization API keys
+      // Check for organization API keys (actual API keys only, not preferences)
       orgSettings = await prisma.organizationApiKeys.findFirst({
         select: {
           geminiApiKey: true,
@@ -151,26 +151,16 @@ export async function getProviderConfig(
           modalImageEditEndpoint: true,
           modalVideoEndpoint: true,
           modalMusicEndpoint: true,
-          kieImageModel: true,
-          kieVideoModel: true,
-          kieTtsModel: true,
-          kieMusicModel: true,
-          kieLlmModel: true,
         },
       });
     }
   }
 
-  // Priority 4 & 5: User's own settings
+  // Priority 4 & 5: User's own settings (actual API keys only, not preferences)
   if (userIdToCheck) {
     userSettings = await prisma.apiKeys.findUnique({
       where: { userId: userIdToCheck },
       select: {
-        llmProvider: true,
-        imageProvider: true,
-        videoProvider: true,
-        ttsProvider: true,
-        musicProvider: true,
         geminiApiKey: true,
         kieApiKey: true,
         elevenLabsApiKey: true,
@@ -184,44 +174,18 @@ export async function getProviderConfig(
         modalImageEditEndpoint: true,
         modalVideoEndpoint: true,
         modalMusicEndpoint: true,
-        kieLlmModel: true,
-        kieImageModel: true,
-        kieVideoModel: true,
-        kieTtsModel: true,
-        kieMusicModel: true,
       },
     });
 
-    if (userSettings && !provider) {
-      // Get provider from user settings if not overridden
-      const dbMapping = DB_PROVIDER_MAP[type];
-      if (dbMapping) {
-        provider = userSettings[dbMapping.providerField as keyof typeof userSettings] as ProviderType;
-      }
-    }
+    // Note: Provider preferences are no longer stored in user settings
+    // They are now per-project in modelConfig
+    // If no provider is configured, use DEFAULT_MODEL_CONFIG (handled by caller)
 
-    // Get KIE model from user settings if provider is KIE and no model is set yet
-    if (provider === 'kie' && !model && userSettings) {
-      switch (type) {
-        case 'llm':
-          model = userSettings.kieLlmModel as string;
-          break;
-        case 'image':
-          model = userSettings.kieImageModel as string;
-          break;
-        case 'video':
-          model = userSettings.kieVideoModel as string;
-          break;
-        case 'tts':
-          model = userSettings.kieTtsModel as string;
-          break;
-        case 'music':
-          model = userSettings.kieMusicModel as string;
-          break;
-      }
-    }
+    // Note: KIE model preferences are also no longer stored in user settings
+    // They are now per-project in modelConfig
+  }
 
-    if (provider) {
+  if (provider) {
       // First try to get API key from organization settings for premium/admin users
       if (orgSettings) {
         const dbMapping = DB_PROVIDER_MAP[type];

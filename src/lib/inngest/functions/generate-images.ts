@@ -416,10 +416,11 @@ export const generateImagesBatch = inngest.createFunction(
 
     // Use project's modelConfig, or DEFAULT_MODEL_CONFIG as fallback
     const config = projectData?.modelConfig || DEFAULT_MODEL_CONFIG;
-    const imageProvider = config.image.provider;
+    const configObj = typeof config === 'object' ? config as any : DEFAULT_MODEL_CONFIG;
+    const imageProvider = configObj.image.provider;
     const imageModel = imageProvider === 'modal' || imageProvider === 'modal-edit'
       ? 'modal'
-      : config.image.model || DEFAULT_MODELS.kieImageModel;
+      : configObj.image.model || DEFAULT_MODELS.kieImageModel;
 
     console.log(`[Inngest] Using provider: ${imageProvider}, model: ${imageModel}`);
 

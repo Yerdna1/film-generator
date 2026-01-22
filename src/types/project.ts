@@ -272,20 +272,8 @@ export interface ApiConfig {
   openaiApiKey?: string;  // OpenAI API key for TTS
   claudeApiKey?: string;
   openRouterApiKey?: string;  // OpenRouter API key for LLM access
-  openRouterModel?: string;  // OpenRouter model ID (e.g., 'anthropic/claude-sonnet-4')
   piapiApiKey?: string;  // PiAPI key for music generation
   sunoApiKey?: string;  // Suno API key (alternative)
-  llmProvider?: LLMProvider;  // Default: 'openrouter'
-  musicProvider?: MusicProvider;  // Default: 'piapi'
-  ttsProvider?: TTSProvider;  // Default: 'gemini-tts'
-  imageProvider?: ImageProvider;  // Default: 'gemini'
-  videoProvider?: VideoProvider;  // Default: 'kie'
-  // KIE.ai model selections - full model ID includes variant information
-  kieLlmModel?: string;    // e.g., 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3-flash', 'gemini-3-pro'
-  kieImageModel?: string;  // e.g., 'seedream/4-5-text-to-image', 'google-nano-banana-pro-4k'
-  kieVideoModel?: string;  // e.g., 'grok-imagine/image-to-video', 'sora2/10s-image-to-video'
-  kieTtsModel?: string;    // e.g., 'elevenlabs/text-to-dialogue-v3'
-  kieMusicModel?: string;  // e.g., 'suno/v3-5-music'
   // Modal.com self-hosted endpoints
   modalEndpoints?: ModalEndpoints;
 }
