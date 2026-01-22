@@ -1,51 +1,20 @@
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import type { Character } from '@/types/project';
+import type { ApiKeys } from '@prisma/client';
 
-interface ApiKeyState {
-  hasKieKey: boolean;
-  kieApiKey?: string;
+interface UseApiKeyManagementProps {
+  apiKeysData: ApiKeys | null | undefined;
+  isLoading: boolean;
+  onApiKeysUpdated?: () => void;
 }
 
-export function useApiKeyManagement() {
-  const { data: session } = useSession();
-
+export function useApiKeyManagement({ apiKeysData, isLoading, onApiKeysUpdated }: UseApiKeyManagementProps) {
   const [isKieModalOpen, setIsKieModalOpen] = useState(false);
   const [isSavingKieKey, setIsSavingKieKey] = useState(false);
-  const [userApiKeys, setUserApiKeys] = useState<ApiKeyState | null>(null);
   const [pendingCharacterGeneration, setPendingCharacterGeneration] = useState<Character | null>(null);
   const [modalReason, setModalReason] = useState<'no-key' | 'insufficient-credits'>('no-key');
 
-  // Fetch user's API keys
-  useEffect(() => {
-    const fetchApiKeys = async () => {
-      if (!session) return;
-      try {
-        const res = await fetch('/api/user/api-keys');
-        if (res.ok) {
-          const data = await res.json();
-          setUserApiKeys({
-            hasKieKey: data.apiKeys?.kieApiKey ? true : false,
-            kieApiKey: data.apiKeys?.kieApiKey,
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch API keys:', error);
-      }
-    };
-    fetchApiKeys();
-
-    // Listen for API key updates from settings page
-    const handleApiKeysUpdate = () => {
-      fetchApiKeys();
-    };
-
-    window.addEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
-    return () => {
-      window.removeEventListener('apiKeysUpdated' as any, handleApiKeysUpdate);
-    };
-  }, [session]);
 
   const handleSaveKieApiKey = async (apiKey: string, model: string): Promise<void> => {
     setIsSavingKieKey(true);
@@ -65,18 +34,16 @@ export function useApiKeyManagement() {
         throw new Error(error.error || 'Failed to save API key');
       }
 
-      // Update local state
-      setUserApiKeys(prev => ({
-        ...prev,
-        hasKieKey: true,
-        kieApiKey: apiKey,
-      }));
-
       toast.success('KIE AI API Key saved', {
         description: 'Generating character image...',
       });
 
       setIsKieModalOpen(false);
+
+      // Trigger parent to refresh API keys
+      if (onApiKeysUpdated) {
+        onApiKeysUpdated();
+      }
 
       // Return the saved character for continuation
       if (pendingCharacterGeneration) {
@@ -93,7 +60,8 @@ export function useApiKeyManagement() {
   };
 
   return {
-    userApiKeys,
+    userApiKeys: apiKeysData,
+    isApiKeysLoading: isLoading,
     isKieModalOpen,
     setIsKieModalOpen,
     isSavingKieKey,
