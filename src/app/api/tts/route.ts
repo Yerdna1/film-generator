@@ -142,21 +142,35 @@ async function generateWithWrapper(
         type: 'tts'
       });
 
-      // Query model from database
-      const modelConfig = await prisma.kieTtsModel.findUnique({
-        where: { modelId: config.model || 'elevenlabs/text-to-speech-turbo-2-5' }
+      // Map UI model names to KIE API model names
+      const KIE_TTS_MODEL_MAPPING: Record<string, string> = {
+        'elevenlabs-turbo-2-5': 'elevenlabs/text-to-speech-turbo-2-5',
+        'elevenlabs-turbo': 'elevenlabs/text-to-speech-turbo-2-5',
+        'elevenlabs-v2': 'elevenlabs/text-to-speech-multilingual-v2',
+        'elevenlabs-multilingual-v2': 'elevenlabs/text-to-speech-multilingual-v2',
+        'elevenlabs-dialogue-v3': 'elevenlabs/text-to-dialogue-v3',
+      };
+
+      const rawModel = config.model || 'elevenlabs/text-to-speech-turbo-2-5';
+      const kieModel = KIE_TTS_MODEL_MAPPING[rawModel] || rawModel;
+
+      console.log('[TTS] KIE model configuration:', {
+        configModel: config.model,
+        rawModel,
+        kieModel,
+        voiceId,
+        language,
       });
 
-      const apiModelId = modelConfig?.apiModelId || config.model || 'elevenlabs/text-to-speech-turbo-2-5';
-
       requestBody = {
-        model: apiModelId,
+        model: kieModel,
         input: {
           text,
           voice_id: voiceId,
           ...(language && { language_code: language }),
         },
       };
+      console.log('[TTS] KIE request body:', JSON.stringify(requestBody, null, 2));
       break;
 
     default:
@@ -172,6 +186,14 @@ async function generateWithWrapper(
     endpoint,
     showLoadingMessage: true,
     loadingMessage: `Generating speech using ${provider}...`,
+  });
+
+  console.log(`[TTS] ${provider} response:`, {
+    status: response.status,
+    hasData: !!response.data,
+    dataType: typeof response.data,
+    error: response.error,
+    dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : null,
   });
 
   if (response.error) {
@@ -246,8 +268,19 @@ async function generateWithWrapper(
 
     case 'kie':
       // Get task ID and poll for completion
-      const taskId = response.data?.data?.taskId;
+      const responseData = response.data;
+      const taskId = responseData?.data?.taskId;
+
       if (!taskId) {
+        console.error('[TTS] KIE response structure issue:', {
+          hasResponseData: !!responseData,
+          responseDataType: typeof responseData,
+          responseDataKeys: responseData && typeof responseData === 'object' ? Object.keys(responseData) : null,
+          hasNestedData: !!responseData?.data,
+          nestedDataType: typeof responseData?.data,
+          nestedDataKeys: responseData?.data && typeof responseData.data === 'object' ? Object.keys(responseData.data) : null,
+          fullResponse: JSON.stringify(responseData, null, 2),
+        });
         throw new Error('KIE AI did not return a task ID');
       }
 

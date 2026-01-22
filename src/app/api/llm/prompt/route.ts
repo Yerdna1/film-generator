@@ -181,15 +181,14 @@ export async function POST(request: NextRequest) {
             where: {
               OR: [
                 { modelId: llmModel },
-                { apiModelId: llmModel },
                 { modelId: { contains: llmModel.split('/')[1]?.replace(':free', '').replace(':exp', '') || '' } }
               ]
             },
-            select: { modelId: true, apiModelId: true }
+            select: { modelId: true }
           });
 
           if (kieLlmModel) {
-            finalModel = kieLlmModel.apiModelId || kieLlmModel.modelId;
+            finalModel = kieLlmModel.modelId;
           }
         }
 
