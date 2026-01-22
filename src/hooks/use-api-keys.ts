@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { useEffect } from 'react';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints } from '@/types/project';
 
 export interface ApiKeysData {
@@ -74,7 +75,7 @@ export function useApiKeys(options?: { enabled?: boolean }) {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 60000, // Dedupe requests within 60 seconds
+      dedupingInterval: 2000, // Reduced from 60s to 2s - API keys need immediate updates when changed
       refreshInterval: 0, // Don't auto-refresh (API keys rarely change)
     }
   );
@@ -88,6 +89,19 @@ export function useApiKeys(options?: { enabled?: boolean }) {
     videoEndpoint: data?.modalVideoEndpoint || '',
     musicEndpoint: data?.modalMusicEndpoint || '',
   };
+
+  // Listen for API key updates from other sources (e.g., settings page)
+  useEffect(() => {
+    const handleApiKeysUpdate = () => {
+      // Force SWR to revalidate when API keys are updated elsewhere
+      mutate();
+    };
+
+    window.addEventListener('apiKeysUpdated', handleApiKeysUpdate);
+    return () => {
+      window.removeEventListener('apiKeysUpdated', handleApiKeysUpdate);
+    };
+  }, [mutate]);
 
   return {
     data,
