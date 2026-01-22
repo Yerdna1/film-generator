@@ -1,180 +1,19 @@
-// Unified LLM API Route for Master Prompt Enhancement
-// Uses project's configured LLM provider (OpenRouter, Claude SDK, Modal, Gemini, or KIE)
-// Integrates with project.modelConfig via getProviderConfig
+// Unified LLM API Route using centralized API wrapper
+// All provider configurations come from Settings (single source of truth)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { spendCredits, checkBalance, COSTS } from '@/lib/services/credits';
-import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
-import { getProviderConfig } from '@/lib/providers';
 import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
+import { callExternalApi } from '@/lib/providers/api-wrapper';
+import { getProviderConfig } from '@/lib/providers';
 import type { Provider } from '@/lib/services/real-costs';
-import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
 
 // Cost for prompt enhancement
 const PROMPT_ENHANCEMENT_COST = COSTS.SCENE_GENERATION;
-
-// Gemini API URL
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta';
-
-// Query Claude SDK (for local development with Claude CLI)
-async function queryClaudeSDK(prompt: string, systemPrompt: string): Promise<string> {
-  try {
-    const { query } = await import('@anthropic-ai/claude-agent-sdk');
-    let fullResponse = '';
-
-    const stream = query({
-      prompt,
-      options: {
-        model: 'claude-sonnet-4-20250514',
-        systemPrompt,
-        maxTurns: 1,
-        allowedTools: [],
-      },
-    });
-
-    for await (const message of stream) {
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if (block.type === 'text') {
-            fullResponse += block.text;
-          }
-        }
-      }
-    }
-
-    return fullResponse;
-  } catch (error) {
-    throw new Error(`Claude SDK error: ${error instanceof Error ? error.message : String(error)}. Make sure Claude CLI is installed and authenticated.`);
-  }
-}
-
-// Query Modal LLM endpoint
-async function queryModalLLM(prompt: string, systemPrompt: string, endpoint: string): Promise<string> {
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        system_prompt: systemPrompt,
-        max_tokens: 8192,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Modal LLM request failed: ${errorText}`);
-    }
-
-    const data = await response.json();
-
-    if (data.response) return data.response;
-    if (data.text) return data.text;
-    if (data.content) return data.content;
-    if (typeof data === 'string') return data;
-
-    throw new Error('Modal endpoint did not return expected response format');
-  } catch (error) {
-    throw new Error(`Modal LLM error: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-// Query Gemini API
-async function queryGemini(prompt: string, apiKey: string, model: string = 'gemini-2.0-flash'): Promise<string> {
-  const response = await fetch(
-    `${GEMINI_API_URL}/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.9,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Gemini API failed');
-  }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!text) {
-    throw new Error('No text generated from Gemini');
-  }
-
-  return text;
-}
-
-// Query KIE.ai LLM API (model-specific endpoint format)
-async function queryKieLlm(prompt: string, systemPrompt: string, apiKey: string, model: string): Promise<string> {
-  // KIE.ai uses model-specific endpoints: https://api.kie.ai/{model}/v1/chat/completions
-  // Model is specified in URL path, NOT in request body
-  const response = await fetch(`https://api.kie.ai/${model}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      // Note: model is NOT included in body - it's in the URL path
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt },
-      ],
-      max_tokens: 8192,
-      temperature: 0.9,
-      stream: false,  // Disable streaming to get JSON response instead of SSE
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`KIE.ai LLM request failed (${response.status}): ${errorText}`);
-  }
-
-  const data = await response.json();
-
-  // KIE.ai may use different response formats - try multiple paths
-  let text: string | undefined;
-
-  // Standard OpenAI format
-  text = data.choices?.[0]?.message?.content;
-
-  // KIE wrapped format
-  if (!text) {
-    text = data.data?.choices?.[0]?.message?.content;
-  }
-
-  // Alternative KIE format with direct output field
-  if (!text) {
-    text = data.data?.output || data.data?.text || data.data?.result;
-  }
-
-  // Direct format
-  if (!text) {
-    text = data.output || data.text || data.result;
-  }
-
-  if (!text) {
-    const responseStr = JSON.stringify(data, null, 2);
-    console.error('KIE.ai LLM response format unexpected:', responseStr);
-    throw new Error(`No text generated from KIE.ai LLM. Response: ${responseStr}`);
-  }
-
-  return text;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -198,107 +37,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is admin or premium status early
+    // Check user permissions and premium status
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true, email: true },
     });
 
-    // Check subscription status for premium users
     const { getSubscription } = await import('@/lib/services/polar');
     const subscription = await getSubscription(userId);
     const isPremiumUser = subscription.status === 'active' && subscription.plan !== 'free';
     const { LEGACY_ADMIN_EMAIL } = await import('@/lib/admin');
     const isAdmin = user?.role === 'admin' || user?.email === LEGACY_ADMIN_EMAIL;
 
-    // Use getProviderConfig to resolve LLM provider with project config priority
-    let llmProvider: string;
-    let providerApiKey: string | undefined;
-    let llmModel: string;
-    let modalLlmEndpoint: string | undefined;
-    let geminiApiKey: string | undefined;
-    let kieApiKey: string | undefined;
-    let isUsingOwnKey = false;
-    let isFreeGeminiModel = false;
-
+    // Get provider configuration - single source of truth
+    let config;
     try {
-      const providerConfig = await getProviderConfig({
+      config = await getProviderConfig({
         userId,
         projectId,
         type: 'llm',
       });
+    } catch (error) {
+      console.log('[LLM Prompt] getProviderConfig failed, using defaults:', error);
+      // For premium/admin users, we can fallback to system keys
+      if (isPremiumUser || isAdmin) {
+        const userSettings = await prisma.apiKeys.findUnique({
+          where: { userId },
+          select: {
+            llmProvider: true,
+            openRouterModel: true,
+            kieLlmModel: true,
+            modalLlmEndpoint: true,
+          },
+        });
 
-      llmProvider = providerConfig.provider;
-      providerApiKey = providerConfig.apiKey || undefined;
-      llmModel = model || providerConfig.model || DEFAULT_OPENROUTER_MODEL;
-      isUsingOwnKey = providerConfig.userHasOwnApiKey || false;
-
-      // For KIE provider, copy the API key to kieApiKey for consistency
-      if (llmProvider === 'kie' && providerApiKey) {
-        kieApiKey = providerApiKey;
-      }
-
-      console.log(`[LLM Prompt] Provider resolved via getProviderConfig: ${llmProvider}, model: ${llmModel}, projectId: ${projectId || 'none'}, userHasOwnKey: ${isUsingOwnKey}`);
-    } catch (configError) {
-      // Fallback to DEFAULT_MODEL_CONFIG if getProviderConfig fails (e.g., no API key)
-      console.log(`[LLM Prompt] getProviderConfig failed, using DEFAULT_MODEL_CONFIG:`, configError);
-
-      // Fetch user's actual API keys (not preferences)
-      const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId },
-        select: {
-          openRouterApiKey: true,
-          modalLlmEndpoint: true,
-          geminiApiKey: true,
-          kieApiKey: true,
-        },
-      });
-
-      // Use DEFAULT_MODEL_CONFIG instead of user preferences (single source of truth)
-      llmProvider = DEFAULT_MODEL_CONFIG.llm.provider;
-      providerApiKey = userApiKeys?.openRouterApiKey || undefined;
-      llmModel = model || DEFAULT_MODEL_CONFIG.llm.model || DEFAULT_MODELS.kieLlmModel;
-      modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
-      geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
-      kieApiKey = userApiKeys?.kieApiKey || process.env.KIE_API_KEY;
-
-      if (llmProvider === 'openrouter' && providerApiKey) isUsingOwnKey = true;
-      if (llmProvider === 'kie' && kieApiKey && userApiKeys?.kieApiKey) isUsingOwnKey = true;
-      if (llmProvider === 'modal' && modalLlmEndpoint) isUsingOwnKey = true;
-      if (llmProvider === 'gemini' && userApiKeys?.geminiApiKey) isUsingOwnKey = true;
-
-      console.log('[LLM Prompt] Fallback - after setting:', {
-        llmProvider,
-        hasKieKey: !!kieApiKey,
-        hasGeminiKey: !!geminiApiKey,
-        hasProviderApiKey: !!providerApiKey,
-        isUsingOwnKey,
-      });
-    }
-
-    // Check for free Gemini models and model provider hints
-    if (model && model.includes('/')) {
-      const [providerFromModel, modelName] = model.split('/');
-      // Check if it's a free Gemini model
-      isFreeGeminiModel = providerFromModel === 'google' && (modelName?.includes('free') || modelName?.includes('flash'));
-
-      if (isFreeGeminiModel) {
-        // If user has KIE configured, let them use Google models through KIE
-        // Only override to gemini provider if not using KIE or OpenRouter
-        if (llmProvider !== 'kie' && llmProvider !== 'openrouter') {
-          llmProvider = 'gemini';
-          console.log(`[LLM Prompt] Using Gemini directly for free model: ${model}`);
-        } else {
-          console.log(`[LLM Prompt] Using Google model through ${llmProvider}: ${model}`);
-        }
-      } else if (providerFromModel === 'anthropic' || providerFromModel === 'openai' || providerFromModel === 'meta' || providerFromModel === 'deepseek') {
-        // Use OpenRouter for paid models if not already set
-        if (llmProvider !== 'openrouter' && llmProvider !== 'kie') {
-          llmProvider = 'openrouter';
-          console.log(`[LLM Prompt] Overriding provider to 'openrouter' based on model: ${model}`);
-        }
+        config = {
+          provider: userSettings?.llmProvider || 'kie',
+          model: model || userSettings?.openRouterModel || userSettings?.kieLlmModel || 'gemini-2.5-flash',
+          apiKey: process.env.KIE_API_KEY || process.env.OPENROUTER_API_KEY,
+          endpoint: userSettings?.modalLlmEndpoint,
+          userHasOwnApiKey: false,
+        };
+      } else {
+        return NextResponse.json(
+          { error: 'API configuration required. Please configure your API keys in Settings.' },
+          { status: 403 }
+        );
       }
     }
+
+    const isUsingOwnKey = config.userHasOwnApiKey || false;
+    const isFreeGeminiModel = (model || config.model || '').includes('free') || (model || config.model || '').includes('flash');
 
     // Check user permissions and credit/API key requirements
     const permissions = await getUserPermissions(userId);
@@ -336,228 +125,187 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get Modal endpoint if needed
-    if (llmProvider === 'modal' && !modalLlmEndpoint) {
-      const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId },
-        select: { modalLlmEndpoint: true },
-      });
-      modalLlmEndpoint = userApiKeys?.modalLlmEndpoint || undefined;
-      if (modalLlmEndpoint) isUsingOwnKey = true;
-    }
-
-    // Get Gemini API key if needed
-    if (llmProvider === 'gemini' && !geminiApiKey) {
-      const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId },
-        select: { geminiApiKey: true },
-      });
-      geminiApiKey = userApiKeys?.geminiApiKey || process.env.GEMINI_API_KEY;
-      if (userApiKeys?.geminiApiKey) isUsingOwnKey = true;
-
-      // Special error message for free Gemini models
-      if (!geminiApiKey && isFreeGeminiModel) {
-        return NextResponse.json(
-          {
-            error: 'Gemini API key is required even for free models. Please add your Gemini API key in Settings or set GEMINI_API_KEY in environment.',
-            requireApiKey: true,
-            isFreeGeminiModel: true,
-            helpLink: 'https://makersuite.google.com/app/apikey'
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Get KIE model if needed (when we already have the key from getProviderConfig)
-    if (llmProvider === 'kie' && kieApiKey && (!llmModel || llmModel === DEFAULT_OPENROUTER_MODEL)) {
-      const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId },
-        select: { kieLlmModel: true },
-      });
-      if (userApiKeys?.kieLlmModel) {
-        llmModel = userApiKeys.kieLlmModel;
-      }
-    }
-
-    // Final fallback: Ensure we have API keys for premium/admin users using system keys
-    // This must happen BEFORE validation
-    if (llmProvider === 'openrouter' && !providerApiKey && (isPremiumUser || isAdmin)) {
-      providerApiKey = process.env.OPENROUTER_API_KEY;
-      console.log('[LLM Prompt] Using system OpenRouter key for premium/admin user');
-    }
-    if (llmProvider === 'kie' && !kieApiKey && (isPremiumUser || isAdmin)) {
-      kieApiKey = process.env.KIE_API_KEY;
-      console.log('[LLM Prompt] Using system KIE key for premium/admin user');
-    }
-
-    // Update providerApiKey to match kieApiKey for consistency in validation
-    if (llmProvider === 'kie') {
-      if (kieApiKey && !providerApiKey) {
-        providerApiKey = kieApiKey;
-        console.log('[LLM Prompt] Synced providerApiKey with kieApiKey');
-      } else if (providerApiKey && !kieApiKey) {
-        kieApiKey = providerApiKey;
-        console.log('[LLM Prompt] Synced kieApiKey with providerApiKey');
-      }
-    }
-
-    // Comprehensive validation before proceeding
-    console.log('[LLM Prompt] Pre-execution validation:', {
-      llmProvider,
-      llmModel,
-      hasProviderApiKey: !!providerApiKey,
-      hasKieApiKey: !!kieApiKey,
-      hasGeminiApiKey: !!geminiApiKey,
-      hasModalEndpoint: !!modalLlmEndpoint,
-      isPremiumUser,
-      isAdmin,
-      isFreeGeminiModel
-    });
-
-    // Validate API key/endpoint for selected provider
-    if (llmProvider === 'openrouter' && !providerApiKey) {
-      console.log('[LLM Prompt] ERROR: OpenRouter provider but no API key');
-      return NextResponse.json(
-        {
-          error: 'OpenRouter API key is required. Premium users can use the default key, or add your own in Settings.',
-          requireApiKey: true,
-          isPremiumUser,
-          isAdmin
-        },
-        { status: 400 }
-      );
-    }
-
-    if (llmProvider === 'kie' && !kieApiKey) {
-      console.log('[LLM Prompt] ERROR: KIE provider but no API key');
-      return NextResponse.json(
-        {
-          error: 'KIE.ai API key is required. Please add your own in Settings.',
-          requireApiKey: true,
-          isPremiumUser,
-          isAdmin,
-          debug: { llmProvider, hasKieApiKey: !!kieApiKey, hasProviderApiKey: !!providerApiKey }
-        },
-        { status: 400 }
-      );
-    }
-
-    if (llmProvider === 'modal' && !modalLlmEndpoint) {
-      console.log('[LLM Prompt] ERROR: Modal provider but no endpoint');
-      return NextResponse.json(
-        { error: 'Modal LLM endpoint is required. Please configure it in Settings.' },
-        { status: 400 }
-      );
-    }
-
-    // Validate that we have a known provider
-    const knownProviders = ['openrouter', 'kie', 'modal', 'claude-sdk', 'gemini'];
-    if (!llmProvider || !knownProviders.includes(llmProvider)) {
-      console.log('[LLM Prompt] ERROR: Unknown or missing provider', { llmProvider });
-      return NextResponse.json(
-        {
-          error: `Invalid LLM provider: ${llmProvider || 'none'}. Valid providers: ${knownProviders.join(', ')}`,
-          debug: { llmProvider, hasAnyKey: !!(providerApiKey || kieApiKey || geminiApiKey) }
-        },
-        { status: 400 }
-      );
-    }
-
-    let fullResponse = '';
-    let providerName = llmProvider;
-
-    // Determine if we should charge credits
-    const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
-
-    console.log(`[LLM Prompt] Using provider: ${llmProvider}, model: ${llmModel}, Charging credits: ${shouldChargeCredits}`);
-    console.log(`[LLM Prompt] API keys status: providerApiKey=${!!providerApiKey}, kieApiKey=${!!kieApiKey}, geminiApiKey=${!!geminiApiKey}, modalLlmEndpoint=${!!modalLlmEndpoint}`);
-
     const defaultSystemPrompt = systemPrompt || 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.';
 
-    if (llmProvider === 'modal') {
-      // Use Modal self-hosted LLM endpoint
-      if (!modalLlmEndpoint) {
-        return NextResponse.json(
-          { error: 'Modal LLM endpoint is required' },
-          { status: 400 }
-        );
-      }
-      fullResponse = await queryModalLLM(prompt, defaultSystemPrompt, modalLlmEndpoint!);
-    } else if (llmProvider === 'kie') {
-      // Use KIE.ai LLM API
-      if (!kieApiKey) {
-        return NextResponse.json(
-          { error: 'KIE.ai API key is required' },
-          { status: 400 }
-        );
-      }
+    // Special handling for Claude SDK (local development only)
+    if (config.provider === 'claude-sdk') {
+      try {
+        const { query } = await import('@anthropic-ai/claude-agent-sdk');
+        let fullResponse = '';
 
-      // Map OpenRouter-style model IDs to KIE.ai format using database
-      let kieModel = llmModel;
-      if (llmModel?.includes('/')) {
-        // Try to find matching model in database
-        const kieLlmModel = await prisma.kieLlmModel.findFirst({
-          where: {
-            OR: [
-              { modelId: llmModel },
-              { apiModelId: llmModel },
-              { modelId: { contains: llmModel.split('/')[1]?.replace(':free', '').replace(':exp', '') || '' } }
-            ]
+        const stream = query({
+          prompt,
+          options: {
+            model: 'claude-sonnet-4-20250514',
+            systemPrompt: defaultSystemPrompt,
+            maxTurns: 1,
+            allowedTools: [],
           },
-          select: { modelId: true, apiModelId: true, name: true }
         });
 
-        if (kieLlmModel) {
-          // Use the API model ID if available, otherwise use the model ID
-          kieModel = kieLlmModel.apiModelId || kieLlmModel.modelId;
-          console.log(`[LLM Prompt] Mapped model ${llmModel} to KIE format: ${kieModel} (from DB: ${kieLlmModel.name})`);
-        } else {
-          // Model not found in KIE database - return error
-          return NextResponse.json(
-            {
-              error: `Invalid model for KIE.ai provider: "${llmModel}"`,
-              message: `This model is not available on KIE.ai. Available KIE.ai models: gemini-2.5-flash, gemini-2.5-pro, gemini-3-flash, gemini-3-pro`,
-              availableModels: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3-flash', 'gemini-3-pro']
-            },
-            { status: 400 }
+        for await (const message of stream) {
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if (block.type === 'text') {
+                fullResponse += block.text;
+              }
+            }
+          }
+        }
+
+        // Deduct credits if needed
+        const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
+        if (shouldChargeCredits) {
+          await spendCredits(
+            userId,
+            PROMPT_ENHANCEMENT_COST,
+            'prompt',
+            'Master prompt enhancement via Claude SDK',
+            projectId,
+            'claude-sdk' as Provider
           );
         }
 
-        console.log(`[LLM Prompt] Final model for KIE API: ${kieModel}`);
-      }
-
-      fullResponse = await queryKieLlm(prompt, defaultSystemPrompt, kieApiKey!, kieModel);
-    } else if (llmProvider === 'openrouter') {
-      // Use OpenRouter API
-      if (!providerApiKey) {
+        return NextResponse.json({
+          text: fullResponse,
+          provider: 'claude-sdk',
+          creditsUsed: shouldChargeCredits ? PROMPT_ENHANCEMENT_COST : 0,
+          isFreeGeneration: !shouldChargeCredits
+        });
+      } catch (error) {
         return NextResponse.json(
-          { error: 'OpenRouter API key is required' },
-          { status: 400 }
-        );
-      }
-      fullResponse = await callOpenRouter(
-        providerApiKey!,
-        defaultSystemPrompt,
-        prompt,
-        llmModel,
-        8192
-      );
-    } else if (llmProvider === 'claude-sdk') {
-      // Use Claude SDK/CLI
-      fullResponse = await queryClaudeSDK(prompt, defaultSystemPrompt);
-    } else {
-      // Fallback to Gemini if available
-      if (geminiApiKey) {
-        fullResponse = await queryGemini(prompt, geminiApiKey);
-        providerName = 'gemini';
-      } else {
-        return NextResponse.json(
-          { error: 'No LLM provider configured. Please set up OpenRouter, KIE.ai, or Gemini in Settings.' },
-          { status: 400 }
+          { error: `Claude SDK error: ${error instanceof Error ? error.message : String(error)}. Make sure Claude CLI is installed and authenticated.` },
+          { status: 500 }
         );
       }
     }
+
+    // Build request body based on provider
+    let requestBody: any;
+    const llmModel = model || config.model;
+
+    switch (config.provider) {
+      case 'openrouter':
+      case 'openai':
+      case 'kie':
+        // Map model format if needed for KIE
+        let finalModel = llmModel;
+        if (config.provider === 'kie' && llmModel?.includes('/')) {
+          // Try to find matching model in database
+          const kieLlmModel = await prisma.kieLlmModel.findFirst({
+            where: {
+              OR: [
+                { modelId: llmModel },
+                { apiModelId: llmModel },
+                { modelId: { contains: llmModel.split('/')[1]?.replace(':free', '').replace(':exp', '') || '' } }
+              ]
+            },
+            select: { modelId: true, apiModelId: true }
+          });
+
+          if (kieLlmModel) {
+            finalModel = kieLlmModel.apiModelId || kieLlmModel.modelId;
+          }
+        }
+
+        requestBody = {
+          model: finalModel,
+          messages: [
+            { role: 'system', content: defaultSystemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 8192,
+          temperature: 0.9,
+          stream: false,
+        };
+        break;
+
+      case 'modal':
+        requestBody = {
+          prompt,
+          system_prompt: defaultSystemPrompt,
+          max_tokens: 8192,
+        };
+        break;
+
+      case 'gemini':
+        requestBody = {
+          contents: [{ parts: [{ text: `${defaultSystemPrompt}\n\n${prompt}` }] }],
+          generationConfig: {
+            temperature: 0.9,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+          },
+        };
+        break;
+
+      default:
+        return NextResponse.json(
+          { error: `Unsupported LLM provider: ${config.provider}` },
+          { status: 400 }
+        );
+    }
+
+    // Make the API call using the centralized wrapper
+    console.log(`[LLM Prompt] Calling ${config.provider} with model ${llmModel}`);
+
+    const response = await callExternalApi({
+      userId,
+      projectId,
+      type: 'llm',
+      body: requestBody,
+      endpoint: config.provider === 'modal' ? config.endpoint : undefined,
+      showLoadingMessage: true,
+      loadingMessage: `Generating enhanced prompt using ${config.provider}...`,
+    });
+
+    if (response.error) {
+      return NextResponse.json(
+        { error: response.error },
+        { status: response.status }
+      );
+    }
+
+    // Extract text from response based on provider format
+    let generatedText: string | undefined;
+
+    switch (response.provider) {
+      case 'openrouter':
+      case 'openai':
+      case 'kie':
+        generatedText = response.data?.choices?.[0]?.message?.content;
+        // KIE wrapped format
+        if (!generatedText && response.data?.data) {
+          generatedText = response.data.data.choices?.[0]?.message?.content ||
+                         response.data.data.output ||
+                         response.data.data.text ||
+                         response.data.data.result;
+        }
+        break;
+
+      case 'modal':
+        generatedText = response.data?.response ||
+                       response.data?.text ||
+                       response.data?.content ||
+                       (typeof response.data === 'string' ? response.data : undefined);
+        break;
+
+      case 'gemini':
+        generatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        break;
+    }
+
+    if (!generatedText) {
+      console.error('No text generated from response:', response.data);
+      return NextResponse.json(
+        { error: 'No text generated from the model' },
+        { status: 500 }
+      );
+    }
+
+    // Determine if we should charge credits
+    const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
 
     // Deduct credits ONLY if using system resources (and not free model)
     if (shouldChargeCredits) {
@@ -565,9 +313,9 @@ export async function POST(request: NextRequest) {
         userId,
         PROMPT_ENHANCEMENT_COST,
         'prompt',
-        `Master prompt enhancement via ${providerName}`,
-        undefined,
-        providerName as Provider
+        `Master prompt enhancement via ${response.provider}`,
+        projectId,
+        response.provider as Provider
       );
 
       if (!spendResult.success) {
@@ -577,8 +325,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      text: fullResponse,
-      provider: providerName,
+      text: generatedText,
+      provider: response.provider,
       creditsUsed: shouldChargeCredits ? PROMPT_ENHANCEMENT_COST : 0,
       isFreeGeneration: !shouldChargeCredits
     });

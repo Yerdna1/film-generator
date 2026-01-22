@@ -1,5 +1,5 @@
-// Unified Video API Route - Routes to appropriate provider based on project modelConfig
-// Supports: Kie.ai (Grok Imagine), Modal (self-hosted)
+// Unified Video API Route using centralized API wrapper
+// All provider configurations come from Settings (single source of truth)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
@@ -8,10 +8,9 @@ import { spendCredits, COSTS, trackRealCostOnly } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import { rateLimit } from '@/lib/services/rate-limit';
 import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
+import { callExternalApi, pollKieTask } from '@/lib/providers/api-wrapper';
+import { getProviderConfig } from '@/lib/providers';
 import type { VideoProvider } from '@/types/project';
-import { DEFAULT_MODEL_CONFIG, DEFAULT_MODELS } from '@/lib/constants/model-config-defaults';
-
-const KIE_API_URL = 'https://api.kie.ai';
 
 export const maxDuration = 120;
 
@@ -21,12 +20,12 @@ interface VideoGenerationRequest {
   projectId?: string;
   mode?: 'fun' | 'normal' | 'spicy';
   seed?: number;
-  isRegeneration?: boolean; // Track if this is regenerating an existing video
-  sceneId?: string; // Optional scene ID for tracking
-  skipCreditCheck?: boolean; // Skip credit check (used when admin prepaid for collaborator regeneration)
-  ownerId?: string; // Use owner's settings instead of session user (for collaborator regeneration)
-  videoProvider?: VideoProvider; // Provider from project model config
-  model?: string; // Model ID from project model config (e.g., 'veo/3.1-text-to-video-fast-5s')
+  isRegeneration?: boolean;
+  sceneId?: string;
+  skipCreditCheck?: boolean;
+  ownerId?: string;
+  videoProvider?: VideoProvider;
+  model?: string;
 }
 
 // Enhance I2V prompt with motion speed hints
@@ -56,262 +55,205 @@ async function downloadVideoAsBase64(videoUrl: string): Promise<string | null> {
   }
 }
 
-// Generate video using Kie.ai with model support
-async function createKieTask(
+// Generate video using centralized API wrapper
+async function generateWithWrapper(
+  userId: string | undefined,
+  projectId: string | undefined,
+  provider: string,
   imageUrl: string,
   prompt: string,
   mode: string,
   seed: number | undefined,
-  apiKey: string,
-  modelId: string = 'grok-imagine/image-to-video'
-): Promise<{ taskId: string }> {
-  // Upload base64 image to S3 first if needed
-  let publicImageUrl = imageUrl;
-  if (imageUrl.startsWith('data:')) {
-    console.log('[Kie] Uploading base64 image to S3...');
-    const uploadResult = await uploadBase64ToS3(imageUrl, 'film-generator/scenes');
-    if (!uploadResult.success || !uploadResult.url) {
-      throw new Error(uploadResult.error || 'Failed to upload image to S3');
-    }
-    publicImageUrl = uploadResult.url;
-  }
-
-  // Query model from database to get apiModelId
-  const modelConfig = await prisma.kieVideoModel.findUnique({
-    where: { modelId }
-  });
-
-  if (!modelConfig || !modelConfig.isActive) {
-    console.warn(`[Kie] Model ${modelId} not found in database, using original modelId`);
-  }
-
-  // Use apiModelId for KIE.ai API call, fall back to modelId if not set
-  const apiModelId = modelConfig?.apiModelId || modelId;
-  console.log(`[Kie] Creating video task with model: ${modelId} (API: ${apiModelId})`);
-
-  const enhancedPrompt = enhancePromptForMotion(prompt);
-  const effectiveMode = mode === 'spicy' ? 'normal' : mode;
-
-  const requestBody: any = {
-    model: apiModelId, // Use apiModelId for KIE.ai API call
-    input: {
-      image_urls: [publicImageUrl],
-      prompt: enhancedPrompt,
-      mode: effectiveMode,
-    },
-  };
-
-  if (seed !== undefined) {
-    requestBody.input.seed = seed;
-  }
-
-  const response = await fetch(`${KIE_API_URL}/api/v1/jobs/createTask`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok || data.code !== 200) {
-    throw new Error(data.msg || data.message || 'Failed to create Kie video task');
-  }
-
-  return { taskId: data.data.taskId };
-}
-
-// Check Kie.ai task status
-async function checkKieTaskStatus(
-  taskId: string,
-  projectId: string | undefined,
-  apiKey: string,
-  creditUserId: string | undefined, // For credit deduction (undefined to skip)
-  realCostUserId: string | undefined, // For real cost tracking (track even if no credit deduction)
-  download: boolean,
+  creditUserId: string | undefined,
+  realCostUserId: string | undefined,
   isRegeneration: boolean = false,
   sceneId?: string,
-  modelId: string = 'grok-imagine/image-to-video'
-): Promise<{ status: string; videoUrl?: string; externalVideoUrl?: string; failMessage?: string; cost?: number; storage?: string }> {
-  const response = await fetch(
-    `${KIE_API_URL}/api/v1/jobs/recordInfo?taskId=${taskId}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
-      },
-    }
-  );
+  endpoint?: string,
+  download: boolean = true
+): Promise<{ videoUrl: string; cost: number; storage: string; status: string; externalVideoUrl?: string }> {
+  console.log(`[${provider}] Generating video with wrapper`);
 
-  const data = await response.json();
-
-  if (!response.ok || data.code !== 200) {
-    throw new Error(data.msg || data.message || 'Failed to check Kie task status');
-  }
-
-  const taskData = data.data;
-  const stateMapping: Record<string, string> = {
-    'waiting': 'processing',
-    'queuing': 'processing',
-    'generating': 'processing',
-    'success': 'complete',
-    'fail': 'error',
-  };
-
-  const status = stateMapping[taskData.state] || taskData.state;
-
-  let externalVideoUrl: string | undefined;
-  let videoUrl: string | undefined;
-
-  if (taskData.resultJson) {
-    try {
-      const result = JSON.parse(taskData.resultJson);
-      externalVideoUrl = result.resultUrls?.[0];
-    } catch {
-      console.error('Failed to parse resultJson');
-    }
-  }
-
-  if (status === 'complete' && externalVideoUrl && download) {
-    const base64Video = await downloadVideoAsBase64(externalVideoUrl);
-
-    if (base64Video) {
-      videoUrl = await uploadMediaToS3(base64Video, 'video', projectId);
-    } else {
-      videoUrl = externalVideoUrl;
-    }
-  } else if (externalVideoUrl) {
-    videoUrl = externalVideoUrl;
-  }
-
-  // Get model-specific cost
-  const { getKieModelById } = await import('@/lib/constants/kie-models');
-  const modelConfig = getKieModelById(modelId, 'video');
-  const realCost = modelConfig?.cost || ACTION_COSTS.video.grok; // Fallback to default
-  const modelName = modelConfig?.name || 'Video';
-  const actionType = isRegeneration ? 'regeneration' : 'generation';
-
-  if (status === 'complete') {
-    if (creditUserId) {
-      // Normal case: deduct credits and track real cost
-      await spendCredits(
-        creditUserId,
-        COSTS.VIDEO_GENERATION,
-        'video',
-        `KIE ${modelName} ${actionType}`,
-        projectId,
-        'kie',
-        { isRegeneration, sceneId, model: modelId, kieCredits: modelConfig?.credits },
-        realCost
-      );
-    } else if (realCostUserId) {
-      // Collaborator regeneration: only track real cost (credits already prepaid by admin)
-      await trackRealCostOnly(
-        realCostUserId,
-        realCost,
-        'video',
-        `KIE ${modelName} ${actionType} - prepaid`,
-        projectId,
-        'kie',
-        { isRegeneration, sceneId, model: modelId, kieCredits: modelConfig?.credits, prepaidRegeneration: true }
-      );
-    }
-  }
-
-  return {
-    status,
-    videoUrl,
-    externalVideoUrl,
-    failMessage: taskData.failMsg,
-    cost: status === 'complete' ? realCost : undefined,
-    storage: videoUrl && !videoUrl.startsWith('data:') && !videoUrl.startsWith('http') ? 's3' : (videoUrl?.startsWith('data:') ? 'base64' : 'external'),
-  };
-}
-
-// Generate video using Modal (self-hosted)
-async function generateWithModal(
-  imageUrl: string,
-  prompt: string,
-  projectId: string | undefined,
-  modalEndpoint: string,
-  creditUserId: string | undefined, // For credit deduction (undefined to skip)
-  realCostUserId: string | undefined, // For real cost tracking (track even if no credit deduction)
-  isRegeneration: boolean = false,
-  sceneId?: string
-): Promise<{ videoUrl: string; cost: number; storage: string; status: string }> {
-  console.log('[Modal] Generating video with endpoint:', modalEndpoint);
-
-  // Upload base64 image to S3 first if needed for Modal
+  // Upload base64 image to S3 first if needed
   let publicImageUrl = imageUrl;
   if (imageUrl.startsWith('data:') && isS3Configured()) {
+    console.log(`[${provider}] Uploading base64 image to S3...`);
     const uploadResult = await uploadBase64ToS3(imageUrl, 'film-generator/scenes');
     if (uploadResult.success && uploadResult.url) {
       publicImageUrl = uploadResult.url;
     }
   }
 
-  const response = await fetch(modalEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      image_url: publicImageUrl,
-      prompt: enhancePromptForMotion(prompt),
-    }),
+  // Build request body based on provider
+  let requestBody: any;
+
+  switch (provider) {
+    case 'modal':
+      requestBody = {
+        image_url: publicImageUrl,
+        prompt: enhancePromptForMotion(prompt),
+      };
+      break;
+
+    case 'kie':
+      // Get model from config
+      const config = await getProviderConfig({
+        userId: userId || 'system',
+        projectId,
+        type: 'video'
+      });
+
+      // Query model from database
+      const modelConfig = await prisma.kieVideoModel.findUnique({
+        where: { modelId: config.model || 'grok-imagine/image-to-video' }
+      });
+
+      if (!modelConfig || !modelConfig.isActive) {
+        console.warn(`[KIE] Model ${config.model} not found in database, using original modelId`);
+      }
+
+      const apiModelId = modelConfig?.apiModelId || config.model || 'grok-imagine/image-to-video';
+      const effectiveMode = mode === 'spicy' ? 'normal' : mode;
+
+      requestBody = {
+        model: apiModelId,
+        input: {
+          image_urls: [publicImageUrl],
+          prompt: enhancePromptForMotion(prompt),
+          mode: effectiveMode,
+        },
+      };
+
+      if (seed !== undefined) {
+        requestBody.input.seed = seed;
+      }
+      break;
+
+    default:
+      throw new Error(`Unsupported video provider: ${provider}`);
+  }
+
+  // Make the API call using wrapper
+  const response = await callExternalApi({
+    userId: userId || 'system',
+    projectId,
+    type: 'video',
+    body: requestBody,
+    endpoint,
+    showLoadingMessage: true,
+    loadingMessage: `Generating video using ${provider}...`,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Modal video generation failed: ${errorText}`);
+  if (response.error) {
+    throw new Error(response.error);
   }
 
-  const data = await response.json();
+  let videoUrl: string | undefined;
+  let externalVideoUrl: string | undefined;
+  let realCost: number;
 
-  let videoUrl: string;
-  if (data.video) {
-    videoUrl = data.video.startsWith('data:') ? data.video : `data:video/mp4;base64,${data.video}`;
-  } else if (data.videoUrl) {
-    videoUrl = data.videoUrl;
+  // Handle response based on provider
+  if (provider === 'kie') {
+    // Get task ID and poll for completion
+    const taskId = response.data?.data?.taskId;
+    if (!taskId) {
+      throw new Error('KIE AI did not return a task ID');
+    }
+
+    console.log(`[KIE] Task created: ${taskId}, polling for completion...`);
+
+    // Get API key from config for polling
+    const config = await getProviderConfig({
+      userId: userId || 'system',
+      projectId,
+      type: 'video'
+    });
+
+    const taskData = await pollKieTask(taskId, config.apiKey!);
+
+    // Extract video URL from result
+    if (taskData.resultJson) {
+      try {
+        const result = typeof taskData.resultJson === 'string'
+          ? JSON.parse(taskData.resultJson)
+          : taskData.resultJson;
+        externalVideoUrl = result.resultUrls?.[0];
+      } catch {
+        console.error('Failed to parse resultJson');
+      }
+    }
+
+    if (!externalVideoUrl) {
+      throw new Error('KIE AI completed but did not return a video URL');
+    }
+
+    // Download and convert to base64 if needed
+    if (download) {
+      const base64Video = await downloadVideoAsBase64(externalVideoUrl);
+      if (base64Video) {
+        videoUrl = await uploadMediaToS3(base64Video, 'video', projectId);
+      } else {
+        videoUrl = externalVideoUrl;
+      }
+    } else {
+      videoUrl = externalVideoUrl;
+    }
+
+    // Get model cost
+    const modelId = response.model || 'grok-imagine/image-to-video';
+    const modelInfo = await prisma.kieVideoModel.findUnique({ where: { modelId } });
+    realCost = modelInfo?.cost || ACTION_COSTS.video.grok;
+
   } else {
-    throw new Error('Modal endpoint did not return video');
+    // Modal provider
+    if (response.data.video) {
+      videoUrl = response.data.video.startsWith('data:')
+        ? response.data.video
+        : `data:video/mp4;base64,${response.data.video}`;
+    } else if (response.data.videoUrl) {
+      videoUrl = response.data.videoUrl;
+    }
+
+    if (!videoUrl) {
+      throw new Error(`${provider} did not return a video`);
+    }
+
+    videoUrl = await uploadMediaToS3(videoUrl, 'video', projectId);
+    realCost = 0.15; // Modal GPU cost
   }
 
-  const realCost = 0.15; // Modal GPU cost per video (~$0.15 on H100)
+  // Track costs
   const actionType = isRegeneration ? 'regeneration' : 'generation';
 
   if (creditUserId) {
-    // Normal case: deduct credits and track real cost
     await spendCredits(
       creditUserId,
       COSTS.VIDEO_GENERATION,
       'video',
-      `Modal video ${actionType}`,
+      `${provider} video ${actionType}`,
       projectId,
-      'modal',
+      provider as any,
       { isRegeneration, sceneId },
       realCost
     );
   } else if (realCostUserId) {
-    // Collaborator regeneration: only track real cost (credits already prepaid by admin)
     await trackRealCostOnly(
       realCostUserId,
       realCost,
       'video',
-      `Modal video ${actionType} - prepaid`,
+      `${provider} video ${actionType} - prepaid`,
       projectId,
-      'modal',
+      provider as any,
       { isRegeneration, sceneId, prepaidRegeneration: true }
     );
   }
 
-  videoUrl = await uploadMediaToS3(videoUrl, 'video', projectId);
-
   return {
-    videoUrl,
+    videoUrl: videoUrl!,
+    externalVideoUrl,
     cost: realCost,
-    storage: videoUrl.startsWith('data:') ? 'base64' : 's3',
+    storage: videoUrl && !videoUrl.startsWith('data:') && !videoUrl.startsWith('http')
+      ? 's3'
+      : (videoUrl?.startsWith('data:') ? 'base64' : 'external'),
     status: 'complete',
   };
 }
@@ -323,7 +265,19 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    const { imageUrl, prompt, projectId, mode = 'normal', seed, isRegeneration = false, sceneId, skipCreditCheck = false, ownerId, videoProvider: requestProvider, model: requestModel }: VideoGenerationRequest = await request.json();
+    const {
+      imageUrl,
+      prompt,
+      projectId,
+      mode = 'normal',
+      seed,
+      isRegeneration = false,
+      sceneId,
+      skipCreditCheck = false,
+      ownerId,
+      videoProvider: requestProvider,
+      model: requestModel
+    }: VideoGenerationRequest = await request.json();
 
     if (!imageUrl || !prompt) {
       return NextResponse.json({ error: 'Image URL and prompt are required' }, { status: 400 });
@@ -332,138 +286,83 @@ export async function POST(request: NextRequest) {
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
 
-    // Fetch project modelConfig if projectId is provided (single source of truth)
-    let projectModelConfig = DEFAULT_MODEL_CONFIG.video;
-    if (projectId) {
-      const project = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { modelConfig: true },
-      });
-      if (project?.modelConfig && typeof project.modelConfig === 'object') {
-        const config = project.modelConfig as any;
-        if (config.video) {
-          projectModelConfig = config.video;
-        }
-      }
-    }
-
-    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
-    const videoProvider: VideoProvider = requestProvider || projectModelConfig.provider;
-    const kieVideoModel = requestModel || projectModelConfig.model || DEFAULT_MODELS.kieVideoModel;
-
-    let kieApiKey = process.env.KIE_API_KEY;
-    let modalVideoEndpoint: string | null = null;
-
-    // When ownerId is provided (collaborator regeneration), use owner's settings
-    // Otherwise use session user's settings
-    const settingsUserId = ownerId || sessionUserId;
-
-    let userHasOwnApiKey = false; // Track if user has their own API key (declare outside block)
-
-    if (settingsUserId) {
-      const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId: settingsUserId },
-      });
-
-      if (userApiKeys) {
-        // Only use actual API keys from database (not preferences)
-        if (userApiKeys.kieApiKey) {
-          kieApiKey = userApiKeys.kieApiKey;
-          userHasOwnApiKey = true;
-        }
-        if (userApiKeys.modalVideoEndpoint) {
-          modalVideoEndpoint = userApiKeys.modalVideoEndpoint;
-          userHasOwnApiKey = true;
-        }
-      }
-
-      // Check user permissions and credit/API key requirements
-      if (sessionUserId && !skipCreditCheck) {
-        const permissions = await getUserPermissions(sessionUserId);
-        const useOwnKeys = await shouldUseOwnApiKeys(sessionUserId, 'video');
-
-        // Check if user needs API keys
-        if (useOwnKeys || permissions.requiresApiKeys) {
-          const keyCheck = await checkRequiredApiKeys(sessionUserId, 'video');
-
-          if (!keyCheck.hasKeys) {
-            const error = getMissingRequirementError(permissions, 'video', keyCheck.missing);
-            return NextResponse.json(error, { status: error.code === 'API_KEY_REQUIRED' ? 403 : 402 });
-          }
-
-          // User has API keys, skip credit check
-          userHasOwnApiKey = true;
-          console.log('[Video] User using own API keys - skipping credit check and deduction');
-        } else if (permissions.requiresCredits) {
-          // Premium/admin user using system keys - check credits
-          const insufficientCredits = await requireCredits(sessionUserId, COSTS.VIDEO_GENERATION);
-          if (insufficientCredits) return insufficientCredits;
-        }
-      }
-    }
-
-    console.log(`[Video] Using provider: ${videoProvider}, model: ${kieVideoModel}, projectId: ${projectId}, isRegeneration: ${isRegeneration}, skipCreditCheck: ${skipCreditCheck}, ownerId: ${ownerId || 'none'}`);
-
-    // For cost tracking:
-    // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
-    //   but we still want to track real API costs to the owner
-    // - When skipCreditCheck is false (normal generation): track to session user
-    // - When user has own API key: no credit deduction needed (they're paying provider directly)
-    const effectiveUserId = (skipCreditCheck || userHasOwnApiKey) ? undefined : sessionUserId; // For credit deduction
-    const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
-
-    if (videoProvider === 'modal') {
-      if (!modalVideoEndpoint) {
-        return NextResponse.json(
-          { error: 'Modal video endpoint not configured. Please add your endpoint URL in Settings.' },
-          { status: 400 }
-        );
-      }
-      const result = await generateWithModal(imageUrl, prompt, projectId, modalVideoEndpoint, effectiveUserId, realCostUserId, isRegeneration, sceneId);
-      return NextResponse.json(result);
-    }
-
-    // Default to Kie.ai
-    if (!kieApiKey) {
-      return NextResponse.json(
-        { error: 'Kie.ai API key not configured. Please add your API key in Settings.' },
-        { status: 500 }
-      );
-    }
-
-    const result = await createKieTask(imageUrl, prompt, mode, seed, kieApiKey, kieVideoModel);
-    return NextResponse.json({
-      taskId: result.taskId,
-      status: 'processing',
-      message: 'Video generation started. Poll for status.',
-      // Return these so client can pass back when polling
+    // Get provider configuration - single source of truth
+    const settingsUserId = ownerId || sessionUserId || 'system';
+    const config = await getProviderConfig({
+      userId: settingsUserId,
       projectId,
+      type: 'video',
+      requestOverrides: requestProvider ? { provider: requestProvider, model: requestModel } : undefined,
+    });
+
+    const videoProvider = config.provider;
+    const userHasOwnApiKey = config.userHasOwnApiKey;
+
+    // Check permissions and credits
+    if (sessionUserId && !skipCreditCheck) {
+      const permissions = await getUserPermissions(sessionUserId);
+      const useOwnKeys = await shouldUseOwnApiKeys(sessionUserId, 'video');
+
+      if ((useOwnKeys || permissions.requiresApiKeys) && !userHasOwnApiKey) {
+        const keyCheck = await checkRequiredApiKeys(sessionUserId, 'video');
+        if (!keyCheck.hasKeys) {
+          const error = getMissingRequirementError(permissions, 'video', keyCheck.missing);
+          return NextResponse.json(error, { status: error.code === 'API_KEY_REQUIRED' ? 403 : 402 });
+        }
+      } else if (permissions.requiresCredits && !userHasOwnApiKey) {
+        const insufficientCredits = await requireCredits(sessionUserId, COSTS.VIDEO_GENERATION);
+        if (insufficientCredits) return insufficientCredits;
+      }
+    }
+
+    console.log(`[Video] Using provider: ${videoProvider}, model: ${config.model}`);
+
+    // For cost tracking
+    const effectiveUserId = (skipCreditCheck || userHasOwnApiKey) ? undefined : sessionUserId;
+    const realCostUserId = ownerId || sessionUserId;
+
+    const result = await generateWithWrapper(
+      settingsUserId === 'system' ? undefined : settingsUserId,
+      projectId,
+      videoProvider,
+      imageUrl,
+      prompt,
+      mode,
+      seed,
+      effectiveUserId,
+      realCostUserId,
       isRegeneration,
       sceneId,
-      ownerId, // Pass back for GET polling
-    });
+      config.endpoint, // For modal endpoints
+      true // download
+    );
+
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Video generation error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+
+    let errorMessage = 'Unknown error occurred during video generation';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      if (error.message.includes('rate') || error.message.includes('quota')) {
+        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. Try again later.';
+      }
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
-// GET - Check video generation status (for Kie.ai polling)
+// GET - Check video generation status
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('taskId');
-    const projectId = searchParams.get('projectId');
     const download = searchParams.get('download') !== 'false';
-    const isRegeneration = searchParams.get('isRegeneration') === 'true';
-    const sceneId = searchParams.get('sceneId') || undefined;
-    const ownerId = searchParams.get('ownerId') || undefined;
-    const skipCreditCheck = searchParams.get('skipCreditCheck') === 'true';
-    const model = searchParams.get('model') || undefined; // Model ID from query string
+    const projectId = searchParams.get('projectId') || undefined;
 
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
@@ -472,58 +371,73 @@ export async function GET(request: NextRequest) {
     const authCtx = await optionalAuth();
     const sessionUserId = authCtx?.userId;
 
-    // Fetch project modelConfig if projectId is provided (single source of truth)
-    let projectModelConfig = DEFAULT_MODEL_CONFIG.video;
-    if (projectId) {
-      const project = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { modelConfig: true },
-      });
-      if (project?.modelConfig && typeof project.modelConfig === 'object') {
-        const config = project.modelConfig as any;
-        if (config.video) {
-          projectModelConfig = config.video;
-        }
+    // Get provider configuration to get API key
+    const config = await getProviderConfig({
+      userId: sessionUserId || 'system',
+      projectId,
+      type: 'video',
+    });
+
+    if (config.provider !== 'kie') {
+      return NextResponse.json({ error: 'Task status only supported for KIE provider' }, { status: 400 });
+    }
+
+    if (!config.apiKey) {
+      return NextResponse.json({ error: 'KIE API key not configured' }, { status: 400 });
+    }
+
+    // Poll for task status
+    const taskData = await pollKieTask(taskId, config.apiKey, 1); // Single poll
+
+    // Extract status and video URL
+    const stateMapping: Record<string, string> = {
+      'waiting': 'processing',
+      'queuing': 'processing',
+      'generating': 'processing',
+      'success': 'complete',
+      'fail': 'error',
+    };
+
+    const status = stateMapping[taskData.state] || taskData.state;
+    let externalVideoUrl: string | undefined;
+    let videoUrl: string | undefined;
+
+    if (taskData.resultJson) {
+      try {
+        const result = typeof taskData.resultJson === 'string'
+          ? JSON.parse(taskData.resultJson)
+          : taskData.resultJson;
+        externalVideoUrl = result.resultUrls?.[0];
+      } catch {
+        console.error('Failed to parse resultJson');
       }
     }
 
-    let kieApiKey = process.env.KIE_API_KEY;
-    // Use project modelConfig or DEFAULT_MODEL_CONFIG (no fallback to userApiKeys preferences)
-    const kieVideoModel = model || projectModelConfig.model || DEFAULT_MODELS.kieVideoModel;
-
-    // When ownerId is provided, use owner's settings
-    const settingsUserId = ownerId || sessionUserId;
-
-    if (settingsUserId) {
-      const userApiKeys = await prisma.apiKeys.findUnique({
-        where: { userId: settingsUserId },
-      });
-      // Only use actual API keys from database (not preferences)
-      if (userApiKeys?.kieApiKey) {
-        kieApiKey = userApiKeys.kieApiKey;
+    if (status === 'complete' && externalVideoUrl && download) {
+      const base64Video = await downloadVideoAsBase64(externalVideoUrl);
+      if (base64Video) {
+        videoUrl = await uploadMediaToS3(base64Video, 'video', projectId);
+      } else {
+        videoUrl = externalVideoUrl;
       }
+    } else if (externalVideoUrl) {
+      videoUrl = externalVideoUrl;
     }
 
-    if (!kieApiKey) {
-      return NextResponse.json({ error: 'Kie.ai API key not configured' }, { status: 500 });
-    }
-
-    // For cost tracking:
-    // - When skipCreditCheck is true (collaborator regeneration): credits already prepaid by admin,
-    //   but we still want to track real API costs to the owner
-    // - When skipCreditCheck is false (normal generation): track to session user
-    const effectiveUserId = skipCreditCheck ? undefined : sessionUserId; // For credit deduction
-    const realCostUserId = ownerId || sessionUserId; // For real cost tracking (always track to owner)
-
-    console.log(`[Video GET] Using model: ${kieVideoModel}, taskId: ${taskId}, projectId: ${projectId}`);
-
-    const result = await checkKieTaskStatus(taskId, projectId || undefined, kieApiKey, effectiveUserId, realCostUserId, download, isRegeneration, sceneId, kieVideoModel);
-    return NextResponse.json({ taskId, ...result });
+    return NextResponse.json({
+      status,
+      videoUrl,
+      externalVideoUrl,
+      failMessage: taskData.failMsg || taskData.fail_reason,
+      storage: videoUrl && !videoUrl.startsWith('data:') && !videoUrl.startsWith('http')
+        ? 's3'
+        : (videoUrl?.startsWith('data:') ? 'base64' : 'external'),
+    });
 
   } catch (error) {
-    console.error('Video status check error:', error);
+    console.error('Check status error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: error instanceof Error ? error.message : 'Failed to check task status' },
       { status: 500 }
     );
   }

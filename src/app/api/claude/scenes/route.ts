@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { spendCredits, COSTS, checkBalance } from '@/lib/services/credits';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
-import { callOpenRouter, DEFAULT_OPENROUTER_MODEL } from '@/lib/services/openrouter';
+import { callExternalApi } from '@/lib/providers/api-wrapper';
 import { prisma } from '@/lib/db/prisma';
 import { getProviderConfig } from '@/lib/providers';
+
+const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-4.5-sonnet';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
 
@@ -256,13 +258,26 @@ Return ONLY the JSON array, no other text.`;
       fullResponse = await queryModalLLM(prompt, systemPrompt, modalLlmEndpoint!);
     } else if (llmProvider === 'openrouter') {
       // Use OpenRouter API (works on Vercel and everywhere)
-      fullResponse = await callOpenRouter(
-        openRouterApiKey!,
-        systemPrompt,
-        prompt,
-        llmModel,
-        8192
-      );
+      const response = await callExternalApi({
+        userId: session.user.id,
+        projectId,
+        type: 'llm',
+        body: {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          model: llmModel,
+          max_tokens: 8192
+        },
+        showLoadingMessage: false
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      fullResponse = response.data.choices?.[0]?.message?.content || '';
     } else {
       // Use Claude SDK/CLI (requires local Claude CLI installation)
       fullResponse = await queryClaudeSDK(prompt, systemPrompt);

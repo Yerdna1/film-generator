@@ -224,7 +224,6 @@ export async function getProviderConfig(
           userHasOwnApiKey = true;
         }
       }
-    }
   }
 
   // Priority 5: Environment defaults

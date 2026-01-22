@@ -1,4 +1,4 @@
-import { callOpenRouter } from '@/lib/services/openrouter';
+import { callExternalApi } from '@/lib/providers/api-wrapper';
 import type { LLMConfig, LLMProviderSettings, BatchGenerationResult } from './types';
 import { getStoryModelMapping, SUPPORTED_FREE_OPENROUTER_MODELS, DEFAULT_STORY_MODEL } from './constants';
 import { SYSTEM_PROMPT } from './constants';
@@ -73,13 +73,26 @@ export async function callLLM(options: {
     fullResponse = await callClaudeSDK(prompt, SYSTEM_PROMPT);
   } else if (openRouterApiKey) {
     try {
-      fullResponse = await callOpenRouter(
-        openRouterApiKey,
-        SYSTEM_PROMPT,
-        prompt,
-        llmModel,
-        16384
-      );
+      // Use the new API wrapper instead of deprecated service
+      const response = await callExternalApi({
+        userId: 'system', // This is a system call without user context
+        type: 'llm',
+        body: {
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: prompt }
+          ],
+          model: llmModel,
+          max_tokens: 16384
+        },
+        showLoadingMessage: false
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      fullResponse = response.data.choices?.[0]?.message?.content || '';
     } catch (openRouterError: any) {
       // Check if it's an insufficient credits error
       if (openRouterError.message?.includes('Insufficient credits')) {

@@ -1,13 +1,13 @@
 import { inngest } from '../client';
 import { prisma } from '@/lib/db/prisma';
 import { spendCredits, COSTS, trackRealCostOnly } from '@/lib/services/credits';
-import { uploadMediaToS3, isS3Configured } from '@/lib/api';
+import { uploadMediaToS3, isS3Configured, uploadBase64ToS3 } from '@/lib/api';
 import { cache, cacheKeys } from '@/lib/cache';
+import { callExternalApi, pollKieTask } from '@/lib/providers/api-wrapper';
+import { getProviderConfig } from '@/lib/providers';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import type { VideoProvider } from '@/types/project';
 import type { Provider } from '@/lib/services/real-costs';
-import { DEFAULT_MODEL_CONFIG } from '@/lib/constants/model-config-defaults';
-import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 // Number of videos to generate in parallel
 const PARALLEL_VIDEOS = 3; // Lower than images due to longer generation time
@@ -21,7 +21,25 @@ function enhancePromptForMotion(prompt: string): string {
   return prompt;
 }
 
-// Generate a single video - extracted for reuse
+// Helper function to download video and convert to base64
+async function downloadVideoAsBase64(videoUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(videoUrl);
+    if (!response.ok) return null;
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    const contentType = response.headers.get('content-type') || 'video/mp4';
+
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('Error downloading video:', error);
+    return null;
+  }
+}
+
+// Generate a single video using the API wrapper
 async function generateSingleVideo(
   scene: { sceneId: string; sceneNumber: number; imageUrl: string; prompt: string },
   userId: string,
@@ -31,232 +49,173 @@ async function generateSingleVideo(
   videoModel?: string
 ): Promise<{ sceneId: string; success: boolean; videoUrl?: string; error?: string }> {
   try {
-    // Get project's modelConfig (single source of truth)
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { modelConfig: true },
+    console.log(`[Video ${scene.sceneNumber}] Starting generation`);
+
+    // Get provider configuration - single source of truth
+    const config = await getProviderConfig({
+      userId,
+      projectId,
+      type: 'video',
+      requestOverrides: videoProvider ? { provider: videoProvider, model: videoModel } : undefined,
     });
 
-    const userApiKeys = await prisma.apiKeys.findUnique({
-      where: { userId },
-    });
+    const { provider, apiKey, model, endpoint } = config;
+    console.log(`[Video ${scene.sceneNumber}] Using provider: ${provider}, model: ${model}`);
 
-    // Use project's modelConfig, or DEFAULT_MODEL_CONFIG as fallback
-    const config = project?.modelConfig || DEFAULT_MODEL_CONFIG;
-    const configObj = typeof config === 'object' ? config as any : DEFAULT_MODEL_CONFIG;
-    const effectiveProvider = videoProvider || configObj.video.provider;
-    const effectiveModel = videoModel || configObj.video.model || DEFAULT_MODELS.kieVideoModel;
+    let publicImageUrl = scene.imageUrl;
 
-    console.log(`[Video ${scene.sceneNumber}] Starting generation with ${effectiveProvider}/${effectiveModel}`);
-
-    let videoUrl: string | undefined;
-
-    if (effectiveProvider === 'modal') {
-      // Use Modal endpoint
-      const modalEndpoint = userApiKeys?.modalVideoEndpoint;
-      if (!modalEndpoint) {
-        throw new Error('Modal video endpoint not configured');
-      }
-
-      const response = await fetch(modalEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image_url: scene.imageUrl,
-          prompt: enhancePromptForMotion(scene.prompt),
-          mode: videoMode,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Modal failed: ${errorText}`);
-      }
-
-      const data = await response.json();
-      videoUrl = data.video_url;
-
-    } else {
-      // Use Kie.ai
-      const kieApiKey = userApiKeys?.kieApiKey || process.env.KIE_API_KEY;
-      if (!kieApiKey) {
-        throw new Error('Kie API key not configured');
-      }
-
-      // Query model from database to get apiModelId
-      const modelConfig = await prisma.kieVideoModel.findUnique({
-        where: { modelId: effectiveModel }
-      });
-
-      const apiModelId = modelConfig?.apiModelId || effectiveModel;
-      console.log(`[Video ${scene.sceneNumber}] Using KIE model: ${effectiveModel} (API: ${apiModelId})`);
-
-      // Create Kie task using the correct endpoint
-      const createTaskResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${kieApiKey}`,
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          model: apiModelId,
-          input: {
-            image_urls: [scene.imageUrl],
-            prompt: enhancePromptForMotion(scene.prompt),
-            mode: videoMode === 'spicy' ? 'normal' : videoMode,
-          },
-        }),
-      });
-
-      const createData = await createTaskResponse.json();
-      console.log(`[Video ${scene.sceneNumber}] KIE create response:`, JSON.stringify({
-        status: createTaskResponse.status,
-        code: createData.code,
-        hasData: !!createData.data,
-        data: createData.data,
-        fullCreateData: createData
-      }, null, 2));
-
-      if (!createTaskResponse.ok || createData.code !== 200) {
-        const errorMsg = createData.msg || createData.message || 'Failed to create KIE video task';
-        console.error(`[Video ${scene.sceneNumber}] KIE create failed:`, { status: createTaskResponse.status, code: createData.code, body: createData });
-        throw new Error(`Kie task creation failed: ${errorMsg}`);
-      }
-
-      const taskId = createData.data?.taskId;
-      if (!taskId) {
-        console.error(`[Video ${scene.sceneNumber}] KIE response missing taskId:`, createData);
-        throw new Error('KIE did not return a task ID');
-      }
-
-      console.log(`[Video ${scene.sceneNumber}] KIE task created: ${taskId}`);
-
-      // Poll for completion (max 2 minutes)
-      const maxRetries = 60;
-      let retries = 0;
-      let state = 'waiting';
-
-      while (state !== 'success' && state !== 'fail' && retries < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 seconds between polls
-
-        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
-          headers: {
-            'Authorization': `Bearer ${kieApiKey}`,
-            'Accept': 'application/json',
-          },
-        });
-
-        if (!statusResponse.ok) {
-          console.error(`[Video ${scene.sceneNumber}] Failed to check task status`);
-          retries++;
-          continue;
-        }
-
-        const statusData = await statusResponse.json();
-        if (statusData.code !== 200) {
-          console.error(`[Video ${scene.sceneNumber}] Status check failed:`, statusData);
-          retries++;
-          continue;
-        }
-
-        const taskData = statusData.data;
-        state = taskData?.state;
-
-        if (state === 'success') {
-          // Log full taskData for debugging
-          console.log(`[Video ${scene.sceneNumber}] KIE task completed successfully, taskData:`, JSON.stringify({
-            hasResultJson: !!taskData.resultJson,
-            resultJsonType: typeof taskData.resultJson,
-            resultJson: taskData.resultJson,
-            output: taskData.output,
-            fullTaskData: taskData
-          }, null, 2));
-
-          // Extract video URL from resultJson - same logic as direct API route
-          if (taskData.resultJson) {
-            try {
-              const result = typeof taskData.resultJson === 'string'
-                ? JSON.parse(taskData.resultJson)
-                : taskData.resultJson;
-              console.log(`[Video ${scene.sceneNumber}] Parsed result from resultJson:`, result);
-
-              // Try multiple possible fields (same order as image generation)
-              videoUrl = result.video_url || result.videoUrl || result.url;
-              if (!videoUrl && result.resultUrls?.[0]) {
-                videoUrl = result.resultUrls[0];
-              }
-              if (!videoUrl && result.videos?.[0]) {
-                videoUrl = result.videos[0];
-              }
-            } catch (e) {
-              console.error(`[Video ${scene.sceneNumber}] Failed to parse KIE resultJson:`, e);
-            }
-          }
-
-          // Fallback to direct URL fields on taskData (same as direct API route)
-          if (!videoUrl) {
-            videoUrl = taskData.videoUrl || taskData.video_url || taskData.resultUrl;
-          }
-
-          if (!videoUrl) {
-            console.error(`[Video ${scene.sceneNumber}] KIE success but no video URL found. taskData:`, JSON.stringify(taskData, null, 2));
-            throw new Error('KIE completed but did not return a video URL');
-          }
-
-          console.log(`[Video ${scene.sceneNumber}] Video generated: ${videoUrl}`);
-        } else if (state === 'fail') {
-          const failReason = taskData?.fail_reason || taskData?.resultJson?.error || 'Unknown error';
-          console.error(`[Video ${scene.sceneNumber}] KIE generation failed:`, { taskId, failReason, taskData });
-          throw new Error(`Video generation failed: ${failReason}`);
-        }
-
-        retries++;
-      }
-
-      if (state !== 'success' || !videoUrl) {
-        throw new Error(`Video generation timed out or failed (final state: ${state})`);
+    // Upload base64 image to S3 if needed (KIE requires public URLs)
+    if (scene.imageUrl.startsWith('data:') && provider === 'kie' && isS3Configured()) {
+      console.log(`[Video ${scene.sceneNumber}] Uploading base64 image to S3...`);
+      const uploadResult = await uploadBase64ToS3(scene.imageUrl, 'film-generator/scenes');
+      if (uploadResult.success && uploadResult.url) {
+        publicImageUrl = uploadResult.url;
+      } else {
+        throw new Error(uploadResult.error || 'Failed to upload image to S3');
       }
     }
 
-    // At this point, videoUrl is guaranteed to be defined (type assertion for TypeScript)
-    const finalVideoUrl = videoUrl!;
+    // Build request body based on provider
+    let requestBody: any;
+    const enhancedPrompt = enhancePromptForMotion(scene.prompt);
+
+    switch (provider) {
+      case 'modal':
+        requestBody = {
+          image_url: publicImageUrl,
+          prompt: enhancedPrompt,
+          mode: videoMode,
+        };
+        break;
+
+      case 'kie':
+        // Query model from database
+        const modelConfig = await prisma.kieVideoModel.findUnique({
+          where: { modelId: model || 'grok-imagine/image-to-video' }
+        });
+
+        if (!modelConfig || !modelConfig.isActive) {
+          console.warn(`[Video ${scene.sceneNumber}] Model ${model} not found in database, using original modelId`);
+        }
+
+        const apiModelId = modelConfig?.apiModelId || model || 'grok-imagine/image-to-video';
+        console.log(`[Video ${scene.sceneNumber}] Using KIE model: ${model} (API: ${apiModelId})`);
+
+        requestBody = {
+          model: apiModelId,
+          input: {
+            image_urls: [publicImageUrl],
+            prompt: enhancedPrompt,
+            mode: videoMode === 'spicy' ? 'normal' : videoMode,
+          },
+        };
+        break;
+
+      default:
+        throw new Error(`Unsupported video provider: ${provider}`);
+    }
+
+    console.log(`[Video ${scene.sceneNumber}] Calling ${provider} API`);
+
+    const response = await callExternalApi({
+      userId,
+      projectId,
+      type: 'video',
+      body: requestBody,
+      endpoint,
+      showLoadingMessage: false,
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    let videoUrl: string | undefined;
+    let realCost: number;
+
+    // Handle response based on provider
+    if (provider === 'kie') {
+      // Get task ID and poll for completion
+      const taskId = response.data?.data?.taskId;
+      if (!taskId) {
+        console.error(`[Video ${scene.sceneNumber}] KIE response missing taskId:`, response.data);
+        throw new Error('KIE AI did not return a task ID');
+      }
+
+      console.log(`[Video ${scene.sceneNumber}] KIE task created: ${taskId}, polling...`);
+      const taskData = await pollKieTask(taskId, apiKey!);
+
+      // Extract video URL from result
+      if (taskData.resultJson) {
+        try {
+          const result = typeof taskData.resultJson === 'string'
+            ? JSON.parse(taskData.resultJson)
+            : taskData.resultJson;
+          console.log(`[Video ${scene.sceneNumber}] Parsed result from resultJson:`, result);
+
+          // Try multiple possible fields
+          videoUrl = result.video_url || result.videoUrl || result.url;
+          if (!videoUrl && result.resultUrls?.[0]) {
+            videoUrl = result.resultUrls[0];
+          }
+          if (!videoUrl && result.videos?.[0]) {
+            videoUrl = result.videos[0];
+          }
+        } catch (e) {
+          console.error(`[Video ${scene.sceneNumber}] Failed to parse KIE resultJson:`, e);
+        }
+      }
+
+      // Fallback to direct URL fields on taskData
+      if (!videoUrl) {
+        videoUrl = taskData.videoUrl || taskData.video_url || taskData.resultUrl;
+      }
+
+      if (!videoUrl) {
+        console.error(`[Video ${scene.sceneNumber}] KIE success but no video URL found. taskData:`, JSON.stringify(taskData, null, 2));
+        throw new Error('KIE completed but did not return a video URL');
+      }
+
+      console.log(`[Video ${scene.sceneNumber}] Video generated: ${videoUrl}`);
+
+      // Download and convert to base64 for S3 upload if needed
+      if (isS3Configured()) {
+        const base64Video = await downloadVideoAsBase64(videoUrl);
+        if (base64Video) {
+          videoUrl = base64Video;
+        }
+      }
+
+      // Get model cost
+      const modelId = model || 'grok-imagine/image-to-video';
+      const modelInfo = await prisma.kieVideoModel.findUnique({ where: { modelId } });
+      realCost = modelInfo?.cost || ACTION_COSTS.video.grok;
+
+    } else {
+      // Modal provider
+      if (response.data.video) {
+        videoUrl = response.data.video.startsWith('data:')
+          ? response.data.video
+          : `data:video/mp4;base64,${response.data.video}`;
+      } else if (response.data.videoUrl || response.data.video_url) {
+        videoUrl = response.data.videoUrl || response.data.video_url;
+      }
+
+      if (!videoUrl) {
+        throw new Error('Modal did not return a video');
+      }
+
+      realCost = ACTION_COSTS.video.modal || 0.15; // Modal GPU cost
+    }
 
     // Upload to S3 if configured
-    if (isS3Configured() && finalVideoUrl.startsWith('http')) {
-      console.log(`[Video ${scene.sceneNumber}] Downloading and uploading to S3...`);
-      try {
-        // Download video first
-        const response = await fetch(finalVideoUrl);
-        if (response.ok) {
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const base64 = buffer.toString('base64');
-          const contentType = response.headers.get('content-type') || 'video/mp4';
-          const dataUrl = `data:${contentType};base64,${base64}`;
-
-          // Upload to S3
-          const s3Url = await uploadMediaToS3(dataUrl, 'video', projectId);
-          let urlToReturn = finalVideoUrl;
-          if (s3Url !== dataUrl) {
-            urlToReturn = s3Url;
-            console.log(`[Video ${scene.sceneNumber}] Uploaded to S3`);
-          }
-
-          // Clear video cache for this project
-          cache.invalidate(`project:${projectId}:videos`);
-
-          // Update scene with video URL
-          await prisma.scene.update({
-            where: { id: scene.sceneId },
-            data: { videoUrl: urlToReturn },
-          });
-
-          console.log(`[Video ${scene.sceneNumber}] Generation complete`);
-          return { sceneId: scene.sceneId, success: true, videoUrl: urlToReturn };
-        }
-      } catch (error) {
-        console.error(`[Video ${scene.sceneNumber}] Failed to upload to S3:`, error);
+    let finalVideoUrl = videoUrl!;
+    if (isS3Configured() && videoUrl!.startsWith('data:')) {
+      console.log(`[Video ${scene.sceneNumber}] Uploading to S3...`);
+      const s3Url = await uploadMediaToS3(videoUrl!, 'video', projectId);
+      if (s3Url !== videoUrl) {
+        finalVideoUrl = s3Url;
+        console.log(`[Video ${scene.sceneNumber}] Uploaded to S3`);
       }
     }
 
@@ -298,6 +257,18 @@ export const generateVideosBatch = inngest.createFunction(
 
     console.log(`[Inngest Video] Starting job ${jobId} with ${scenes.length} scenes (parallel: ${PARALLEL_VIDEOS})`);
 
+    // Get provider configuration
+    const providerConfig = await step.run('get-provider-config', async () => {
+      return await getProviderConfig({
+        userId,
+        projectId,
+        type: 'video',
+        requestOverrides: videoProvider ? { provider: videoProvider, model: videoModel } : undefined,
+      });
+    });
+
+    console.log(`[Inngest Video] Using provider: ${providerConfig.provider}, model: ${providerConfig.model}`);
+
     // Update job status to processing
     await step.run('update-job-status-processing', async () => {
       await prisma.videoGenerationJob.update({
@@ -305,8 +276,8 @@ export const generateVideosBatch = inngest.createFunction(
         data: {
           status: 'processing',
           startedAt: new Date(),
-          videoProvider,
-          videoModel,
+          videoProvider: providerConfig.provider,
+          videoModel: providerConfig.model || 'default',
         },
       });
     });
@@ -399,35 +370,27 @@ export const generateVideosBatch = inngest.createFunction(
       await step.run('spend-credits', async () => {
         // Determine cost based on provider
         let realCost: number;
-        let creditProvider: Provider;
+        const provider = providerConfig.provider;
+        const model = providerConfig.model;
 
-        if (videoProvider === 'modal') {
-          realCost = ACTION_COSTS.video.modal * totalCompleted; // ~$0.025 per video
-          creditProvider = 'modal';
+        if (provider === 'modal') {
+          realCost = (ACTION_COSTS.video.modal || 0.15) * totalCompleted;
         } else {
-          // Kie.ai costs vary by model and duration
-          // Using default 5s video cost, but in production you'd check the actual model
-          realCost = ACTION_COSTS.video.kie * totalCompleted; // ~$0.10 per video
-          creditProvider = 'kie';
+          // KIE costs vary by model
+          const modelInfo = model ? await prisma.kieVideoModel.findUnique({ where: { modelId: model } }) : null;
+          const perVideoCost = modelInfo?.cost || ACTION_COSTS.video.grok || 0.10;
+          realCost = perVideoCost * totalCompleted;
         }
 
         // Only spend credits if not using user's own API key
-        const userApiKeys = await prisma.apiKeys.findUnique({
-          where: { userId },
-          select: { kieApiKey: true, modalVideoEndpoint: true },
-        });
-
-        const isUsingOwnKey = (videoProvider === 'kie' && userApiKeys?.kieApiKey) ||
-                             (videoProvider === 'modal' && userApiKeys?.modalVideoEndpoint);
-
-        if (!isUsingOwnKey) {
+        if (!providerConfig.userHasOwnApiKey) {
           await spendCredits(
             userId,
             COSTS.VIDEO_GENERATION * totalCompleted,
             'video',
-            `${videoProvider} video generation (${totalCompleted} videos)`,
+            `${provider} video generation (${totalCompleted} videos)`,
             projectId,
-            creditProvider,
+            provider as Provider,
             undefined,
             realCost
           );
@@ -437,9 +400,9 @@ export const generateVideosBatch = inngest.createFunction(
             userId,
             realCost,
             'video',
-            `${videoProvider} video generation (user's own API key)`,
+            `${provider} video generation (user's own API key)`,
             projectId,
-            creditProvider
+            provider as Provider
           );
         }
       });
