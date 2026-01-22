@@ -37,11 +37,9 @@ export const POST = withAuth(async (request, _, { userId }) => {
       settingsUserId,
     } = body;
 
-    // Get provider configuration
     const config = await getProviderConfig({
       userId,
       type: 'image',
-      requestProvider: requestedProvider as ImageProvider,
       projectId,
       settingsUserId: settingsUserId || ownerId,
       ownerId,
@@ -50,6 +48,12 @@ export const POST = withAuth(async (request, _, { userId }) => {
     // Override model if provided
     if (model) {
       config.model = model;
+    }
+
+    // Override provider if requested and allowed (manual override not supported by getProviderConfig)
+    if (requestedProvider) {
+      // We manually override it here since getProviderConfig doesn't support it
+      config.provider = requestedProvider as ImageProvider;
     }
 
     // Create provider instance
