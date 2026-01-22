@@ -164,12 +164,14 @@ async function generateWithWrapper(
   realCostUserId: string | undefined,
   isRegeneration: boolean = false,
   sceneId?: string,
-  endpoint?: string
+  endpoint?: string,
+  requestModel?: string
 ): Promise<{ imageUrl: string; cost: number; storage: string }> {
   console.log(`[${provider}] Generating image with wrapper`);
 
   // Build request body based on provider
   let requestBody: any;
+  let kieModelId: string | undefined; // Track KIE model for cost calculation
   const randomSeed = Math.floor(Math.random() * 2147483647);
 
   switch (provider) {
@@ -198,17 +200,26 @@ async function generateWithWrapper(
       // For KIE, we'll get the model from config
       const config = await getProviderConfig({
         userId: userId || 'system',
-        projectId,
         type: 'image'
       });
 
+      // Use request model if provided, otherwise use config model
+      const modelToUse = requestModel || config.model;
+
+      if (!modelToUse) {
+        throw new Error('No KIE image model specified. Please select a model in your settings.');
+      }
+
+      // Store for cost calculation later
+      kieModelId = modelToUse;
+
       // Query model from database
       const modelConfig = await prisma.kieImageModel.findUnique({
-        where: { modelId: config.model || 'nano-banana-pro' }
+        where: { modelId: modelToUse }
       });
 
       if (!modelConfig || !modelConfig.isActive || !modelConfig.apiModelId) {
-        throw new Error(`Invalid or unsupported KIE image model: ${config.model}`);
+        throw new Error(`Invalid or unsupported KIE image model: ${modelToUse}`);
       }
 
       requestBody = {
@@ -256,7 +267,7 @@ async function generateWithWrapper(
     // Get API key from config for polling
     const config = await getProviderConfig({
       userId: userId || 'system',
-      projectId,
+
       type: 'image'
     });
 
@@ -297,9 +308,15 @@ async function generateWithWrapper(
   }
 
   // Calculate costs
-  const realCost = provider === 'kie' ?
-    (await prisma.kieImageModel.findUnique({ where: { modelId: response.model || 'nano-banana-pro' } }))?.cost || 0.09 :
-    0.09; // Modal GPU cost
+  let realCost = 0.09; // Default cost
+  if (provider === 'kie' && kieModelId) {
+    // For KIE, get cost from model config
+    const costQuery = await prisma.kieImageModel.findUnique({
+      where: { modelId: kieModelId },
+      select: { cost: true }
+    });
+    realCost = costQuery?.cost || 0.09;
+  }
 
   const creditCost = getImageCreditCost(resolution);
   const actionType = isRegeneration ? 'regeneration' : 'generation';
@@ -363,7 +380,7 @@ export async function POST(request: NextRequest) {
     const settingsUserId = ownerId || sessionUserId || 'system';
     const config = await getProviderConfig({
       userId: settingsUserId,
-      projectId,
+
       type: 'image',
     });
 
@@ -439,7 +456,8 @@ export async function POST(request: NextRequest) {
       realCostUserId,
       isRegeneration,
       sceneId,
-      config.endpoint // For modal endpoints
+      config.endpoint, // For modal endpoints
+      requestModel
     );
 
     return NextResponse.json(result);
