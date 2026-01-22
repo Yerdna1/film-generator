@@ -3,7 +3,6 @@ import type { Project, StoryConfig } from '@/types/project';
 import type { StateCreator } from '../types';
 import { defaultSettings, defaultStory, defaultVoiceSettings } from '../defaults';
 import { debounceSync } from '../utils';
-import { migrateAllProjects, migrateProjectModelConfig, projectNeedsMigration } from '../migrations';
 
 export interface ProjectSlice {
   loadProjectsFromDB: () => Promise<void>;
@@ -29,11 +28,7 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set, get) => ({
       if (response.ok) {
         const projects = await response.json();
 
-        // Run migration for projects without modelConfig
-        const { apiConfig, userConstants } = get();
-        const migratedProjects = await migrateAllProjects(projects, apiConfig, userConstants);
-
-        set({ projects: migratedProjects, isLoading: false });
+        set({ projects, isLoading: false });
       } else if (response.status === 401) {
         set({ isLoading: false });
       } else {
@@ -182,21 +177,7 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set, get) => ({
     }
     let project = get().projects.find((p) => p.id === id);
 
-    // Run migration if needed
-    if (project && projectNeedsMigration(project)) {
-      const { apiConfig, userConstants } = get();
-      project = await migrateProjectModelConfig(project, apiConfig, userConstants);
-
-      // Update the project in the projects list
-      set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === project!.id ? project! : p
-        ),
-        currentProject: project
-      }));
-    } else {
-      set({ currentProject: project || null });
-    }
+    set({ currentProject: project || null });
   },
 
   getProject: (id) => {
