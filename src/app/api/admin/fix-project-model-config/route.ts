@@ -55,16 +55,17 @@ export async function POST(request: NextRequest) {
     if (!dryRun) {
       // Update each project's modelConfig
       for (const project of projects) {
-        if (project.modelConfig?.image?.provider === 'gemini') {
+        const modelConfig = project.modelConfig as any;
+        if (modelConfig?.image?.provider === 'gemini') {
           await prisma.project.update({
             where: { id: project.id },
             data: {
               modelConfig: {
-                ...project.modelConfig,
+                ...modelConfig,
                 image: {
-                  ...project.modelConfig.image,
+                  ...modelConfig.image,
                   provider: 'kie',
-                  model: project.modelConfig.image.model || DEFAULT_MODEL_CONFIG.image.model,
+                  model: modelConfig.image.model || DEFAULT_MODEL_CONFIG.image.model,
                 },
               },
             },
@@ -81,7 +82,8 @@ export async function POST(request: NextRequest) {
     } else {
       // Dry run - just report what would be fixed
       for (const project of projects) {
-        if (project.modelConfig?.image?.provider === 'gemini') {
+        const modelConfig = project.modelConfig as any;
+        if (modelConfig?.image?.provider === 'gemini') {
           fixed.push({
             id: project.id,
             name: project.name,

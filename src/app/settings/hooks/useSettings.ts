@@ -260,7 +260,6 @@ export function useSettings() {
   const handleLLMProviderChange = useCallback(async (provider: LLMProvider) => {
     setLLMProvider(provider);
     localStorage.setItem('app-llm-provider', provider);
-    setApiConfig({ llmProvider: provider });
 
     // Sync to database for authenticated users
     try {
@@ -284,12 +283,11 @@ export function useSettings() {
       tPage('toasts.llmProviderChanged') || 'LLM provider updated',
       { description: descriptions[provider] }
     );
-  }, [setApiConfig, tPage]);
+  }, [tPage]);
 
   const handleOpenRouterModelChange = useCallback(async (model: string) => {
     setOpenRouterModel(model);
     localStorage.setItem('app-openrouter-model', model);
-    setApiConfig({ openRouterModel: model });
 
     // Sync to database for authenticated users
     try {

@@ -211,7 +211,7 @@ async function generateWithWrapper(
     case 'elevenlabs':
       // ElevenLabs returns binary audio data
       if (response.data instanceof ArrayBuffer || response.data instanceof Buffer) {
-        const base64 = Buffer.from(response.data).toString('base64');
+        const base64 = Buffer.from(response.data as any).toString('base64');
         audioUrl = `data:audio/mpeg;base64,${base64}`;
       } else {
         throw new Error('ElevenLabs did not return audio data');
@@ -223,12 +223,12 @@ async function generateWithWrapper(
     case 'openai-tts':
       // OpenAI returns binary audio data
       if (response.data instanceof ArrayBuffer || response.data instanceof Buffer) {
-        const base64 = Buffer.from(response.data).toString('base64');
+        const base64 = Buffer.from(response.data as any).toString('base64');
         audioUrl = `data:audio/mpeg;base64,${base64}`;
       } else {
         throw new Error('OpenAI did not return audio data');
       }
-      realCost = calculateVoiceCost(text.length, 'openai');
+      realCost = calculateVoiceCost(text.length, 'openaiTts');
       break;
 
     case 'modal':
@@ -318,7 +318,7 @@ async function generateWithWrapper(
 
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limit to prevent abuse (30 requests/min for TTS)
-  const rateLimitResult = await rateLimit(request, 'tts');
+  const rateLimitResult = await rateLimit(request, 'generation');
   if (rateLimitResult) return rateLimitResult;
 
   try {
@@ -366,8 +366,8 @@ export async function POST(request: NextRequest) {
     // Handle provider-specific voice ID requirements
     let effectiveVoiceId = voiceId;
 
-    // For OpenAI, ensure we have a valid voice ID
-    if ((ttsProvider === 'openai' || ttsProvider === 'openai-tts') && !effectiveVoiceId) {
+    // For OpenAI TTS, ensure we have a valid voice ID
+    if (ttsProvider === 'openai-tts' && !effectiveVoiceId) {
       effectiveVoiceId = 'alloy'; // Default OpenAI voice
     }
 
@@ -387,7 +387,7 @@ export async function POST(request: NextRequest) {
       effectiveVoiceId,
       voiceName,
       language,
-      skipCreditCheck || userHasOwnApiKey,
+      skipCreditCheck === true || !!userHasOwnApiKey,
       config.endpoint, // For modal endpoints
       {
         instructions: voiceInstructions,

@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
       projectId,
       type: 'llm',
       body: requestBody,
-      endpoint: config.provider === 'modal' ? config.endpoint : undefined,
+      endpoint: config.provider === 'modal' ? (config.endpoint || undefined) : undefined,
       showLoadingMessage: true,
       loadingMessage: `Generating enhanced prompt using ${config.provider}...`,
     });

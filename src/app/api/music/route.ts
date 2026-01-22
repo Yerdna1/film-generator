@@ -58,6 +58,7 @@ async function generateWithWrapper(
 
   // Build request body based on provider
   let requestBody: any;
+  let modelConfig: Awaited<ReturnType<typeof prisma.kieMusicModel.findUnique>> | null = null;
 
   switch (provider) {
     case 'modal':
@@ -77,7 +78,7 @@ async function generateWithWrapper(
       });
 
       // Query model from database
-      const modelConfig = await prisma.kieMusicModel.findUnique({
+      modelConfig = await prisma.kieMusicModel.findUnique({
         where: { modelId: config.model || model || 'suno/v3-music' }
       });
 
@@ -226,7 +227,7 @@ async function generateWithWrapper(
 // POST - Create music generation task
 export async function POST(request: NextRequest) {
   // SECURITY: Rate limit generation to prevent abuse (10 requests/min)
-  const rateLimitResult = await rateLimit(request, 'music');
+  const rateLimitResult = await rateLimit(request, 'generation');
   if (rateLimitResult) return rateLimitResult;
 
   try {
@@ -277,13 +278,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const taskId = await createMusicTask({
-        apiKey: config.apiKey,
+      const taskId = await createMusicTask(config.apiKey, {
         prompt,
-        instrumental,
         title,
-        style,
-        model: model || 'suno',
+        lyricsType: instrumental ? 'instrumental' : undefined,
       });
 
       // Spend credits immediately for PiAPI
