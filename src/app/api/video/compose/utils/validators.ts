@@ -110,6 +110,7 @@ export async function checkUserCredits(
 
 /**
  * Check if user has VectCut endpoint configured
+ * Falls back to server default endpoint or demo endpoint if user hasn't configured one
  */
 export async function checkVectCutEndpoint(userId: string): Promise<{
   hasEndpoint: boolean;
@@ -120,14 +121,29 @@ export async function checkVectCutEndpoint(userId: string): Promise<{
     where: { userId },
   });
 
-  const vectcutEndpoint = userApiKeys?.modalVectcutEndpoint;
+  const userEndpoint = userApiKeys?.modalVectcutEndpoint;
 
-  if (!vectcutEndpoint) {
+  // Check if server has a default endpoint configured
+  const serverEndpoint = process.env.VECTCUT_ENDPOINT || process.env.MODAL_VECTCUT_ENDPOINT || null;
+
+  // Default demo endpoint for all users (fallback when no user/server endpoint configured)
+  const demoEndpoint = 'https://your-vectcut-app.modal.run';
+
+  // Use user's endpoint if configured, otherwise fall back to server endpoint, then demo endpoint
+  const endpoint = userEndpoint || serverEndpoint || demoEndpoint;
+
+  if (!endpoint) {
     return {
       hasEndpoint: false,
       error: 'VectCut endpoint not configured. Please add your Modal endpoint URL in Settings.',
     };
   }
 
-  return { hasEndpoint: true, endpoint: vectcutEndpoint };
+  return {
+    hasEndpoint: true,
+    endpoint,
+    isUserEndpoint: !!userEndpoint,
+    isServerEndpoint: !!serverEndpoint && !userEndpoint,
+    isDemoEndpoint: !userEndpoint && !serverEndpoint,
+  };
 }

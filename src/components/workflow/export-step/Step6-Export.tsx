@@ -18,7 +18,6 @@ import {
 
 // Components
 import {
-  AuthBanner,
   PreviewSection,
   RenderOptionsPanel,
   SidePanelToggle,
@@ -103,9 +102,6 @@ export function Step6Export({
         actions={[]}
       />
 
-      {/* Authentication Banner */}
-      {!isAuthenticated && <AuthBanner />}
-
       {/* Main Editor Layout */}
       <div className="flex flex-col lg:flex-row gap-3">
         {/* Preview Section */}
@@ -113,7 +109,6 @@ export function Step6Export({
           <PreviewSection
             project={project}
             stats={stats}
-            isAuthenticated={isAuthenticated}
             previewPlayer={previewPlayer}
           />
         </div>
@@ -123,7 +118,6 @@ export function Step6Export({
           isOpen={sidePanelOpen}
           onClose={() => setSidePanelOpen(false)}
           scenes={scenes}
-          isAuthenticated={isAuthenticated}
           isReadOnly={isReadOnly}
           backgroundMusic={backgroundMusicWithConfirm}
           videoComposer={videoComposer}

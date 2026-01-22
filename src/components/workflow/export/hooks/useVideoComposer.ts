@@ -235,14 +235,14 @@ export function useVideoComposer(project: Project): UseVideoComposerReturn {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Check if endpoint is configured
+  // Check if endpoint is configured (public endpoint, works for authenticated and unauthenticated users)
   useEffect(() => {
     const checkEndpoint = async () => {
       try {
-        const response = await fetch('/api/user/api-keys');
+        const response = await fetch('/api/video/compose/check-endpoint');
         if (response.ok) {
           const data = await response.json();
-          setHasEndpoint(!!data.modalVectcutEndpoint);
+          setHasEndpoint(!!data.hasEndpoint);
         }
       } catch {
         setHasEndpoint(false);

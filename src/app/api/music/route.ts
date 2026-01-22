@@ -15,6 +15,13 @@ type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
 
 export const maxDuration = 120; // Allow up to 2 minutes for music generation
 
+// KIE Music model mapping: UI names to API model names
+const KIE_MUSIC_MODEL_MAPPING: Record<string, string> = {
+  'suno/v3-5-music': 'suno-api/v3-5-30s-instrumental',
+  'suno/v3-music': 'suno-api/v3-30s-instrumental',
+  'udio/v1-5-music': 'udio-api/v1-5-music',
+};
+
 interface MusicGenerationRequest {
   prompt: string;
   model?: string;
@@ -76,19 +83,18 @@ async function generateWithWrapper(
         type: 'music'
       });
 
-      // Query model from database
-      modelConfig = await prisma.kieMusicModel.findUnique({
-        where: { modelId: config.model || model || 'suno/v3-music' }
+      // Map model name for KIE
+      const rawModel = config.model || model || 'suno/v3-music';
+      const kieModel = KIE_MUSIC_MODEL_MAPPING[rawModel] || rawModel;
+
+      console.log('[Music] KIE music model:', {
+        rawModel,
+        kieModel,
+        hasMapping: !!KIE_MUSIC_MODEL_MAPPING[rawModel],
       });
 
-      if (!modelConfig || !modelConfig.isActive) {
-        console.warn(`[KIE] Music model ${config.model} not found in database, using original modelId`);
-      }
-
-      const apiModelId = modelConfig?.apiModelId || config.model || model || 'suno/v3-music';
-
       requestBody = {
-        model: apiModelId,
+        model: kieModel,
         input: {
           prompt,
           instrumental,
@@ -158,6 +164,14 @@ async function generateWithWrapper(
       break;
 
     case 'kie':
+      // Log KIE response for debugging
+      console.log('[Music] KIE response structure:', {
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : null,
+        fullResponse: JSON.stringify(response.data, null, 2),
+      });
+
       // Get task ID for polling
       taskId = response.data?.data?.taskId;
       if (!taskId) {
@@ -165,7 +179,7 @@ async function generateWithWrapper(
       }
 
       status = 'processing';
-      realCost = modelConfig?.cost || 0.50;
+      realCost = 0.50;
       break;
 
     case 'suno':

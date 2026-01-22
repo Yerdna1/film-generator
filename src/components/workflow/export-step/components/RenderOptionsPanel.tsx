@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   X,
   Clapperboard,
-  Lock,
   Loader2,
   AlertCircle,
   CheckCircle,
@@ -33,7 +32,6 @@ interface RenderOptionsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   scenes: Scene[];
-  isAuthenticated: boolean;
   isReadOnly: boolean;
   backgroundMusic: ReturnType<typeof useBackgroundMusic>;
   videoComposer: ReturnType<typeof useVideoComposer>;
@@ -48,7 +46,6 @@ export function RenderOptionsPanel({
   isOpen,
   onClose,
   scenes,
-  isAuthenticated,
   isReadOnly,
   backgroundMusic,
   videoComposer,
@@ -87,19 +84,8 @@ export function RenderOptionsPanel({
               </div>
 
               <div className="max-h-[500px] sm:max-h-[650px] overflow-y-auto p-3 sm:p-4 space-y-4">
-                {/* Sign-in required message for unauthenticated users */}
-                {!isAuthenticated && (
-                  <a
-                    href="/auth/register"
-                    className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all"
-                  >
-                    <Lock className="w-4 h-4 text-orange-400" />
-                    <span className="text-sm text-orange-400">{t('steps.export.signInToRender')}</span>
-                  </a>
-                )}
-
-                {/* Endpoint not configured warning */}
-                {isAuthenticated && !videoComposer.hasEndpoint && (
+                {/* Endpoint not configured warning - shows download options when no endpoint */}
+                {!videoComposer.hasEndpoint && (
                   <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-3">
                     <p className="text-sm text-amber-600 dark:text-amber-400">
                       {t('steps.export.vectcutNotConfigured')}
@@ -214,21 +200,23 @@ export function RenderOptionsPanel({
                   </div>
                 )}
 
-                {/* Render Options - Only show when authenticated, not composing, no result, and endpoint configured */}
-                {!videoComposer.compositionState.isComposing && !videoComposer.result && isAuthenticated && videoComposer.hasEndpoint && (
+                {/* Render Options - Always show Background Music, Video Composition only if endpoint configured */}
+                {!videoComposer.compositionState.isComposing && !videoComposer.result && (
                   <>
-                    {/* Background Music Section */}
+                    {/* Background Music Section - always available */}
                     <BackgroundMusicSection
                       backgroundMusic={backgroundMusic}
                       isReadOnly={isReadOnly}
                       stats={stats}
                     />
 
-                    {/* Video Composition Options */}
-                    <VideoCompositionOptions
-                      videoComposer={videoComposer}
-                      stats={stats}
-                    />
+                    {/* Video Composition Options - only if endpoint configured */}
+                    {videoComposer.hasEndpoint && (
+                      <VideoCompositionOptions
+                        videoComposer={videoComposer}
+                        stats={stats}
+                      />
+                    )}
                   </>
                 )}
               </div>
