@@ -57,14 +57,18 @@ export function useVoiceoverBatchGeneration(
 
     try {
       // Prepare audio lines for batch processing
-      const audioLines = dialogueLines.map(line => ({
-        lineId: line.id,
-        sceneId: line.sceneId,
-        sceneNumber: line.sceneNumber,
-        text: line.text,
-        characterId: line.characterId,
-        voiceId: line.voiceId || 'adam', // Default voice
-      }));
+      const audioLines = dialogueLines.map(line => {
+        // Find the character to get their voiceId
+        const character = project.characters?.find(c => c.id === line.characterId);
+        return {
+          lineId: line.id,
+          sceneId: line.sceneId,
+          sceneNumber: line.sceneNumber,
+          text: line.text,
+          characterId: line.characterId,
+          voiceId: character?.voiceId || 'adam', // Default voice
+        };
+      });
 
       const response = await fetch('/api/voiceover/generate-batch', {
         method: 'POST',
@@ -174,11 +178,11 @@ export function useVoiceoverBatchGeneration(
           allDialogueLines.push({
             id: line.id,
             sceneId: scene.id,
+            sceneTitle: scene.title,
             sceneNumber: scene.number,
             text: line.text,
             characterId: line.characterId,
             characterName: line.characterName,
-            voiceId: line.voiceId,
           });
         }
       });
@@ -203,11 +207,11 @@ export function useVoiceoverBatchGeneration(
           allDialogueLines.push({
             id: line.id,
             sceneId: scene.id,
+            sceneTitle: scene.title,
             sceneNumber: scene.number,
             text: line.text,
             characterId: line.characterId,
             characterName: line.characterName,
-            voiceId: line.voiceId,
           });
         }
       });
@@ -237,7 +241,6 @@ export function useVoiceoverBatchGeneration(
             text: line.text,
             characterId: line.characterId,
             characterName: line.characterName,
-            voiceId: line.voiceId,
           });
         }
       });
@@ -257,11 +260,11 @@ export function useVoiceoverBatchGeneration(
         allDialogueLines.push({
           id: line.id,
           sceneId: scene.id,
+          sceneTitle: scene.title,
           sceneNumber: scene.number,
           text: line.text,
           characterId: line.characterId,
           characterName: line.characterName,
-          voiceId: line.voiceId,
         });
       });
     });

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const userId = request.headers.get('x-user-id') || 'cmkoj5cjb000foy45jx3it2ny';
 
     // Get user settings
-    const userSettings = await prisma.userApiKeys.findUnique({
+    const userSettings = await prisma.apiKeys.findUnique({
       where: { userId },
     });
 

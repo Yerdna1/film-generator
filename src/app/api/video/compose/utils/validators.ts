@@ -116,6 +116,9 @@ export async function checkVectCutEndpoint(userId: string): Promise<{
   hasEndpoint: boolean;
   endpoint?: string;
   error?: string;
+  isUserEndpoint?: boolean;
+  isServerEndpoint?: boolean;
+  isDemoEndpoint?: boolean;
 }> {
   const userApiKeys = await prisma.apiKeys.findUnique({
     where: { userId },

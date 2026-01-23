@@ -41,7 +41,8 @@ export function useVoiceoverAudio(project: Project) {
   const browserGeneration = useAudioGeneration({ project, apiKeys });
 
   // Inngest batch generation (new)
-  const batchGeneration = useVoiceoverBatchGeneration(project, apiKeys?.voiceLanguage || 'en');
+  const voiceLanguage = (project.voiceSettings as any)?.language || 'en';
+  const batchGeneration = useVoiceoverBatchGeneration(project, voiceLanguage);
 
   // State to track which generation mode is active
   const [isUsingBatchGeneration, setIsUsingBatchGeneration] = useState(false);
