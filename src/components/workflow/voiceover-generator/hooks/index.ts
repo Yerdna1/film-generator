@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Project } from '@/types/project';
 import { useApiKeys } from '@/hooks';
 import type { DialogueLineWithScene } from '../types';
+import type { ItemGenerationState } from '@/lib/constants/workflow';
 import { useAudioUIState } from './useAudioUIState';
 import { useAudioGeneration } from './useAudioGeneration';
 import { useAudioPlayback } from './useAudioPlayback';
@@ -120,9 +121,21 @@ export function useVoiceoverAudio(project: Project) {
     }
   };
 
+  // Convert batch generation boolean states to ItemGenerationState format
+  const batchAudioStates = useMemo(() => {
+    const states: Record<string, ItemGenerationState> = {};
+    Object.entries(batchGeneration.generatingAudio).forEach(([lineId, isGenerating]) => {
+      states[lineId] = {
+        status: isGenerating ? 'generating' : 'idle',
+        progress: isGenerating ? 50 : 0,
+      };
+    });
+    return states;
+  }, [batchGeneration.generatingAudio]);
+
   return {
     // UI State
-    audioStates: isUsingBatchGeneration ? batchGeneration.generatingAudio : uiState.audioStates,
+    audioStates: isUsingBatchGeneration ? batchAudioStates : uiState.audioStates,
     playingAudio: uiState.playingAudio,
     playingSceneId: uiState.playingSceneId,
     isGeneratingAll: batchGeneration.isProcessing || (batchGeneration.backgroundJobId !== null),

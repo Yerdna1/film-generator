@@ -237,6 +237,7 @@ export function useVoiceoverBatchGeneration(
           dialogueLines.push({
             id: line.id,
             sceneId: scene.id,
+            sceneTitle: scene.title,
             sceneNumber: scene.number,
             text: line.text,
             characterId: line.characterId,
