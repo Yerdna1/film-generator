@@ -431,18 +431,27 @@ export async function GET(request: NextRequest) {
         ok: response.ok,
         code: data.code,
         hasData: !!data.data,
+        taskStatus: data.data?.status,
       });
 
       if (!response.ok || data.code !== 200) {
         return NextResponse.json(
-          { error: data.msg || data.message || 'Failed to check KIE music status' },
+          { status: 'error', error: data.msg || data.message || 'Failed to check KIE music status' },
           { status: response.status || 500 }
         );
       }
 
       const taskData = data.data;
-      const status = taskData.status === 'SUCCESS' ? 'complete' :
-                    taskData.status === 'FAILED' ? 'error' : 'processing';
+
+      // Map KIE status to our status
+      let status: 'processing' | 'complete' | 'error';
+      if (taskData.status === 'SUCCESS') {
+        status = 'complete';
+      } else if (taskData.status === 'FAILED' || taskData.status?.includes('FAILED')) {
+        status = 'error';
+      } else {
+        status = 'processing';
+      }
 
       let audioUrl: string | undefined;
       let title: string | undefined;
@@ -453,6 +462,13 @@ export async function GET(request: NextRequest) {
           audioUrl = tracks[0].audioUrl || tracks[0].audio_url;
           title = tracks[0].title;
         }
+      }
+
+      if (status === 'error') {
+        return NextResponse.json({
+          status: 'error',
+          error: taskData.errorMessage || 'Music generation failed',
+        });
       }
 
       if (status === 'complete' && audioUrl) {
@@ -485,7 +501,6 @@ export async function GET(request: NextRequest) {
         status,
         audioUrl,
         title,
-        message: taskData.errorMessage || (status === 'processing' ? 'Music is being generated...' : undefined),
       });
     }
 
