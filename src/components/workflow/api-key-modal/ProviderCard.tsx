@@ -44,10 +44,31 @@ export function ProviderCard({
 }: ProviderCardProps) {
   const [isSwitching, setIsSwitching] = useState(false);
 
-  // Get KIE model options if this is a KIE provider
+  // Determine the correct model field based on provider and operation type
+  const getModelFieldForProvider = (providerId: string, operationType: OperationType): string | null => {
+    if (providerId === 'kie') {
+      // Map operation types to their corresponding model fields
+      const fieldMap: Record<OperationType, string> = {
+        llm: 'kieLlmModel',
+        image: 'kieImageModel',
+        video: 'kieVideoModel',
+        tts: 'kieTtsModel',
+        music: 'kieMusicModel',
+      };
+      return fieldMap[operationType] || null;
+    }
+    // For other providers, use their static modelField
+    return provider.modelField || null;
+  };
+
+  // Get the correct model field for this provider and operation type
+  const actualModelField = getModelFieldForProvider(provider.id, opType);
+
+  // Get model options based on provider and operation type
   let modelOptions = provider.modelOptions;
-  if (provider.id === 'kie' && provider.modelField) {
-    const modelType = provider.modelField.replace('kie', '').toLowerCase().replace('model', '') as keyof typeof kieModels;
+  if (provider.id === 'kie' && actualModelField) {
+    // For KIE, use the operation type directly to get the correct models
+    const modelType = opType as keyof typeof kieModels;
     if (modelType && kieModels[modelType]) {
       modelOptions = kieModels[modelType].map((m: any) => ({
         value: m.modelId,
@@ -149,25 +170,25 @@ export function ProviderCard({
         </div>
       )}
 
-      {provider.modelField && API_KEY_FIELDS[provider.modelField] && (
+      {actualModelField && API_KEY_FIELDS[actualModelField] && (
         <div className="space-y-2 mt-3" onClick={(e) => e.stopPropagation()}>
-          <Label className="text-xs">{API_KEY_FIELDS[provider.modelField]?.label}</Label>
+          <Label className="text-xs">{API_KEY_FIELDS[actualModelField]?.label}</Label>
           {modelOptions && modelOptions.length > 0 ? (
             <Combobox
               options={modelOptions}
-              value={values[provider.modelField] || ''}
-              onChange={(value) => onInputChange(provider.modelField!, value)}
-              placeholder={API_KEY_FIELDS[provider.modelField]?.placeholder}
+              value={values[actualModelField] || ''}
+              onChange={(value) => onInputChange(actualModelField, value)}
+              placeholder={API_KEY_FIELDS[actualModelField]?.placeholder}
               loading={loadingKieModels && provider.id === 'kie'}
-              className={errors[provider.modelField] ? 'border-red-500' : ''}
+              className={errors[actualModelField] ? 'border-red-500' : ''}
             />
           ) : (
             <Input
-              placeholder={API_KEY_FIELDS[provider.modelField]?.placeholder}
-              value={values[provider.modelField] || ''}
-              onChange={(e) => onInputChange(provider.modelField!, e.target.value)}
+              placeholder={API_KEY_FIELDS[actualModelField]?.placeholder}
+              value={values[actualModelField] || ''}
+              onChange={(e) => onInputChange(actualModelField, e.target.value)}
               className={`bg-gray-900/50 ${
-                errors[provider.modelField]
+                errors[actualModelField]
                   ? 'border-red-500'
                   : `border-${isSelected ? provider.color : 'gray'}-700`
               }`}
