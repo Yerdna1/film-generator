@@ -9,6 +9,7 @@ import { rateLimit } from '@/lib/services/rate-limit';
 import { callExternalApi, pollKieTask } from '@/lib/providers/api-wrapper';
 import { getProviderConfig } from '@/lib/providers';
 import { createMusicTask, getMusicTaskStatus, PIAPI_MUSIC_COST } from '@/lib/services/piapi';
+import { getEndpointUrl, getProviderHeaders } from '@/lib/constants/api-endpoints';
 import type { Provider } from '@/lib/services/real-costs';
 
 type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
@@ -16,11 +17,17 @@ type MusicProvider = 'piapi' | 'suno' | 'modal' | 'kie';
 export const maxDuration = 120; // Allow up to 2 minutes for music generation
 
 // KIE Music model mapping: UI names to API model names
+// KIE uses V3_5, V4, V4_5, V4_5PLUS, V5 model names (underscores, not dots!)
 const KIE_MUSIC_MODEL_MAPPING: Record<string, string> = {
-  'suno/v3-5-music': 'suno-api',
-  'suno/v3-music': 'suno-api',
-  'udio/v1-5-music': 'suno-api',
-  'suno-api': 'suno-api', // Already correct format
+  'suno/v3-5-music': 'V3_5',
+  'suno/v3-music': 'V3_5',
+  'udio/v1-5-music': 'V4_5',
+  'suno-api': 'V3_5',
+  'V3_5': 'V3_5', // Already correct format
+  'V4': 'V4', // Already correct format
+  'V4_5': 'V4_5', // Already correct format
+  'V4_5PLUS': 'V4_5PLUS', // Already correct format
+  'V5': 'V5', // Already correct format
 };
 
 interface MusicGenerationRequest {
@@ -84,24 +91,27 @@ async function generateWithWrapper(
         type: 'music'
       });
 
-      // Map model name for KIE - use suno-api for all Suno models
+      // Map model name for KIE - KIE uses underscores (V3_5, V4_5) not dots
       const rawModel = config.model || model || 'suno/v3-music';
       const kieModel = KIE_MUSIC_MODEL_MAPPING[rawModel] || rawModel;
 
-      console.log('[Music] KIE music model:', {
+      console.log('[Music] KIE music request:', {
         rawModel,
         kieModel,
-        hasMapping: !!KIE_MUSIC_MODEL_MAPPING[rawModel],
+        prompt: prompt.slice(0, 50),
       });
 
+      // KIE Suno API request structure - FLAT parameters (not nested!)
+      // https://docs.kie.ai/suno-api/generate-music
+      // https://docs.kie.ai/suno-api/quickstart
       requestBody = {
+        prompt,
+        customMode: false, // Non-custom mode: only prompt required
+        instrumental,
         model: kieModel,
-        input: {
-          prompt,
-          title: title || 'Generated Music',
-          instrumental,
-        },
+        callBackUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/music/callback`,
       };
+      console.log('[Music] KIE request body:', JSON.stringify(requestBody, null, 2));
       break;
 
     case 'suno':
@@ -127,6 +137,7 @@ async function generateWithWrapper(
   }
 
   // Make the API call using wrapper
+  console.log('[Music] Calling API with request body:', JSON.stringify(requestBody, null, 2));
   const response = await callExternalApi({
     userId,
     projectId,
@@ -407,32 +418,42 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'KIE API key not configured' }, { status: 400 });
       }
 
-      // Poll for task status
-      const taskData = await pollKieTask(taskId, config.apiKey, 1); // Single poll
+      // KIE Suno API uses different endpoint for status: /api/v1/generate/record-info
+      const statusUrl = `${getEndpointUrl('kie', 'musicTaskStatus')}?taskId=${taskId}`;
+      const headers = getProviderHeaders('kie', config.apiKey);
 
-      // Extract audio URL
+      console.log('[Music] Checking KIE music status:', { statusUrl, taskId });
+
+      const response = await fetch(statusUrl, { headers });
+      const data = await response.json();
+
+      console.log('[Music] KIE music status response:', {
+        ok: response.ok,
+        code: data.code,
+        hasData: !!data.data,
+      });
+
+      if (!response.ok || data.code !== 200) {
+        return NextResponse.json(
+          { error: data.msg || data.message || 'Failed to check KIE music status' },
+          { status: response.status || 500 }
+        );
+      }
+
+      const taskData = data.data;
+      const status = taskData.status === 'SUCCESS' ? 'complete' :
+                    taskData.status === 'FAILED' ? 'error' : 'processing';
+
       let audioUrl: string | undefined;
       let title: string | undefined;
 
-      if (taskData.resultJson) {
-        try {
-          const result = typeof taskData.resultJson === 'string'
-            ? JSON.parse(taskData.resultJson)
-            : taskData.resultJson;
-
-          // Try various possible fields
-          audioUrl = result.audioUrl || result.audio_url || result.resultUrl;
-          if (!audioUrl && result.resultUrls?.length > 0) {
-            audioUrl = result.resultUrls[0];
-          }
-          title = result.title;
-        } catch {
-          console.error('Failed to parse resultJson');
+      if (status === 'complete' && taskData.response?.sunoData) {
+        const tracks = taskData.response.sunoData;
+        if (tracks.length > 0) {
+          audioUrl = tracks[0].audioUrl || tracks[0].audio_url;
+          title = tracks[0].title;
         }
       }
-
-      const status = taskData.state === 'success' ? 'complete' :
-                    taskData.state === 'fail' ? 'error' : 'processing';
 
       if (status === 'complete' && audioUrl) {
         // Download and upload to S3
@@ -464,7 +485,7 @@ export async function GET(request: NextRequest) {
         status,
         audioUrl,
         title,
-        message: taskData.failMsg || taskData.fail_reason,
+        message: taskData.errorMessage || (status === 'processing' ? 'Music is being generated...' : undefined),
       });
     }
 

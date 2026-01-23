@@ -55,11 +55,13 @@ export const API_PATHS = {
     createTask: '/api/v1/jobs/createTask',
     taskStatus: '/api/v1/jobs/recordInfo',
     models: '/api/v1/models',
-    // Direct generation endpoints (these don't actually exist - KIE uses createTask for everything)
-    generateImage: '/api/v1/jobs/createTask', // Changed to use createTask
-    generateVideo: '/api/v1/jobs/createTask', // These all use createTask
+    // Suno API has its own dedicated endpoint (not createTask!)
+    generateMusic: '/api/v1/generate',
+    musicTaskStatus: '/api/v1/generate/record-info',
+    // Direct generation endpoints (these use createTask)
+    generateImage: '/api/v1/jobs/createTask',
+    generateVideo: '/api/v1/jobs/createTask',
     generateTts: '/api/v1/jobs/createTask',
-    generateMusic: '/api/v1/jobs/createTask',
   },
 
   // Grok

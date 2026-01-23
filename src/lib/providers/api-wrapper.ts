@@ -155,6 +155,11 @@ export async function callExternalApi<T = any>(
     }
 
     // Make the API call
+    console.log(`[API Wrapper] Sending ${provider} ${type} request:`, {
+      url,
+      method,
+      bodyPreview: body ? JSON.stringify(body).slice(0, 300) : 'no body',
+    });
     const response = await fetch(url, {
       method,
       headers,
@@ -274,7 +279,7 @@ function buildProviderUrl(provider: string, type: GenerationType, model?: string
     case 'music':
       switch (provider) {
         case 'kie':
-          return getEndpointUrl('kie', 'createTask');
+          return getEndpointUrl('kie', 'generateMusic');
         default:
           throw new Error(`Unsupported music provider: ${provider}`);
       }
