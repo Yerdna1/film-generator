@@ -12,8 +12,10 @@ import { formatApiKeyName } from '@/lib/services/user-permissions';
 import { debounce } from '@/lib/utils/debounce';
 import { CurrentSelectionSummary } from './CurrentSelectionSummary';
 import { OperationTabContent } from './OperationTabContent';
-import { API_KEY_FIELDS, OPERATION_INFO, PROVIDER_CONFIGS } from './constants';
+import { API_KEY_FIELDS, OPERATION_INFO } from './constants';
 import type { ApiKeyConfigModalProps, OperationType } from './types';
+import { useProvidersByOperation } from '@/hooks/use-providers';
+import { useModels } from '@/hooks/use-models';
 
 export function ApiKeyConfigModal({
   isOpen,
@@ -37,6 +39,9 @@ export function ApiKeyConfigModal({
   });
   const [loadingKieModels, setLoadingKieModels] = useState(true);
   const pendingSaveRef = useRef<Record<string, string>>({});
+
+  // Fetch providers from database
+  const { providersByOperation, isLoading: loadingProviders } = useProvidersByOperation();
 
   // Fetch KIE models from database
   useEffect(() => {
@@ -358,7 +363,7 @@ export function ApiKeyConfigModal({
     const provider = getCurrentProvider(opType);
     if (!provider) return null;
 
-    const providerConfig = PROVIDER_CONFIGS[opType].find((p) => p.id === provider);
+    const providerConfig = providersByOperation[opType]?.find((p) => p.id === provider);
     if (!providerConfig?.modelField) return null;
 
     // Check local values first (unsaved changes), then fall back to apiKeys
@@ -436,6 +441,7 @@ export function ApiKeyConfigModal({
                     opType={opType}
                     currentProvider={getCurrentProvider(opType)}
                     currentModel={getCurrentModel(opType)}
+                    providers={providersByOperation[opType] || []}
                   />
                 ))}
               </div>
@@ -446,6 +452,8 @@ export function ApiKeyConfigModal({
                 <TabsContent key={opType} value={opType} className="mt-6">
                   <OperationTabContent
                     opType={opType}
+                    providers={providersByOperation[opType] || []}
+                    loadingProviders={loadingProviders}
                     currentProvider={getCurrentProvider(opType)}
                     currentModel={getCurrentModel(opType)}
                     hasApiKey={hasApiKey}

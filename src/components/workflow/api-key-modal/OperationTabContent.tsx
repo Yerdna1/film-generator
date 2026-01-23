@@ -1,10 +1,12 @@
 import { CurrentSelectionSummary } from './CurrentSelectionSummary';
 import { ProviderGrid } from './ProviderGrid';
-import type { OperationType } from './types';
+import type { OperationType, ProviderConfig } from './types';
 import { OPERATION_INFO } from './constants';
 
 interface OperationTabContentProps {
   opType: OperationType;
+  providers: ProviderConfig[];
+  loadingProviders: boolean;
   currentProvider: string | null;
   currentModel: string | null;
   hasApiKey: (key: string) => boolean;
@@ -18,6 +20,8 @@ interface OperationTabContentProps {
 
 export function OperationTabContent({
   opType,
+  providers,
+  loadingProviders,
   currentProvider,
   currentModel,
   hasApiKey,
@@ -42,12 +46,15 @@ export function OperationTabContent({
           opType={opType}
           currentProvider={currentProvider}
           currentModel={currentModel}
+          providers={providers}
         />
       </div>
 
       {/* Provider Selection */}
       <ProviderGrid
         opType={opType}
+        providers={providers}
+        loadingProviders={loadingProviders}
         currentProvider={currentProvider}
         hasApiKey={hasApiKey}
         values={values}

@@ -1,9 +1,11 @@
 import { ProviderCard } from './ProviderCard';
-import type { OperationType } from './types';
-import { PROVIDER_CONFIGS } from './constants';
+import type { OperationType, ProviderConfig } from './types';
+import { Loader2 } from 'lucide-react';
 
 interface ProviderGridProps {
   opType: OperationType;
+  providers: ProviderConfig[];
+  loadingProviders: boolean;
   currentProvider: string | null;
   hasApiKey: (key: string) => boolean;
   values: Record<string, string>;
@@ -16,6 +18,8 @@ interface ProviderGridProps {
 
 export function ProviderGrid({
   opType,
+  providers,
+  loadingProviders,
   currentProvider,
   hasApiKey,
   values,
@@ -25,7 +29,22 @@ export function ProviderGrid({
   onSelectProvider,
   onInputChange,
 }: ProviderGridProps) {
-  const providers = PROVIDER_CONFIGS[opType];
+  if (loadingProviders) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading providers...</span>
+      </div>
+    );
+  }
+
+  if (providers.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No providers available for this operation type.
+      </div>
+    );
+  }
 
   return (
     <div>

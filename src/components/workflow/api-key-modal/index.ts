@@ -4,4 +4,4 @@ export { ProviderCard } from './ProviderCard';
 export { ProviderGrid } from './ProviderGrid';
 export { OperationTabContent } from './OperationTabContent';
 export * from './types';
-export { PROVIDER_CONFIGS, API_KEY_FIELDS, OPERATION_INFO } from './constants';
+export { API_KEY_FIELDS, OPERATION_INFO } from './constants';

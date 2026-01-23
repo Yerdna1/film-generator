@@ -1,21 +1,23 @@
 import { Badge } from '@/components/ui/badge';
-import type { OperationType } from './types';
-import { OPERATION_INFO, PROVIDER_CONFIGS } from './constants';
+import type { OperationType, ProviderConfig } from './types';
+import { OPERATION_INFO } from './constants';
 
 interface CurrentSelectionSummaryProps {
   opType: OperationType;
   currentProvider: string | null;
   currentModel: string | null;
+  providers?: ProviderConfig[];
 }
 
 export function CurrentSelectionSummary({
   opType,
   currentProvider,
   currentModel,
+  providers = [],
 }: CurrentSelectionSummaryProps) {
   const info = OPERATION_INFO[opType];
   const providerConfig = currentProvider
-    ? PROVIDER_CONFIGS[opType].find((p) => p.id === currentProvider)
+    ? providers.find((p) => p.id === currentProvider)
     : null;
 
   return (
