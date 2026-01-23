@@ -71,6 +71,22 @@ export function useBackgroundMusic({ project, apiKeys }: UseBackgroundMusicProps
     (apiKeys?.musicProvider || 'piapi') as MusicProvider
   );
 
+  // Sync provider state when apiKeys changes
+  useEffect(() => {
+    if (apiKeys?.musicProvider) {
+      setProvider(apiKeys.musicProvider as MusicProvider);
+
+      // Also sync model based on provider
+      if (apiKeys.musicProvider === 'kie' && apiKeys.kieMusicModel) {
+        // KIE uses model names like 'suno/v3-music', keep as is
+        setModel(apiKeys.kieMusicModel as SunoModel);
+      } else if (apiKeys.musicProvider === 'piapi') {
+        // PiAPI uses V4, V4.5, etc.
+        setModel('V4.5');
+      }
+    }
+  }, [apiKeys?.musicProvider, apiKeys?.kieMusicModel ?? '']); // Use empty string fallback to keep array size constant
+
   // Generation state
   const [generationState, setGenerationState] = useState<GenerationState>({
     isGenerating: false,

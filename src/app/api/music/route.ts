@@ -17,9 +17,10 @@ export const maxDuration = 120; // Allow up to 2 minutes for music generation
 
 // KIE Music model mapping: UI names to API model names
 const KIE_MUSIC_MODEL_MAPPING: Record<string, string> = {
-  'suno/v3-5-music': 'suno-api/v3-5-30s-instrumental',
-  'suno/v3-music': 'suno-api/v3-30s-instrumental',
-  'udio/v1-5-music': 'udio-api/v1-5-music',
+  'suno/v3-5-music': 'suno-api',
+  'suno/v3-music': 'suno-api',
+  'udio/v1-5-music': 'suno-api',
+  'suno-api': 'suno-api', // Already correct format
 };
 
 interface MusicGenerationRequest {
@@ -83,7 +84,7 @@ async function generateWithWrapper(
         type: 'music'
       });
 
-      // Map model name for KIE
+      // Map model name for KIE - use suno-api for all Suno models
       const rawModel = config.model || model || 'suno/v3-music';
       const kieModel = KIE_MUSIC_MODEL_MAPPING[rawModel] || rawModel;
 
@@ -97,8 +98,8 @@ async function generateWithWrapper(
         model: kieModel,
         input: {
           prompt,
-          instrumental,
           title: title || 'Generated Music',
+          instrumental,
         },
       };
       break;
