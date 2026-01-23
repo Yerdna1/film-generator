@@ -150,7 +150,7 @@ const getCachedModels = unstable_cache(
   },
   ['models'],
   {
-    revalidate: 300, // 5 minutes
+    revalidate: 1, // 1 second
     tags: ['models'],
   }
 );
@@ -257,7 +257,7 @@ export async function GET(
       { models: transformedModels },
       {
         headers: {
-          'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, max-age=1, stale-while-revalidate=2',
         },
       }
     );

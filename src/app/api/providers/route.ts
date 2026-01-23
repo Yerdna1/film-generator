@@ -27,7 +27,7 @@ const getCachedProviders = unstable_cache(
   },
   ['providers'],
   {
-    revalidate: 300, // 5 minutes
+    revalidate: 1, // 1 second
     tags: ['providers'],
   }
 );
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       { providers: transformedProviders },
       {
         headers: {
-          'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, max-age=1, stale-while-revalidate=2',
         },
       }
     );
