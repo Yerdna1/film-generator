@@ -1,6 +1,7 @@
 import useSWR from 'swr';
-import type { OperationType } from '@/components/workflow/api-key-modal/types';
+import type { OperationType, ProviderConfig } from '@/components/workflow/api-key-modal/types';
 
+// Provider interface that includes all fields from the API response
 export interface Provider {
   id: string;
   providerId: string;
@@ -8,13 +9,13 @@ export interface Provider {
   displayName: string;
   icon: string;
   color: string;
-  description?: string | null;
-  apiKeyField: string;
-  modelField?: string | null;
+  description?: string;
+  apiKeyField?: string;
+  modelField?: string;
   supportedModalities: string[];
-  isDefault: boolean;
+  isDefault?: boolean;
   requiresEndpoint: boolean;
-  helpLink?: string | null;
+  helpLink?: string;
   setupGuide?: any;
 }
 
@@ -82,16 +83,27 @@ export function useProvidersForOperation(operationType: OperationType): UseProvi
 export function useProvidersByOperation() {
   const { providers, isLoading, error, mutate } = useProviders();
 
-  // Group providers by their supported modalities
+  // Group providers by their supported modalities and map to ProviderConfig
   const providersByOperation = providers.reduce((acc, provider) => {
+    const providerConfig: ProviderConfig = {
+      id: provider.id,
+      name: provider.name,
+      icon: provider.icon,
+      color: provider.color,
+      apiKeyField: provider.apiKeyField,
+      modelField: provider.modelField,
+      description: provider.description,
+      isDefault: provider.isDefault,
+    };
+
     provider.supportedModalities.forEach(modality => {
       if (!acc[modality as OperationType]) {
         acc[modality as OperationType] = [];
       }
-      acc[modality as OperationType].push(provider);
+      acc[modality as OperationType].push(providerConfig);
     });
     return acc;
-  }, {} as Record<OperationType, Provider[]>);
+  }, {} as Record<OperationType, ProviderConfig[]>);
 
   return {
     providersByOperation,
