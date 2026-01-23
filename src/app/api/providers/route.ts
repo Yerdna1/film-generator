@@ -65,12 +65,12 @@ export async function GET(request: NextRequest) {
       icon: provider.icon,
       color: provider.color,
       description: provider.description,
-      apiKeyField: provider.apiKeyField,
-      modelField: provider.modelField,
+      apiKeyField: provider.apiKeyField || undefined,
+      modelField: provider.modelField || undefined,
       supportedModalities: provider.supportedModalities,
       isDefault: provider.isDefault,
       requiresEndpoint: provider.requiresEndpoint,
-      helpLink: provider.helpLink,
+      helpLink: provider.helpLink || undefined,
       setupGuide: provider.setupGuide ? JSON.parse(provider.setupGuide as string) : undefined,
     }));
 
