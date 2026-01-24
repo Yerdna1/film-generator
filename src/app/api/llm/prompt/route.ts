@@ -37,17 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user permissions and premium status
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true, email: true },
-    });
-
-    const { getSubscription } = await import('@/lib/services/polar');
-    const subscription = await getSubscription(userId);
-    const isPremiumUser = subscription.status === 'active' && subscription.plan !== 'free';
-    const { LEGACY_ADMIN_EMAIL } = await import('@/lib/admin');
-    const isAdmin = user?.role === 'admin' || user?.email === LEGACY_ADMIN_EMAIL;
+    // Check user permissions - handled by provider config and user-permissions module
 
     // Get provider configuration - single source of truth
     let config;
@@ -173,24 +163,8 @@ export async function POST(request: NextRequest) {
       case 'openrouter':
 
       case 'kie':
-        // Map model format if needed for KIE
-        let finalModel = llmModel;
-        if (config.provider === 'kie' && llmModel?.includes('/')) {
-          // Try to find matching model in database
-          const kieLlmModel = await prisma.kieLlmModel.findFirst({
-            where: {
-              OR: [
-                { modelId: llmModel },
-                { modelId: { contains: llmModel.split('/')[1]?.replace(':free', '').replace(':exp', '') || '' } }
-              ]
-            },
-            select: { modelId: true }
-          });
-
-          if (kieLlmModel) {
-            finalModel = kieLlmModel.modelId;
-          }
-        }
+        // Model resolution is handled by provider-config.ts
+        const finalModel = llmModel;
 
         requestBody = {
           model: finalModel,

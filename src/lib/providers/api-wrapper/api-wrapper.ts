@@ -180,6 +180,23 @@ export async function callExternalApi<T = any>(
     // Parse response
     const responseData = await response.json().catch(() => null);
 
+    // Check for KIE error response (returns 200 but with error in body)
+    if (provider === 'kie' && responseData?.code && responseData.code !== 200) {
+      const errorMessage = responseData.msg || responseData.message || `KIE error: ${responseData.code}`;
+      console.error(`[API Wrapper] KIE API error in response body:`, {
+        code: responseData.code,
+        error: errorMessage,
+        response: responseData,
+      });
+
+      return {
+        error: errorMessage,
+        status: responseData.code || 500,
+        provider,
+        model,
+      };
+    }
+
     if (!response.ok) {
       const errorMessage = extractErrorMessage(responseData, response.status, provider);
       console.error(`[API Wrapper] ${provider} API error:`, {
