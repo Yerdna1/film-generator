@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { Scene } from '@/types/project';
 import type { StateCreator } from '../types';
 import { debounceSync } from '../utils';

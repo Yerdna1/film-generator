@@ -512,7 +512,9 @@
       "requestDeletion": "Request deletion",
       "status": {
         "deletePending": "Deletion request pending"
-      }
+      },
+      "signInToSeeMore": "Sign in to see more",
+      "signUpFree": "Sign up free"
     },
     "voiceover": {
       "title": "Voiceover",

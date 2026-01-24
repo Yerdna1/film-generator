@@ -8,7 +8,7 @@ import { useScenePolling } from './useScenePolling';
 import { useSceneUIState } from './useSceneUIState';
 import { useSceneEditing } from './useSceneEditing';
 import { useImageGeneration } from './useImageGeneration';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 export function useSceneGenerator(initialProject: Project) {
   const { projects, deleteScene, updateSettings } = useProjectStore();

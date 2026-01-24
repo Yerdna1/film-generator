@@ -5,7 +5,7 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import type { ImageGenerationJob } from '@/types/job';
 import type { AspectRatio, ImageResolution } from '@/lib/services/real-costs';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { getProviderDisplayName, getModelDisplayName, formatDuration } from '@/lib/llm/toast-utils';
 
 type GeneratingImageState = {

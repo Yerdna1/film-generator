@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useCallback, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useApiKeys, useCredits } from '@/hooks';
 import { ACTION_COSTS } from '@/lib/services/real-costs';

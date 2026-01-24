@@ -355,7 +355,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
             icon: Plus,
             onClick: () => setIsAddingCharacter(true),
             disabled: isReadOnly || characters.length >= MAX_CHARACTERS,
-            variant: 'secondary',
+            variant: 'primary',
             visible: characters.length < MAX_CHARACTERS,
           },
         ]}

@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useCredits } from '@/contexts/CreditsContext';
 import type { DialogueLineWithScene } from '../types';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { getProviderDisplayName, getModelDisplayName, formatDuration } from '@/lib/llm/toast-utils';
 
 interface VoiceoverGenerationJob {

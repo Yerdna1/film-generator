@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project } from '@/types/project';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 interface PollingHookResult {
   // Background job state (Inngest) - for images

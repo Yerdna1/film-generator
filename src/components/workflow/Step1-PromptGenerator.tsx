@@ -14,7 +14,7 @@ import { useApiKeys } from '@/contexts/ApiKeysContext';
 import { PaymentMethodToggle } from './PaymentMethodToggle';
 import { StepActionBar } from './shared/StepActionBar';
 import { FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { UnifiedGenerateConfirmationDialog } from './shared/UnifiedGenerateConfirmationDialog';
 
 interface Step1Props {

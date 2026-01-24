@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useProjectStore } from '@/lib/stores/project-store';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { ActionCosts } from '../types';
 import type { LLMProvider, MusicProvider, TTSProvider, ImageProvider, VideoProvider, ModalEndpoints } from '@/types/project';
 import { DEFAULT_OPENROUTER_MODEL } from '../constants';

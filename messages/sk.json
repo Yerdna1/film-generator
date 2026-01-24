@@ -512,7 +512,9 @@
       "requestDeletion": "Požiadať o odstránenie",
       "status": {
         "deletePending": "Žiadosť o odstránenie čaká"
-      }
+      },
+      "signInToSeeMore": "Prihláste sa pre zobrazenie",
+      "signUpFree": "Zaregistrujte sa zdarma"
     },
     "voiceover": {
       "title": "Hlas",

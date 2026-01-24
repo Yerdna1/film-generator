@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project } from '@/types/project';
 import { KIE_VOICES } from '../../voiceover-generator/types';

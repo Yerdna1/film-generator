@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { User, AppConfig, CreditAction } from '../types';
 
 interface UseAdminActionsProps {

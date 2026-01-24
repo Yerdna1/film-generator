@@ -39,6 +39,7 @@ export function VoiceSettingsDialog({
 }: VoiceSettingsDialogProps) {
   const t = useTranslations('voice');
   const [expandedCharacter, setExpandedCharacter] = useState<string | null>(null);
+  const isControlled = open !== undefined;
 
   const isOpenAI = provider === 'openai-tts';
   const isElevenLabs = provider === 'elevenlabs';
@@ -60,12 +61,14 @@ export function VoiceSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="border-white/10">
-          <Settings className="w-4 h-4 mr-2" />
-          {t('voiceSettings')}
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" className="border-white/10">
+            <Settings className="w-4 h-4 mr-2" />
+            {t('voiceSettings')}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="glass-strong border-white/10 max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

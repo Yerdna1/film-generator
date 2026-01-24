@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { generateCharacterPrompt } from '@/lib/prompts/master-prompt';
 import type { Character, StylePreset } from '@/types/project';

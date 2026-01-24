@@ -9,7 +9,7 @@ import { SCENES_PER_PAGE } from '@/lib/constants/workflow';
 import type { Project, Scene } from '@/types/project';
 import type { VideoMode } from '../types';
 import type { VideoGenerationJob } from '@/types/job';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { getProviderDisplayName, getModelDisplayName, formatDuration } from '@/lib/llm/toast-utils';
 
 // Simplified hook that always uses Inngest for all video generation

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { Character } from '@/types/project';
 import type { ApiKeysData } from '@/hooks/use-api-keys';
 

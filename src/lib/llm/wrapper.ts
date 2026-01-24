@@ -5,7 +5,7 @@
  * toast notifications with provider, model, and duration information.
  */
 
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { formatDuration, getProviderDisplayName, getModelDisplayName } from './toast-utils';
 
 export interface LLMCallMetadata {

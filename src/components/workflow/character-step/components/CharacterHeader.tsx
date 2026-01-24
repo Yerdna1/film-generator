@@ -59,7 +59,7 @@ export function CharacterHeader({
               <Button
                 onClick={onAddCharacter}
                 size="sm"
-                className="bg-violet-500 hover:bg-violet-600"
+                className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white border-0 font-medium animate-pulse-border-red"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('steps.character.addCharacter')}
