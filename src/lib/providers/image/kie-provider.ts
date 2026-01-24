@@ -12,6 +12,8 @@ import {
 import { RegisterProvider } from '../provider-factory';
 import { pollTask, mapProviderState, extractResult } from '@/lib/api/generation';
 import { downloadImageAsBase64 } from '@/lib/api/generation';
+import { prisma } from '@/lib/db/prisma';
+import { DEFAULT_MODELS } from '@/lib/constants/default-models';
 
 const KIE_API_URL = 'https://api.kie.ai';
 
@@ -137,10 +139,28 @@ export class KieImageProvider extends BaseImageProvider implements AsyncProvider
     };
     const kieResolution = resolutionMap[resolution] || '1536';
 
+    // Get model configuration with database lookup
+    let apiModelId = this.config.model || DEFAULT_MODELS.kieImageModel;
+
+    // Check if we need to map model ID (for models without /, look up in DB)
+    if (this.config.model && !this.config.model.includes('/')) {
+      try {
+        const modelConfig = await prisma.kieImageModel.findUnique({
+          where: { modelId: this.config.model },
+          select: { apiModelId: true },
+        });
+        if (modelConfig?.apiModelId) {
+          apiModelId = modelConfig.apiModelId;
+        }
+      } catch (error) {
+        console.error('Failed to lookup KIE image model:', error);
+      }
+    }
+
     // Build the request body
     const body: any = {
       text: prompt,
-      model: this.config.model || 'grok-imagine/text-to-image', // @TODO: import from DEFAULT_MODELS
+      model: apiModelId,
       resolution: kieResolution,
       aspect_ratio: aspectRatio,
     };

@@ -340,37 +340,45 @@ async function getKieModel(
   requestModel?: string
 ): Promise<string | undefined> {
   if (requestModel) {
+    // Fix known malformed model patterns before lookup
+    const modelFixes: Record<string, string> = {
+      'seedream-4.5/4k': 'seedream/4-5-text-to-image',
+      'seedream-4.5': 'seedream/4-5-text-to-image',
+    };
+
+    const normalizedModel = modelFixes[requestModel] || requestModel;
+
     // Check if we need to map the model ID to API model ID
     if (type === 'image') {
       const modelConfig = await prisma.kieImageModel.findUnique({
-        where: { modelId: requestModel },
+        where: { modelId: normalizedModel },
         select: { apiModelId: true },
       });
-      return modelConfig?.apiModelId || requestModel;
+      return modelConfig?.apiModelId || normalizedModel;
     } else if (type === 'video') {
       const modelConfig = await prisma.kieVideoModel.findUnique({
-        where: { modelId: requestModel },
+        where: { modelId: normalizedModel },
         select: { apiModelId: true },
       });
-      return modelConfig?.apiModelId || requestModel;
+      return modelConfig?.apiModelId || normalizedModel;
     } else if (type === 'tts') {
       const modelConfig = await prisma.kieTtsModel.findUnique({
-        where: { modelId: requestModel },
+        where: { modelId: normalizedModel },
         select: { apiModelId: true },
       });
-      return modelConfig?.apiModelId || requestModel;
+      return modelConfig?.apiModelId || normalizedModel;
     } else if (type === 'music') {
       const modelConfig = await prisma.kieMusicModel.findUnique({
-        where: { modelId: requestModel },
+        where: { modelId: normalizedModel },
         select: { apiModelId: true },
       });
-      return modelConfig?.apiModelId || requestModel;
+      return modelConfig?.apiModelId || normalizedModel;
     } else if (type === 'llm') {
       const modelConfig = await prisma.kieLlmModel.findUnique({
-        where: { modelId: requestModel },
+        where: { modelId: normalizedModel },
         select: { apiModelId: true },
       });
-      return modelConfig?.apiModelId || requestModel;
+      return modelConfig?.apiModelId || normalizedModel;
     }
   }
 
