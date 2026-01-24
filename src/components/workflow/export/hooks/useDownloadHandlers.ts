@@ -135,11 +135,15 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
         const dialogueLines = scene.dialogue || [];
         for (let i = 0; i < dialogueLines.length; i++) {
           const line = dialogueLines[i];
-          if (line.audioUrl) {
-            console.log('[DownloadAudio] Fetching audio:', line.characterName, line.text?.substring(0, 30), line.audioUrl);
-            const blob = await fetchAsBlob(line.audioUrl);
+
+          // Try to get audio from primary audioUrl or audioVersions array
+          const audioUrl = line.audioUrl || (line.audioVersions && line.audioVersions.length > 0 ? line.audioVersions[0].audioUrl : null);
+
+          if (audioUrl) {
+            console.log('[DownloadAudio] Fetching audio:', line.characterName, line.text?.substring(0, 30), audioUrl.substring(0, 100));
+            const blob = await fetchAsBlob(audioUrl);
             if (blob) {
-              const ext = getExtension(line.audioUrl, blob.type);
+              const ext = getExtension(audioUrl, blob.type);
               sceneFolder?.file(
                 `${String(i + 1).padStart(2, '0')}_${sanitizeFilename(line.characterName || 'unknown')}.${ext}`,
                 blob
@@ -150,6 +154,8 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
               failCount++;
               console.warn('[DownloadAudio] ✗ Failed to fetch audio:', line.characterName);
             }
+          } else {
+            console.log('[DownloadAudio] No audio found for dialogue:', line.characterName, line.text?.substring(0, 30));
           }
         }
       }
@@ -232,16 +238,26 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
         const dialogueLines = scene.dialogue || [];
         for (let i = 0; i < dialogueLines.length; i++) {
           const line = dialogueLines[i];
-          if (line.audioUrl) {
-            const blob = await fetchAsBlob(line.audioUrl);
+
+          // Try to get audio from primary audioUrl or audioVersions array
+          const audioUrl = line.audioUrl || (line.audioVersions && line.audioVersions.length > 0 ? line.audioVersions[0].audioUrl : null);
+
+          if (audioUrl) {
+            console.log('[DownloadAll] Fetching audio:', line.characterName, line.text?.substring(0, 30), audioUrl.substring(0, 100));
+            const blob = await fetchAsBlob(audioUrl);
             if (blob) {
-              const ext = getExtension(line.audioUrl, blob.type);
+              const ext = getExtension(audioUrl, blob.type);
               sceneAudioFolder?.file(
                 `${String(i + 1).padStart(2, '0')}_${sanitizeFilename(line.characterName || 'unknown')}.${ext}`,
                 blob
               );
               audioSuccess++;
+              console.log('[DownloadAll] ✓ Audio added:', line.characterName);
+            } else {
+              console.warn('[DownloadAll] ✗ Failed to fetch audio:', line.characterName);
             }
+          } else {
+            console.log('[DownloadAll] No audio found for dialogue:', line.characterName, line.text?.substring(0, 30));
           }
         }
       }
@@ -285,10 +301,16 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
   }, [project, characters, scenes, exportProject]);
 
   const handleDownloadDialogues = useCallback(() => {
+    console.log('[DownloadDialogues] Starting. Project:', project.name, 'Scenes:', scenes.length);
+
     let dialoguesText = `# ${project.story?.title || project.name}\n# Complete Dialogues\n\n`;
+
+    let totalDialogues = 0;
 
     for (const scene of scenes) {
       const sceneNum = scene.number || scenes.indexOf(scene) + 1;
+      console.log(`[DownloadDialogues] Scene ${sceneNum}: ${scene.title}, Dialogue lines:`, scene.dialogue?.length || 0);
+
       dialoguesText += `═══════════════════════════════════════════════════════════════\n`;
       dialoguesText += `SCENE ${sceneNum}: ${scene.title}\n`;
       dialoguesText += `═══════════════════════════════════════════════════════════════\n\n`;
@@ -299,9 +321,13 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       } else {
         for (const line of dialogueLines) {
           dialoguesText += `${line.characterName}:\n"${line.text}"\n\n`;
+          totalDialogues++;
         }
       }
     }
+
+    console.log(`[DownloadDialogues] Complete. Total dialogue lines: ${totalDialogues}`);
+    console.log(`[DownloadDialogues] Text length: ${dialoguesText.length} characters`);
 
     const blob = new Blob([dialoguesText], { type: 'text/plain' });
     downloadBlob(blob, `${sanitizeFilename(project.name)}_dialogues.txt`);

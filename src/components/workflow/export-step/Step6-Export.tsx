@@ -16,6 +16,7 @@ import {
   useExportHandlers,
   useDownloadHandlers,
 } from '../export/hooks';
+import { useDialogueLoader } from '../voiceover/hooks';
 
 // Components
 import {
@@ -48,15 +49,18 @@ export function Step6Export({
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
   const [showMusicGenerateDialog, setShowMusicGenerateDialog] = useState(false);
 
-  // Get live project data from store, but prefer initialProject for full data (scenes array)
+  // Get live project data from store (updated with dialogue after loading)
   const storeProject = projects.find((p) => p.id === initialProject.id);
-  const project = storeProject?.scenes ? storeProject : initialProject;
+  const project = storeProject || initialProject;
 
   // Safe accessor for scenes array
   const scenes = project.scenes || [];
 
   // Get API keys for provider configuration
   const { data: apiKeys } = useApiKeys();
+
+  // Load dialogue data from database (same as Step 5)
+  const { dialogueLoaded, isLoadingDialogue } = useDialogueLoader(project);
 
   // Custom hooks
   const { stats } = useProjectStats(project);

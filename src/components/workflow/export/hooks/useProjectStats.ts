@@ -14,11 +14,36 @@ export function useProjectStats(project: Project): { stats: ProjectStats; credit
     const totalScenes = scenes.length;
     const scenesWithImages = scenes.filter((s) => s.imageUrl).length;
     const scenesWithVideos = scenes.filter((s) => s.videoUrl).length;
-    const totalDialogueLines = scenes.reduce((acc, s) => acc + (s.dialogue?.length || 0), 0);
+
+    // Count dialogue lines - scenes might not have dialogue loaded yet
+    const totalDialogueLines = scenes.reduce((acc, s) => {
+      const dialogue = s.dialogue;
+      if (!dialogue || dialogue.length === 0) {
+        console.log(`[useProjectStats] Scene ${s.number || '(unknown)'} (${s.title}): No dialogue array`);
+      }
+      return acc + (dialogue?.length || 0);
+    }, 0);
+
+    console.log(`[useProjectStats] Total dialogue lines: ${totalDialogueLines} across ${totalScenes} scenes`);
+
+    // Check both primary audioUrl and audioVersions array
     const dialogueLinesWithAudio = scenes.reduce(
-      (acc, s) => acc + (s.dialogue || []).filter((d) => d.audioUrl).length,
+      (acc, s) => {
+        const dialogueAudioCount = (s.dialogue || []).filter(
+          (d) => {
+            const hasAudio = !!(d.audioUrl || (d.audioVersions && d.audioVersions.length > 0));
+            if (!hasAudio && d.text) {
+              console.log(`[useProjectStats] Dialogue line has no audio: "${d.text?.substring(0, 30)}..."`);
+            }
+            return hasAudio;
+          }
+        ).length;
+        return acc + dialogueAudioCount;
+      },
       0
     );
+
+    console.log(`[useProjectStats] Dialogue lines with audio: ${dialogueLinesWithAudio}`);
 
     const overallProgress = Math.round(
       ((charactersWithImages + scenesWithImages + scenesWithVideos + dialogueLinesWithAudio) /
@@ -52,10 +77,10 @@ export function useProjectStats(project: Project): { stats: ProjectStats; credit
     const images = stats.scenesWithImages * COSTS.IMAGE_GENERATION + stats.charactersWithImages * COSTS.IMAGE_GENERATION;
     const videos = stats.scenesWithVideos * COSTS.VIDEO_GENERATION;
     const voiceovers = stats.dialogueLinesWithAudio * COSTS.VOICEOVER_LINE;
-    const scenes = stats.totalScenes * COSTS.SCENE_GENERATION;
-    const total = images + videos + voiceovers + scenes;
+    const scenesCost = stats.totalScenes * COSTS.SCENE_GENERATION;
+    const total = images + videos + voiceovers + scenesCost;
 
-    return { images, videos, voiceovers, scenes, total };
+    return { images, videos, voiceovers, scenes: scenesCost, total };
   }, [stats]);
 
   return { stats, credits };
