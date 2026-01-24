@@ -10,7 +10,7 @@ import type { VideoProvider } from '@/types/project';
 import type { Provider } from '@/lib/services/real-costs';
 
 // Number of videos to generate in parallel
-const PARALLEL_VIDEOS = 3; // Lower than images due to longer generation time
+const PARALLEL_VIDEOS = 1; // Process one by one for better progress visibility
 
 // Helper to enhance I2V prompt with motion speed hints
 function enhancePromptForMotion(prompt: string): string {
