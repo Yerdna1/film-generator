@@ -9,8 +9,8 @@ export const DEFAULT_MODELS: Record<string, string> = {
   // LLM / Scene Generation
   kieLlmModel: 'gemini-2.5-flash',
 
-  // Image Generation (cheapest option)
-  kieImageModel: 'grok-imagine/text-to-image',
+  // Image Generation (2K quality - recommended balance)
+  kieImageModel: 'nano-banana-pro-2k',
 
   // Video Generation
   kieVideoModel: 'bytedance/seedance-image-to-video',

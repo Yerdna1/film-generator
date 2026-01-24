@@ -134,28 +134,35 @@ export class KieImageProvider extends BaseImageProvider implements AsyncProvider
     // Map resolution to KIE format
     const resolutionMap: Record<string, string> = {
       'hd': '1024',
+      '1k': '1024',
       '2k': '1536',
       '4k': '2048',
     };
-    const kieResolution = resolutionMap[resolution] || '1536';
 
     // Get model configuration with database lookup
     let apiModelId = this.config.model || DEFAULT_MODELS.kieImageModel;
+    let modelDefaultResolution = resolution; // Default to passed resolution
 
-    // Check if we need to map model ID (for models without /, look up in DB)
-    if (this.config.model && !this.config.model.includes('/')) {
+    // Look up model in database to get apiModelId and defaultResolution
+    if (this.config.model) {
       try {
         const modelConfig = await prisma.kieImageModel.findUnique({
           where: { modelId: this.config.model },
-          select: { apiModelId: true },
+          select: { apiModelId: true, defaultResolution: true },
         });
         if (modelConfig?.apiModelId) {
           apiModelId = modelConfig.apiModelId;
+        }
+        // Use model's default resolution if specified
+        if (modelConfig?.defaultResolution) {
+          modelDefaultResolution = modelConfig.defaultResolution;
         }
       } catch (error) {
         console.error('Failed to lookup KIE image model:', error);
       }
     }
+
+    const kieResolution = resolutionMap[modelDefaultResolution] || '1536';
 
     // Build the request body
     const body: any = {
