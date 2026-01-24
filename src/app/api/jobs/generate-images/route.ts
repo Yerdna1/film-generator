@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { inngest } from '@/lib/inngest/client';
+import { shouldUseOwnApiKeys } from '@/lib/services/user-permissions';
 
 export const maxDuration = 30;
 
@@ -80,6 +81,10 @@ export async function POST(request: NextRequest) {
     });
     console.log('[Jobs] Job created:', job.id);
 
+    // Check if user should use their own API keys
+    const skipCreditCheck = await shouldUseOwnApiKeys(session.user.id, 'image');
+    console.log('[Jobs] Skip credit check:', skipCreditCheck);
+
     // Get reference images from characters
     const referenceImages = project.characters
       .filter(c => c.imageUrl)
@@ -105,6 +110,7 @@ export async function POST(request: NextRequest) {
         aspectRatio,
         resolution,
         referenceImages,
+        skipCreditCheck,
       },
     });
     console.log('[Jobs] Inngest event sent successfully');

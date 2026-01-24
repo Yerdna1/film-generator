@@ -32,7 +32,8 @@ async function generateSingleImage(
   projectId: string,
   aspectRatio: string,
   resolution: string,
-  referenceImages: Array<{ name: string; imageUrl: string }>
+  referenceImages: Array<{ name: string; imageUrl: string }>,
+  skipCreditCheck: boolean = false
 ): Promise<{ sceneId: string; success: boolean; error?: string }> {
   // Declare variables outside try block for error handler access
   let provider: string | undefined;
@@ -364,16 +365,21 @@ async function generateSingleImage(
       }
     }
 
-    await spendCredits(
-      userId,
-      creditCost,
-      'image',
-      `Image generation (scene ${scene.sceneNumber})`,
-      projectId,
-      provider as Provider,
-      undefined,
-      realCost
-    );
+    // Only deduct credits if not using own API keys
+    if (!skipCreditCheck) {
+      await spendCredits(
+        userId,
+        creditCost,
+        'image',
+        `Image generation (scene ${scene.sceneNumber})`,
+        projectId,
+        provider as Provider,
+        undefined,
+        realCost
+      );
+    } else {
+      console.log(`[Inngest] Skipping credit deduction for scene ${scene.sceneNumber} - user using own API keys`);
+    }
 
     console.log(`[Inngest] Scene ${scene.sceneNumber} completed`);
     return { sceneId: scene.sceneId, success: true };
@@ -410,7 +416,7 @@ export const generateImagesBatch = inngest.createFunction(
   },
   { event: 'image/generate.batch' },
   async ({ event, step }) => {
-    const { projectId, userId, batchId, scenes, aspectRatio, resolution, referenceImages } = event.data;
+    const { projectId, userId, batchId, scenes, aspectRatio, resolution, referenceImages, skipCreditCheck } = event.data;
 
     console.log(`[Inngest] Starting batch ${batchId} with ${scenes.length} scenes (parallel: ${PARALLEL_IMAGES})`);
 
@@ -453,7 +459,7 @@ export const generateImagesBatch = inngest.createFunction(
         console.log(`[Inngest] Parallel batch ${batchIndex + 1}/${totalBatches}: scenes ${startIdx + 1}-${endIdx}`);
 
         const promises = batchScenes.map((scene: { sceneId: string; sceneNumber: number; prompt: string }) =>
-          generateSingleImage(scene, userId, projectId, aspectRatio, resolution, referenceImages)
+          generateSingleImage(scene, userId, projectId, aspectRatio, resolution, referenceImages, skipCreditCheck)
         );
 
         return Promise.all(promises);
