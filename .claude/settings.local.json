@@ -136,7 +136,8 @@
       "Bash(vercel inspect:*)",
       "Bash(vercel ls:*)",
       "Bash(printf:*)",
-      "Bash(npx inngest-cli@latest dev:*)"
+      "Bash(npx inngest-cli@latest dev:*)",
+      "Bash(source:*)"
     ]
   }
 }
