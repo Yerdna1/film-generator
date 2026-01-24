@@ -19,7 +19,7 @@ export interface UseMusicFormReturn {
 export function useMusicForm({ apiKeys }: UseBackgroundMusicProps): UseMusicFormReturn {
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState<SunoModel>(DEFAULT_VALUES.MODEL);
-  const [instrumental, setInstrumental] = useState(DEFAULT_VALUES.INSTRUMENTAL);
+  const [instrumental, setInstrumental] = useState<boolean>(DEFAULT_VALUES.INSTRUMENTAL);
   const [provider, setProvider] = useState<MusicProvider>(
     (apiKeys?.musicProvider || DEFAULT_VALUES.PROVIDER) as MusicProvider
   );
