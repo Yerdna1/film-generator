@@ -1,4 +1,4 @@
-import { SceneVideoCard } from './components';
+import { SceneVideoCard } from '../components';
 import type { Project, Scene } from '@/types/project';
 
 interface VideoGridProps {
@@ -14,8 +14,8 @@ interface VideoGridProps {
   canDeleteDirectly: boolean;
   isReadOnly: boolean;
   isAuthenticated: boolean;
-  videoStates: Map<string, any>;
-  videoBlobCache: Map<string, string>;
+  videoStates: Record<string, any>;
+  videoBlobCache: React.RefObject<Map<string, string>>;
 
   // Callbacks
   getSceneStatus: (sceneId: string) => any;

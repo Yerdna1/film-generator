@@ -5,7 +5,7 @@ import { KieVideoModal } from '../components';
 import { UnifiedGenerateConfirmationDialog } from '../../shared/UnifiedGenerateConfirmationDialog';
 import { ACTION_COSTS } from '@/lib/services/real-costs';
 import type { Scene } from '@/types/project';
-import type { ApiKeysData } from '@/hooks/useApiKeys';
+import type { ApiKeysData } from '@/hooks/use-api-keys';
 
 interface VideoGenerationDialogsProps {
   project: any;
@@ -26,8 +26,8 @@ interface VideoGenerationDialogsProps {
   onCloseInsufficientCredits: () => void;
   onCloseKieModal: () => void;
   onCloseConfirmDialog: () => void;
-  onConfirmGeneration: () => void;
-  onUseAppCredits: () => void;
+  onConfirmGeneration: () => Promise<void>;
+  onUseAppCredits: () => Promise<void>;
   onSaveKieApiKey: (apiKey: string, model: string) => Promise<void>;
   onRequestSent: () => void;
   onOpenChangeRequestDialog: (open: boolean) => void;

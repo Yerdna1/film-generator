@@ -173,7 +173,7 @@ export function CaptionForm({
           </Label>
           <Select
             value={caption.style.position}
-            onValueChange={(value) => onUpdateStyle('position', value)}
+            onValueChange={(value) => onUpdateStyle('position', value as 'top' | 'center' | 'bottom')}
           >
             <SelectTrigger className="bg-white/5 border-white/10">
               <SelectValue />
@@ -197,7 +197,7 @@ export function CaptionForm({
           </Label>
           <Select
             value={caption.style.fontSize}
-            onValueChange={(value) => onUpdateStyle('fontSize', value)}
+            onValueChange={(value) => onUpdateStyle('fontSize', value as 'small' | 'medium' | 'large')}
           >
             <SelectTrigger className="bg-white/5 border-white/10">
               <SelectValue />
@@ -218,7 +218,7 @@ export function CaptionForm({
           </Label>
           <Select
             value={caption.style.fontFamily}
-            onValueChange={(value) => onUpdateStyle('fontFamily', value)}
+            onValueChange={(value) => onUpdateStyle('fontFamily', value as 'default' | 'serif' | 'mono')}
           >
             <SelectTrigger className="bg-white/5 border-white/10">
               <SelectValue />

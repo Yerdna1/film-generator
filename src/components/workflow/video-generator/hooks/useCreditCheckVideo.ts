@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/lib/toast';
-import type { ApiKeysData } from '@/hooks/useApiKeys';
+import type { ApiKeysData } from '@/hooks/use-api-keys';
 
 export interface PendingVideoGeneration {
   type: 'single' | 'all' | 'selected';
