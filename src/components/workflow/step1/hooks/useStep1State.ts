@@ -95,6 +95,43 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     }
   }, [currentProject.masterPrompt]);
 
+  // Sync aspectRatio when project settings change (for full data load from API)
+  useEffect(() => {
+    if (currentProject.settings?.aspectRatio) {
+      setAspectRatio(currentProject.settings.aspectRatio);
+    }
+  }, [currentProject.settings?.aspectRatio]);
+
+  // Sync videoLanguage when project settings change
+  useEffect(() => {
+    if (currentProject.settings?.voiceLanguage) {
+      setVideoLanguage(currentProject.settings.voiceLanguage);
+    }
+  }, [currentProject.settings?.voiceLanguage]);
+
+  // Sync storyModel when project settings change
+  useEffect(() => {
+    if (currentProject.settings?.storyModel) {
+      setStoryModel(currentProject.settings.storyModel);
+    }
+  }, [currentProject.settings?.storyModel]);
+
+  // Sync styleModel when project settings change
+  useEffect(() => {
+    if (currentProject.settings?.imageResolution) {
+      const model = currentProject.settings.imageResolution === '4k' ? 'flux' :
+                    currentProject.settings.imageResolution === '2k' ? 'midjourney' : 'dall-e-3';
+      setStyleModel(model);
+    }
+  }, [currentProject.settings?.imageResolution]);
+
+  // Sync voiceProvider when project settings change
+  useEffect(() => {
+    if (currentProject.settings?.voiceProvider) {
+      setVoiceProvider(currentProject.settings.voiceProvider);
+    }
+  }, [currentProject.settings?.voiceProvider]);
+
   // Update project settings when options change
   useEffect(() => {
     if (currentProject.id) {
