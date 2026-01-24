@@ -49,8 +49,8 @@ export const API_PATHS = {
 
   // KIE.ai
   kie: {
-    // KIE uses model-specific endpoints for LLM
-    llm: (model: string) => `/${model}/v1/chat/completions`,
+    // KIE uses a single endpoint for LLM (model sent in request body)
+    llm: () => '/api/v1/chat/completions',
     // Task-based endpoints for other services
     createTask: '/api/v1/jobs/createTask',
     taskStatus: '/api/v1/jobs/recordInfo',
@@ -129,7 +129,7 @@ export function getEndpointUrl(
 
   // Handle function paths (e.g., for parameterized endpoints)
   const path = typeof pathConfig === 'function'
-    ? (pathConfig as (...args: string[]) => string)(...params)
+    ? (pathConfig as (...args: string[]) => string)(...(params.length > 0 ? params : []))
     : pathConfig;
 
   return buildApiUrl(provider as keyof typeof API_BASE_URLS, path);

@@ -258,13 +258,27 @@ export async function POST(request: NextRequest) {
       case 'openrouter':
 
       case 'kie':
+        // KIE can return data in multiple formats
         generatedText = response.data?.choices?.[0]?.message?.content;
-        // KIE wrapped format
+
+        // Check KIE wrapped format
         if (!generatedText && response.data?.data) {
-          generatedText = response.data.data.choices?.[0]?.message?.content ||
-            response.data.data.output ||
-            response.data.data.text ||
-            response.data.data.result;
+          const kieData = response.data.data;
+          generatedText = kieData.choices?.[0]?.message?.content ||
+            kieData.output ||
+            kieData.text ||
+            kieData.result ||
+            kieData.response;
+        }
+
+        // Check for direct message property
+        if (!generatedText && response.data?.message) {
+          generatedText = response.data.message;
+        }
+
+        // Check if response itself is a string
+        if (!generatedText && typeof response.data === 'string') {
+          generatedText = response.data;
         }
         break;
 
@@ -281,9 +295,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!generatedText) {
-      console.error('No text generated from response:', response.data);
+      console.error('No text generated from response:', {
+        provider: response.provider,
+        data: JSON.stringify(response.data, null, 2),
+        dataType: typeof response.data,
+        dataKeys: response.data ? Object.keys(response.data) : []
+      });
       return NextResponse.json(
-        { error: 'No text generated from the model' },
+        { error: `No text generated from ${response.provider}. Check console for response structure.` },
         { status: 500 }
       );
     }

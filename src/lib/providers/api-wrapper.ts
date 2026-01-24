@@ -158,6 +158,12 @@ export async function callExternalApi<T = any>(
     console.log(`[API Wrapper] Sending ${provider} ${type} request:`, {
       url,
       method,
+      headers: Object.keys(headers).reduce((acc, key) => {
+        acc[key] = key.toLowerCase().includes('auth') || key.toLowerCase().includes('key')
+          ? '[REDACTED]'
+          : headers[key];
+        return acc;
+      }, {} as Record<string, string>),
       bodyPreview: body ? JSON.stringify(body).slice(0, 300) : 'no body',
     });
     const response = await fetch(url, {
@@ -187,6 +193,13 @@ export async function callExternalApi<T = any>(
         model,
       };
     }
+
+    console.log(`[API Wrapper] ${provider} ${type} response received:`, {
+      status: response.status,
+      hasData: !!responseData,
+      dataKeys: responseData ? Object.keys(responseData).slice(0, 10) : [],
+      dataPreview: responseData ? JSON.stringify(responseData).slice(0, 500) : null,
+    });
 
     return {
       data: responseData,
@@ -231,8 +244,7 @@ function buildProviderUrl(provider: string, type: GenerationType, model?: string
         case 'openrouter':
           return getEndpointUrl('openrouter', 'chat');
         case 'kie':
-          if (!model) throw new Error('Model required for KIE LLM');
-          return getEndpointUrl('kie', 'llm', model);
+          return getEndpointUrl('kie', 'llm');
         case 'gemini':
           return getEndpointUrl('gemini', 'generateContent', model || 'gemini-2.0-flash-exp');
         case 'openai':
