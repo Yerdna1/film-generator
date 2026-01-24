@@ -1,5 +1,5 @@
 // Music generation Inngest function
-import { inngest } from '../client';
+import { inngest } from '../../client';
 import { prisma } from '@/lib/db/prisma';
 import { getProviderConfig } from '@/lib/providers';
 import { generateMusic } from './music-generator';

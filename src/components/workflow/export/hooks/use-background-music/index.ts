@@ -3,6 +3,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { BackgroundMusic } from '@/types/project';
 import type { UseBackgroundMusicProps, UseBackgroundMusicReturn } from './types';
@@ -55,7 +56,7 @@ export function useBackgroundMusic(props: UseBackgroundMusicProps): UseBackgroun
     if (!previewUrl) return;
 
     const newMusic: BackgroundMusic = {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       title: `Generated: ${form.prompt.slice(0, 50)}...`,
       audioUrl: previewUrl,
       duration: 0, // Will be set when audio loads

@@ -337,7 +337,7 @@
   },
   "steps": {
     "prompt": {
-      "title": "Story & Prompt",
+      "title": "Story",
       "description": "Define your story concept and generate the master prompt",
       "storyTitle": "Story Title",
       "storyTitlePlaceholder": "e.g., The Desert Search",
@@ -815,7 +815,7 @@
     "configureApiKeys": "Configure API Keys",
     "tip": "Tip",
     "steps": {
-      "storyPrompt": "Story & Prompt",
+      "storyPrompt": "Story",
       "storyPromptDesc": "Define your story concept, choose a visual style (Disney/Pixar, Realistic, Anime), and generate the master prompt that will guide all content creation.",
       "characters": "Characters",
       "charactersDesc": "Create and customize your film characters. Generate character images using AI or upload your own. Each character gets a visual description for consistency.",
