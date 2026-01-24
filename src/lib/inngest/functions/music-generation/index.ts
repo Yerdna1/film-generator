@@ -56,25 +56,12 @@ export const generateMusicBatch = inngest.createFunction(
       userHasOwnApiKey,
     };
 
-    // Generate music
-    const result = await step.run('generate-music', async () => {
-      return await generateMusic(request, options);
-    });
+    // Generate music and store in DB immediately (avoid passing large data between steps)
+    const generationResult = await step.run('generate-music', async () => {
+      const result = await generateMusic(request, options);
 
-    // Update batch status
-    await step.run('update-batch-status-final', async () => {
-      if (result.success) {
-        await prisma.musicGenerationJob.update({
-          where: { id: batchId },
-          data: {
-            status: 'completed',
-            completedAt: new Date(),
-            progress: 100,
-            audioUrl: result.audioUrl,
-            title: result.title,
-          },
-        });
-      } else {
+      if (!result.success) {
+        // Update job to failed status immediately
         await prisma.musicGenerationJob.update({
           where: { id: batchId },
           data: {
@@ -84,11 +71,32 @@ export const generateMusicBatch = inngest.createFunction(
             errorDetails: result.error || 'Music generation failed',
           },
         });
+        throw new Error(result.error || 'Music generation failed');
       }
+
+      // Store audioUrl in DB immediately (do NOT return it from step)
+      await prisma.musicGenerationJob.update({
+        where: { id: batchId },
+        data: {
+          status: 'completed',
+          completedAt: new Date(),
+          progress: 100,
+          audioUrl: result.audioUrl,
+          title: result.title,
+        },
+      });
+
+      // Return only minimal data
+      return { success: true, title: result.title };
     });
 
-    console.log(`[Inngest] Music generation ${batchId} completed: ${result.success ? 'success' : 'failed'}`);
+    console.log(`[Inngest] Music generation ${batchId} completed successfully`);
 
-    return { batchId, result };
+    // Return minimal data
+    return {
+      batchId,
+      success: true,
+      title: generationResult.title,
+    };
   }
 );
