@@ -372,6 +372,7 @@ async function main() {
   await prisma.kieImageModel.create({
     data: {
       modelId: 'seedream/4-5-text-to-image',
+      apiModelId: 'seedream-4.5/2k',
       name: 'Seedream v4.5',
       provider: 'ByteDance',
       description: 'Best Seedream quality, recommended (20 credits)',
