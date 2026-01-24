@@ -48,12 +48,13 @@ export function BackgroundMusicSection({
           <div className="flex items-center gap-2.5">
             <button
               onClick={backgroundMusic.togglePreview}
-              className="w-9 h-9 rounded-full bg-purple-500/20 hover:bg-purple-500/30 flex items-center justify-center transition-all"
+              className="w-10 h-10 rounded-full bg-purple-500/30 hover:bg-purple-500/40 flex items-center justify-center transition-all ring-2 ring-purple-500/40"
+              title={backgroundMusic.isPreviewPlaying ? "Pause music" : "Play music"}
             >
               {backgroundMusic.isPreviewPlaying ? (
-                <Pause className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <Pause className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               ) : (
-                <Play className="w-4 h-4 text-purple-600 dark:text-purple-400 ml-0.5" />
+                <Play className="w-5 h-5 text-purple-600 dark:text-purple-400 ml-0.5" />
               )}
             </button>
             <div className="flex-1 min-w-0">
@@ -158,6 +159,43 @@ export function BackgroundMusicSection({
             )}
           </div>
         )
+      )}
+
+      {/* Show apply button when there's a preview but no saved music */}
+      {backgroundMusic.previewUrl && !backgroundMusic.hasMusic && (
+        <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+          <p className="text-xs text-green-600 dark:text-green-400 mb-2">
+            Music generated successfully! Click below to save it to your project.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                backgroundMusic.applyPreviewToProject();
+              }}
+              size="sm"
+              className="flex-1 bg-green-500 hover:bg-green-600"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+              Save to Project
+            </Button>
+            <button
+              onClick={backgroundMusic.togglePreview}
+              className="px-3 py-1.5 rounded-md bg-purple-500/20 hover:bg-purple-500/30 text-purple-600 dark:text-purple-400 text-sm transition-all flex items-center gap-1.5"
+            >
+              {backgroundMusic.isPreviewPlaying ? (
+                <>
+                  <Pause className="w-3.5 h-3.5" />
+                  Pause Preview
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5" />
+                  Play Preview
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Preview audio element */}

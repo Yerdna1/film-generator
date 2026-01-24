@@ -35,10 +35,12 @@ interface RenderOptionsPanelProps {
   downloadingImages?: boolean;
   downloadingVideos?: boolean;
   downloadingAudio?: boolean;
+  downloadingMusic?: boolean;
   downloadingAll?: boolean;
   onDownloadImages?: () => Promise<void>;
   onDownloadVideos?: () => Promise<void>;
   onDownloadAudio?: () => Promise<void>;
+  onDownloadMusic?: () => Promise<void>;
   onDownloadDialogues?: () => void;
   onDownloadAll?: () => Promise<void>;
 }
@@ -56,10 +58,12 @@ export function RenderOptionsPanel({
   downloadingImages,
   downloadingVideos,
   downloadingAudio,
+  downloadingMusic,
   downloadingAll,
   onDownloadImages,
   onDownloadVideos,
   onDownloadAudio,
+  onDownloadMusic,
   onDownloadDialogues,
   onDownloadAll,
 }: RenderOptionsPanelProps) {
@@ -175,12 +179,15 @@ export function RenderOptionsPanel({
                         downloadingImages={downloadingImages}
                         downloadingVideos={downloadingVideos}
                         downloadingAudio={downloadingAudio}
+                        downloadingMusic={downloadingMusic}
                         downloadingAll={downloadingAll}
                         onDownloadImages={onDownloadImages}
                         onDownloadVideos={onDownloadVideos}
                         onDownloadAudio={onDownloadAudio}
+                        onDownloadMusic={onDownloadMusic}
                         onDownloadDialogues={onDownloadDialogues}
                         onDownloadAll={onDownloadAll}
+                        project={project}
                       />
                     </TabsContent>
                   </div>

@@ -73,21 +73,51 @@ export async function checkPageVisibility(options: PageVisibilityCheckOptions): 
     };
   }
 
+  // Check role-based access AND subscription status-based access
+  // User passes if EITHER role matches OR subscription status matches (OR logic, not AND)
+  let hasRoleAccess = true;
+  let hasSubscriptionAccess = true;
+
   // Check role-based access
   const allowedRoles = matchingRule.allowedRoles as string | string[];
   if (user && allowedRoles !== '*') {
     const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-    if (!roles.includes(user.role)) {
-      return {
-        visible: false,
-        reason: `Page requires one of these roles: ${roles.join(', ')}`,
-        rule: {
-          path: matchingRule.path,
-          hideIfUserOwnsApiKey: matchingRule.hideIfUserOwnsApiKey,
-          allowedRoles: allowedRoles,
-        },
-      };
+    hasRoleAccess = roles.includes(user.role);
+  }
+
+  // Check subscription status-based access
+  if (matchingRule.allowedSubscriptionStatus && matchingRule.allowedSubscriptionStatus !== null && user) {
+    // Get user's subscription status
+    const subscription = await prisma.subscription.findUnique({
+      where: { userId: user.id },
+      select: { status: true },
+    });
+
+    const userSubscriptionStatus = subscription?.status || 'free';
+    const allowedStatuses = matchingRule.allowedSubscriptionStatus as string[];
+    hasSubscriptionAccess = allowedStatuses.includes(userSubscriptionStatus);
+  }
+
+  // User must pass AT LEAST ONE check (OR logic)
+  if (!hasRoleAccess && !hasSubscriptionAccess) {
+    const reasons = [];
+    if (!hasRoleAccess) {
+      const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      reasons.push(`role: ${roles.join(', ')}`);
     }
+    if (!hasSubscriptionAccess) {
+      const allowedStatuses = matchingRule.allowedSubscriptionStatus as string[];
+      reasons.push(`subscription: ${allowedStatuses.join(', ')}`);
+    }
+    return {
+      visible: false,
+      reason: `Page requires one of: ${reasons.join(' OR ')}`,
+      rule: {
+        path: matchingRule.path,
+        hideIfUserOwnsApiKey: matchingRule.hideIfUserOwnsApiKey,
+        allowedRoles: matchingRule.allowedRoles as string | string[],
+      },
+    };
   }
 
   // Page is visible

@@ -56,6 +56,7 @@ export interface DownloadState {
   downloadingImages: boolean;
   downloadingVideos: boolean;
   downloadingAudio: boolean;
+  downloadingMusic: boolean;
   downloadingAll: boolean;
 }
 
@@ -71,6 +72,7 @@ export interface DownloadHandlers {
   handleDownloadImages: () => Promise<void>;
   handleDownloadVideos: () => Promise<void>;
   handleDownloadAudio: () => Promise<void>;
+  handleDownloadMusic: () => Promise<void>;
   handleDownloadAll: () => Promise<void>;
   handleDownloadDialogues: () => void;
 }

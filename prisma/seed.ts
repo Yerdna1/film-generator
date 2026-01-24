@@ -164,9 +164,9 @@ async function main() {
       path: '/settings',
       name: 'Settings',
       description: 'API keys and provider configuration',
-      allowedRoles: '*', // All roles
-      allowedSubscriptionStatus: null, // All subscription statuses
-      hideIfUserOwnsApiKey: false, // Show to everyone (change to true to hide from users with own API keys)
+      allowedRoles: JSON.stringify(['admin']), // Admins can always access
+      allowedSubscriptionStatus: JSON.stringify(['premium', 'trial']), // Premium and trial users
+      hideIfUserOwnsApiKey: false, // Keep false - we're using subscription status instead
       isEnabled: true,
       priority: 100,
     },
@@ -174,8 +174,7 @@ async function main() {
       path: '/projects',
       name: 'Projects',
       description: 'User projects',
-      allowedRoles: '*',
-      allowedSubscriptionStatus: null,
+      allowedRoles: JSON.stringify('*'),
       hideIfUserOwnsApiKey: false,
       isEnabled: true,
       priority: 0,
@@ -184,8 +183,7 @@ async function main() {
       path: '/statistics',
       name: 'Statistics',
       description: 'User statistics and analytics',
-      allowedRoles: '*',
-      allowedSubscriptionStatus: null,
+      allowedRoles: JSON.stringify('*'),
       hideIfUserOwnsApiKey: false,
       isEnabled: true,
       priority: 0,
@@ -194,8 +192,7 @@ async function main() {
       path: '/profile',
       name: 'Profile',
       description: 'User profile',
-      allowedRoles: '*',
-      allowedSubscriptionStatus: null,
+      allowedRoles: JSON.stringify('*'),
       hideIfUserOwnsApiKey: false,
       isEnabled: true,
       priority: 0,
@@ -204,8 +201,7 @@ async function main() {
       path: '/billing',
       name: 'Billing',
       description: 'Billing and subscription management',
-      allowedRoles: '*',
-      allowedSubscriptionStatus: null,
+      allowedRoles: JSON.stringify('*'),
       hideIfUserOwnsApiKey: false,
       isEnabled: true,
       priority: 0,
@@ -215,7 +211,6 @@ async function main() {
       name: 'Admin',
       description: 'Admin dashboard',
       allowedRoles: JSON.stringify(['admin']), // Only admins
-      allowedSubscriptionStatus: null,
       hideIfUserOwnsApiKey: false,
       isEnabled: true,
       priority: 100,

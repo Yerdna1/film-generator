@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
 import type { ExportHandlers, ProjectStats } from '../../export/types';
+import type { Project } from '@/types/project';
 
 interface DownloadTabProps {
   exportHandlers: ExportHandlers;
@@ -23,12 +24,15 @@ interface DownloadTabProps {
   downloadingImages?: boolean;
   downloadingVideos?: boolean;
   downloadingAudio?: boolean;
+  downloadingMusic?: boolean;
   downloadingAll?: boolean;
   onDownloadImages?: () => Promise<void>;
   onDownloadVideos?: () => Promise<void>;
   onDownloadAudio?: () => Promise<void>;
+  onDownloadMusic?: () => Promise<void>;
   onDownloadDialogues?: () => void;
   onDownloadAll?: () => Promise<void>;
+  project?: Project;
 }
 
 export function DownloadTab({
@@ -37,12 +41,15 @@ export function DownloadTab({
   downloadingImages = false,
   downloadingVideos = false,
   downloadingAudio = false,
+  downloadingMusic = false,
   downloadingAll = false,
   onDownloadImages,
   onDownloadVideos,
   onDownloadAudio,
+  onDownloadMusic,
   onDownloadDialogues,
   onDownloadAll,
+  project,
 }: DownloadTabProps) {
   const t = useTranslations();
 
@@ -152,6 +159,24 @@ export function DownloadTab({
                 <MessageSquareText className="w-4 h-4 text-cyan-400" />
                 <span className="text-[10px]">Dialogues</span>
                 <span className="text-[9px] text-muted-foreground">{stats.totalDialogueLines}</span>
+              </Button>
+            )}
+            {onDownloadMusic && (
+              <Button
+                onClick={onDownloadMusic}
+                disabled={downloadingMusic || !project?.backgroundMusic}
+                variant="outline"
+                className="h-auto py-2.5 flex flex-col items-center gap-1.5 border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500/50"
+              >
+                {downloadingMusic ? (
+                  <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                ) : (
+                  <Music className="w-4 h-4 text-purple-400" />
+                )}
+                <span className="text-[10px]">Music</span>
+                <span className="text-[9px] text-muted-foreground">
+                  {project?.backgroundMusic ? '1' : '0'}
+                </span>
               </Button>
             )}
             {onDownloadAll && (

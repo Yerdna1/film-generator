@@ -17,6 +17,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
   const [downloadingVideos, setDownloadingVideos] = useState(false);
   const [downloadingAudio, setDownloadingAudio] = useState(false);
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadingMusic, setDownloadingMusic] = useState(false);
 
   const handleDownloadImages = useCallback(async () => {
     setDownloadingImages(true);
@@ -170,6 +171,32 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
       setDownloadingAudio(false);
     }
   }, [scenes, project.name]);
+
+  const handleDownloadMusic = useCallback(async () => {
+    setDownloadingMusic(true);
+    try {
+      console.log('[DownloadMusic] Starting download');
+
+      if (!project.backgroundMusic?.audioUrl) {
+        console.log('[DownloadMusic] No background music found');
+        return;
+      }
+
+      const blob = await fetchAsBlob(project.backgroundMusic.audioUrl);
+      if (blob) {
+        const ext = getExtension(project.backgroundMusic.audioUrl, blob.type);
+        const musicTitle = project.backgroundMusic.title || 'background_music';
+        downloadBlob(blob, `${sanitizeFilename(musicTitle)}.${ext}`);
+        console.log('[DownloadMusic] ✓ Music downloaded:', musicTitle);
+      } else {
+        console.error('[DownloadMusic] ✗ Failed to fetch background music');
+      }
+    } catch (error) {
+      console.error('Failed to download music:', error);
+    } finally {
+      setDownloadingMusic(false);
+    }
+  }, [project.backgroundMusic]);
 
   const handleDownloadAll = useCallback(async () => {
     setDownloadingAll(true);
@@ -351,10 +378,12 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
     downloadingImages,
     downloadingVideos,
     downloadingAudio,
+    downloadingMusic,
     downloadingAll,
     handleDownloadImages,
     handleDownloadVideos,
     handleDownloadAudio,
+    handleDownloadMusic,
     handleDownloadAll,
     handleDownloadDialogues,
   };

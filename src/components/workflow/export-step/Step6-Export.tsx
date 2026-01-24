@@ -133,10 +133,12 @@ export function Step6Export({
           downloadingImages={downloadHandlers.downloadingImages}
           downloadingVideos={downloadHandlers.downloadingVideos}
           downloadingAudio={downloadHandlers.downloadingAudio}
+          downloadingMusic={downloadHandlers.downloadingMusic}
           downloadingAll={downloadHandlers.downloadingAll}
           onDownloadImages={downloadHandlers.handleDownloadImages}
           onDownloadVideos={downloadHandlers.handleDownloadVideos}
           onDownloadAudio={downloadHandlers.handleDownloadAudio}
+          onDownloadMusic={downloadHandlers.handleDownloadMusic}
           onDownloadDialogues={downloadHandlers.handleDownloadDialogues}
           onDownloadAll={downloadHandlers.handleDownloadAll}
         />
