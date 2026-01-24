@@ -157,6 +157,80 @@ async function main() {
   }
 
   console.log(`Action costs seeded: ${actionCosts.length} entries`);
+
+  // Seed page visibility rules
+  const pageVisibilities = [
+    {
+      path: '/settings',
+      name: 'Settings',
+      description: 'API keys and provider configuration',
+      allowedRoles: '*', // All roles
+      allowedSubscriptionStatus: null, // All subscription statuses
+      hideIfUserOwnsApiKey: false, // Show to everyone (change to true to hide from users with own API keys)
+      isEnabled: true,
+      priority: 100,
+    },
+    {
+      path: '/projects',
+      name: 'Projects',
+      description: 'User projects',
+      allowedRoles: '*',
+      allowedSubscriptionStatus: null,
+      hideIfUserOwnsApiKey: false,
+      isEnabled: true,
+      priority: 0,
+    },
+    {
+      path: '/statistics',
+      name: 'Statistics',
+      description: 'User statistics and analytics',
+      allowedRoles: '*',
+      allowedSubscriptionStatus: null,
+      hideIfUserOwnsApiKey: false,
+      isEnabled: true,
+      priority: 0,
+    },
+    {
+      path: '/profile',
+      name: 'Profile',
+      description: 'User profile',
+      allowedRoles: '*',
+      allowedSubscriptionStatus: null,
+      hideIfUserOwnsApiKey: false,
+      isEnabled: true,
+      priority: 0,
+    },
+    {
+      path: '/billing',
+      name: 'Billing',
+      description: 'Billing and subscription management',
+      allowedRoles: '*',
+      allowedSubscriptionStatus: null,
+      hideIfUserOwnsApiKey: false,
+      isEnabled: true,
+      priority: 0,
+    },
+    {
+      path: '/admin',
+      name: 'Admin',
+      description: 'Admin dashboard',
+      allowedRoles: JSON.stringify(['admin']), // Only admins
+      allowedSubscriptionStatus: null,
+      hideIfUserOwnsApiKey: false,
+      isEnabled: true,
+      priority: 100,
+    },
+  ];
+
+  for (const pageVisibility of pageVisibilities) {
+    await prisma.pageVisibility.upsert({
+      where: { path: pageVisibility.path },
+      update: pageVisibility,
+      create: pageVisibility,
+    });
+  }
+
+  console.log(`Page visibility rules seeded: ${pageVisibilities.length} entries`);
   console.log('Database seed completed successfully!');
 }
 

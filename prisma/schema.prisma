@@ -929,3 +929,21 @@ model LlmModel {
   @@index([isActive])
   @@index([modelId])
 }
+
+model PageVisibility {
+  id                   String   @id @default(cuid())
+  path                 String   @unique
+  name                 String
+  description          String?
+  allowedRoles         Json     // "*" for all roles, or array like ["admin", "premium"]
+  allowedSubscriptionStatus Json? // null for all, or array like ["premium", "trial"]
+  hideIfUserOwnsApiKey  Boolean  @default(false) // Hide page if user has their own API keys configured
+  isEnabled            Boolean  @default(true) // Master switch to enable/disable this visibility rule
+  priority             Int      @default(0) // Higher priority rules are checked first
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([path])
+  @@index([isEnabled])
+  @@index([priority])
+}
