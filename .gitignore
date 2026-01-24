@@ -70,3 +70,4 @@ logs/
 /playwright/.cache/
 .playwright-mcp/
 modal/__pycache__/
+.env*.local

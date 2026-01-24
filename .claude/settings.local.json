@@ -130,7 +130,12 @@
       "Bash(else echo \"No .env.local found\")",
       "Bash(npx prisma db pull:*)",
       "Bash(npm run type-check:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(vercel link:*)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(vercel ls:*)",
+      "Bash(printf:*)"
     ]
   }
 }
