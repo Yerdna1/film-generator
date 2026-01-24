@@ -150,7 +150,7 @@ export interface UploadResult {
  */
 export async function uploadBase64ToS3(
   base64Data: string,
-  folder: string = 'film-generator'
+  folder: string = 'artflowly'
 ): Promise<UploadResult> {
   try {
     const bucket = process.env.AWS_S3_BUCKET;
@@ -272,7 +272,7 @@ export async function uploadBase64ToS3(
  */
 export async function uploadMultipleToS3(
   images: string[],
-  folder: string = 'film-generator'
+  folder: string = 'artflowly'
 ): Promise<UploadResult[]> {
   return Promise.all(images.map((img) => uploadBase64ToS3(img, folder)));
 }
@@ -287,7 +287,7 @@ export async function uploadImageToS3(
   base64Data: string,
   projectId?: string
 ): Promise<UploadResult> {
-  const folder = projectId ? `film-generator/${projectId}/images` : 'film-generator/images';
+  const folder = projectId ? `artflowly/${projectId}/images` : 'artflowly/images';
   return uploadBase64ToS3(base64Data, folder);
 }
 
@@ -301,7 +301,7 @@ export async function uploadVideoToS3(
   base64Data: string,
   projectId?: string
 ): Promise<UploadResult> {
-  const folder = projectId ? `film-generator/${projectId}/videos` : 'film-generator/videos';
+  const folder = projectId ? `artflowly/${projectId}/videos` : 'artflowly/videos';
   return uploadBase64ToS3(base64Data, folder);
 }
 
@@ -315,7 +315,7 @@ export async function uploadAudioToS3(
   base64Data: string,
   projectId?: string
 ): Promise<UploadResult> {
-  const folder = projectId ? `film-generator/${projectId}/audio` : 'film-generator/audio';
+  const folder = projectId ? `artflowly/${projectId}/audio` : 'artflowly/audio';
   return uploadBase64ToS3(base64Data, folder);
 }
 

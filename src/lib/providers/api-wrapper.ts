@@ -322,7 +322,7 @@ async function callClaudeSDK(prompt: string): Promise<string> {
         HOME: '/Users/andrejpt',
         USER: 'andrejpt',
       },
-      cwd: '/Volumes/DATA/Python/film-generator',
+      cwd: '/Volumes/DATA/Python/artflowly_film-generator',
     });
 
     if (result.error) {

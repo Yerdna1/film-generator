@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const allowedDomains = [
     's3.eu-central-1.amazonaws.com',
     's3.amazonaws.com',
-    'film-generator-andrej-2026.s3.eu-central-1.amazonaws.com',
+    'artflowly-andrej-2026.s3.eu-central-1.amazonaws.com',
     'aiquickdraw.com',
     'tempfile.aiquickdraw.com',
   ];

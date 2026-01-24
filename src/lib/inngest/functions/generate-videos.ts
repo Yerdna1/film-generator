@@ -66,7 +66,7 @@ async function generateSingleVideo(
     // Upload base64 image to S3 if needed (KIE requires public URLs)
     if (scene.imageUrl.startsWith('data:') && provider === 'kie' && isS3Configured()) {
       console.log(`[Video ${scene.sceneNumber}] Uploading base64 image to S3...`);
-      const uploadResult = await uploadBase64ToS3(scene.imageUrl, 'film-generator/scenes');
+      const uploadResult = await uploadBase64ToS3(scene.imageUrl, 'artflowly/scenes');
       if (uploadResult.success && uploadResult.url) {
         publicImageUrl = uploadResult.url;
       } else {

@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     let publicImageUrl = imageUrl;
     if (imageUrl.startsWith('data:')) {
       console.log('Uploading base64 image to S3...');
-      const uploadResult = await uploadBase64ToS3(imageUrl, 'film-generator/scenes');
+      const uploadResult = await uploadBase64ToS3(imageUrl, 'artflowly/scenes');
 
       if (!uploadResult.success || !uploadResult.url) {
         return NextResponse.json(

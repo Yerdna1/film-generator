@@ -65,7 +65,7 @@ export function useExportHandlers(project: Project): ExportHandlers {
         width: 1920,
         height: 1080,
         createdAt: new Date().toISOString(),
-        generator: 'Film Generator AI Studio',
+        generator: 'ArtFlowly AI Studio',
       },
       tracks: {
         video: scenes.map((scene, index) => ({

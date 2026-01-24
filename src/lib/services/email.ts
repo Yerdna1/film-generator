@@ -79,7 +79,7 @@ export async function sendInvitationEmail({
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center;">
               <h1 style="margin: 0; font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #a855f7, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                Film Generator
+                ArtFlowly
               </h1>
             </td>
           </tr>
@@ -145,7 +145,7 @@ export async function sendInvitationEmail({
     `.trim();
 
     await resend.emails.send({
-      from: 'Film Generator <noreply@artflowly.com>',
+      from: 'ArtFlowly <noreply@artflowly.com>',
       to,
       subject: `${inviterName} invited you to collaborate on "${projectName}"`,
       html,
@@ -218,7 +218,7 @@ export async function sendNotificationEmail({
     `.trim();
 
     await resend.emails.send({
-      from: 'Film Generator <noreply@artflowly.com>',
+      from: 'ArtFlowly <noreply@artflowly.com>',
       to,
       subject,
       html,

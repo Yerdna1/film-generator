@@ -214,7 +214,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           await sendNotificationEmail({
             to: user.email,
             subject: 'Your Account Has Been Approved!',
-            title: 'Welcome to Film Generator!',
+            title: 'Welcome to ArtFlowly!',
             message: 'Great news! Your account has been approved by the administrator. You can now start creating amazing AI-powered films.',
             actionUrl: appUrl,
             actionText: 'Start Creating',

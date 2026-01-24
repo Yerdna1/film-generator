@@ -46,6 +46,8 @@ model User {
   updatedAt                DateTime              @updatedAt
   isBlocked                Boolean               @default(false)
   isApproved               Boolean               @default(false)
+  resetToken               String?               @unique
+  resetTokenExpires        DateTime?
   accounts                 Account[]
   apiKeys                  ApiKeys?
   credits                  Credits?

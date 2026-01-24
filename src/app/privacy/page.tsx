@@ -97,7 +97,7 @@ export default function PrivacyPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold m-0">{t('title')}</h2>
-                    <p className="text-muted-foreground m-0">Film Generator</p>
+                    <p className="text-muted-foreground m-0">ArtFlowly</p>
                   </div>
                 </div>
 

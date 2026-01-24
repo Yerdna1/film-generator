@@ -143,8 +143,8 @@ export const DEFAULT_HEADERS = {
     'Content-Type': 'application/json',
   },
   openrouter: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://film-generator.vercel.app',
-    'X-Title': 'Film Generator',
+    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://artflowly.com',
+    'X-Title': 'ArtFlowly',
   },
   kie: {
     'Accept': 'application/json',

@@ -2,8 +2,8 @@ import { Inngest } from 'inngest';
 
 // Create a client to send and receive events
 export const inngest = new Inngest({
-  id: 'film-generator',
-  name: 'Film Generator',
+  id: 'artflowly',
+  name: 'ArtFlowly',
   // Dev mode configuration
   isDev: process.env.NODE_ENV === 'development',
   baseUrl: process.env.INNGEST_DEV || undefined,

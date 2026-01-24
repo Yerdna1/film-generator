@@ -654,7 +654,7 @@ export function useSettings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `film-generator-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `artflowly-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -674,8 +674,8 @@ export function useSettings() {
 
   const handleDeleteAllData = useCallback(() => {
     clearProjects();
-    localStorage.removeItem('film-generator-projects');
-    localStorage.removeItem('film-generator-api-config');
+    localStorage.removeItem('artflowly-projects');
+    localStorage.removeItem('artflowly-api-config');
     localStorage.removeItem('app-language');
     localStorage.removeItem('app-dark-mode');
     localStorage.removeItem('app-reduced-motion');
