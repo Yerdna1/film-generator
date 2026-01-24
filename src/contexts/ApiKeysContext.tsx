@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, ReactNode,
 import { useSession } from 'next-auth/react';
 import type { ApiKeys } from '@prisma/client';
 import type { OperationType } from '@/lib/services/user-permissions';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { ApiKeyConfigModal } from '@/components/workflow/ApiKeyConfigModal';
 import { debounce } from '@/lib/utils/debounce';
 import { isValidApiKeysData } from '@/lib/utils/validate-api-keys';

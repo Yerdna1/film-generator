@@ -47,11 +47,12 @@ export default async function RootLayout({
 
             <Toaster
               position="bottom-right"
-              theme="system"
+              theme="dark"
+              gap={40}
+              richColors={false}
+              expand={true}
               toastOptions={{
-                classNames: {
-                  toast: 'glass-strong',
-                },
+                duration: 5000,
               }}
             />
             <ShadcnToaster />

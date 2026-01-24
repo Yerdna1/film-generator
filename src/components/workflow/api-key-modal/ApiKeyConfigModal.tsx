@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SaveStatus, type SaveStatus as SaveStatusType } from '@/components/ui/SaveStatus';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useApiKeys } from '@/contexts/ApiKeysContext';
 import { formatApiKeyName } from '@/lib/services/user-permissions';
 import { debounce } from '@/lib/utils/debounce';

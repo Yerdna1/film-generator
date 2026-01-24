@@ -535,3 +535,118 @@
   position: relative;
   overflow: visible;
 }
+
+/* Custom Sonner Toast Overrides */
+body [data-sonner-toaster] {
+  font-family: var(--font-sans) !important;
+  overflow: visible !important;
+  z-index: 9999 !important;
+  padding-right: 40px !important;
+  padding-bottom: 40px !important;
+}
+
+body [data-sonner-toaster] ol {
+  overflow: visible !important;
+  gap: 16px !important;
+}
+
+body [data-sonner-toaster] li {
+  overflow: visible !important;
+  padding: 30px !important;
+  margin: -30px !important;
+}
+
+
+body [data-sonner-toast] {
+  background: rgba(0, 0, 0, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 1 !important;
+}
+
+body [data-sonner-toast][data-type="error"],
+body [data-rich-colors='true'][data-sonner-toast][data-type='error'] {
+  background:
+    linear-gradient(135deg, rgba(15, 0, 0, 0.98) 0%, rgba(30, 0, 0, 0.95) 100%) !important;
+  border: 2px solid #ff4444 !important;
+  color: #ff6b6b !important;
+  filter:
+    drop-shadow(0 0 10px #ff0000)
+    drop-shadow(0 0 20px #ff0000)
+    drop-shadow(0 0 30px #ff0000)
+    drop-shadow(0 0 40px #ff0000) !important;
+  animation: toast-glow-error-filter 2s ease-in-out infinite !important;
+}
+
+@keyframes toast-glow-error-filter {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 10px #ff0000)
+      drop-shadow(0 0 20px #ff0000)
+      drop-shadow(0 0 30px #ff0000)
+      drop-shadow(0 0 40px #ff0000);
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 15px #ff0000)
+      drop-shadow(0 0 30px #ff0000)
+      drop-shadow(0 0 45px #ff0000)
+      drop-shadow(0 0 60px #ff0000)
+      drop-shadow(0 0 80px #ff0000);
+  }
+}
+
+[data-sonner-toast][data-type="success"] {
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.5),
+    0 0 20px rgba(34, 197, 94, 0.8),
+    0 0 40px rgba(34, 197, 94, 0.6),
+    0 0 80px rgba(34, 197, 94, 0.4),
+    0 4px 24px rgba(0, 0, 0, 0.4) !important;
+  border: 2px solid rgba(34, 197, 94, 0.5) !important;
+  color: #4ade80 !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.8),
+    0 0 40px rgba(59, 130, 246, 0.6),
+    0 0 80px rgba(59, 130, 246, 0.4),
+    0 4px 24px rgba(0, 0, 0, 0.4) !important;
+  border: 2px solid rgba(59, 130, 246, 0.5) !important;
+  color: #60a5fa !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, 0.5),
+    0 0 20px rgba(245, 158, 11, 0.8),
+    0 0 40px rgba(245, 158, 11, 0.6),
+    0 0 80px rgba(245, 158, 11, 0.4),
+    0 4px 24px rgba(0, 0, 0, 0.4) !important;
+  border: 2px solid rgba(245, 158, 11, 0.5) !important;
+  color: #fbbf24 !important;
+}
+
+/* Toast icon colors */
+[data-sonner-toast][data-type="error"] [data-icon],
+[data-rich-colors='true'][data-sonner-toast][data-type='error'] [data-icon] {
+  color: #ff6b6b !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #4ade80 !important;
+}
+
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: #60a5fa !important;
+}
+
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #fbbf24 !important;
+}
