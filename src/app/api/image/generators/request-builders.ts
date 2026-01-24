@@ -7,13 +7,15 @@ export function buildKieRequestBody(
   prompt: string,
   aspectRatio: string,
   kieModelId: string,
-  referenceImages: Array<{ name: string; imageUrl: string }>
+  referenceImages: Array<{ name: string; imageUrl: string }>,
+  resolution: string = '2k'
 ): any {
   return {
     model: kieModelId,
     input: {
       prompt: prompt,
       aspect_ratio: aspectRatio,
+      resolution: resolution.toUpperCase(), // KIE API expects "1K", "2K", "4K"
       // Additional parameters based on model type
       ...(kieModelId.includes('ideogram') && { render_text: true }),
       ...(kieModelId.includes('flux') && { guidance_scale: 7.5 }),

@@ -121,8 +121,20 @@ export async function generateWithWrapper(options: WrapperGenerationOptions): Pr
       // Use request model if provided, otherwise use config model
       kieModelId = requestModel || config.model || 'nano-banana-pro-2k';
 
-      // KIE uses createTask with model and input structure - use model name as-is
-      requestBody = buildKieRequestBody(prompt, aspectRatio, kieModelId, referenceImages);
+      // Look up apiModelId from database - KIE API expects "nano-banana-pro" (not "google-nano-banana-pro-1k")
+      const { prisma } = await import('@/lib/db/prisma');
+      const modelConfig = await prisma.kieImageModel.findUnique({
+        where: { modelId: kieModelId },
+        select: { apiModelId: true, defaultResolution: true },
+      });
+
+      // Use apiModelId for the request (e.g., "nano-banana-pro"), fallback to modelId if not set
+      const apiModelId = modelConfig?.apiModelId || kieModelId;
+      // Use provided resolution, fallback to database defaultResolution, then '2k'
+      const modelResolution = resolution || modelConfig?.defaultResolution || '2k';
+
+      // KIE uses createTask with model and input structure
+      requestBody = buildKieRequestBody(prompt, aspectRatio, apiModelId, referenceImages, modelResolution);
       break;
 
     default:
