@@ -3,7 +3,7 @@ export { usePreviewPlayer } from './usePreviewPlayer';
 export { useExportHandlers } from './useExportHandlers';
 export { useDownloadHandlers } from './useDownloadHandlers';
 export { useCaptionEditor } from './useCaptionEditor';
-export { useBackgroundMusic } from './useBackgroundMusic';
+export { useBackgroundMusic } from './use-background-music';
 export { useTimelineEditor } from './useTimelineEditor';
 export { useVideoComposer } from './useVideoComposer';
 export type { UseTimelineEditorReturn, TimelineEditorState } from './useTimelineEditor';

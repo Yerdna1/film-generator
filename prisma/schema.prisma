@@ -391,6 +391,28 @@ model VoiceoverGenerationJob {
   @@index([status])
 }
 
+model MusicGenerationJob {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  status          String    @default("pending")
+  progress        Int       @default(0)
+  errorDetails    String?
+  musicProvider   String?
+  musicModel      String?
+  prompt          String?
+  instrumental    Boolean?
+  audioUrl        String?
+  title           String?
+  createdAt       DateTime  @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
 model VideoCompositionJob {
   id              String    @id @default(cuid())
   projectId       String
