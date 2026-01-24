@@ -20,7 +20,7 @@ interface SceneGeneratorDialogsProps {
   // Generate Images Dialog
   showGenerateImagesDialog: boolean;
   setShowGenerateImagesDialog: (show: boolean) => void;
-  onConfirmGenerateImages: () => void | Promise<void>;
+  onConfirmGenerateImages: () => Promise<void>;
   imageProvider?: string | null;
   imageModel?: string | null;
   projectSettingsForImages: any;

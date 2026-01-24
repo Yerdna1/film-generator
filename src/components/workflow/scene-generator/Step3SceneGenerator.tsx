@@ -268,7 +268,7 @@ export function Step3SceneGenerator({
   }, [apiKeysData, projectSettings.sceneCount, creditsData, handleGenerateAllScenes, setShowGenerateDialog, setIsConfirmGenerating, setSceneTextCreditsNeeded, setPendingSceneTextGeneration, setIsOpenRouterModalOpen, apiKeysLlmProvider, apiKeysKieLlmModel]);
 
   // Wrap to prevent click event from being passed as argument
-  const doGenerateImages = useInngest
+  const doGenerateImages: () => Promise<void> = useInngest
     ? () => {
       console.log('[Step3] Starting background image generation via Inngest');
       setShowGenerateImagesDialog(false);

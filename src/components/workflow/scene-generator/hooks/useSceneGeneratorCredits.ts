@@ -19,7 +19,7 @@ interface UseSceneGeneratorCreditsProps {
 interface UseSceneGeneratorCreditsReturn {
   handleGenerateSceneImageWithCreditCheck: (scene: Scene) => Promise<void>;
   handleGenerateAllWithCreditCheck: () => Promise<void>;
-  handleGenerateAllScenesWithCreditCheck: () => Promise<void>;
+  handleGenerateAllScenesWithCreditCheck: () => Promise<boolean>; // Returns true if ready to show dialog
 }
 
 /**
@@ -86,11 +86,11 @@ export function useSceneGeneratorCredits({
   }, [creditsData, imageResolution, scenes, userApiKeys, handleGenerateAllSceneImages, onOpenKieModal]);
 
   // Wrapper for scene text generation with credit check
-  const handleGenerateAllScenesWithCreditCheck = useCallback(async () => {
+  const handleGenerateAllScenesWithCreditCheck = useCallback(async (): Promise<boolean> => {
     // Wait for API keys data to load before showing dialog
     if (!apiKeysData) {
       console.warn('[Step3] API keys data not loaded yet, waiting...');
-      return;
+      return false;
     }
 
     // Bypass credit check if user has ANY LLM provider configured
@@ -99,10 +99,9 @@ export function useSceneGeneratorCredits({
     const hasClaudeKey = apiKeysData?.hasClaudeKey;
     const hasModalLlm = apiKeysData?.modalLlmEndpoint;
 
-    // Show confirmation dialog for ALL users
+    // Return true to indicate caller should show the dialog
     // Note: The actual generation happens after dialog confirmation
-    // The caller should handle showing the dialog
-    return { shouldShowDialog: true };
+    return true;
 
     // Note: The actual generation happens after dialog confirmation in handleConfirmGenerateScenes
   }, [apiKeysData]);
