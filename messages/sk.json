@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Generátor filmov",
+    "appName": "ArtFlowly",
     "appDescription": "AI štúdio na tvorbu krátkych filmov",
     "loading": "Načítava sa...",
     "processing": "Spracováva sa...",

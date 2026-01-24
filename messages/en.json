@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Film Generator",
+    "appName": "ArtFlowly",
     "appDescription": "AI-powered short film creation studio",
     "loading": "Loading...",
     "processing": "Processing...",
