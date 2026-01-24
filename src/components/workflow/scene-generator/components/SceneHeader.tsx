@@ -121,7 +121,7 @@ export function SceneHeader({
               </div>
             ) : (
               <Button
-                className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0 px-6"
+                className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white border-0 font-medium animate-pulse-border-red px-6"
                 disabled={isGeneratingScenes || !hasCharacters}
                 onClick={onGenerateAllScenes}
               >

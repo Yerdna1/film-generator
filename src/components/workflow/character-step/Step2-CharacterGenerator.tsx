@@ -347,7 +347,7 @@ export function Step2CharacterGenerator({ project: initialProject, isReadOnly = 
             label: isGeneratingAll ? t('steps.character.stopGenerating') : t('steps.character.generateAll'),
             onClick: isGeneratingAll ? () => {} : handleGenerateAllWithCheck,
             disabled: isGeneratingAll || isReadOnly || generatedCount >= characters.length || generatedCount === 0,
-            variant: isGeneratingAll ? 'destructive' : 'outline',
+            variant: isGeneratingAll ? 'destructive' : 'primary',
             visible: generatedCount < characters.length && generatedCount > 0,
           },
           {

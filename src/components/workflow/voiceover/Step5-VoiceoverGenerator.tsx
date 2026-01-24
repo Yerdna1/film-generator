@@ -25,7 +25,7 @@ import {
   useVoiceSettings
 } from './hooks';
 import { StepActionBar } from '../shared/StepActionBar';
-import { Mic } from 'lucide-react';
+import { Mic, Settings } from 'lucide-react';
 
 export function Step5VoiceoverGenerator({ project: initialProject, permissions, userRole, isReadOnly = false, isAuthenticated = false }: Step5Props) {
   const t = useTranslations();
@@ -233,6 +233,18 @@ export function Step5VoiceoverGenerator({ project: initialProject, permissions, 
         subtitle={`${generatedCount} / ${liveDialogueLines.length} voiceovers generated`}
         operation="tts"
         showApiKeyButton={true}
+        rightContent={
+          <Button
+            onClick={() => setShowVoiceSettings(true)}
+            disabled={isReadOnly}
+            variant="outline"
+            size="sm"
+            className="border-white/20 hover:bg-white/5 transition-all duration-200"
+          >
+            <Settings className="w-4 h-4 mr-1" />
+            Nastavení hlasu
+          </Button>
+        }
         actions={[
           {
             label: isGeneratingAll ? 'Stop' : 'Generate All',

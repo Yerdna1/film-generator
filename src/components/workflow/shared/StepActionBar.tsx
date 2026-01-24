@@ -4,7 +4,6 @@ import { LucideIcon, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useApiKeys } from '@/contexts/ApiKeysContext';
-import { useTranslations } from 'next-intl';
 import type { OperationType } from '@/lib/services/user-permissions';
 import {
   DropdownMenu,
@@ -67,7 +66,7 @@ interface StepActionBarProps {
 }
 
 const buttonVariants = {
-  primary: 'bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white border-0',
+  primary: 'bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white border-0 font-medium animate-pulse-border-red',
   secondary: 'bg-violet-500 hover:bg-violet-600 text-white border-0',
   outline: 'border-violet-500/30 hover:bg-violet-500/10',
   destructive: 'bg-red-600 hover:bg-red-500 text-white border-0',
@@ -86,8 +85,22 @@ export function StepActionBar({
   showApiKeyButton = false,
   rightContent,
 }: StepActionBarProps) {
-  const tSettings = useTranslations('settings');
-  const { showApiKeyModal } = useApiKeys();
+  const { showApiKeyModal, apiKeys } = useApiKeys();
+
+  // Check if any API key is configured
+  const hasAnyApiKey = apiKeys && (
+    apiKeys.geminiApiKey ||
+    apiKeys.grokApiKey ||
+    apiKeys.kieApiKey ||
+    apiKeys.elevenLabsApiKey ||
+    apiKeys.claudeApiKey ||
+    apiKeys.openaiApiKey ||
+    apiKeys.nanoBananaApiKey ||
+    apiKeys.sunoApiKey ||
+    apiKeys.openRouterApiKey ||
+    apiKeys.piapiApiKey ||
+    apiKeys.resendApiKey
+  );
 
   const handleApiKeyClick = () => {
     if (operation) {
@@ -178,11 +191,15 @@ export function StepActionBar({
             onClick={handleApiKeyClick}
             variant="outline"
             size="sm"
-            className="border-violet-500/30 hover:bg-violet-500/10 transition-all duration-200"
+            className={cn(
+              "bg-yellow-500 hover:bg-yellow-600 text-black dark:bg-yellow-400 dark:hover:bg-yellow-500 dark:text-black border-0 transition-all duration-200 font-medium",
+              !hasAnyApiKey && "animate-pulse-border"
+            )}
             title="Configure API Keys & Providers"
           >
             <Settings className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">API Keys</span>
+            <span className="hidden sm:inline">Configure your own API keys</span>
+            <span className="sm:hidden">API Keys</span>
           </Button>
         )}
 

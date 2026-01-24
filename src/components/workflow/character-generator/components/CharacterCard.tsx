@@ -103,7 +103,7 @@ function CharacterCardComponent({
     return (
       <Button
         size="sm"
-        className="flex-1 bg-gradient-to-r from-purple-600/80 to-cyan-600/80 hover:from-purple-500 hover:to-cyan-500 text-white border-0"
+        className="flex-1 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white border-0 font-medium animate-pulse-border-red"
         onClick={() => onGenerateImage(character)}
       >
         <Sparkles className="w-4 h-4 mr-2" />
