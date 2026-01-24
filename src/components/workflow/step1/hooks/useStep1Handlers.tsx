@@ -39,7 +39,6 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     videoLanguage,
     imageProvider,
     voiceProvider,
-    styleModel,
     editedPrompt,
     setEditedPrompt,
     setIsEditing,
@@ -57,11 +56,11 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     // Define outside try block for fallback access in catch
     const currentSettings: import('@/types/project').ProjectSettings = {
       aspectRatio,
-      resolution: (styleModel === 'flux' ? '4k' : 'hd') as 'hd' | '4k',
+      resolution: 'hd' as 'hd' | '4k',
       voiceLanguage: videoLanguage as 'sk' | 'en',
       sceneCount: (project.settings?.sceneCount || 12) as 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360,
       characterCount: project.settings?.characterCount || 3,
-      imageResolution: (styleModel === 'flux' ? '4k' : '2k') as '1k' | '2k' | '4k',
+      imageResolution: (project.settings?.imageResolution || '1k') as '1k' | '2k' | '4k',
       voiceProvider,
       storyModel,
     };
@@ -303,7 +302,6 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     storyModel,
     imageProvider,
     voiceProvider,
-    styleModel,
     project,
     store,
     setEditedPrompt,
@@ -326,11 +324,11 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     // Get current settings from project
     const currentSettings: import('@/types/project').ProjectSettings = {
       aspectRatio,
-      resolution: (styleModel === 'flux' ? '4k' : 'hd') as 'hd' | '4k',
+      resolution: 'hd' as 'hd' | '4k',
       voiceLanguage: videoLanguage as 'sk' | 'en',
       sceneCount: (project.settings?.sceneCount || 12) as 12 | 24 | 36 | 48 | 60 | 120 | 240 | 360,
       characterCount: project.settings?.characterCount || 3,
-      imageResolution: (styleModel === 'flux' ? '4k' : '2k') as '1k' | '2k' | '4k',
+      imageResolution: (project.settings?.imageResolution || '1k') as '1k' | '2k' | '4k',
       voiceProvider,
       storyModel,
     };
@@ -418,7 +416,6 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     aspectRatio,
     videoLanguage,
     storyModel,
-    styleModel,
     voiceProvider,
     project,
     effectiveIsPremium,

@@ -29,7 +29,7 @@ export function ApiKeyConfigModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatusType>('idle');
-  const [activeTab, setActiveTab] = useState<OperationType | 'all'>(operation || 'all');
+  const [activeTab, setActiveTab] = useState<OperationType | 'all'>(operation || 'llm');
   const [kieModels, setKieModels] = useState<Record<string, any[]>>({
     llm: [],
     image: [],
@@ -416,11 +416,7 @@ export function ApiKeyConfigModal({
 
         <div className="flex-1 overflow-y-auto">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as OperationType | 'all')}>
-            <TabsList className="grid grid-cols-6 w-full h-auto">
-              <TabsTrigger value="all" className="flex flex-col items-center gap-1 py-3">
-                <Settings className="w-4 h-4" />
-                <span className="text-xs">All</span>
-              </TabsTrigger>
+            <TabsList className="grid grid-cols-5 w-full h-auto">
               {(Object.keys(OPERATION_INFO) as OperationType[]).map((opType) => {
                 const info = OPERATION_INFO[opType];
                 return (
@@ -431,21 +427,6 @@ export function ApiKeyConfigModal({
                 );
               })}
             </TabsList>
-
-            <TabsContent value="all" className="mt-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold mb-4">Current Configuration</h3>
-                {(Object.keys(OPERATION_INFO) as OperationType[]).map((opType) => (
-                  <CurrentSelectionSummary
-                    key={opType}
-                    opType={opType}
-                    currentProvider={getCurrentProvider(opType)}
-                    currentModel={getCurrentModel(opType)}
-                    providers={providersByOperation[opType] || []}
-                  />
-                ))}
-              </div>
-            </TabsContent>
 
             {(Object.keys(OPERATION_INFO) as OperationType[]).map((opType) => {
               return (

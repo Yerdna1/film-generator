@@ -10,7 +10,6 @@ export const storyModels = [
   'gemini-3-pro'
 
 ] as const;
-export const styleModels = ['gemini', 'modal', 'modal-edit'] as const;
 
 export const imageProviders: Array<{ id: 'gemini' | 'modal' | 'modal-edit' | 'kie'; label: string }> = [
   { id: 'gemini', label: 'Gemini' },

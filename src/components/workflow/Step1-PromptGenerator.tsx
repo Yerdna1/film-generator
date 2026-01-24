@@ -8,7 +8,7 @@ import { StoryForm } from './step1/StoryForm';
 import { MasterPromptSection } from './step1/MasterPromptSection';
 import { PresetStories } from './step1/PresetStories';
 import { LoadingModal } from './shared';
-import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from './step1/constants';
+import { genres, tones, sceneOptions, storyModels, voiceProviders, imageProviders } from './step1/constants';
 import { useStep1State, useStep1Handlers } from './step1/hooks';
 import { useApiKeys } from '@/contexts/ApiKeysContext';
 import { PaymentMethodToggle } from './PaymentMethodToggle';
@@ -56,8 +56,6 @@ export function Step1PromptGenerator({
     setVideoLanguage,
     storyModel,
     setStoryModel,
-    styleModel,
-    setStyleModel,
     imageProvider,
     setImageProvider,
     voiceProvider,
@@ -118,12 +116,9 @@ export function Step1PromptGenerator({
           setAspectRatio={setAspectRatio}
           videoLanguage={videoLanguage}
           setVideoLanguage={setVideoLanguage as (lang: string | ((prev: string) => string)) => void}
-          styleModel={styleModel}
-          setStyleModel={setStyleModel}
           updateProject={state.store.updateProject}
           updateSettings={state.store.updateSettings}
           sceneOptions={sceneOptions}
-          styleModels={styleModels}
           videoLanguages={videoLanguages}
           isPremiumUser={effectiveIsPremium}
         />

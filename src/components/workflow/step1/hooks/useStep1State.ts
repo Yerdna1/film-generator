@@ -3,7 +3,7 @@ import { useSession } from 'next-auth/react';
 import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project } from '@/types/project';
 import type { Step1State } from './types';
-import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from '../constants';
+import { genres, tones, sceneOptions, storyModels, voiceProviders, imageProviders } from '../constants';
 import { usePromptPolling } from './usePromptPolling';
 
 const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh'] as const;
@@ -75,9 +75,6 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     // Free users use default model
     currentProject.settings?.storyModel || 'gemini-3-pro'
   );
-  const [styleModel, setStyleModel] = useState(
-    currentProject.settings?.imageResolution === '4k' ? 'flux' : 'dall-e-3'
-  );
   const [voiceProvider, setVoiceProvider] = useState<'gemini-tts' | 'elevenlabs' | 'modal' | 'openai-tts' | 'kie'>(
     // Free users use Gemini TTS
     currentProject.settings?.voiceProvider || 'gemini-tts'
@@ -109,14 +106,12 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     }
   }, [videoLanguage, currentProject.id, updateSettings]);
 
+  // Set default image resolution to 1k when project is created
   useEffect(() => {
-    if (currentProject.id) {
-      // Map style model to image resolution
-      const imageResolution = styleModel === 'flux' ? '4k' :
-        styleModel === 'midjourney' ? '2k' : '1k';
-      updateSettings(currentProject.id, { imageResolution });
+    if (currentProject.id && !currentProject.settings?.imageResolution) {
+      updateSettings(currentProject.id, { imageResolution: '1k' });
     }
-  }, [styleModel, currentProject.id, updateSettings]);
+  }, [currentProject.id, currentProject.settings?.imageResolution, updateSettings]);
 
   useEffect(() => {
     if (currentProject.id) {
@@ -173,8 +168,6 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     setVideoLanguage,
     storyModel,
     setStoryModel,
-    styleModel,
-    setStyleModel,
     voiceProvider,
     setVoiceProvider,
     imageProvider,

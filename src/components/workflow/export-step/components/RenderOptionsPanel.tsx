@@ -68,7 +68,7 @@ export function RenderOptionsPanel({
   onDownloadAll,
 }: RenderOptionsPanelProps) {
   const t = useTranslations();
-  const [activeTab, setActiveTab] = useState<'render' | 'music' | 'download'>('render');
+  const [activeTab, setActiveTab] = useState<'render' | 'music' | 'download'>('music');
 
   return (
     <AnimatePresence mode="wait">
@@ -116,14 +116,15 @@ export function RenderOptionsPanel({
                 >
                   {/* Tab List */}
                   <div className="px-3 sm:px-4 pt-3 sm:pt-4">
-                    <TabsList className="grid grid-cols-3 w-full h-9 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                      <TabsTrigger
+                    <TabsList className="grid grid-cols-2 w-full h-9 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+                      {/* Render tab hidden for now */}
+                      {/* <TabsTrigger
                         value="render"
                         className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 text-xs gap-1.5"
                       >
                         <Settings className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Render</span>
-                      </TabsTrigger>
+                      </TabsTrigger> */}
                       <TabsTrigger
                         value="music"
                         className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400 text-xs gap-1.5"
@@ -143,8 +144,8 @@ export function RenderOptionsPanel({
 
                   {/* Tab Content */}
                   <div className="p-3 sm:p-4">
-                    {/* Render Tab */}
-                    <TabsContent value="render" className="mt-0 space-y-4">
+                    {/* Render Tab - Hidden for now */}
+                    {/* <TabsContent value="render" className="mt-0 space-y-4">
                       {!videoComposer.hasEndpoint ? (
                         <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                           <p className="text-sm text-amber-600 dark:text-amber-400">
@@ -160,7 +161,7 @@ export function RenderOptionsPanel({
                           stats={stats}
                         />
                       )}
-                    </TabsContent>
+                    </TabsContent> */}
 
                     {/* Music Tab */}
                     <TabsContent value="music" className="mt-0">
