@@ -12,6 +12,8 @@ interface UseStep1HandlersProps extends Step1State {
   apiKeysContext?: {
     showApiKeyModal: (data: { operation: 'llm' | 'image' | 'video' | 'tts' | 'music'; missingKeys: string[]; onSuccess?: () => void }) => void;
   };
+  startPromptJobPolling?: (jobId: string) => void;
+  isPromptJobRunning?: boolean;
 }
 
 export function useStep1Handlers(props: UseStep1HandlersProps) {
@@ -44,8 +46,6 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     setSelectedPresetId,
     setGeneratingModel,
     setGeneratingProvider,
-    startPromptJobPolling,
-    isPromptJobRunning,
   } = props;
 
   const doGeneratePrompt = useCallback(async () => {
@@ -314,7 +314,7 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     console.log('[Step1] handleGeneratePrompt called');
 
     // Check if a job is already running
-    if (isPromptJobRunning) {
+    if (props.isPromptJobRunning) {
       toast({
         title: "Generation In Progress",
         description: "A prompt generation is already running. Please wait for it to complete.",
@@ -424,7 +424,6 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     effectiveIsPremium,
     props,
     toast,
-    isPromptJobRunning,
     imageProvider,
   ]);
 
