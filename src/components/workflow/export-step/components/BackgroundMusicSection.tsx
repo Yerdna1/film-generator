@@ -8,6 +8,7 @@ import {
   Sparkles,
   Upload,
   Loader2,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -65,10 +66,25 @@ export function BackgroundMusicSection({
                   : '—'}
               </p>
             </div>
+            <button
+              onClick={() => {
+                if (backgroundMusic.currentMusic?.audioUrl) {
+                  const a = document.createElement('a');
+                  a.href = backgroundMusic.currentMusic.audioUrl;
+                  a.download = `background-music.${backgroundMusic.currentMusic.audioUrl.startsWith('data:audio/mpeg') ? 'mp3' : 'wav'}`;
+                  a.click();
+                }
+              }}
+              className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground transition-all"
+              title="Download music"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
             {!isReadOnly && (
               <button
                 onClick={backgroundMusic.removeMusic}
                 className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground transition-all"
+                title="Remove music"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -135,6 +151,11 @@ export function BackgroundMusicSection({
                 </label>
               </div>
             </div>
+            {backgroundMusic.generationState.error && (
+              <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded p-2">
+                {backgroundMusic.generationState.error}
+              </div>
+            )}
           </div>
         )
       )}
