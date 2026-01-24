@@ -37,7 +37,7 @@ export const generateScenesBatch = inngest.createFunction(
     await step.run('update-job-processing', async () => {
       await prisma.sceneGenerationJob.update({
         where: { id: jobId },
-        data: { status: 'processing', startedAt: new Date() },
+        data: { status: 'processing', startedAt: new Date(), progress: 5 },
       });
     });
 
@@ -139,6 +139,16 @@ export const generateScenesBatch = inngest.createFunction(
         console.log(`[Inngest Scenes] Skipping batch ${batchIndex + 1} (scenes ${startScene}-${endScene}) - already saved`);
         continue;
       }
+
+      // Update progress to show batch is starting
+      await step.run(`start-batch-${batchIndex + 1}`, async () => {
+        const progress = Math.round((batchIndex / totalBatches) * 100) + 5;
+        console.log(`[Inngest Scenes] Starting batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}, progress ${progress}%`);
+        await prisma.sceneGenerationJob.update({
+          where: { id: jobId },
+          data: { progress },
+        });
+      });
 
       const batchResult = await step.run(`generate-batch-${batchIndex + 1}`, async () => {
         console.log(`[Inngest Scenes] Generating batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}`);
@@ -273,7 +283,7 @@ export async function generateScenesSynchronously(data: SceneGenerationData) {
   // Update job status to processing
   await prisma.sceneGenerationJob.update({
     where: { id: jobId },
-    data: { status: 'processing', startedAt: new Date() },
+    data: { status: 'processing', startedAt: new Date(), progress: 5 },
   });
 
   // Get project to retrieve storyModel setting
@@ -354,6 +364,14 @@ export async function generateScenesSynchronously(data: SceneGenerationData) {
       continue;
     }
 
+    // Update progress to show batch is starting
+    const progress = Math.round((batchIndex / totalBatches) * 100) + 5;
+    console.log(`[Sync Scenes] Starting batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}, progress ${progress}%`);
+    await prisma.sceneGenerationJob.update({
+      where: { id: jobId },
+      data: { progress },
+    });
+
     console.log(`[Sync Scenes] Generating batch ${batchIndex + 1}/${totalBatches}: scenes ${startScene}-${endScene}`);
 
     // Build prompt
@@ -404,11 +422,11 @@ export async function generateScenesSynchronously(data: SceneGenerationData) {
     const saved = await saveScenesToDatabase({ projectId, scenes, characters });
     totalSavedScenes += saved;
 
-    // Update progress
-    const progress = Math.round(((batchIndex + 1) / totalBatches) * 100);
+    // Update progress after batch completion
+    const completionProgress = Math.round(((batchIndex + 1) / totalBatches) * 100);
     await prisma.sceneGenerationJob.update({
       where: { id: jobId },
-      data: { progress, completedScenes: totalSavedScenes },
+      data: { progress: completionProgress, completedScenes: totalSavedScenes },
     });
   }
 

@@ -64,8 +64,9 @@ export function SceneHeader({
 }: SceneHeaderProps) {
   const t = useTranslations();
 
-  // Hide the header card completely if scenes exist (as requested by user)
-  if (totalScenes > 0) {
+  // Hide the header card completely if scenes exist and no generation job is running
+  // But keep showing progress if a scene generation job is active
+  if (totalScenes > 0 && !isSceneJobRunning) {
     return null;
   }
 
@@ -78,48 +79,47 @@ export function SceneHeader({
         {/* Progress bar removed as requested */}
 
         {/* Generate All Scenes Button or Progress */}
-        {totalScenes === 0 && (
-          <div className="flex flex-col items-center gap-3 pt-2">
-            {isSceneJobRunning ? (
-              <div className="w-full max-w-md space-y-2">
-                <div className="flex items-center justify-center gap-2">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                  </motion.div>
-                  <span className="text-sm text-muted-foreground">
-                    {sceneJobStatus === 'pending' ? 'Starting scene generation...' : 'Generating scenes with AI...'}
-                  </span>
-                  <Badge variant="outline" className="border-purple-500/30 text-purple-400 text-xs">
-                    {sceneJobProgress}%
-                  </Badge>
-                </div>
-                <Progress value={sceneJobProgress} className="h-2" />
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Background job running - you can safely close this tab
-                  </p>
-                  {onStopSceneGeneration && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={onStopSceneGeneration}
-                      className="flex items-center gap-2"
-                    >
-                      <StopCircle className="w-4 h-4" />
-                      Stop Generation
-                    </Button>
-                  )}
-                  {sceneJobStatus === 'pending' && sceneJobProgress === 0 && (
-                    <p className="text-xs text-amber-400 text-center mt-2">
-                      If generation doesn't start within 30 seconds, try stopping and restarting.
-                    </p>
-                  )}
-                </div>
+        <div className="flex flex-col items-center gap-3 pt-2">
+          {isSceneJobRunning ? (
+            <div className="w-full max-w-md space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                </motion.div>
+                <span className="text-sm text-muted-foreground">
+                  {sceneJobStatus === 'pending' ? 'Starting scene generation...' : 'Generating scenes with AI...'}
+                </span>
+                <Badge variant="outline" className="border-purple-500/30 text-purple-400 text-xs">
+                  {sceneJobProgress}%
+                </Badge>
               </div>
-            ) : (
+              <Progress value={sceneJobProgress} className="h-2" />
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-xs text-muted-foreground text-center">
+                  Background job running - you can safely close this tab
+                </p>
+                {onStopSceneGeneration && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={onStopSceneGeneration}
+                    className="flex items-center gap-2"
+                  >
+                    <StopCircle className="w-4 h-4" />
+                    Stop Generation
+                  </Button>
+                )}
+                {sceneJobStatus === 'pending' && sceneJobProgress === 0 && (
+                  <p className="text-xs text-amber-400 text-center mt-2">
+                    If generation doesn't start within 30 seconds, try stopping and restarting.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : totalScenes === 0 && (
               <Button
                 className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white border-0 font-medium animate-pulse-border-red px-6"
                 disabled={isGeneratingScenes || !hasCharacters}
@@ -147,7 +147,6 @@ export function SceneHeader({
               </Button>
             )}
           </div>
-        )}
 
         {!hasCharacters && totalScenes === 0 && (
           <p className="text-sm text-amber-400 text-center">

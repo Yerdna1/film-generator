@@ -1,7 +1,8 @@
 import type { LLMConfig } from './types';
 
 // Maximum scenes per LLM call to avoid token limits
-export const SCENES_PER_BATCH = 30;
+// Set to 1 for smooth progress updates (generates one scene at a time)
+export const SCENES_PER_BATCH = 1;
 
 // Story model to LLM provider mapping
 export function getStoryModelMapping(

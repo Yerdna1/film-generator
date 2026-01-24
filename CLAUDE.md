@@ -35,10 +35,17 @@ npm run test:phase4       # Generation (Image, Video, TTS, Music, Scene)
 npm run test:phase5       # Statistics
 npm run test:phase6       # Concurrency, Security, Errors
 
+# Run specific test files
+npm run test src/path/to/test.ts
+
 # Run E2E tests with Playwright
 npx playwright install    # First time setup
 npm run test:e2e         # Run E2E tests
 npm run test:e2e:ui     # Run with UI mode
+
+# Performance testing
+npm run perf:test         # Run performance tests
+npm run perf:browser      # Run browser performance tests
 ```
 
 ### Build & Deployment
@@ -46,6 +53,21 @@ npm run test:e2e:ui     # Run with UI mode
 npm run build      # Build for production (runs prisma generate first)
 npm run start      # Start production server
 npm run lint       # Run ESLint
+```
+
+### Utility Scripts
+```bash
+npx tsx scripts/generate-preset-images.ts   # Generate preset images for story templates
+npx tsx scripts/fix-project-model-config.ts # Fix project model configurations
+npx tsx scripts/test-kie-models.ts          # Test KIE API models
+```
+
+### Self-Hosted AI Providers (Modal)
+```bash
+modal deploy modal/image_generator.py        # Deploy Qwen-Image generation endpoint
+modal deploy modal/image_edit_generator.py   # Deploy image editing endpoint
+modal deploy modal/image_editor.py           # Deploy image editor endpoint
+modal deploy modal/vectcut_processor.py      # Deploy VectCut processor
 ```
 
 ## High-Level Architecture
@@ -163,13 +185,26 @@ The application uses Prisma ORM with PostgreSQL. Key models:
 
 ### Testing Strategy
 
-The codebase has comprehensive test coverage:
+The codebase has comprehensive test coverage (685+ tests):
 
 - **Unit tests** - Provider configuration, credit calculations, real costs
 - **API tests** - Role-based access, security, concurrency handling
+- **Security tests** - Attack simulation, authorization bypass, injection prevention
+- **Load monitoring tests** - Database query performance, N+1 detection, S3 upload performance
 - **E2E tests** - User workflows with Playwright
 
 Tests are organized by phases for targeted testing of specific functionality.
+
+**Test Factories** (`src/test/factories/`):
+The test suite uses factory functions for creating test data:
+- `createTestUser()` - Create a user with optional attributes
+- `createTestProject()` - Create a project linked to a user
+- `createTestCredits()` - Create credits with a balance
+- `createTestScene()` / `createTestScenes()` - Create single or multiple scenes
+- `createFullTestEnvironment()` - Create a complete environment with admin, collaborator, reader, project, scenes, and credits
+
+**Test Database:**
+Tests use a separate Neon database (`film-generator-test`) to avoid affecting production data. The database is automatically cleaned after each test via `src/test/setup.ts`.
 
 ### Important Patterns
 
@@ -183,9 +218,69 @@ Tests are organized by phases for targeted testing of specific functionality.
 ### Environment Configuration
 
 Required environment variables:
-- `DATABASE_URL` - PostgreSQL connection string
-- `NEXTAUTH_SECRET` - Authentication secret
+- `DATABASE_URL` - PostgreSQL connection string (Neon recommended)
+- `DIRECT_URL` - Direct PostgreSQL connection for Prisma Client
+- `AUTH_SECRET` - NextAuth authentication secret (generate with `openssl rand -base64 32`)
 - `INNGEST_EVENT_KEY` - For Inngest client
 - `INNGEST_SIGNING_KEY` - For webhook verification
 
-Optional provider defaults can be set for each AI service type.
+Optional configuration:
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` - Google OAuth authentication
+- `AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_S3_BUCKET` - S3 media storage
+- `NEXT_PUBLIC_DEFAULT_LOCALE` - Default locale (default: `sk`)
+- `NEXT_PUBLIC_ENABLE_TTS` - Enable text-to-speech (default: `true`)
+- `NEXT_PUBLIC_ENABLE_VIDEO_GENERATION` - Enable video generation (default: `true`)
+- `ADMIN_EMAILS` - Comma-separated admin emails for elevated access
+- Provider-specific keys (GEMINI_API_KEY, KIE_API_KEY, etc.) - Can be set at app level
+
+### Caching Architecture
+
+The application uses a multi-layer in-memory caching system (`src/lib/cache.ts`):
+
+**Cache TTL Presets:**
+- `SHORT`: 5 minutes - User data, frequently changing content
+- `MEDIUM`: 30 minutes - Project lists, statistics
+- `LONG`: 2 hours - Static content, user projects
+- `VERY_LONG`: 6 hours - Reference data
+
+**Cache Key Patterns:**
+- `user:{userId}:projects` - User's project list
+- `user:{userId}:credits` - User's credit balance
+- `user:{userId}:statistics` - User statistics
+- `project:{projectId}` - Single project data
+- `project:{projectId}:scenes` - Project scenes
+
+**Cache Invalidation:**
+- Automatic invalidation on project updates
+- Manual invalidation via `cache.invalidate()`, `cache.invalidateUser()`, `cache.invalidatePattern()`
+- Image regeneration creates new UUIDs (bypasses cache automatically)
+
+### TypeScript Path Aliases
+
+The project uses path aliases configured in `tsconfig.json`:
+- `@/*` maps to `./src/*`
+
+Import example: `import { foo } from '@/lib/bar'` instead of `'../../lib/bar'`
+
+### Multi-Tenant Customer Configuration
+
+Enterprise deployments use customer-specific configuration in `customers/{customer-name}/config/.env`:
+- License key system for feature access
+- Admin email configuration
+- Database and storage options (external vs local)
+- Pre-configured authentication secrets
+
+### Internationalization (i18n)
+
+The application uses `next-intl` for multi-language support:
+
+**Configuration:**
+- `NEXT_PUBLIC_DEFAULT_LOCALE` - Default locale (default: `sk` for Slovak)
+- Locale files in `src/messages/` directory
+- Server components use `import { getTranslations } from 'next-intl/server'`
+- Client components use `import { useTranslations } from 'next-intl'`
+
+**Adding Translations:**
+1. Add keys to locale files in `src/messages/{locale}.json`
+2. Use `t('key.path')` in components
+3. For dynamic content, pass parameters: `t('key.path', { param: value })`
