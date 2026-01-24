@@ -21,23 +21,34 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
   const handleDownloadImages = useCallback(async () => {
     setDownloadingImages(true);
     try {
+      console.log('[DownloadImages] Starting download. Characters:', characters.length, 'Scenes:', scenes.length);
       const zip = new JSZip();
       const imagesFolder = zip.folder('images');
       const charactersFolder = imagesFolder?.folder('characters');
       const scenesFolder = imagesFolder?.folder('scenes');
 
+      let successCount = 0;
+      let failCount = 0;
+
       for (const char of characters) {
         if (char.imageUrl) {
+          console.log('[DownloadImages] Fetching character image:', char.name, char.imageUrl);
           const blob = await fetchAsBlob(char.imageUrl);
           if (blob) {
             const ext = getExtension(char.imageUrl, blob.type);
             charactersFolder?.file(`${sanitizeFilename(char.name)}.${ext}`, blob);
+            successCount++;
+            console.log('[DownloadImages] ✓ Character image added:', char.name);
+          } else {
+            failCount++;
+            console.warn('[DownloadImages] ✗ Failed to fetch character image:', char.name);
           }
         }
       }
 
       for (const scene of scenes) {
         if (scene.imageUrl) {
+          console.log('[DownloadImages] Fetching scene image:', scene.title, scene.imageUrl);
           const blob = await fetchAsBlob(scene.imageUrl);
           if (blob) {
             const ext = getExtension(scene.imageUrl, blob.type);
@@ -46,9 +57,16 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
             );
+            successCount++;
+            console.log('[DownloadImages] ✓ Scene image added:', scene.title);
+          } else {
+            failCount++;
+            console.warn('[DownloadImages] ✗ Failed to fetch scene image:', scene.title);
           }
         }
       }
+
+      console.log(`[DownloadImages] Complete: ${successCount} succeeded, ${failCount} failed`);
 
       const content = await zip.generateAsync({ type: 'blob' });
       downloadBlob(content, `${sanitizeFilename(project.name)}_images.zip`);
@@ -62,11 +80,16 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
   const handleDownloadVideos = useCallback(async () => {
     setDownloadingVideos(true);
     try {
+      console.log('[DownloadVideos] Starting download. Scenes:', scenes.length);
       const zip = new JSZip();
       const videosFolder = zip.folder('videos');
 
+      let successCount = 0;
+      let failCount = 0;
+
       for (const scene of scenes) {
         if (scene.videoUrl) {
+          console.log('[DownloadVideos] Fetching video:', scene.title, scene.videoUrl);
           const blob = await fetchAsBlob(scene.videoUrl);
           if (blob) {
             const ext = getExtension(scene.videoUrl, blob.type);
@@ -75,9 +98,16 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
             );
+            successCount++;
+            console.log('[DownloadVideos] ✓ Video added:', scene.title);
+          } else {
+            failCount++;
+            console.warn('[DownloadVideos] ✗ Failed to fetch video:', scene.title);
           }
         }
       }
+
+      console.log(`[DownloadVideos] Complete: ${successCount} succeeded, ${failCount} failed`);
 
       const content = await zip.generateAsync({ type: 'blob' });
       downloadBlob(content, `${sanitizeFilename(project.name)}_videos.zip`);
@@ -91,8 +121,12 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
   const handleDownloadAudio = useCallback(async () => {
     setDownloadingAudio(true);
     try {
+      console.log('[DownloadAudio] Starting download. Scenes:', scenes.length);
       const zip = new JSZip();
       const audioFolder = zip.folder('audio');
+
+      let successCount = 0;
+      let failCount = 0;
 
       for (const scene of scenes) {
         const sceneNum = scene.number || scenes.indexOf(scene) + 1;
@@ -102,6 +136,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
         for (let i = 0; i < dialogueLines.length; i++) {
           const line = dialogueLines[i];
           if (line.audioUrl) {
+            console.log('[DownloadAudio] Fetching audio:', line.characterName, line.text?.substring(0, 30), line.audioUrl);
             const blob = await fetchAsBlob(line.audioUrl);
             if (blob) {
               const ext = getExtension(line.audioUrl, blob.type);
@@ -109,10 +144,17 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
                 `${String(i + 1).padStart(2, '0')}_${sanitizeFilename(line.characterName || 'unknown')}.${ext}`,
                 blob
               );
+              successCount++;
+              console.log('[DownloadAudio] ✓ Audio added:', line.characterName);
+            } else {
+              failCount++;
+              console.warn('[DownloadAudio] ✗ Failed to fetch audio:', line.characterName);
             }
           }
         }
       }
+
+      console.log(`[DownloadAudio] Complete: ${successCount} succeeded, ${failCount} failed`);
 
       const content = await zip.generateAsync({ type: 'blob' });
       downloadBlob(content, `${sanitizeFilename(project.name)}_audio.zip`);
@@ -126,7 +168,12 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
   const handleDownloadAll = useCallback(async () => {
     setDownloadingAll(true);
     try {
+      console.log('[DownloadAll] Starting full download');
       const zip = new JSZip();
+
+      let imageSuccess = 0;
+      let videoSuccess = 0;
+      let audioSuccess = 0;
 
       // Images folder
       const imagesFolder = zip.folder('images');
@@ -139,6 +186,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
           if (blob) {
             const ext = getExtension(char.imageUrl, blob.type);
             charactersFolder?.file(`${sanitizeFilename(char.name)}.${ext}`, blob);
+            imageSuccess++;
           }
         }
       }
@@ -153,6 +201,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
             );
+            imageSuccess++;
           }
         }
       }
@@ -169,6 +218,7 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
               `scene_${String(sceneNum).padStart(2, '0')}_${sanitizeFilename(scene.title)}.${ext}`,
               blob
             );
+            videoSuccess++;
           }
         }
       }
@@ -190,10 +240,13 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
                 `${String(i + 1).padStart(2, '0')}_${sanitizeFilename(line.characterName || 'unknown')}.${ext}`,
                 blob
               );
+              audioSuccess++;
             }
           }
         }
       }
+
+      console.log(`[DownloadAll] Complete - Images: ${imageSuccess}, Videos: ${videoSuccess}, Audio: ${audioSuccess}`);
 
       // Add dialogues.txt
       let dialoguesText = `# ${project.story?.title || project.name}\n# Dialogues\n\n`;

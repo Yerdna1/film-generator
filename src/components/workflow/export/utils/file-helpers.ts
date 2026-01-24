@@ -1,17 +1,30 @@
 export async function fetchAsBlob(url: string): Promise<Blob | null> {
   try {
+    console.log('[fetchAsBlob] Fetching URL:', url);
+
     // Use proxy for external URLs to avoid CORS issues
     const needsProxy =
       (url.includes('s3.') && url.includes('amazonaws.com')) ||
-      url.includes('aiquickdraw.com');
+      url.includes('aiquickdraw.com') ||
+      url.includes('amazonaws.com');
 
     const fetchUrl = needsProxy ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+    console.log('[fetchAsBlob] Using proxy:', needsProxy, 'Fetch URL:', fetchUrl);
 
     const response = await fetch(fetchUrl);
-    if (!response.ok) return null;
-    return await response.blob();
+    console.log('[fetchAsBlob] Response status:', response.status, 'ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('[fetchAsBlob] Failed response:', response.status, errorText);
+      return null;
+    }
+
+    const blob = await response.blob();
+    console.log('[fetchAsBlob] Success! Blob size:', blob.size, 'type:', blob.type);
+    return blob;
   } catch (error) {
-    console.error('Failed to fetch:', url, error);
+    console.error('[fetchAsBlob] Failed to fetch:', url, error);
     return null;
   }
 }
