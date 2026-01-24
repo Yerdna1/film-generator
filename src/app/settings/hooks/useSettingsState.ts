@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useProjectStore } from '@/lib/stores/project-store';
-import type { ActionCosts } from '../../types';
+import type { ActionCosts } from '../types';
 import type {
   LLMProvider,
   MusicProvider,

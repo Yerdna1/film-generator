@@ -1,39 +1,19 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
-import {
-  Subtitles,
-  Plus,
-  Trash2,
-  Save,
-  X,
-  Wand2,
-  Clock,
-  Palette,
-  Type,
-  AlignVerticalJustifyCenter,
-  Sparkles,
-} from 'lucide-react';
+import { Subtitles, Plus, Trash2, Wand2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { captionAnimations, captionFontSizes } from '@/lib/constants/video-editor';
 import type { Project, Caption, CaptionStyle } from '@/types/project';
 
-const SCENE_DURATION = 6;
+// Sub-components
+import { CaptionEditorCompact } from './caption-editor/CaptionEditorCompact';
+import { SceneSelector } from './caption-editor/SceneSelector';
+import { CaptionList } from './caption-editor/CaptionList';
+import { CaptionForm } from './caption-editor/CaptionForm';
+import { CaptionPreview } from './caption-editor/CaptionPreview';
 
 interface CaptionEditorProps {
   project: Project;
@@ -56,32 +36,6 @@ interface CaptionEditorProps {
   onClearAllScenesCaptions: () => void;
   compact?: boolean;
 }
-
-const animationOptions = [
-  { value: 'none', label: 'None' },
-  { value: 'fadeIn', label: 'Fade In' },
-  { value: 'slideUp', label: 'Slide Up' },
-  { value: 'typewriter', label: 'Typewriter' },
-  { value: 'popIn', label: 'Pop In' },
-] as const;
-
-const fontSizeOptions = [
-  { value: 'small', label: 'Small' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large' },
-] as const;
-
-const positionOptions = [
-  { value: 'top', label: 'Top' },
-  { value: 'center', label: 'Center' },
-  { value: 'bottom', label: 'Bottom' },
-] as const;
-
-const fontFamilyOptions = [
-  { value: 'default', label: 'Sans Serif' },
-  { value: 'serif', label: 'Serif' },
-  { value: 'mono', label: 'Monospace' },
-] as const;
 
 export function CaptionEditor({
   project,
@@ -119,139 +73,27 @@ export function CaptionEditor({
     0
   );
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toFixed(1).padStart(4, '0')}`;
-  };
-
   // Compact version
   if (compact) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Captions ({totalCaptionsAllScenes})
-          </h4>
-          {anySceneHasDialogue && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onAutoGenerateAllCaptions}
-              className="h-6 px-2 text-[10px] text-yellow-400 hover:bg-yellow-500/10"
-            >
-              <Wand2 className="w-3 h-3 mr-1" />
-              Auto Generate
-            </Button>
-          )}
-        </div>
-
-        {/* Scene thumbnails */}
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {project.scenes.slice(0, 10).map((scene, index) => {
-            const captionCount = scene.captions?.length || 0;
-            return (
-              <button
-                key={scene.id}
-                onClick={() => onSetSelectedSceneIndex(index)}
-                className={cn(
-                  'flex-shrink-0 w-10 h-7 rounded overflow-hidden border transition-all relative',
-                  index === selectedSceneIndex
-                    ? 'border-yellow-500'
-                    : 'border-white/10 hover:border-white/30'
-                )}
-              >
-                {scene.imageUrl ? (
-                  <img src={scene.imageUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                    <span className="text-[8px] text-muted-foreground">{index + 1}</span>
-                  </div>
-                )}
-                {captionCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-yellow-500 text-[8px] flex items-center justify-center text-black font-bold">
-                    {captionCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          {project.scenes.length > 10 && (
-            <span className="text-[10px] text-muted-foreground self-center px-1">+{project.scenes.length - 10}</span>
-          )}
-        </div>
-
-        {/* Current scene captions */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">Scene {selectedSceneIndex + 1}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onStartNewCaption}
-              className="h-5 px-1.5 text-[10px]"
-            >
-              <Plus className="w-2.5 h-2.5 mr-0.5" />
-              Add
-            </Button>
-          </div>
-          {sceneCaptions.length > 0 ? (
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {sceneCaptions.map((caption) => (
-                <div
-                  key={caption.id}
-                  className="flex items-center gap-1.5 p-1.5 rounded bg-white/5 group text-[10px]"
-                >
-                  <span className="flex-1 truncate">{caption.text || '(empty)'}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 opacity-0 group-hover:opacity-100"
-                    onClick={() => onStartEditingCaption(caption)}
-                  >
-                    <Type className="w-2.5 h-2.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:text-red-400"
-                    onClick={() => onDeleteCaption(caption.id)}
-                  >
-                    <Trash2 className="w-2.5 h-2.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[10px] text-muted-foreground text-center py-2">No captions</p>
-          )}
-        </div>
-
-        {/* Editing form - simplified */}
-        {isEditing && editingCaption && (
-          <div className="space-y-2 p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
-            <Textarea
-              value={editingCaption.text}
-              onChange={(e) => onUpdateCaptionField('text', e.target.value)}
-              placeholder="Caption text..."
-              className="min-h-[50px] text-xs bg-white/5 border-white/10"
-            />
-            <div className="flex gap-1">
-              <Button variant="ghost" size="sm" onClick={onCancelEditing} className="h-6 text-[10px] flex-1">
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => onSaveCaption(editingCaption)}
-                disabled={!editingCaption.text.trim()}
-                className="h-6 text-[10px] flex-1 bg-yellow-600 hover:bg-yellow-700"
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+      <CaptionEditorCompact
+        project={project}
+        selectedSceneIndex={selectedSceneIndex}
+        editingCaption={editingCaption}
+        isEditing={isEditing}
+        sceneCaptions={sceneCaptions}
+        totalCaptionsAllScenes={totalCaptionsAllScenes}
+        anySceneHasDialogue={anySceneHasDialogue}
+        onSetSelectedSceneIndex={onSetSelectedSceneIndex}
+        onStartEditingCaption={onStartEditingCaption}
+        onStartNewCaption={onStartNewCaption}
+        onCancelEditing={onCancelEditing}
+        onSaveCaption={onSaveCaption}
+        onDeleteCaption={onDeleteCaption}
+        onUpdateCaptionField={onUpdateCaptionField}
+        onUpdateCaptionStyle={onUpdateCaptionStyle}
+        onAutoGenerateAllCaptions={onAutoGenerateAllCaptions}
+      />
     );
   }
 
@@ -309,38 +151,11 @@ export function CaptionEditor({
         {/* Scene selector thumbnails */}
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Select Scene</Label>
-          <div className="flex gap-1 overflow-x-auto pb-2">
-            {project.scenes.map((scene, index) => {
-              const captionCount = scene.captions?.length || 0;
-              return (
-                <button
-                  key={scene.id}
-                  onClick={() => onSetSelectedSceneIndex(index)}
-                  className={cn(
-                    'flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all relative',
-                    index === selectedSceneIndex
-                      ? 'border-yellow-500 ring-2 ring-yellow-500/30'
-                      : 'border-white/10 hover:border-white/30'
-                  )}
-                >
-                  {scene.imageUrl ? (
-                    <img src={scene.imageUrl} alt={scene.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                      <span className="text-[10px] text-muted-foreground">{index + 1}</span>
-                    </div>
-                  )}
-                  {captionCount > 0 && (
-                    <Badge
-                      className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[9px] bg-yellow-500"
-                    >
-                      {captionCount}
-                    </Badge>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <SceneSelector
+            project={project}
+            selectedSceneIndex={selectedSceneIndex}
+            onSelectScene={onSetSelectedSceneIndex}
+          />
         </div>
 
         {/* Current scene info */}
@@ -365,293 +180,26 @@ export function CaptionEditor({
         {sceneCaptions.length > 0 && !isEditing && (
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Captions</Label>
-            <div className="space-y-1">
-              {sceneCaptions.map((caption) => (
-                <motion.div
-                  key={caption.id}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{caption.text || '(empty)'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTime(caption.startTime)} - {formatTime(caption.endTime)}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] border-yellow-500/30 text-yellow-400">
-                    {caption.animation}
-                  </Badge>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => onStartEditingCaption(caption)}
-                    >
-                      <Type className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 hover:text-red-400"
-                      onClick={() => onDeleteCaption(caption.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <CaptionList
+              captions={sceneCaptions}
+              onEditCaption={onStartEditingCaption}
+              onDeleteCaption={onDeleteCaption}
+            />
           </div>
         )}
 
         {/* Caption editor form */}
         {isEditing && editingCaption && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4 p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20"
-          >
-            {/* Caption text */}
-            <div className="space-y-2">
-              <Label className="text-xs flex items-center gap-1">
-                <Type className="w-3 h-3" />
-                Caption Text
-              </Label>
-              <Textarea
-                value={editingCaption.text}
-                onChange={(e) => onUpdateCaptionField('text', e.target.value)}
-                placeholder="Enter caption text..."
-                className="min-h-[60px] bg-white/5 border-white/10"
-              />
-            </div>
-
-            {/* Timing */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Start Time ({formatTime(editingCaption.startTime)})
-                </Label>
-                <Slider
-                  value={[editingCaption.startTime]}
-                  min={0}
-                  max={SCENE_DURATION}
-                  step={0.1}
-                  onValueChange={([value]) => onUpdateCaptionField('startTime', value)}
-                  className="cursor-pointer"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  End Time ({formatTime(editingCaption.endTime)})
-                </Label>
-                <Slider
-                  value={[editingCaption.endTime]}
-                  min={0}
-                  max={SCENE_DURATION}
-                  step={0.1}
-                  onValueChange={([value]) => onUpdateCaptionField('endTime', value)}
-                  className="cursor-pointer"
-                />
-              </div>
-            </div>
-
-            {/* Style options */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Animation
-                </Label>
-                <Select
-                  value={editingCaption.animation}
-                  onValueChange={(value) => onUpdateCaptionField('animation', value as Caption['animation'])}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {animationOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <AlignVerticalJustifyCenter className="w-3 h-3" />
-                  Position
-                </Label>
-                <Select
-                  value={editingCaption.style.position}
-                  onValueChange={(value) => onUpdateCaptionStyle('position', value as CaptionStyle['position'])}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {positionOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <Type className="w-3 h-3" />
-                  Font Size
-                </Label>
-                <Select
-                  value={editingCaption.style.fontSize}
-                  onValueChange={(value) => onUpdateCaptionStyle('fontSize', value as CaptionStyle['fontSize'])}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontSizeOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <Type className="w-3 h-3" />
-                  Font Family
-                </Label>
-                <Select
-                  value={editingCaption.style.fontFamily}
-                  onValueChange={(value) => onUpdateCaptionStyle('fontFamily', value as CaptionStyle['fontFamily'])}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontFamilyOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Colors */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <Palette className="w-3 h-3" />
-                  Text Color
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={editingCaption.style.color}
-                    onChange={(e) => onUpdateCaptionStyle('color', e.target.value)}
-                    className="w-10 h-9 p-1 bg-white/5 border-white/10 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={editingCaption.style.color}
-                    onChange={(e) => onUpdateCaptionStyle('color', e.target.value)}
-                    className="flex-1 bg-white/5 border-white/10 font-mono text-xs"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
-                  <Palette className="w-3 h-3" />
-                  Background
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={editingCaption.style.backgroundColor.replace(/rgba?\([^)]+\)/, '#000000')}
-                    onChange={(e) => {
-                      const hex = e.target.value;
-                      const r = parseInt(hex.slice(1, 3), 16);
-                      const g = parseInt(hex.slice(3, 5), 16);
-                      const b = parseInt(hex.slice(5, 7), 16);
-                      onUpdateCaptionStyle('backgroundColor', `rgba(${r},${g},${b},0.7)`);
-                    }}
-                    className="w-10 h-9 p-1 bg-white/5 border-white/10 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={editingCaption.style.backgroundColor}
-                    onChange={(e) => onUpdateCaptionStyle('backgroundColor', e.target.value)}
-                    className="flex-1 bg-white/5 border-white/10 font-mono text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Preview */}
-            <div className="space-y-2">
-              <Label className="text-xs">Preview</Label>
-              <div className="relative h-24 rounded-lg bg-black/50 flex items-end justify-center overflow-hidden">
-                <div
-                  className={cn(
-                    'absolute left-0 right-0 px-4 text-center',
-                    editingCaption.style.position === 'top' && 'top-2',
-                    editingCaption.style.position === 'center' && 'top-1/2 -translate-y-1/2',
-                    editingCaption.style.position === 'bottom' && 'bottom-2'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'px-3 py-1 rounded inline-block',
-                      editingCaption.style.textShadow && 'drop-shadow-lg'
-                    )}
-                    style={{
-                      fontSize: captionFontSizes[editingCaption.style.fontSize],
-                      color: editingCaption.style.color,
-                      backgroundColor: editingCaption.style.backgroundColor,
-                      fontFamily:
-                        editingCaption.style.fontFamily === 'serif'
-                          ? 'Georgia, serif'
-                          : editingCaption.style.fontFamily === 'mono'
-                          ? 'monospace'
-                          : 'inherit',
-                    }}
-                  >
-                    {editingCaption.text || 'Caption preview'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" size="sm" onClick={onCancelEditing}>
-                <X className="w-4 h-4 mr-1" />
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => onSaveCaption(editingCaption)}
-                disabled={!editingCaption.text.trim()}
-                className="bg-yellow-600 hover:bg-yellow-700"
-              >
-                <Save className="w-4 h-4 mr-1" />
-                Save Caption
-              </Button>
-            </div>
-          </motion.div>
+          <div className="space-y-4">
+            <CaptionForm
+              caption={editingCaption}
+              onUpdateField={onUpdateCaptionField}
+              onUpdateStyle={onUpdateCaptionStyle}
+              onSave={() => onSaveCaption(editingCaption)}
+              onCancel={onCancelEditing}
+            />
+            <CaptionPreview caption={editingCaption} />
+          </div>
         )}
 
         {/* Empty state */}
