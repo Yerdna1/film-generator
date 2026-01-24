@@ -3,7 +3,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db/prisma';
 import { spendCredits, checkBalance, COSTS } from '@/lib/services/credits';
 import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
 import { callExternalApi } from '@/lib/providers/api-wrapper';
