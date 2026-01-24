@@ -3,11 +3,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { spendCredits, checkBalance, COSTS } from '@/lib/services/credits';
-import { getUserPermissions, shouldUseOwnApiKeys, checkRequiredApiKeys, getMissingRequirementError } from '@/lib/services/user-permissions';
+import { spendCredits, COSTS } from '@/lib/services/credits';
+import { getUserPermissions } from '@/lib/services/user-permissions';
 import { callExternalApi } from '@/lib/providers/api-wrapper';
 import { getProviderConfig } from '@/lib/providers';
 import type { Provider } from '@/lib/services/real-costs';
+
+// Import modular components
+import { buildRequestBody } from './lib/request-builders';
+import { extractGeneratedText } from './lib/response-parsers';
+import { handleClaudeSDK } from './lib/claude-sdk-handler';
+import { checkLLMPermissions } from './lib/permissions-checker';
 
 export const maxDuration = 120; // Allow up to 2 minutes for generation
 
@@ -36,8 +42,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user permissions - handled by provider config and user-permissions module
-
     // Get provider configuration - single source of truth
     let config;
     try {
@@ -62,150 +66,49 @@ export async function POST(request: NextRequest) {
 
     const isUsingOwnKey = config.userHasOwnApiKey || false;
     const isFreeGeminiModel = (model || config.model || '').includes('free') || (model || config.model || '').includes('flash');
-
-    // Check user permissions and credit/API key requirements
-    const permissions = await getUserPermissions(userId);
-    const useOwnKeys = await shouldUseOwnApiKeys(userId, 'llm');
-
-    // Check if user needs API keys
-    if ((useOwnKeys || permissions.requiresApiKeys) && !isUsingOwnKey && !isFreeGeminiModel) {
-      const keyCheck = await checkRequiredApiKeys(userId, 'llm');
-
-      if (!keyCheck.hasKeys) {
-        const error = getMissingRequirementError(permissions, 'llm', keyCheck.missing);
-        return NextResponse.json(
-          {
-            ...error,
-            creditsRequired: PROMPT_ENHANCEMENT_COST,
-            balance: 0
-          },
-          { status: error.code === 'API_KEY_REQUIRED' ? 403 : 402 }
-        );
-      }
-    } else if (permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel) {
-      // Premium/admin user using system keys - check credits
-      const balanceCheck = await checkBalance(userId, PROMPT_ENHANCEMENT_COST);
-      if (!balanceCheck.hasEnough) {
-        return NextResponse.json(
-          {
-            error: `Insufficient credits. Need ${PROMPT_ENHANCEMENT_COST}, have ${balanceCheck.balance}`,
-            creditsRequired: PROMPT_ENHANCEMENT_COST,
-            balance: balanceCheck.balance,
-            code: 'INSUFFICIENT_CREDITS',
-            showCreditsModal: true
-          },
-          { status: 402 }
-        );
-      }
-    }
-
     const defaultSystemPrompt = systemPrompt || 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.';
+
+    // Check user permissions
+    const permissionCheck = await checkLLMPermissions({
+      userId,
+      isUsingOwnKey,
+      isFreeModel: isFreeGeminiModel
+    });
+
+    if (!permissionCheck.allowed) {
+      return NextResponse.json(
+        permissionCheck.error!,
+        { status: permissionCheck.error!.status }
+      );
+    }
 
     // Special handling for Claude SDK (local development only)
     if (config.provider === 'claude-sdk') {
-      try {
-        const { query } = await import('@anthropic-ai/claude-agent-sdk');
-        let fullResponse = '';
+      const permissions = await getUserPermissions(userId);
+      const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
 
-        const stream = query({
-          prompt,
-          options: {
-            model: 'claude-sonnet-4-20250514',
-            systemPrompt: defaultSystemPrompt,
-            maxTurns: 1,
-            allowedTools: [],
-          },
-        });
+      const result = await handleClaudeSDK({
+        config,
+        prompt,
+        systemPrompt: defaultSystemPrompt,
+        userId,
+        projectId,
+        shouldChargeCredits
+      });
 
-        for await (const message of stream) {
-          if (message.type === 'assistant' && message.message?.content) {
-            for (const block of message.message.content) {
-              if (block.type === 'text') {
-                fullResponse += block.text;
-              }
-            }
-          }
-        }
-
-        // Deduct credits if needed
-        const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
-        if (shouldChargeCredits) {
-          await spendCredits(
-            userId,
-            PROMPT_ENHANCEMENT_COST,
-            'prompt',
-            'Master prompt enhancement via Claude SDK',
-            projectId,
-            'claude-sdk' as Provider
-          );
-        }
-
-        return NextResponse.json({
-          text: fullResponse,
-          provider: 'claude-sdk',
-          creditsUsed: shouldChargeCredits ? PROMPT_ENHANCEMENT_COST : 0,
-          isFreeGeneration: !shouldChargeCredits
-        });
-      } catch (error) {
-        return NextResponse.json(
-          { error: `Claude SDK error: ${error instanceof Error ? error.message : String(error)}. Make sure Claude CLI is installed and authenticated.` },
-          { status: 500 }
-        );
-      }
+      return NextResponse.json(result);
     }
 
     // Build request body based on provider
-    let requestBody: any;
-    const llmModel = model || config.model;
-
-    switch (config.provider) {
-      case 'openrouter':
-
-      case 'kie':
-        // Model resolution is handled by provider-config.ts
-        const finalModel = llmModel;
-
-        requestBody = {
-          model: finalModel,
-          messages: [
-            { role: 'system', content: defaultSystemPrompt },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 8192,
-          temperature: 0.9,
-          stream: false,
-        };
-        break;
-
-      case 'modal':
-        requestBody = {
-          prompt,
-          system_prompt: defaultSystemPrompt,
-          max_tokens: 8192,
-        };
-        break;
-
-      case 'gemini':
-        requestBody = {
-          contents: [{ parts: [{ text: `${defaultSystemPrompt}\n\n${prompt}` }] }],
-          generationConfig: {
-            temperature: 0.9,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-          },
-        };
-        break;
-
-      default:
-        return NextResponse.json(
-          { error: `Unsupported LLM provider: ${config.provider}` },
-          { status: 400 }
-        );
-    }
+    const requestBody = buildRequestBody({
+      provider: config.provider,
+      model: config.model || model,
+      prompt,
+      systemPrompt: defaultSystemPrompt
+    });
 
     // Make the API call using the centralized wrapper
-    console.log(`[LLM Prompt] Calling ${config.provider} with model ${llmModel}`);
+    console.log(`[LLM Prompt] Calling ${config.provider} with model ${config.model} (requested: ${model})`);
 
     const response = await callExternalApi({
       userId,
@@ -225,47 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract text from response based on provider format
-    let generatedText: string | undefined;
-
-    switch (response.provider) {
-      case 'openrouter':
-
-      case 'kie':
-        // KIE can return data in multiple formats
-        generatedText = response.data?.choices?.[0]?.message?.content;
-
-        // Check KIE wrapped format
-        if (!generatedText && response.data?.data) {
-          const kieData = response.data.data;
-          generatedText = kieData.choices?.[0]?.message?.content ||
-            kieData.output ||
-            kieData.text ||
-            kieData.result ||
-            kieData.response;
-        }
-
-        // Check for direct message property
-        if (!generatedText && response.data?.message) {
-          generatedText = response.data.message;
-        }
-
-        // Check if response itself is a string
-        if (!generatedText && typeof response.data === 'string') {
-          generatedText = response.data;
-        }
-        break;
-
-      case 'modal':
-        generatedText = response.data?.response ||
-          response.data?.text ||
-          response.data?.content ||
-          (typeof response.data === 'string' ? response.data : undefined);
-        break;
-
-      case 'gemini':
-        generatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        break;
-    }
+    const generatedText = extractGeneratedText(response);
 
     if (!generatedText) {
       console.error('No text generated from response:', {
@@ -281,6 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine if we should charge credits
+    const permissions = await getUserPermissions(userId);
     const shouldChargeCredits = permissions.requiresCredits && !isUsingOwnKey && !isFreeGeminiModel;
 
     // Deduct credits ONLY if using system resources (and not free model)

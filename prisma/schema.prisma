@@ -352,21 +352,39 @@ model VideoGenerationJob {
   @@index([status])
 }
 
+model PromptGenerationJob {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  status          String    @default("pending")
+  progress        Int       @default(0)
+  errorDetails    String?
+  llmProvider     String?
+  llmModel        String?
+  createdAt       DateTime  @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
 model VoiceoverGenerationJob {
-  id                String   @id @default(cuid())
-  projectId         String
-  userId            String
-  status            String   @default("pending")
-  totalAudioLines   Int
-  completedAudioLines Int    @default(0)
-  failedAudioLines  Int      @default(0)
-  progress          Int      @default(0)
-  errorDetails      String?
-  audioProvider     String?
-  audioModel        String?
-  createdAt         DateTime @default(now())
-  startedAt         DateTime?
-  completedAt       DateTime?
+  id                  String    @id @default(cuid())
+  projectId           String
+  userId              String
+  status              String    @default("pending")
+  totalAudioLines     Int
+  completedAudioLines Int       @default(0)
+  failedAudioLines    Int       @default(0)
+  progress            Int       @default(0)
+  errorDetails        String?
+  audioProvider       String?
+  audioModel          String?
+  createdAt           DateTime  @default(now())
+  startedAt           DateTime?
+  completedAt         DateTime?
 
   @@index([projectId])
   @@index([userId])
@@ -702,38 +720,29 @@ model KieLlmModel {
   @@map("kie_llm_models")
 }
 
-// Provider configuration tables
 model Provider {
-  id          String        @id @default(cuid())
-  providerId  String        @unique
-  name        String
-  displayName String
-  icon        String
-  color       String
-  description String?
-  isActive    Boolean       @default(true)
-  isDefault   Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Configuration
-  apiKeyField String        // Which field in ApiKeys table stores the API key
-  modelField  String?       // Which field in ApiKeys table stores the model selection
-
-  // Features
-  supportedModalities String[]  // ['image', 'video', 'tts', 'music', 'llm']
-  requiresEndpoint    Boolean   @default(false) // For Modal-like providers
-
-  // Metadata
-  helpLink    String?
-  setupGuide  String?       // JSON with setup instructions
-
-  // Relations
-  imageModels  ImageModel[]
-  videoModels  VideoModel[]
-  ttsModels    TtsModel[]
-  musicModels  MusicModel[]
-  llmModels    LlmModel[]
+  id                  String       @id @default(cuid())
+  providerId          String       @unique
+  name                String
+  displayName         String
+  icon                String
+  color               String
+  description         String?
+  isActive            Boolean      @default(true)
+  isDefault           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  apiKeyField         String
+  modelField          String?
+  supportedModalities String[]
+  requiresEndpoint    Boolean      @default(false)
+  helpLink            String?
+  setupGuide          String?
+  imageModels         ImageModel[]
+  llmModels           LlmModel[]
+  musicModels         MusicModel[]
+  ttsModels           TtsModel[]
+  videoModels         VideoModel[]
 
   @@index([isActive])
   @@index([providerId])
@@ -746,36 +755,26 @@ model ImageModel {
   name                  String
   displayName           String
   description           String?
-  apiModelId            String   // The actual model ID to use in API calls
-
-  // Provider relation
-  provider              Provider @relation(fields: [providerId], references: [providerId])
-
-  // Features & constraints
+  apiModelId            String
   modality              String[] @default(["image"])
   qualityOptions        String[]
   maxPromptLength       Int?
   maxImages             Int?     @default(1)
   supportedAspectRatios String[]
   supportedResolutions  String[]
-
-  // Cost configuration
   credits               Int      @default(27)
   cost                  Float
   costUnit              String   @default("per_image")
-
-  // Parameters
-  inputParameters       Json     // Schema for input params
-  outputParameters      Json     // Schema for output params
-  defaultParameters     Json?    // Default values
-  constraints           Json?    // Additional constraints
-
-  // Metadata
+  inputParameters       Json
+  outputParameters      Json
+  defaultParameters     Json?
+  constraints           Json?
   keyFeatures           String[]
   useCases              String[]
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  provider              Provider @relation(fields: [providerId], references: [providerId])
 
   @@index([providerId])
   @@index([isActive])
@@ -790,11 +789,6 @@ model VideoModel {
   displayName           String
   description           String?
   apiModelId            String
-
-  // Provider relation
-  provider              Provider @relation(fields: [providerId], references: [providerId])
-
-  // Features & constraints
   modality              String[] @default(["video"])
   supportedResolutions  String[]
   supportedDurations    String[]
@@ -802,26 +796,21 @@ model VideoModel {
   defaultResolution     String
   defaultDuration       String
   defaultAspectRatio    String
-  maxDuration           Int?     // In seconds
-
-  // Cost configuration
+  maxDuration           Int?
   credits               Int      @default(20)
   cost                  Float
   costUnit              String   @default("per_second")
-  pricing               Json     // Complex pricing tiers
-
-  // Parameters
+  pricing               Json
   inputParameters       Json
   outputParameters      Json
   defaultParameters     Json?
   constraints           Json?
-
-  // Metadata
   keyFeatures           String[]
   isAsync               Boolean  @default(true)
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  provider              Provider @relation(fields: [providerId], references: [providerId])
 
   @@index([providerId])
   @@index([isActive])
@@ -836,32 +825,22 @@ model TtsModel {
   displayName         String
   description         String?
   apiModelId          String
-
-  // Provider relation
-  provider            Provider @relation(fields: [providerId], references: [providerId])
-
-  // Features & constraints
   modality            String[] @default(["audio", "speech"])
   supportedLanguages  String[]
-  voiceOptions        Json     // Available voices with metadata
+  voiceOptions        Json
   audioQualityOptions String[]
   maxTextLength       Int?
-
-  // Cost configuration
   credits             Int      @default(6)
   cost                Float
   costUnit            String   @default("per_character")
-
-  // Parameters
   inputParameters     Json
   outputParameters    Json
   defaultParameters   Json?
   specialFeatures     String[]
-
-  // Metadata
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  provider            Provider @relation(fields: [providerId], references: [providerId])
 
   @@index([providerId])
   @@index([isActive])
@@ -869,39 +848,29 @@ model TtsModel {
 }
 
 model MusicModel {
-  id               String   @id @default(cuid())
-  providerId       String
-  modelId          String   @unique
-  name             String
-  displayName      String
-  description      String?
-  apiModelId       String
-
-  // Provider relation
-  provider         Provider @relation(fields: [providerId], references: [providerId])
-
-  // Features & constraints
-  modality         String[] @default(["audio", "music"])
-  durationOptions  String[]
-  genreSupport     String[]
+  id                String   @id @default(cuid())
+  providerId        String
+  modelId           String   @unique
+  name              String
+  displayName       String
+  description       String?
+  apiModelId        String
+  modality          String[] @default(["audio", "music"])
+  durationOptions   String[]
+  genreSupport      String[]
   instrumentSupport String[]
-  maxDuration      Int?     // In seconds
-
-  // Cost configuration
-  credits          Int      @default(10)
-  cost             Float
-  costUnit         String   @default("per_generation")
-
-  // Parameters
-  inputParameters  Json
-  outputParameters Json
+  maxDuration       Int?
+  credits           Int      @default(10)
+  cost              Float
+  costUnit          String   @default("per_generation")
+  inputParameters   Json
+  outputParameters  Json
   defaultParameters Json?
-
-  // Metadata
-  isAsync          Boolean  @default(true)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  isAsync           Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  provider          Provider @relation(fields: [providerId], references: [providerId])
 
   @@index([providerId])
   @@index([isActive])
@@ -916,32 +885,22 @@ model LlmModel {
   displayName        String
   description        String?
   apiModelId         String
-
-  // Provider relation
-  provider           Provider @relation(fields: [providerId], references: [providerId])
-
-  // Features & constraints
   modality           String[] @default(["text"])
   contextWindow      Int?
   maxOutputTokens    Int?
   supportedLanguages String[]
-  capabilities       String[] // ['chat', 'completion', 'function_calling', 'vision']
-
-  // Cost configuration
+  capabilities       String[]
   creditsPerToken    Float?
   creditsPerRequest  Int?
   cost               Float
   costUnit           String   @default("per_1k_tokens")
-
-  // Parameters
   inputParameters    Json
   outputParameters   Json
   defaultParameters  Json?
-
-  // Metadata
   isActive           Boolean  @default(true)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  provider           Provider @relation(fields: [providerId], references: [providerId])
 
   @@index([providerId])
   @@index([isActive])

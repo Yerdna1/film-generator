@@ -44,9 +44,12 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
     setSelectedPresetId,
     setGeneratingModel,
     setGeneratingProvider,
+    startPromptJobPolling,
+    isPromptJobRunning,
   } = props;
 
   const doGeneratePrompt = useCallback(async () => {
+    console.log('[Step1] doGeneratePrompt called');
     setIsGenerating(true);
     setIsConfirmDialogOpen(false);
 
@@ -147,74 +150,69 @@ export function useStep1Handlers(props: UseStep1HandlersProps) {
       setGeneratingModel(modelToUse || undefined);
       setGeneratingProvider(providerToUse || undefined);
 
-      // Try to enhance with user's configured LLM provider
-      const response = await fetch('/api/llm/prompt', {
+      console.log('[Step1] Making API call to /api/jobs/generate-prompt with:', {
+        provider: providerToUse,
+        model: modelToUse,
+        hasModel: !!modelToUse,
+        projectId: project.id
+      });
+
+      // Start a background job for prompt generation
+      const response = await fetch('/api/jobs/generate-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(modelToUse && { model: modelToUse }), // Pass model for premium users
-          prompt: `Generate a complete master prompt for a ${currentSettings.sceneCount}-scene animated short film based on the following details:
-
-Story Title: ${project.story.title}
-Genre: ${project.story.genre}
-Tone: ${project.story.tone}
-Setting: ${project.story.setting}
-Concept: ${project.story.concept}
-Visual Style: ${project.style}
-
-Technical Settings:
-- Aspect Ratio: ${aspectRatio}
-- Video Language: ${videoLanguage}
-- LLM Model: ${modelToUse || storyModel}
-- Image Provider: ${props.apiKeys?.imageProvider || imageProvider}
-- Voice Provider: ${props.apiKeys?.ttsProvider || voiceProvider}
-- Characters: ${currentSettings.characterCount}
-- Scenes: ${currentSettings.sceneCount}
-
-Please generate a comprehensive master prompt that includes:
-1. Detailed character descriptions with visual appearance, personality, and motivations
-2. Scene breakdown with specific camera shots and compositions
-3. Text-to-Image prompts for each character and scene
-4. Image-to-Video prompts describing movements and actions
-5. Sample dialogue for each scene
-
-Format the output with clear CHARACTER: and SCENE: sections.`,
-          systemPrompt: 'You are a professional film prompt engineer specializing in creating detailed prompts for animated films.',
+          projectId: project.id,
+          story: project.story,
+          style: project.style,
+          settings: {
+            aspectRatio,
+            videoLanguage,
+            sceneCount: currentSettings.sceneCount,
+            characterCount: currentSettings.characterCount,
+            imageProvider: props.apiKeys?.imageProvider || imageProvider,
+            voiceProvider: props.apiKeys?.ttsProvider || voiceProvider,
+          },
+          skipCreditCheck: providerToUse === 'openrouter' || providerToUse === 'claude-sdk' || providerToUse === 'kie',
         }),
+      });
+
+      console.log('[Step1] API response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.text) {
-          store.setMasterPrompt(project.id, data.text);
-          setEditedPrompt(data.text);
-          // Dispatch credits update event
-          window.dispatchEvent(new CustomEvent('credits-updated'));
+        console.log('[Step1] Job started:', data);
+
+        if (data.jobId) {
+          // Start polling for the job status
+          if (props.startPromptJobPolling) {
+            props.startPromptJobPolling(data.jobId);
+          }
+
+          // Update UI state
           setIsGenerating(false);
           setGeneratingModel(undefined);
           setGeneratingProvider(undefined);
 
-          // Show success toast and auto-advance to Step 2
           toast({
-            title: "Step 1 Complete! 🎉",
-            description: `Master prompt generated via ${data.provider}. ${data.creditsUsed} credits used. Moving to Step 2...`,
+            title: "Generating Master Prompt",
+            description: "Your prompt is being generated in the background. This may take a moment.",
           });
 
-          // Auto-advance to Step 2 after a short delay
-          setTimeout(() => {
-            store.nextStep(project.id);
-          }, 1500);
-
-          console.log(`Master prompt enhanced via ${data.provider}, ${data.creditsUsed} credits used`);
+          console.log(`Master prompt generation job started: ${data.jobId}`);
           return;
         } else {
-          // Response was ok but no text returned
+          // Response was ok but no jobId returned
           setIsGenerating(false);
           setGeneratingModel(undefined);
           setGeneratingProvider(undefined);
           toast({
             title: "Generation Failed",
-            description: "Server returned an empty response. Please try again.",
+            description: "Failed to start generation job. Please try again.",
             variant: "destructive",
           });
           return;
@@ -224,6 +222,7 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
       // Handle 402 Payment Required (could be insufficient credits or missing API key)
       if (response.status === 402) {
         const errorData = await response.json();
+        console.log('[Step1] 402 error:', errorData);
         setIsGenerating(false);
         setGeneratingModel(undefined);
         setGeneratingProvider(undefined);
@@ -263,8 +262,10 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
         let errorMessage = "Failed to generate the master prompt. Please try again.";
         try {
           const errorData = await response.json();
+          console.log('[Step1] API error response:', errorData);
           errorMessage = errorData.error || errorMessage;
         } catch {
+          console.log('[Step1] Could not parse error response');
           // If parsing fails, use default message
         }
         setIsGenerating(false);
@@ -306,10 +307,21 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     project,
     store,
     setEditedPrompt,
+    props,
   ]);
 
   const handleGeneratePrompt = useCallback(async () => {
     console.log('[Step1] handleGeneratePrompt called');
+
+    // Check if a job is already running
+    if (isPromptJobRunning) {
+      toast({
+        title: "Generation In Progress",
+        description: "A prompt generation is already running. Please wait for it to complete.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Get current settings from project
     const currentSettings: import('@/types/project').ProjectSettings = {
@@ -380,6 +392,14 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
       }
 
       // Show confirmation dialog
+      console.log('[Step1] Showing confirmation dialog:', {
+        provider: providerToUse,
+        model: modelToUse,
+        hasApiKeys: !!props.apiKeys,
+        llmProvider: props.apiKeys?.llmProvider,
+        kieLlmModel: props.apiKeys?.kieLlmModel
+      });
+
       setConfirmDialogData({
         provider: providerToUse || 'openrouter',
         model: modelToUse || 'anthropic/claude-4.5-sonnet',
@@ -404,6 +424,8 @@ Format the output with clear CHARACTER: and SCENE: sections.`,
     effectiveIsPremium,
     props,
     toast,
+    isPromptJobRunning,
+    imageProvider,
   ]);
 
   const handleSaveEditedPrompt = useCallback(() => {

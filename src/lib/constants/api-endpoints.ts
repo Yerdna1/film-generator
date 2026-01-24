@@ -49,8 +49,8 @@ export const API_PATHS = {
 
   // KIE.ai
   kie: {
-    // KIE uses a single endpoint for LLM (model sent in request body)
-    llm: () => '/api/v1/chat/completions',
+    // KIE uses model in URL path for LLM
+    llm: (model: string) => `/${model}/v1/chat/completions`,
     // Task-based endpoints for other services
     createTask: '/api/v1/jobs/createTask',
     taskStatus: '/api/v1/jobs/recordInfo',

@@ -30,6 +30,7 @@ export const generateScenesBatch = inngest.createFunction(
   async ({ event, step }) => {
     const { projectId, userId, jobId, story, characters, style, sceneCount, skipCreditCheck = false } = event.data as SceneGenerationData;
 
+    console.log(`[Inngest Scenes] Function invoked at ${new Date().toISOString()}`);
     console.log(`[Inngest Scenes] Starting job ${jobId} for ${sceneCount} scenes, skipCreditCheck=${skipCreditCheck}`);
 
     // Update job status to processing

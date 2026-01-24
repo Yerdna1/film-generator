@@ -9,7 +9,7 @@ export const maxDuration = 30;
 // POST - Start a background scene generation job
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Jobs/Scenes] POST request received');
+    console.log('[Jobs/Scenes] POST request received at', new Date().toISOString());
 
     const session = await auth();
     if (!session?.user?.id) {

@@ -15,7 +15,12 @@ export function buildProviderUrl(provider: string, type: GenerationType, model?:
         case 'openrouter':
           return getEndpointUrl('openrouter', 'chat');
         case 'kie':
-          return getEndpointUrl('kie', 'llm');
+          if (!model) {
+            throw new Error('Model is required for KIE LLM provider');
+          }
+          // KIE expects model without provider prefix (e.g., 'gemini-3-pro' not 'google/gemini-3-pro')
+          const kieModel = model.includes('/') ? model.split('/')[1] : model;
+          return getEndpointUrl('kie', 'llm', kieModel);
         case 'gemini':
           return getEndpointUrl('gemini', 'generateContent', model || 'gemini-2.0-flash-exp');
         case 'openai':

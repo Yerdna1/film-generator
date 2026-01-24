@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 const llmModels = [
   {
     modelId: 'claude-opus-4-5-thinking',
-    apiModelId: 'claude-opus-4-5-thinking',
+    apiModelId: 'anthropic/claude-opus-4-5-thinking',
     name: 'Claude Opus 4.5 Thinking',
     provider: 'Anthropic',
     description: 'Claude Opus 4.5 with extended thinking capabilities for complex reasoning tasks',
@@ -52,7 +52,7 @@ const llmModels = [
   },
   {
     modelId: 'claude-sonnet-4-5-thinking',
-    apiModelId: 'claude-sonnet-4-5-thinking',
+    apiModelId: 'anthropic/claude-sonnet-4-5-thinking',
     name: 'Claude Sonnet 4.5 Thinking',
     provider: 'Anthropic',
     description: 'Claude Sonnet 4.5 with extended thinking capabilities for balanced performance',
@@ -77,7 +77,7 @@ const llmModels = [
   },
   {
     modelId: 'claude-sonnet-4-5',
-    apiModelId: 'claude-sonnet-4-5',
+    apiModelId: 'anthropic/claude-sonnet-4-5',
     name: 'Claude Sonnet 4.5',
     provider: 'Anthropic',
     description: "Anthropic's balanced performance model for general purpose AI tasks",
@@ -101,7 +101,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-3-flash',
-    apiModelId: 'gemini-3-flash',
+    apiModelId: 'google/gemini-3-flash',
     name: 'Gemini 3 Flash',
     provider: 'Google',
     description: "Google's fast-response multimodal model for quick interactions",
@@ -124,7 +124,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-3-pro',
-    apiModelId: 'gemini-3-pro',
+    apiModelId: 'google/gemini-3-pro',
     name: 'Gemini 3 Pro',
     provider: 'Google DeepMind',
     description: "Google's next-generation multimodal model with advanced reasoning and long-context processing",
@@ -147,7 +147,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-2.5-flash',
-    apiModelId: 'gemini-2.5-flash',
+    apiModelId: 'google/gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
     provider: 'Google DeepMind',
     description: "Google's first hybrid reasoning LLM combining fast generation with optional reasoning",
@@ -170,7 +170,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-2.5-pro',
-    apiModelId: 'gemini-2.5-pro',
+    apiModelId: 'google/gemini-2.5-pro',
     name: 'Gemini 2.5 Pro',
     provider: 'Google DeepMind',
     description: "Google's advanced thinking model for complex reasoning and long-context understanding with native multimodal inputs",
@@ -193,7 +193,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-3-pro',
-    apiModelId: 'gemini-3-pro',
+    apiModelId: 'google/gemini-3-pro',
     name: 'Gemini 3 Pro',
     provider: 'Google DeepMind',
     description: "Google's next-generation multimodal model with advanced reasoning and long-context processing",
@@ -216,7 +216,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-2.5-flash',
-    apiModelId: 'gemini-2.5-flash',
+    apiModelId: 'google/gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
     provider: 'Google DeepMind',
     description: "Google's first hybrid reasoning LLM combining fast generation with optional reasoning",
@@ -239,7 +239,7 @@ const llmModels = [
   },
   {
     modelId: 'gemini-2.5-pro',
-    apiModelId: 'gemini-2.5-pro',
+    apiModelId: 'google/gemini-2.5-pro',
     name: 'Gemini 2.5 Pro',
     provider: 'Google DeepMind',
     description: "Google's advanced thinking model for complex reasoning and long-context understanding with native multimodal inputs",

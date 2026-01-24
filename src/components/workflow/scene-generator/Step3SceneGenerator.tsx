@@ -327,6 +327,7 @@ export function Step3SceneGenerator({
 
   // Confirm and execute scene generation after dialog
   const handleConfirmGenerateScenes = useCallback(async () => {
+    console.log('[Step3] handleConfirmGenerateScenes called');
     setShowGenerateDialog(false);
     setIsConfirmGenerating(true);
 
@@ -334,8 +335,19 @@ export function Step3SceneGenerator({
     const hasOpenRouterKey = apiKeysData?.hasOpenRouterKey;
     const hasClaudeKey = apiKeysData?.hasClaudeKey;
     const hasModalLlm = apiKeysData?.modalLlmEndpoint;
+    const hasKieKey = apiKeysData?.hasKieKey;
 
-    if (hasOpenRouterKey || hasClaudeKey || hasModalLlm) {
+    console.log('[Step3] LLM provider check:', {
+      hasOpenRouterKey,
+      hasClaudeKey,
+      hasModalLlm,
+      hasKieKey,
+      llmProvider: apiKeysLlmProvider,
+      kieLlmModel: apiKeysKieLlmModel
+    });
+
+    if (hasOpenRouterKey || hasClaudeKey || hasModalLlm || (hasKieKey && apiKeysLlmProvider === 'kie')) {
+      console.log('[Step3] User has LLM key, skipping credit check');
       await handleGenerateAllScenes(true);
     } else {
       // Check credits

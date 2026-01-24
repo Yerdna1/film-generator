@@ -65,6 +65,11 @@ export function Step1PromptGenerator({
     videoLanguages,
     generatingModel,
     generatingProvider,
+    // Job polling state
+    promptJobId,
+    promptJobProgress,
+    promptJobStatus,
+    isPromptJobRunning,
   } = state;
 
   const {
@@ -95,9 +100,9 @@ export function Step1PromptGenerator({
         showApiKeyButton={true}
         actions={[
           {
-            label: isGenerating ? 'Generating...' : 'Generate Main Prompt',
+            label: isGenerating ? 'Generating...' : isPromptJobRunning ? 'Generation in Progress...' : 'Generate Main Prompt',
             onClick: handleGeneratePrompt,
-            disabled: isGenerating || isReadOnly,
+            disabled: isGenerating || isReadOnly || isPromptJobRunning,
             variant: 'primary',
           },
         ]}
@@ -163,9 +168,16 @@ export function Step1PromptGenerator({
 
       {/* Loading Modal */}
       <LoadingModal
-        isOpen={isGenerating}
+        isOpen={isGenerating || isPromptJobRunning}
         model={generatingModel}
         provider={generatingProvider}
+        progress={isPromptJobRunning ? promptJobProgress : undefined}
+        title={isPromptJobRunning ? "Generating Master Prompt" : undefined}
+        description={isPromptJobRunning ?
+          promptJobStatus === 'processing' ?
+            "Your prompt is being generated in the background. This may take a moment." :
+            "Starting prompt generation..." :
+          undefined}
       />
 
       <UnifiedGenerateConfirmationDialog

@@ -4,6 +4,7 @@ import { useProjectStore } from '@/lib/stores/project-store';
 import type { Project } from '@/types/project';
 import type { Step1State } from './types';
 import { genres, tones, sceneOptions, storyModels, styleModels, voiceProviders, imageProviders } from '../constants';
+import { usePromptPolling } from './usePromptPolling';
 
 const videoLanguages = ['en', 'sk', 'cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh'] as const;
 
@@ -129,6 +130,9 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
     }
   }, [storyModel, currentProject.id, updateSettings]);
 
+  // Use polling hook for prompt generation jobs
+  const polling = usePromptPolling(currentProject);
+
   return {
     // Project
     project: currentProject,
@@ -178,5 +182,8 @@ export function useStep1State({ project, isAdmin }: UseStep1StateProps) {
 
     // Constants
     videoLanguages,
+
+    // Polling state for background jobs
+    ...polling,
   };
 }
