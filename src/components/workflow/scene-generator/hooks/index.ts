@@ -275,3 +275,6 @@ export function useSceneGenerator(initialProject: Project) {
 // Re-export specialized hooks
 export { useStep3Collaboration } from './useStep3Collaboration';
 export { useStep3Pagination } from './useStep3Pagination';
+export { useSceneGeneratorModals } from './useSceneGeneratorModals';
+export { useSceneGeneratorCredits } from './useSceneGeneratorCredits';
+export { useSceneGeneratorSelection, createSelectionQuickActionsProps } from './useSceneGeneratorSelection.tsx';

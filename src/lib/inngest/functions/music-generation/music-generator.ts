@@ -2,6 +2,7 @@
 import { spendCredits, COSTS } from '@/lib/services/credits';
 import { callExternalApi } from '@/lib/providers/api-wrapper';
 import { getProviderConfig } from '@/lib/providers';
+import { uploadMediaToS3 } from '@/lib/api';
 import type { Provider } from '@/lib/services/real-costs';
 import type { MusicGenerationRequest, MusicGenerationResult, MusicGenerationOptions } from './types';
 import { KIE_MUSIC_MODEL_MAPPING, KIE_POLL_CONFIG, PROVIDER_COSTS } from './constants';
@@ -268,6 +269,9 @@ export async function generateMusic(
         finalAudioUrl = base64Audio;
       }
     }
+
+    // Upload to S3 if configured
+    finalAudioUrl = await uploadMediaToS3(finalAudioUrl, 'audio', projectId);
 
     // Only spend credits if user doesn't have their own API key
     if (!userHasOwnApiKey) {

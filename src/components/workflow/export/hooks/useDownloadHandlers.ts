@@ -262,6 +262,20 @@ export function useDownloadHandlers(project: Project): DownloadState & DownloadH
         }
       }
 
+      // Background music
+      if (project.backgroundMusic?.audioUrl) {
+        console.log('[DownloadAll] Adding background music:', project.backgroundMusic.title);
+        const musicBlob = await fetchAsBlob(project.backgroundMusic.audioUrl);
+        if (musicBlob) {
+          const ext = getExtension(project.backgroundMusic.audioUrl, musicBlob.type);
+          const musicTitle = project.backgroundMusic.title || 'background_music';
+          zip.file(`music/${sanitizeFilename(musicTitle)}.${ext}`, musicBlob);
+          console.log('[DownloadAll] ✓ Background music added');
+        } else {
+          console.warn('[DownloadAll] ✗ Failed to fetch background music');
+        }
+      }
+
       console.log(`[DownloadAll] Complete - Images: ${imageSuccess}, Videos: ${videoSuccess}, Audio: ${audioSuccess}`);
 
       // Add dialogues.txt
