@@ -137,7 +137,8 @@
       "Bash(vercel ls:*)",
       "Bash(printf:*)",
       "Bash(npx inngest-cli@latest dev:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }
