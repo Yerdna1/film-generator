@@ -14,6 +14,7 @@ import {
   useBackgroundMusic,
   useVideoComposer,
   useExportHandlers,
+  useDownloadHandlers,
 } from '../export/hooks';
 
 // Components
@@ -63,6 +64,7 @@ export function Step6Export({
   const backgroundMusic = useBackgroundMusic({ project, apiKeys });
   const videoComposer = useVideoComposer(project);
   const exportHandlers = useExportHandlers(project);
+  const downloadHandlers = useDownloadHandlers(project);
 
   // Music generation with confirmation
   const handleGenerateMusicWithConfirm = async () => {
@@ -124,6 +126,15 @@ export function Step6Export({
           stats={stats}
           project={project}
           exportHandlers={exportHandlers}
+          downloadingImages={downloadHandlers.downloadingImages}
+          downloadingVideos={downloadHandlers.downloadingVideos}
+          downloadingAudio={downloadHandlers.downloadingAudio}
+          downloadingAll={downloadHandlers.downloadingAll}
+          onDownloadImages={downloadHandlers.handleDownloadImages}
+          onDownloadVideos={downloadHandlers.handleDownloadVideos}
+          onDownloadAudio={downloadHandlers.handleDownloadAudio}
+          onDownloadDialogues={downloadHandlers.handleDownloadDialogues}
+          onDownloadAll={downloadHandlers.handleDownloadAll}
         />
 
         {/* Side Panel Toggle (when closed) */}

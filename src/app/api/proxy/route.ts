@@ -7,11 +7,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'URL parameter is required' }, { status: 400 });
   }
 
-  // Only allow S3 URLs for security
+  // Only allow specific domains for security
   const allowedDomains = [
     's3.eu-central-1.amazonaws.com',
     's3.amazonaws.com',
     'film-generator-andrej-2026.s3.eu-central-1.amazonaws.com',
+    'aiquickdraw.com',
+    'tempfile.aiquickdraw.com',
   ];
 
   try {
